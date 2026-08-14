@@ -83,11 +83,6 @@ impl FragmentIndex {
         self.records.iter()
     }
 
-    pub(crate) fn clear(&mut self) {
-        self.records.clear();
-        self.lookup.clear();
-    }
-
     pub(crate) fn record_capacity(&self) -> usize {
         self.records.capacity()
     }

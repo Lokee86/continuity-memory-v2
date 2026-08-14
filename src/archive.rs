@@ -1,6 +1,7 @@
 use crate::archive_codec::{encode_branch, encode_node};
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_profile::{profile_enabled, report_open};
+use crate::archive_rebuild::ArchiveOpenState;
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::{hash_content, validate_text};
 use crate::{
@@ -29,22 +30,22 @@ impl Archive {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ArchiveError> {
         let profile = profile_enabled();
         let total_start = profile.then(Instant::now);
-        let container_start = profile.then(Instant::now);
-        let mut archive = Self::empty(Container::open(path)?);
-        let container_elapsed = container_start.map(|start| start.elapsed());
-        let rebuild_start = profile.then(Instant::now);
-        archive.rebuild_index()?;
-        let rebuild_elapsed = rebuild_start.map(|start| start.elapsed());
+        let scan_start = profile.then(Instant::now);
+        let mut state = ArchiveOpenState::new();
+        let container = Container::open_scanned(path, |chunk, payload, latest_global| {
+            state.ingest(chunk, payload, latest_global)
+        })?;
+        let scan_elapsed = scan_start.map(|start| start.elapsed());
+        let archive = state.finish(container)?;
         let validate_start = profile.then(Instant::now);
         archive.validate_references()?;
         let validate_elapsed = validate_start.map(|start| start.elapsed());
-        if let (Some(total), Some(container), Some(rebuild), Some(validate)) = (
+        if let (Some(total), Some(scan), Some(validate)) = (
             total_start.map(|start| start.elapsed()),
-            container_elapsed,
-            rebuild_elapsed,
+            scan_elapsed,
             validate_elapsed,
         ) {
-            report_open(&archive, total, container, rebuild, validate);
+            report_open(&archive, total, scan, validate);
         }
         Ok(archive)
     }

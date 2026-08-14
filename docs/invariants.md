@@ -36,6 +36,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 22. **Whole-Archive historical state is a cut, not one giant record.** `A=N` identifies records/revisions visible through that watermark.
 23. **Checkpointing and historical semantics are distinct.** Checkpoints accelerate reconstruction; clocks/revisions define historical ordering.
 24. **Persistent ordering uses exact integers.** No floating-point version identity.
+25. **Unversioned semantic payloads are inert.** Reopen may observe incomplete node/branch/fragment payloads physically, but they cannot enter Archive state without valid `ArchiveRecordVersion` metadata.
 
 ## Safety boundaries
 

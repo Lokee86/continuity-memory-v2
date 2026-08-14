@@ -36,7 +36,7 @@ Composite `HashMap<String, ...>` lookup keys have been removed. Nodes, current b
 
 On the prepared 12-conversation corpus, allocator-tracked retained open heap fell from `1,014,811` bytes to `752,905` bytes, while peak additional heap fell from `1,146,558` bytes to `884,584` bytes. Remaining record strings are still individually allocated; conversation/role/string interning has not been attempted.
 
-Open time is still dominated by redundant physical work: container open walks chunk framing twice while rebuilding the global clock, then Archive performs a third framing walk and rereads payloads for its own reconstruction. Semantic replay itself remains comparatively small. This is a physical-open inefficiency, not a reason to merge Container and Archive semantic ownership.
+Reopen now uses one streaming physical pass: Container validates chunk framing and global version tickets while Archive consumes the same payloads to reconstruct versioned state. On the prepared corpus, median warm-cache open is about `25.3 ms`, with roughly `24.6 ms` in the combined scan/reconstruction path and `3.0 ms` in reference validation in a traced sample. The remaining startup cost is therefore the unavoidable current full-file scan/decode, not duplicate replay. Persistent checkpointing is deferred until larger-Archive measurements justify the added machinery.
 
 ## Retrieval limits
 

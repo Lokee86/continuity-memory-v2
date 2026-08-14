@@ -8,27 +8,11 @@ pub(crate) fn profile_enabled() -> bool {
     std::env::var_os(PROFILE_ENV).is_some()
 }
 
-pub(crate) fn report_rebuild(archive: &Archive, scan: Duration, replay: Duration) {
+pub(crate) fn report_open(archive: &Archive, total: Duration, scan: Duration, validate: Duration) {
     eprintln!(
-        "archive-profile rebuild scan_us={} replay_us={}",
-        scan.as_micros(),
-        replay.as_micros()
-    );
-    report_indexes(archive);
-}
-
-pub(crate) fn report_open(
-    archive: &Archive,
-    total: Duration,
-    container: Duration,
-    rebuild: Duration,
-    validate: Duration,
-) {
-    eprintln!(
-        "archive-profile open total_us={} container_us={} rebuild_us={} validate_us={}",
+        "archive-profile open total_us={} scan_us={} validate_us={}",
         total.as_micros(),
-        container.as_micros(),
-        rebuild.as_micros(),
+        scan.as_micros(),
         validate.as_micros()
     );
     eprintln!(
@@ -37,6 +21,7 @@ pub(crate) fn report_open(
         archive.record_versions.capacity(),
         archive.record_versions.capacity() * size_of::<crate::ArchiveRecordVersion>()
     );
+    report_indexes(archive);
 }
 
 fn report_indexes(archive: &Archive) {

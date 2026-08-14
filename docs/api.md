@@ -56,7 +56,7 @@ ArchiveRecordVersion
 Core operations:
 
 - `Archive::create(path)` creates a new Archive and writes its format marker.
-- `Archive::open(path)` rebuilds Archive version metadata/current state and validates references.
+- `Archive::open(path)` performs one streaming physical scan that validates Container framing/global tickets while rebuilding only versioned Archive state, then validates references.
 - `append_node(...)` appends an immutable conversation node and its dual-version metadata.
 - `append_branch(branch)` appends a branch/session-head revision when that logical branch changed; an identical current revision is idempotent. An existing branch head may advance only to a descendant node; reviving an older point requires a new branch identity.
 - `branch_turns(...)` resolves the current branch leaf through node parent links.

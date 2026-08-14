@@ -1,4 +1,5 @@
-use crate::{Archive, Branch};
+use crate::archive_codec::encode_node;
+use crate::{Archive, Branch, Node};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -107,4 +108,31 @@ fn identical_node_append_is_idempotent() {
         .unwrap();
     assert_eq!(archive.stats().nodes, 1);
     assert_eq!(archive.stats().content_objects, 1);
+}
+
+#[test]
+fn unversioned_semantic_record_is_inert_on_reopen() {
+    let path = test_path();
+    let mut archive = Archive::create(&path).unwrap();
+    let first = archive
+        .append_node("n1".into(), "c1".into(), None, "user".into(), 1, "hello")
+        .unwrap();
+    let orphan = Node {
+        id: "orphan".into(),
+        conversation_id: "c1".into(),
+        parent_id: Some("n1".into()),
+        role: "assistant".into(),
+        timestamp_ns: 2,
+        content_id: first.content_id,
+    };
+    archive
+        .container
+        .append(&encode_node(&orphan).unwrap())
+        .unwrap();
+    archive.sync().unwrap();
+    drop(archive);
+
+    let reopened = Archive::open(path).unwrap();
+    assert_eq!(reopened.stats().nodes, 1);
+    assert!(reopened.nodes.get("c1", "orphan").is_none());
 }

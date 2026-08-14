@@ -27,6 +27,7 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | An old conversation point can seed a new local branch without Archive rollback | `history_tests::old_conversation_point_can_start_a_new_local_branch` |
 | Shared prefixes/content bodies deduplicate | `archive_tests::shared_branch_prefix_and_content_are_stored_once` |
 | Identical node append is idempotent | `archive_tests::identical_node_append_is_idempotent` |
+| Unversioned semantic payloads remain inert on reopen | `archive_tests::unversioned_semantic_record_is_inert_on_reopen` |
 | Fragment windows/tails remain append-only and branch-neutral | `fragment_tests::*` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
 
@@ -36,7 +37,7 @@ Before concurrent writers are supported, tests must prove that unrelated session
 
 Before whole-CVA rollback ships, tests must define timeline selection across Archive, Memories, Graph, and vector domains without turning every write into a global state publication.
 
-Before compact indexing/checkpoints replace current maps, tests/benchmarks must prove semantic equivalence and measure open-time/heap behavior.
+Before persistent checkpoints are added, larger-scale benchmarks must show that the remaining single-pass scan cost justifies the additional derived-state machinery.
 
 ## Related docs
 

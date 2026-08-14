@@ -1,3 +1,6 @@
+#[path = "container_scan.rs"]
+mod scan;
+
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -13,7 +16,7 @@ pub struct FormatVersion {
     pub minor: u16,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ChunkRef {
     pub offset: u64,
     pub len: u64,
@@ -44,21 +47,6 @@ impl Container {
             version: CURRENT_VERSION,
             next_version: 1,
         })
-    }
-
-    pub fn open(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        let path = path.as_ref();
-        let mut file = OpenOptions::new().read(true).write(true).open(path)?;
-        let version = read_header(&mut file)?;
-        let mut container = Self {
-            file,
-            path: path.to_path_buf(),
-            version,
-            next_version: 1,
-        };
-        container.chunks()?;
-        container.rebuild_version_clock()?;
-        Ok(container)
     }
 
     pub fn append(&mut self, payload: &[u8]) -> Result<ChunkRef, ContainerError> {

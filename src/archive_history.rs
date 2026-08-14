@@ -63,43 +63,4 @@ impl Archive {
         self.next_archive_version = next_archive_version;
         Ok(version)
     }
-
-    pub(crate) fn insert_record_version(
-        &mut self,
-        version: ArchiveRecordVersion,
-    ) -> Result<(), ArchiveError> {
-        let expected = self.next_archive_version;
-        if version.archive_version != expected {
-            return Err(ArchiveError::InvalidArchiveRecordVersion);
-        }
-        if version.global_version == 0
-            || version.global_version > self.container.latest_version()
-            || self
-                .record_versions
-                .last()
-                .is_some_and(|last| last.global_version >= version.global_version)
-        {
-            return Err(ArchiveError::InvalidArchiveRecordVersion);
-        }
-        self.next_archive_version = expected
-            .checked_add(1)
-            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
-        self.record_versions.push(version);
-        Ok(())
-    }
-
-    pub(crate) fn rebuild_current_state(&mut self) -> Result<(), ArchiveError> {
-        self.nodes.clear();
-        self.branches.clear();
-        self.fragments.clear();
-        for version in self.record_versions.clone() {
-            match decode_record(&self.container.read(version.record)?)? {
-                ArchiveRecord::Node(node) => self.insert_rebuilt_node(node)?,
-                ArchiveRecord::Branch(branch) => self.insert_rebuilt_branch_revision(branch),
-                ArchiveRecord::Fragment(fragment) => self.insert_rebuilt_fragment(fragment)?,
-                _ => return Err(ArchiveError::InvalidArchiveRecordVersion),
-            }
-        }
-        Ok(())
-    }
 }

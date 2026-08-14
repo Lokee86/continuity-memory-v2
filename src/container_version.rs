@@ -4,21 +4,16 @@ const VERSION_MAGIC: [u8; 8] = *b"CVAVERS1";
 const VERSION_RECORD_LEN: usize = 16;
 
 impl Container {
-    pub(crate) fn rebuild_version_clock(&mut self) -> Result<(), ContainerError> {
-        let mut expected = 1_u64;
-        for chunk in self.chunks()? {
-            let payload = self.read(chunk)?;
-            let Some(version) = decode_version(&payload)? else {
-                continue;
-            };
-            if version != expected {
-                return Err(ContainerError::InvalidVersionRecord);
-            }
-            expected = expected
-                .checked_add(1)
-                .ok_or(ContainerError::VersionExhausted)?;
+    pub(crate) fn observe_version_payload(&mut self, payload: &[u8]) -> Result<(), ContainerError> {
+        let Some(version) = decode_version(payload)? else {
+            return Ok(());
+        };
+        if version != self.next_version {
+            return Err(ContainerError::InvalidVersionRecord);
         }
-        self.next_version = expected;
+        self.next_version = version
+            .checked_add(1)
+            .ok_or(ContainerError::VersionExhausted)?;
         Ok(())
     }
 

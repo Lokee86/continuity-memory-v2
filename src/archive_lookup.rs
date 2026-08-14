@@ -55,11 +55,6 @@ impl DenseLookup {
         self.len += 1;
     }
 
-    pub(crate) fn clear(&mut self) {
-        self.slots.fill(0);
-        self.len = 0;
-    }
-
     pub(crate) fn slot_capacity(&self) -> usize {
         self.slots.capacity()
     }

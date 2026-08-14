@@ -57,7 +57,7 @@ Prepared-Archive open profiling:
 cargo run --release --example archive_open_profile -- <archive.cva> [runs]
 ```
 
-The profiling example reports median/p90 open time plus allocator-tracked retained and peak bytes. Setting `CONTINUITY_PROFILE_ARCHIVE_OPEN` also prints Archive rebuild/validation timing, dense-record/lookup capacities, retained string capacity, and a conservative known-heap estimate. The diagnostics are opt-in and do not alter persistent format or Archive authority.
+The profiling example reports median/p90 open time plus allocator-tracked retained and peak bytes. Setting `CONTINUITY_PROFILE_ARCHIVE_OPEN` also prints single-pass scan/reconstruction and validation timing, dense-record/lookup capacities, retained string capacity, and a conservative known-heap estimate. The diagnostics are opt-in and do not alter persistent format or Archive authority.
 
 ### Prepared-corpus pre-compaction baseline — 2026-08-14
 
@@ -73,7 +73,13 @@ The composite node/branch string-key maps were replaced by dense records plus on
 
 Allocator-tracked retained heap is now `752,905` bytes and peak additional heap is `884,584` bytes, reductions of `261,906` and `261,974` bytes respectively from the pre-compaction baseline. Current known index-heap estimates are `86,016` bytes for content, `489,852` for nodes, `9,412` for branches, and `87,692` for fragments.
 
-Open time did not improve materially: three subsequent 50-run warm-cache batches had median opens of `83.3`, `92.9`, and `89.6 ms`. A traced sample measured about `40.3 ms` in Container open, `39.0 ms` in Archive rebuild, and `2.7 ms` in validation; Archive scan/reread was about `32.3 ms` while semantic replay was about `6.6 ms`. The next startup optimization is therefore redundant physical scanning/readback, not checkpointing.
+Open time did not improve materially from index compaction alone: three 50-run warm-cache batches had median opens of `83.3`, `92.9`, and `89.6 ms`. A traced sample measured about `40.3 ms` in Container open, `39.0 ms` in Archive rebuild, and `2.7 ms` in validation; Archive scan/reread was about `32.3 ms` while semantic replay was about `6.6 ms`. Those measurements motivated the single-pass reopen change below.
+
+### Prepared-corpus single-pass reopen result — 2026-08-14
+
+Container open and Archive reconstruction now share one streaming chunk walk. Container validates framing and observes global version tickets; Archive consumes the same payload bytes, keeps unversioned semantic records pending, and activates them only when their `ArchiveRecordVersion` appears. This removes the previous framing rescans and semantic-record rereads without moving Archive semantics into Container.
+
+Three 50-run warm-cache batches measured median opens of `25.0`, `25.3`, and `26.8 ms`; the median of those medians is `25.3 ms`, with a representative p90 of `27.2 ms`. Allocator-tracked retained heap remains effectively unchanged at `752,903` bytes and peak additional heap at `884,582` bytes. A 25-run traced sample measured about `24.6 ms` in the combined streaming scan/reconstruction path and `3.0 ms` in reference validation. Compared with the original `83.1 ms` baseline, median reopen time is about 70% lower. Persistent checkpointing is not currently justified by this corpus.
 
 ## Failure modes
 

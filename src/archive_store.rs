@@ -1,10 +1,7 @@
 use crate::archive_codec::{ArchiveRecord, decode_record, encode_content};
-use crate::archive_history_codec::{decode_archive_format, decode_record_version};
-use crate::archive_profile::{profile_enabled, report_rebuild};
-use crate::{Archive, ArchiveError, Branch, ContentId, Node};
+use crate::{Archive, ArchiveError, ContentId, Node};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
-use std::time::Instant;
 
 impl Archive {
     pub(crate) fn empty(container: crate::Container) -> Self {
@@ -65,43 +62,6 @@ impl Archive {
         Ok(nodes)
     }
 
-    pub(crate) fn rebuild_index(&mut self) -> Result<(), ArchiveError> {
-        let profile = profile_enabled();
-        let scan_start = profile.then(Instant::now);
-        let mut format_seen = false;
-        for chunk in self.container.chunks()? {
-            let payload = self.container.read(chunk)?;
-            if decode_archive_format(&payload)? {
-                if format_seen {
-                    return Err(ArchiveError::ConflictingArchiveFormat);
-                }
-                format_seen = true;
-                continue;
-            }
-            if let Some(version) = decode_record_version(&payload)? {
-                self.insert_record_version(version)?;
-                continue;
-            }
-            if let ArchiveRecord::Content(id, bytes) = decode_record(&payload)? {
-                if hash_content(&bytes) != id {
-                    return Err(ArchiveError::CorruptContent);
-                }
-                self.contents.insert(id, chunk);
-            }
-        }
-        if !format_seen {
-            return Err(ArchiveError::MissingArchiveFormat);
-        }
-        let scan_elapsed = scan_start.map(|start| start.elapsed());
-        let replay_start = profile.then(Instant::now);
-        self.rebuild_current_state()?;
-        let replay_elapsed = replay_start.map(|start| start.elapsed());
-        if let (Some(scan), Some(replay)) = (scan_elapsed, replay_elapsed) {
-            report_rebuild(self, scan, replay);
-        }
-        Ok(())
-    }
-
     pub(crate) fn validate_references(&self) -> Result<(), ArchiveError> {
         for node in self.nodes.iter() {
             if !self.contents.contains(node.content_id) {
@@ -139,14 +99,6 @@ impl Archive {
         error: ArchiveError,
     ) -> Result<&'a Node, ArchiveError> {
         self.nodes.get(conversation_id, id).ok_or(error)
-    }
-
-    pub(crate) fn insert_rebuilt_node(&mut self, node: Node) -> Result<(), ArchiveError> {
-        self.nodes.insert(node).map(|_| ())
-    }
-
-    pub(crate) fn insert_rebuilt_branch_revision(&mut self, branch: Branch) {
-        self.branches.put(branch);
     }
 }
 

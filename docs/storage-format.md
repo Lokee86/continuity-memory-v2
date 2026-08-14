@@ -113,7 +113,7 @@ u64       semantic record payload length
 
 Archive versions start at `1` and must be contiguous. Global versions must increase between Archive mutations but need not be contiguous because other domains or failed operations may consume tickets.
 
-The metadata contains no parent publication or Archive-head pointer.
+The metadata contains no parent publication or Archive-head pointer. Its `record` reference must point backward to an already written semantic node, branch, or fragment payload; forward references are invalid.
 
 ### Strings
 
@@ -142,7 +142,7 @@ Container open rejects invalid/truncated header or chunk framing and malformed/n
 
 Archive open rejects a missing/duplicate Archive marker, malformed recognized records, corrupt content IDs, non-contiguous Archive versions, non-increasing/out-of-range global versions in Archive metadata, invalid semantic `ChunkRef`s/types, node conflicts/cycles, missing references, and invalid fragments.
 
-Unversioned node/branch/fragment payloads are physically tolerated but are not semantic Archive state; this makes interrupted pre-metadata writes inert on reopen.
+Unversioned node/branch/fragment payloads are physically tolerated but are not semantic Archive state; the single-pass reopen path keeps them pending and discards any that never receive valid metadata, making interrupted pre-metadata writes inert on reopen.
 
 ## Examples
 

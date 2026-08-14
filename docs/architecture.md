@@ -115,18 +115,20 @@ The Archive itself continues forward. No whole-Archive rollback is required and 
 ### Open
 
 ```text
-validate container + global clock
-    ↓
-scan Archive format/content/version metadata
-    ↓
-validate contiguous Archive versions
-    ↓
-replay semantic records in Archive-version order
-    ↓
-latest branch revision wins per branch identity
-    ↓
-validate references/fragments
+single streaming chunk walk
+    ├── Container validates framing + global version tickets
+    └── Archive decodes format/content/semantic/version records
+            ↓
+       semantic records remain pending until version metadata appears
+            ↓
+       validate contiguous Archive versions + activate visible records
+            ↓
+       latest branch revision wins per branch identity
+            ↓
+       validate references/fragments
 ```
+
+Container supplies physical framing and the current global watermark to the visitor but never interprets Archive record meaning. An interrupted node/branch/fragment payload without `ArchiveRecordVersion` remains pending and is discarded at end of open, preserving the rule that unversioned semantic payloads are inert.
 
 ## State or data ownership
 
@@ -171,19 +173,18 @@ See [architectural invariants](invariants.md).
 
 | Responsibility | Primary code |
 | --- | --- |
-| CVA header/chunks | `src/container.rs` |
+| CVA header/chunks/streaming scan | `src/container.rs`, `src/container_scan.rs` |
 | Global version clock | `src/container_version.rs` |
 | Archive public operations | `src/archive.rs` |
 | Archive record-version clocks/history | `src/archive_history.rs` |
 | Archive version codec/model | `src/archive_history_codec.rs`, `src/archive_history_model.rs` |
 | Archive models/codecs | `src/archive_model.rs`, `src/archive_codec.rs` |
-| Reopen/current indexes | `src/archive_store.rs`, `src/archive_lookup.rs`, `src/archive_record_index.rs`, `src/archive_object_index.rs` |
+| Reopen reconstruction/current indexes | `src/archive_rebuild.rs`, `src/archive_store.rs`, `src/archive_lookup.rs`, `src/archive_record_index.rs`, `src/archive_object_index.rs` |
 | Fragments | `src/fragment_model.rs`, `src/fragmenter.rs`, `src/fragment_store.rs` |
 | History/concurrency semantics tests | `src/history_tests.rs` |
 | Corpus smoke | `examples/archive_roundtrip.rs` |
 ## Tests
-
-Focused tests prove global-clock persistence, independent global/Archive clocks, interleaved unrelated conversations without false ancestry, append-only branch-head revisions, historical branch lookup, old-conversation revival, Archive-version reopen, content dedupe, and fragment invariants.
+Focused tests prove global-clock persistence, independent global/Archive clocks, interleaved unrelated conversations without false ancestry, append-only branch-head revisions, historical branch lookup, old-conversation revival, Archive-version reopen, inert unversioned semantic payloads, content dedupe, and fragment invariants.
 
 The prepared corpus smoke continues to verify complete branch/content reconstruction across reopen.
 
@@ -194,7 +195,6 @@ The prepared corpus smoke continues to verify complete branch/content reconstruc
 - [Architectural invariants](invariants.md)
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
-
 ## Notes
 
 Whole-CVA restore across several future databases remains a separate design problem. The clocks implemented here deliberately avoid solving it with an every-write global state manifest.

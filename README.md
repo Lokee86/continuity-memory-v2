@@ -17,7 +17,7 @@ Implemented now:
 - append-only branch/session-head revisions with historical lookup;
 - revival of an old conversation point through a new local branch without rewinding the Archive;
 - durable 8-turn / 2-overlap retrieval fragment ranges;
-- reopen-time reconstruction and validation of Archive state;
+- single-pass reopen reconstruction and validation of Archive state while Container validates framing/global tickets;
 - compact Archive-owned node/branch/fragment lookup indexes without composite string keys;
 - unit tests and a prepared graph-corpus create/close/reopen round-trip smoke test.
 
@@ -32,7 +32,7 @@ Not implemented yet:
 - Memories, Graph, Archive Vector, or Memory Vector databases;
 - shared Continuity runtime, retrieval ranking, Insomnia, Dream, or Ego.
 
-The current compact indexes remain derived acceleration state; they do not alter Archive authority or historical semantics. Open still performs redundant physical chunk scans that are the next measured startup target.
+The current compact indexes remain derived acceleration state; they do not alter Archive authority or historical semantics. Reopen now performs one streaming physical chunk pass; the prepared 12-conversation corpus opens at about `25.3 ms` median warm-cache, so persistent checkpointing is deferred until larger-scale measurements justify it.
 
 ## Architecture rule
 

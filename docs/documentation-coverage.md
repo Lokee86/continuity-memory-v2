@@ -15,6 +15,7 @@ Coverage remains intentionally small while the rebuild is early.
 | Implementation | Responsibility | Canonical owners |
 | --- | --- | --- |
 | `src/container.rs` | CVA header/chunks/read/append/sync | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md) |
+| `src/container_scan.rs` | Single-pass physical payload scan and global-ticket observation | [Architecture](architecture.md), [Storage format](storage-format.md), [Development](development.md) |
 | `src/container_version.rs` | CVA-global monotonic version tickets | [Architecture](architecture.md), [Storage format](storage-format.md) |
 | `src/container_error.rs` | Physical/version errors | [Storage format](storage-format.md), [Rust API](api.md) |
 | `src/container_tests.rs` | Container/version verification | [Behavioral contracts](behavioral-contracts.md) |
@@ -24,7 +25,8 @@ Coverage remains intentionally small while the rebuild is early.
 | `src/archive_history_model.rs` | `ArchiveRecordVersion` model | [Storage format](storage-format.md), [Rust API](api.md) |
 | `src/archive_model.rs` | Archive public semantic models | [Architecture](architecture.md), [Rust API](api.md) |
 | `src/archive_codec.rs` | Node/content/branch/fragment codecs | [Storage format](storage-format.md) |
-| `src/archive_store.rs` | Reopen/current lookup reconstruction and validation | [Architecture](architecture.md), [Current limitations](current-limitations.md) |
+| `src/archive_rebuild.rs` | Single-pass reopen reconstruction and semantic visibility activation | [Architecture](architecture.md), [Storage format](storage-format.md), [Current limitations](current-limitations.md) |
+| `src/archive_store.rs` | Content access, branch traversal, and current-state validation | [Architecture](architecture.md), [Current limitations](current-limitations.md) |
 | `src/archive_error.rs` | Archive error contract | [Rust API](api.md) |
 | `src/archive_tests.rs` | Archive dedupe/idempotency | [Behavioral contracts](behavioral-contracts.md) |
 | `src/fragment_*` | Fragment identity/materialization/storage/tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Behavioral contracts](behavioral-contracts.md) |

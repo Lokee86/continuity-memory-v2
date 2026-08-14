@@ -4,13 +4,6 @@ use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
 impl Archive {
-    pub(crate) fn insert_rebuilt_fragment(
-        &mut self,
-        fragment: Fragment,
-    ) -> Result<(), ArchiveError> {
-        self.fragments.insert(fragment).map(|_| ())
-    }
-
     pub(crate) fn put_fragment(&mut self, fragment: Fragment) -> Result<bool, ArchiveError> {
         self.validate_fragment(&fragment)?;
         if let Some(existing) = self.fragments.get(fragment.id) {

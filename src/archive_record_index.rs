@@ -49,11 +49,6 @@ impl NodeIndex {
         self.records.iter()
     }
 
-    pub(crate) fn clear(&mut self) {
-        self.records.clear();
-        self.lookup.clear();
-    }
-
     pub(crate) fn record_capacity(&self) -> usize {
         self.records.capacity()
     }
@@ -124,11 +119,6 @@ impl BranchIndex {
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Branch> {
         self.records.iter()
-    }
-
-    pub(crate) fn clear(&mut self) {
-        self.records.clear();
-        self.lookup.clear();
     }
 
     pub(crate) fn record_capacity(&self) -> usize {
