@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "profile": "library-engine",
+  "capabilities": ["stateful"],
+  "docs_root": "docs",
+  "root_index": "docs/INDEX.md",
+  "folder_index": "INDEX.md",
+  "required_paths": [
+    "README.md",
+    "AGENTS.md",
+    "docs/INDEX.md",
+    "docs/documentation-policy.md",
+    "docs/documentation-procedure.md",
+    "docs/maintainer-map.md",
+    "docs/architecture.md",
+    "docs/invariants.md",
+    "docs/storage-format.md",
+    "docs/api.md",
+    "docs/development.md",
+    "docs/roadmap.md",
+    "docs/current-limitations.md",
+    "docs/documentation-coverage.md",
+    "docs/behavioral-contracts.md",
+    "docs/version-history-plan.md",
+    "docs/decisions/INDEX.md"
+  ],
+  "index_exempt_directories": [],
+  "section_exemptions": [
+    "README.md",
+    "AGENTS.md",
+    "docs/INDEX.md",
+    "docs/**/INDEX.md",
+    "docs/decisions/*.md"
+  ],
+  "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
+  "coverage": [
+    {
+      "paths": ["src/**", "examples/**"],
+      "docs": ["docs/documentation-coverage.md"]
+    }
+  ],
+  "change_rules": [
+    {
+      "paths": ["src/container*.rs"],
+      "docs": ["docs/storage-format.md", "docs/architecture.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/archive*.rs", "src/fragment*.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["examples/**"],
+      "docs": ["docs/development.md", "docs/documentation-coverage.md"]
+    }
+  ]
+}
