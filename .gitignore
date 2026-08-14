@@ -1,0 +1,9 @@
+.workingtrees/
+.worktrees/
+target/
+bin/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.cva
+.env
