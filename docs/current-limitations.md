@@ -34,9 +34,9 @@ Archive now has layered global/Archive ordering and conversation-local branch an
 
 Composite `HashMap<String, ...>` lookup keys have been removed. Nodes, current branch heads, and fragments now use dense record vectors plus compact open-addressed hash-to-index slots; exact keys are checked against the record itself. `ContentId -> ChunkRef` remains a direct fixed-width hash table because measurement showed that representation is smaller than an indirect record-plus-index layout for this key/value pair.
 
-On the prepared 12-conversation corpus, allocator-tracked retained open heap fell from `1,014,811` bytes to `752,905` bytes, while peak additional heap fell from `1,146,558` bytes to `884,584` bytes. Remaining record strings are still individually allocated; conversation/role/string interning has not been attempted.
+On the prepared 12-conversation, `2,197,482`-byte corpus, allocator-tracked retained open heap is `752,897` bytes and peak additional heap `884,576` bytes. Remaining record strings are still individually allocated; conversation/role/string interning has not been attempted.
 
-Reopen now uses one streaming physical pass: Container validates chunk framing and global version tickets while Archive consumes the same payloads to reconstruct versioned state. On the prepared corpus, median warm-cache open is about `25.3 ms`, with roughly `24.6 ms` in the combined scan/reconstruction path and `3.0 ms` in reference validation in a traced sample. The remaining startup cost is therefore the unavoidable current full-file scan/decode, not duplicate replay. Persistent checkpointing is deferred until larger-Archive measurements justify the added machinery.
+Reopen uses one streaming physical pass: Container validates chunk framing and global version tickets while Archive consumes the same payloads to reconstruct versioned state. A release-mode 50-run warm-cache benchmark measured `26.102 ms` median / `26.917 ms` p90, while one manually cache-evicted single open measured `26.303 ms`. The corpus is too small and the cold sample count too low to characterize storage scaling; persistent checkpointing is deferred until larger-Archive cold-open measurements justify the added machinery.
 
 ## Retrieval limits
 

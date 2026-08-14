@@ -32,7 +32,7 @@ Not implemented yet:
 - Memories, Graph, Archive Vector, or Memory Vector databases;
 - shared Continuity runtime, retrieval ranking, Insomnia, Dream, or Ego.
 
-The current compact indexes remain derived acceleration state; they do not alter Archive authority or historical semantics. Reopen now performs one streaming physical chunk pass; the prepared 12-conversation corpus opens at about `25.3 ms` median warm-cache, so persistent checkpointing is deferred until larger-scale measurements justify it.
+The current compact indexes remain derived acceleration state; they do not alter Archive authority or historical semantics. Reopen performs one streaming physical chunk pass. On the prepared `2.2 MB` corpus, the current release benchmark is `26.102 ms` warm median / `26.917 ms` p90, with one manually verified cold-cache run at `26.303 ms`; larger-scale cold-open measurements are still required before checkpointing is justified.
 
 ## Architecture rule
 

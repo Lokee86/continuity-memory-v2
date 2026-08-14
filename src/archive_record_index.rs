@@ -1,7 +1,6 @@
 use crate::archive_lookup::DenseLookup;
 use crate::{ArchiveError, Branch, Node};
 use std::hash::BuildHasher;
-use std::mem::size_of;
 
 #[derive(Default)]
 pub(crate) struct NodeIndex {
@@ -48,32 +47,6 @@ impl NodeIndex {
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Node> {
         self.records.iter()
     }
-
-    pub(crate) fn record_capacity(&self) -> usize {
-        self.records.capacity()
-    }
-
-    pub(crate) fn lookup_capacity(&self) -> usize {
-        self.lookup.slot_capacity()
-    }
-
-    pub(crate) fn string_heap_bytes(&self) -> usize {
-        self.records
-            .iter()
-            .map(|node| {
-                node.id.capacity()
-                    + node.conversation_id.capacity()
-                    + node.parent_id.as_ref().map_or(0, String::capacity)
-                    + node.role.capacity()
-            })
-            .sum()
-    }
-
-    pub(crate) fn retained_heap_bytes(&self) -> usize {
-        self.records.capacity() * size_of::<Node>()
-            + self.lookup.retained_heap_bytes()
-            + self.string_heap_bytes()
-    }
 }
 
 #[derive(Default)]
@@ -119,30 +92,5 @@ impl BranchIndex {
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Branch> {
         self.records.iter()
-    }
-
-    pub(crate) fn record_capacity(&self) -> usize {
-        self.records.capacity()
-    }
-
-    pub(crate) fn lookup_capacity(&self) -> usize {
-        self.lookup.slot_capacity()
-    }
-
-    pub(crate) fn string_heap_bytes(&self) -> usize {
-        self.records
-            .iter()
-            .map(|branch| {
-                branch.id.capacity()
-                    + branch.conversation_id.capacity()
-                    + branch.leaf_node_id.capacity()
-            })
-            .sum()
-    }
-
-    pub(crate) fn retained_heap_bytes(&self) -> usize {
-        self.records.capacity() * size_of::<Branch>()
-            + self.lookup.retained_heap_bytes()
-            + self.string_heap_bytes()
     }
 }

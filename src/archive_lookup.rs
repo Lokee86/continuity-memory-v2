@@ -1,6 +1,5 @@
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hash};
-use std::mem::size_of;
 
 pub(crate) struct DenseLookup {
     state: RandomState,
@@ -53,14 +52,6 @@ impl DenseLookup {
         }
         self.place(hash, index);
         self.len += 1;
-    }
-
-    pub(crate) fn slot_capacity(&self) -> usize {
-        self.slots.capacity()
-    }
-
-    pub(crate) fn retained_heap_bytes(&self) -> usize {
-        self.slots.capacity() * size_of::<usize>()
     }
 
     fn needs_growth(&self) -> bool {

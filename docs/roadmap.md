@@ -23,8 +23,8 @@ Completed bootstrap slices:
 7. Append-only branch/session-head revisions with historical lookup.
 8. Old-conversation revival through conversation-local branching, not Archive rollback.
 9. Reopen validation and prepared-corpus round trip.
-10. Compact Archive-owned derived indexes without composite string keys; prepared-corpus retained open heap reduced to `752,905` bytes.
-11. Single-pass Container/Archive reopen reconstruction; prepared-corpus median warm-cache open reduced to about `25.3 ms` without changing retained heap.
+10. Compact Archive-owned derived indexes without composite string keys; prepared-corpus retained open heap is `752,897` bytes.
+11. Single-pass Container/Archive reopen reconstruction; current `2.2 MB` prepared corpus measures `26.102 ms` warm median / `26.917 ms` p90 and `26.303 ms` in the verified single cold-cache sample.
 
 ## Expected ownership or ownership boundary
 
@@ -37,7 +37,7 @@ Near-term priorities:
 1. Implement Archive Vectors as the second concrete database and validate whether the dual-clock mechanic is genuinely reusable.
 2. Recover simple lexical + exact-cosine retrieval before considering specialized indexes.
 3. Add compression/packing from measured Archive access patterns.
-4. Add persistent Archive checkpointing only if larger-scale open measurements justify it; any checkpoint remains derived state keyed by an Archive watermark.
+4. Measure repeated cold-open scaling on substantially larger Archives; add persistent Archive checkpointing only if those measurements justify it, and keep any checkpoint derived state keyed by an Archive watermark.
 5. Add Memories, Memory Vectors, then Graph as separate owners.
 6. Define rare whole-CVA rollback/timeline activation across those stores without adding an every-write global state manifest.
 7. Build the shared long-lived Continuity runtime and reconnect Insomnia/Dream, then Ego.

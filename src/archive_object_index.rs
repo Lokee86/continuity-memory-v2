@@ -2,7 +2,6 @@ use crate::archive_lookup::DenseLookup;
 use crate::{ArchiveError, ChunkRef, ContentId, Fragment, FragmentId};
 use std::collections::HashMap;
 use std::hash::BuildHasher;
-use std::mem::size_of;
 
 #[derive(Default)]
 pub(crate) struct ContentIndex {
@@ -28,18 +27,6 @@ impl ContentIndex {
         }
         self.records.insert(id, chunk);
         true
-    }
-
-    pub(crate) fn record_capacity(&self) -> usize {
-        self.records.capacity()
-    }
-
-    pub(crate) fn lookup_capacity(&self) -> usize {
-        0
-    }
-
-    pub(crate) fn retained_heap_bytes(&self) -> usize {
-        self.records.capacity() * size_of::<(ContentId, ChunkRef)>()
     }
 }
 
@@ -81,30 +68,5 @@ impl FragmentIndex {
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Fragment> {
         self.records.iter()
-    }
-
-    pub(crate) fn record_capacity(&self) -> usize {
-        self.records.capacity()
-    }
-
-    pub(crate) fn lookup_capacity(&self) -> usize {
-        self.lookup.slot_capacity()
-    }
-
-    pub(crate) fn string_heap_bytes(&self) -> usize {
-        self.records
-            .iter()
-            .map(|fragment| {
-                fragment.conversation_id.capacity()
-                    + fragment.start_node_id.capacity()
-                    + fragment.end_node_id.capacity()
-            })
-            .sum()
-    }
-
-    pub(crate) fn retained_heap_bytes(&self) -> usize {
-        self.records.capacity() * size_of::<Fragment>()
-            + self.lookup.retained_heap_bytes()
-            + self.string_heap_bytes()
     }
 }

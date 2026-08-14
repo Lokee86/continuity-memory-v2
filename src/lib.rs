@@ -7,7 +7,6 @@ mod archive_history_model;
 mod archive_lookup;
 mod archive_model;
 mod archive_object_index;
-mod archive_profile;
 mod archive_rebuild;
 mod archive_record_index;
 mod archive_store;

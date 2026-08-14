@@ -33,6 +33,7 @@ Coverage remains intentionally small while the rebuild is early.
 | `src/history_tests.rs` | Dual clocks, independent conversations, branch revisions/revival | [Behavioral contracts](behavioral-contracts.md), [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md) |
 | `src/lib.rs` | Public crate exports | [Rust API](api.md) |
 | `examples/archive_roundtrip.rs` | Prepared-corpus reopen smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
+| `examples/archive_open_profile.rs` | Standalone open-time/allocator benchmark | [Development](development.md) |
 
 ## Coverage rules
 
