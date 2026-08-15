@@ -48,7 +48,7 @@ Insomnia queue/lease/retry state is operational state, not a semantic Memories t
 - The old synchronous `CaptureMemory` contract is retired. Immediate memory requests schedule Insomnia rather than letting the live model write or synchronously own persistence.
 - Archive owns episode source truth; Memories owns working-memory truth; Insomnia operational state owns processing coordination.
 - This adds development format markers for Memories and Insomnia state. Existing pre-ADR development CVAs are intentionally incompatible; no migration scaffolding is added during the rebuild.
-- Memory vectors remain a separate owner and will bind exact memory revisions to compatible vector generations.
+- Memory vectors remain a separate owner. The later Memory-Vector decision binds immutable semantic `MemoryBodyId` content to compatibility profiles rather than Memory revisions; metadata-only revisions do not invalidate embeddings.
 
 ## Rejected alternatives
 

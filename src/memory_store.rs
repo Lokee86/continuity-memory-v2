@@ -59,6 +59,12 @@ impl MemoryStore {
         let revision = expected_revision
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
+        let candidate_body_id = memory_body_id(&draft.title, &draft.content);
+        if let Some(index) = self.current.get(&id).copied() {
+            if self.records[index].body_id != candidate_body_id {
+                return Err(MemoryError::SemanticMutation);
+            }
+        }
         let body_id = self.put_body(container, &draft.title, &draft.content)?;
         let memory_version = self.next_memory_version;
         let next_memory_version = memory_version
@@ -132,6 +138,37 @@ impl MemoryStore {
 
     pub(crate) fn contains_memory(&self, id: MemoryId) -> bool {
         self.current.contains_key(&id)
+    }
+
+    pub(crate) fn contains_body(&self, id: MemoryBodyId) -> bool {
+        self.bodies.contains_key(&id)
+    }
+
+    pub(crate) fn current_body_ids(&self) -> Vec<MemoryBodyId> {
+        let mut ids: Vec<_> = self
+            .current
+            .values()
+            .map(|index| self.records[*index].body_id)
+            .collect();
+        ids.sort_by_key(|id| id.0);
+        ids.dedup();
+        ids
+    }
+
+    pub(crate) fn current_body_id(&self, id: MemoryId) -> Result<MemoryBodyId, MemoryError> {
+        let index = self.current.get(&id).ok_or(MemoryError::MissingMemory)?;
+        Ok(self.records[*index].body_id)
+    }
+
+    pub(crate) fn body_embedding_text(
+        &self,
+        container: &mut Container,
+        id: MemoryBodyId,
+    ) -> Result<String, MemoryError> {
+        let chunk = self.bodies.get(&id).ok_or(MemoryError::MissingBody)?;
+        let body = decode_body_payload(&container.read(*chunk)?)?;
+        let (title, content) = decode_memory_body(&body)?;
+        Ok(format!("{title}\n\n{content}"))
     }
 
     pub(crate) fn stats(&self) -> MemoryStats {
@@ -220,6 +257,11 @@ impl MemoryStore {
             .unwrap_or(1);
         if record.revision != expected {
             return Err(MemoryError::RevisionConflict);
+        }
+        if let Some(index) = self.current.get(&record.id).copied() {
+            if self.records[index].body_id != record.body_id {
+                return Err(MemoryError::SemanticMutation);
+            }
         }
         let index = self.records.len();
         self.by_mutation.insert(record.mutation_id.clone(), index);

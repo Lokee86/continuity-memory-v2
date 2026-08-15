@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, ArchiveVectorError, CompatibilityProfileError, ContainerError, InsomniaError,
-    MemoryError, PackedVectorError, VectorGenerationError,
+    MemoryError, MemoryVectorError, PackedVectorError, VectorGenerationError,
 };
 use std::fmt;
 
@@ -11,6 +11,7 @@ pub enum CvaError {
     Memories(MemoryError),
     Insomnia(InsomniaError),
     PackedVectors(PackedVectorError),
+    MemoryVectors(MemoryVectorError),
     ArchiveVectors(ArchiveVectorError),
     CompatibilityProfiles(CompatibilityProfileError),
     VectorGenerations(VectorGenerationError),
@@ -25,6 +26,7 @@ impl fmt::Display for CvaError {
             Self::Memories(error) => write!(f, "{error}"),
             Self::Insomnia(error) => write!(f, "{error}"),
             Self::PackedVectors(error) => write!(f, "{error}"),
+            Self::MemoryVectors(error) => write!(f, "{error}"),
             Self::ArchiveVectors(error) => write!(f, "{error}"),
             Self::CompatibilityProfiles(error) => write!(f, "{error}"),
             Self::VectorGenerations(error) => write!(f, "{error}"),
@@ -55,6 +57,7 @@ from_error!(ArchiveError, Archive);
 from_error!(MemoryError, Memories);
 from_error!(InsomniaError, Insomnia);
 from_error!(PackedVectorError, PackedVectors);
+from_error!(MemoryVectorError, MemoryVectors);
 from_error!(ArchiveVectorError, ArchiveVectors);
 from_error!(CompatibilityProfileError, CompatibilityProfiles);
 from_error!(VectorGenerationError, VectorGenerations);

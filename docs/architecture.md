@@ -18,6 +18,8 @@ Cva
 │   └── queue / priority / leases / retries / attempts
 ├── PackedVectorStore
 │   └── immutable numeric matrices
+├── MemoryVectorStore
+│   └── immutable (profile, MemoryBodyId) -> packed row bindings
 ├── ArchiveVectorStore
 │   └── immutable row -> FragmentId bindings
 ├── CompatibilityProfileStore
@@ -58,7 +60,7 @@ Archive owns source-history semantics: content-addressed text, immutable convers
 Episodes are contiguous ancestry ranges made from whole user-led response cycles. They are finalized by size, 15-minute configurable inactivity, finite-import end, or the narrow `create_memory` request. Finalizing an Episode never closes its conversation. No semantic topic detector participates in Episode identity.
 
 ### Memories
-Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Memory authority does not depend on vector availability.
+Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. A Memory's `MemoryBodyId` is immutable across revisions: metadata/classification/lifecycle may change, but semantic title/content cannot mutate in place. Semantic corrections create another Memory rather than rewriting an existing body. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Memory authority does not depend on vector availability.
 
 ### Insomnia operational state
 Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Retry and terminal outcomes plus immutable attempt history are retained. Processing claims are reclaimable after reopen. This owner consumes no semantic version clock.
@@ -67,7 +69,12 @@ Insomnia operational state owns finalized-Episode processing coordination rather
 
 ### PackedVectorStore
 Packed vectors own immutable matrix bytes and physical row representation. `VectorSchema` defines dimensions and scalar representation; rows are fixed-width and contiguous. Equal schema+bytes deduplicate.
-Packed vectors do not know which Archive records rows represent or which embedding space produced them.
+Packed vectors do not know which Archive fragments or Memory bodies rows represent or which embedding space produced them.
+### MemoryVectorStore
+Memory Vectors are immutable derived bindings over shared `PackedVectorStore` matrices. Their durable identity is `(CompatibilityProfileId, MemoryBodyId)`, not Memory revision. Each profile/body pair may bind to exactly one packed row; metadata-only Memory revisions therefore require no vector work. A genuinely new compatibility profile may add another immutable vector for the same Memory body. Memory Vectors consume no semantic/global version clock and have no update/regeneration path.
+
+The high-level `build_missing_memory_vectors` path verifies the endpoint against the selected profile, finds current Memory bodies without a binding for that profile, embeds only those bodies in Document mode, appends one `f32` packed matrix, and records the row bindings. Re-running it after metadata-only revisions creates nothing.
+
 ### ArchiveVectorStore
 Archive Vectors own one relationship only:
 ```text
@@ -157,6 +164,7 @@ one physical chunk scan
         ├── Memories
         ├── Insomnia operational state
         ├── PackedVectorStore
+        ├── MemoryVectorStore
         ├── ArchiveVectorStore
         ├── CompatibilityProfileStore
         └── VectorGenerationStore
@@ -176,7 +184,8 @@ G103 / A701   Archive mutation
 - no generalized semantic database/root/dependency layer;
 - Archive and vector-generation local clocks remain independent;
 - each global version is claimed by at most one semantic mutation;
-- packed matrices, Archive-Vector bindings, and compatibility profiles are immutable backing objects;
+- packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects;
+- Memory vectors bind immutable `MemoryBodyId` content per compatibility profile; Memory revision metadata cannot invalidate or refresh them;
 - Archive Vectors own row-to-fragment identity only;
 - compatibility profiles own vector-space compatibility contracts, not endpoint provenance;
 - endpoint compatibility is tolerant probe comparison, never provider/model labels or exact probe hashes;
@@ -204,6 +213,7 @@ G103 / A701   Archive mutation
 | Memories | `src/memory*.rs` |
 | Insomnia extraction/processing/operational scheduling | `src/insomnia.rs`, `src/insomnia/**/*.rs` |
 | packed matrices | `src/packed_vector_*.rs` |
+| Memory body/profile row bindings | `src/memory_vector_*.rs`, `src/cva_memory_vectors.rs` |
 | Archive row bindings | `src/archive_vector_*.rs` |
 | embedding execution/compatibility | `src/embedding_endpoint.rs`, `src/openai_ready_embedding*.rs`, `src/compatibility_profile_*.rs` |
 | generation publication/history | `src/vector_generation_*.rs` |
@@ -218,5 +228,6 @@ G103 / A701   Archive mutation
 - [Architectural invariants](invariants.md)
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
+- [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 ## Notes
 Codex/provider-native General transport, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

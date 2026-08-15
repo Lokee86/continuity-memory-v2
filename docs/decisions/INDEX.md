@@ -12,3 +12,4 @@
 - [ADR 0010: Encrypted credential objects](0010-encrypted-credential-objects.md) — **Accepted**, 2026-08-14.
 - [ADR 0011: Detachable repo-local CLI](0011-detachable-repo-local-cli.md) — **Accepted**, 2026-08-15.
 - [ADR 0012: Deterministic episodes and Insomnia memory authority](0012-deterministic-episodes-and-insomnia-memory-authority.md) — **Accepted**, 2026-08-15.
+- [ADR 0013: Immutable Memory Vector bindings](0013-immutable-memory-vector-bindings.md) — **Accepted**, 2026-08-15.

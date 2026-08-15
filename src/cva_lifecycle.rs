@@ -8,6 +8,8 @@ use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::insomnia::store::InsomniaStore;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
+use crate::memory_vector_rebuild::MemoryVectorOpenState;
+use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
@@ -22,6 +24,7 @@ impl Cva {
         let memories = MemoryStore::empty();
         let insomnia = InsomniaStore::empty();
         let packed_vectors = PackedVectorStore::default();
+        let memory_vectors = MemoryVectorStore::default();
         let archive_vectors = ArchiveVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
         let vector_generations = VectorGenerationStore::empty();
@@ -29,6 +32,7 @@ impl Cva {
         memories.initialize(&mut container)?;
         insomnia.initialize(&mut container)?;
         packed_vectors.initialize(&mut container)?;
+        memory_vectors.initialize(&mut container)?;
         archive_vectors.initialize(&mut container)?;
         compatibility_profiles.initialize(&mut container)?;
         vector_generations.initialize(&mut container)?;
@@ -39,6 +43,7 @@ impl Cva {
             memories,
             insomnia,
             packed_vectors,
+            memory_vectors,
             archive_vectors,
             compatibility_profiles,
             vector_generations,
@@ -50,6 +55,7 @@ impl Cva {
         let mut memory_state = MemoryOpenState::new();
         let mut insomnia_state = InsomniaOpenState::new();
         let mut packed_state = PackedVectorOpenState::new();
+        let mut memory_vector_state = MemoryVectorOpenState::new();
         let mut archive_vector_state = ArchiveVectorOpenState::new();
         let mut profile_state = CompatibilityProfileOpenState::new();
         let mut generation_state = VectorGenerationOpenState::new();
@@ -58,6 +64,7 @@ impl Cva {
             memory_state.ingest(chunk, payload, latest_global)?;
             insomnia_state.ingest(chunk, payload)?;
             packed_state.ingest(chunk, payload)?;
+            memory_vector_state.ingest(chunk, payload)?;
             archive_vector_state.ingest(chunk, payload)?;
             profile_state.ingest(chunk, payload)?;
             generation_state.ingest(chunk, payload, latest_global)?;
@@ -70,8 +77,10 @@ impl Cva {
         let insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
         let packed_vectors = packed_state.finish()?;
-        let archive_vectors = archive_vector_state.finish(&archive, &packed_vectors)?;
         let compatibility_profiles = profile_state.finish()?;
+        let memory_vectors =
+            memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
+        let archive_vectors = archive_vector_state.finish(&archive, &packed_vectors)?;
         let vector_generations = generation_state.finish(
             &archive,
             &packed_vectors,
@@ -85,6 +94,7 @@ impl Cva {
             memories,
             insomnia,
             packed_vectors,
+            memory_vectors,
             archive_vectors,
             compatibility_profiles,
             vector_generations,

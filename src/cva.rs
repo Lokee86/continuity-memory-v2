@@ -2,6 +2,7 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::insomnia::store::InsomniaStore;
 use crate::memory_store::MemoryStore;
+use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
@@ -17,6 +18,7 @@ pub struct Cva {
     pub(crate) memories: MemoryStore,
     pub(crate) insomnia: InsomniaStore,
     pub(crate) packed_vectors: PackedVectorStore,
+    pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) archive_vectors: ArchiveVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
     pub(crate) vector_generations: VectorGenerationStore,
@@ -218,6 +220,10 @@ impl Cva {
 
     pub fn memory_version(&self) -> u64 {
         self.memories.memory_version()
+    }
+
+    pub fn memory_body_id(&self, id: MemoryId) -> Result<crate::MemoryBodyId, MemoryError> {
+        self.memories.current_body_id(id)
     }
 
     pub fn stats(&self) -> ArchiveStats {

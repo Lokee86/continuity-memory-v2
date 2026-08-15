@@ -90,10 +90,11 @@ fn memory_revisions_are_authoritative_idempotent_and_reopenable() {
     let mut second_draft = draft(
         &episode,
         "dream:memory-1:revision-2",
-        "Insomnia is the sole authoritative working-memory generator.",
+        "Insomnia owns working-memory generation.",
     );
     second_draft.created_at_ns = first.created_at_ns;
     second_draft.updated_at_ns = 40;
+    second_draft.lifecycle_state = "reinforced".into();
     let (second, created) = cva.publish_memory(Some(first.id), 1, second_draft).unwrap();
     assert!(created);
     assert_eq!(second.revision, 2);

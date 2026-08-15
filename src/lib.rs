@@ -40,6 +40,7 @@ mod cva_compatibility_profiles;
 mod cva_error;
 mod cva_global_validation;
 mod cva_lifecycle;
+mod cva_memory_vectors;
 mod cva_packed_vectors;
 mod cva_vector_generations;
 mod embedding_endpoint;
@@ -62,6 +63,11 @@ mod memory_error;
 mod memory_model;
 mod memory_rebuild;
 mod memory_store;
+mod memory_vector_codec;
+mod memory_vector_error;
+mod memory_vector_model;
+mod memory_vector_rebuild;
+mod memory_vector_store;
 mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
@@ -132,6 +138,11 @@ pub use memory_error::MemoryError;
 pub use memory_model::{
     Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRevisionId, MemoryStats,
 };
+pub use memory_vector_error::MemoryVectorError;
+pub use memory_vector_model::{
+    MemoryVectorBuildResult, MemoryVectorId, MemoryVectorInfo, MemoryVectorLocation,
+    MemoryVectorSet, MemoryVectorStats,
+};
 pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
@@ -178,6 +189,8 @@ mod history_tests;
 mod master_key_tests;
 #[cfg(test)]
 mod memory_tests;
+#[cfg(test)]
+mod memory_vector_tests;
 #[cfg(test)]
 mod model_switchboard_tests;
 #[cfg(test)]

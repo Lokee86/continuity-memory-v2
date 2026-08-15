@@ -41,21 +41,21 @@ Completed bootstrap slices:
 25. A separate mutable Memories owner with immutable revisions, mutation-ID idempotency, exact Archive/Episode provenance, dense `memory_version`, and CVA-global publication ordering.
 26. A separate Insomnia operational owner with immediate-live/live/import scheduling classes, oldest-source ordering within each class, durable queue/attempt history, restart reclamation, leases, retries, terminal state, and a narrow `create_memory` tail-finalization + immediate-queue seam.
 27. An `insomnia` Rust module with exact Episode input reads, strict JSON-schema General-model extraction, candidate/user-authority validation, explicit-retention semantics, deterministic candidate identity, and idempotent Memory publication.
+28. Immutable Memory Vectors over shared packed matrices, keyed by `(CompatibilityProfileId, MemoryBodyId)`, with missing-only embedding, reopen validation, and enforced immutable Memory semantic bodies across metadata revisions.
 
 ## Expected ownership or ownership boundary
 
-`Cva` owns physical composition and the single Container handle. Archive owns source-history semantics, immutable Episodes, and `archive_version`. Memories owns authoritative working-memory revisions and dense `memory_version`. Insomnia operational state owns episode-processing coordination but no semantic clock. Packed vectors own immutable numeric matrices; Archive Vectors own immutable row-to-fragment bindings; Compatibility Profiles own immutable vector-space compatibility contracts. Vector Generations own profile/population activation and the independent dense `vector_version`. Archive, Memories, and Vector Generations interleave only through CVA-global ordering.
+`Cva` owns physical composition and the single Container handle. Archive owns source-history semantics, immutable Episodes, and `archive_version`. Memories owns authoritative working-memory revisions and dense `memory_version`; semantic `MemoryBodyId` content is immutable across revisions. Insomnia operational state owns episode-processing coordination but no semantic clock. Packed vectors own immutable numeric matrices; Memory Vectors own immutable `(CompatibilityProfileId, MemoryBodyId)` row bindings; Archive Vectors own immutable row-to-fragment bindings; Compatibility Profiles own immutable vector-space compatibility contracts. Vector Generations own Archive profile/population activation and the independent dense `vector_version`. Archive, Memories, and Vector Generations interleave only through CVA-global ordering; Memory Vectors are clock-neutral derived bindings.
 
 ## Planned behavior
 
 Near-term priorities:
 
-1. Finish Insomnia processing around the implemented extraction core: add bounded archive evidence, the grouped Memory/outcome publication boundary, retry classification, and the long-lived worker loop over the operational queue.
-2. Add Memory Vectors as a separate owner using the proven packed-vector/profile/generation pattern, bound to exact Memory revisions; keep embedding asynchronous from Memory authority.
-3. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, worker-pool orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
-4. Extend provider transport beyond the implemented `openai-ready` embedding/General paths: add `openai-codex` ChatGPT device-code acquisition/token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
-5. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.
-6. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
+1. Finish Insomnia processing around the implemented extraction core: add bounded archive evidence, the grouped Memory/outcome publication boundary, retry classification, and the whole-file worker loop over the operational queue; have that loop fill missing Memory Vectors as a separate asynchronous/derived step.
+2. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, worker-pool orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
+3. Extend provider transport beyond the implemented `openai-ready` embedding/General paths: add `openai-codex` ChatGPT device-code acquisition/token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
+4. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.
+5. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
 
 ## Implementation sequence
 
@@ -101,6 +101,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 - [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
+- [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 
 ## Notes
 

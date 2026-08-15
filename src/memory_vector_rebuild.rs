@@ -1,0 +1,87 @@
+use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::memory_store::MemoryStore;
+use crate::memory_vector_codec::{decode_format, decode_object};
+use crate::memory_vector_store::{MemoryVectorStore, memory_vector_id, validate_mapping};
+use crate::packed_vector_store::PackedVectorStore;
+use crate::{ChunkRef, MemoryBodyId, MemoryVectorError, MemoryVectorInfo};
+
+pub(crate) struct MemoryVectorOpenState {
+    records: Vec<PendingMemoryVectors>,
+    format_seen: bool,
+}
+
+struct PendingMemoryVectors {
+    info: MemoryVectorInfo,
+    chunk: ChunkRef,
+    body_ids: Vec<MemoryBodyId>,
+}
+
+impl MemoryVectorOpenState {
+    pub(crate) fn new() -> Self {
+        Self {
+            records: Vec::new(),
+            format_seen: false,
+        }
+    }
+
+    pub(crate) fn ingest(
+        &mut self,
+        chunk: ChunkRef,
+        payload: &[u8],
+    ) -> Result<(), MemoryVectorError> {
+        if decode_format(payload)? {
+            if self.format_seen {
+                return Err(MemoryVectorError::ConflictingFormat);
+            }
+            self.format_seen = true;
+            return Ok(());
+        }
+        let Some(decoded) = decode_object(payload)? else {
+            return Ok(());
+        };
+        if memory_vector_id(
+            decoded.compatibility_profile_id,
+            decoded.packed_vector_id,
+            &decoded.memory_body_ids,
+        ) != decoded.id
+        {
+            return Err(MemoryVectorError::HashCollision);
+        }
+        self.records.push(PendingMemoryVectors {
+            info: MemoryVectorInfo {
+                id: decoded.id,
+                compatibility_profile_id: decoded.compatibility_profile_id,
+                packed_vector_id: decoded.packed_vector_id,
+                rows: u64::try_from(decoded.memory_body_ids.len())
+                    .map_err(|_| MemoryVectorError::SizeOverflow)?,
+            },
+            chunk,
+            body_ids: decoded.memory_body_ids,
+        });
+        Ok(())
+    }
+
+    pub(crate) fn finish(
+        self,
+        memories: &MemoryStore,
+        profiles: &CompatibilityProfileStore,
+        packed_vectors: &PackedVectorStore,
+    ) -> Result<MemoryVectorStore, MemoryVectorError> {
+        if !self.format_seen {
+            return Err(MemoryVectorError::MissingFormat);
+        }
+        let mut store = MemoryVectorStore::default();
+        for record in self.records {
+            validate_mapping(
+                memories,
+                profiles,
+                packed_vectors,
+                record.info.compatibility_profile_id,
+                record.info.packed_vector_id,
+                &record.body_ids,
+            )?;
+            store.insert_rebuilt(record.info, record.chunk, &record.body_ids)?;
+        }
+        Ok(store)
+    }
+}

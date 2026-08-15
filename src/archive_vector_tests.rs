@@ -1,6 +1,8 @@
 use crate::archive_history_codec::encode_archive_format;
+use crate::compatibility_profile_codec::encode_format as encode_profile_format;
 use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
+use crate::memory_vector_codec::encode_format as encode_memory_vector_format;
 use crate::packed_vector_codec::encode_format as encode_packed_format;
 use crate::{
     ArchiveVectorError, Cva, CvaError, FragmentConfig, FragmentId, PackedVectorId, PackedVectors,
@@ -142,6 +144,8 @@ fn archive_vector_store_requires_its_format_marker() {
     container.append(&encode_memory_format()).unwrap();
     container.append(&encode_insomnia_format()).unwrap();
     container.append(&encode_packed_format()).unwrap();
+    container.append(&encode_memory_vector_format()).unwrap();
+    container.append(&encode_profile_format()).unwrap();
     container.sync().unwrap();
     drop(container);
     assert!(matches!(

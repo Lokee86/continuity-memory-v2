@@ -93,6 +93,24 @@ N bytes   contiguous rows
 ```
 `row_bytes = dimensions * scalar_width`; matrix length must equal `row_count * row_bytes`. Scalar tags: `1=i8`, `2=u8`, `3=i16`, `4=u16`, `5=i32`, `6=u32`, `7=i64`, `8=u64`, `9=f16`, `10=bf16`, `11=f32`, `12=f64`.
 Packed-vector ID is SHA-256 over `"CVA-PACKED-VECTOR-V1\0"`, dimensions, scalar tag, and exact matrix bytes.
+### Memory Vectors
+Format marker:
+```text
+8 bytes   "CVAMVFM1"
+u32       schema = 1
+```
+Row-binding object:
+```text
+8 bytes        "CVAMVEC1"
+32 bytes       MemoryVectorId
+32 bytes       CompatibilityProfileId
+32 bytes       PackedVectorId
+u64            row count
+row_count × 32 ordered MemoryBodyIds
+```
+Row `N` maps to `memory_body_ids[N]`. Matrix row count must match exactly, the matrix must be `f32` with dimensions equal to the compatibility profile, and every `MemoryBodyId` must exist and be unique within the set. Across all Memory-Vector objects, a `(CompatibilityProfileId, MemoryBodyId)` pair may appear only once. `MemoryVectorId` is SHA-256 over `"CVA-MEMORY-VECTORS-V1\0"`, the profile ID, `PackedVectorId`, and ordered `MemoryBodyId`s.
+
+Memory Vectors are immutable derived bindings and consume no semantic version ticket. Memory revisions may change metadata but cannot change their semantic `MemoryBodyId`; therefore no Memory-vector regeneration/update record exists. A new compatibility profile may bind the same Memory body to another immutable vector.
 ### Archive Vectors
 Format marker:
 ```text
@@ -163,9 +181,9 @@ u32 byte_length
 N bytes UTF-8
 ```
 ## Historical semantics
-Archive and Vector Generations have independent local watermarks. Global ordering may interleave them; integer adjacency is never semantic ancestry. Packed matrices, Archive-Vector bindings, and compatibility profiles are immutable backing objects. A published Vector Generation is the semantic association that activates one profile/population.
+Archive and Vector Generations have independent local watermarks. Global ordering may interleave them; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
-`Cva::open` requires exactly one current format marker for Archive, Packed Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Earlier development formats are rejected rather than migrated.
+`Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Earlier development formats are rejected rather than migrated.
 Container validates framing/global tickets. Concrete stores validate their own records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by both Archive and Vector Generations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
@@ -174,5 +192,6 @@ Default fragments use eight turns with two-turn overlap. Compatibility probe sui
 - [Rust API](api.md)
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
+- [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 ## Notes
 These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, persistent lexical indexing, ANN acceleration, and retention/vacuum remain future work.

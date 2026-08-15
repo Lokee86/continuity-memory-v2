@@ -14,6 +14,7 @@ pub enum MemoryError {
     CorruptBody,
     HashCollision,
     RevisionConflict,
+    SemanticMutation,
     MissingMemory,
     MutationConflict,
     InvalidProvenance,
