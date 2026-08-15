@@ -71,6 +71,7 @@ mod memory_vector_store;
 mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
+mod openai_codex_device_auth;
 mod openai_ready_embedding;
 mod openai_ready_embedding_response;
 mod openai_ready_general;
@@ -153,6 +154,10 @@ pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
     ModelSwitchboard, ModelSwitchboardConfig,
 };
+pub use openai_codex_device_auth::{
+    OPENAI_CODEX_AUTH_ISSUER, OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS, OPENAI_CODEX_OAUTH_CLIENT_ID,
+    OpenAiCodexDeviceAuth, OpenAiCodexDeviceAuthError, OpenAiCodexDeviceCode,
+};
 pub use openai_ready_embedding::{
     DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE, DEFAULT_REMOTE_EMBEDDING_CONCURRENCY,
     OpenAiReadyEmbeddingEndpoint,
@@ -198,6 +203,8 @@ mod memory_tests;
 mod memory_vector_tests;
 #[cfg(test)]
 mod model_switchboard_tests;
+#[cfg(test)]
+mod openai_codex_device_auth_tests;
 #[cfg(test)]
 mod openai_ready_embedding_tests;
 #[cfg(test)]

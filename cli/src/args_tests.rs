@@ -49,6 +49,20 @@ fn api_key_command_rejects_direct_secret_option() {
 }
 
 #[test]
+fn codex_device_login_command_accepts_credential_id() {
+    let cli = Cli::try_parse_from(["continuity", "config", "credential", "login-codex", "codex"])
+        .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Config {
+            command: ConfigCommand::Credential {
+                command: CredentialCommand::LoginCodex { .. }
+            }
+        }
+    ));
+}
+
+#[test]
 fn insomnia_model_route_is_configurable() {
     let cli = Cli::try_parse_from([
         "continuity",

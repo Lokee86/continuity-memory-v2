@@ -25,10 +25,8 @@ pub enum CredentialCommand {
         )]
         stdin: bool,
     },
-    AddCodexTokens {
+    LoginCodex {
         id: String,
-        #[arg(long)]
-        account_id: Option<String>,
     },
     Remove {
         id: String,

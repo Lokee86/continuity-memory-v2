@@ -169,7 +169,7 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
 - General/Insomnia/embedding routes, encrypted credentials, credential references, request-auth attachment, and direct `openai-ready` embedding/General HTTP execution are implemented. Insomnia falls back to General when its dedicated route is unset.
-- `openai-codex` device-code acquisition and token refresh are not implemented yet; ChatGPT OAuth material can already be stored and attached once supplied.
+- `openai-codex` ChatGPT device-code acquisition is implemented and stores the returned ID/access/refresh tokens plus ChatGPT account ID as an encrypted credential object. OAuth token refresh and provider-native Codex General transport are not implemented yet.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.
 

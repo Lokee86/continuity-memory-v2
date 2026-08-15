@@ -54,7 +54,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - Fragment, retrieval, `models.general`, optional `models.insomnia`, `models.embedding`, and encrypted `credential.<id>` objects are implemented. Insomnia resolves to `models.general` when its dedicated route is absent.
 - Model routes reference credentials by ID; the switchboard validates auth kind and can attach bearer/auth account headers.
 - Direct `openai-ready` embedding and General-model HTTP transport are implemented.
-- `openai-codex` device-code acquisition and OAuth token refresh are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.
+- `openai-codex` ChatGPT device-code acquisition is implemented through the same auth.openai.com device-code protocol used by Codex. OAuth token refresh and provider-native Codex General transport are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.
 - A 256-bit master key can be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
 - Windows Credential Manager integration is not implemented yet.
 - No text import/export format exists yet.

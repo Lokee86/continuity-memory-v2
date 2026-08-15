@@ -8,7 +8,7 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ## Overview
 
-Development uses deterministic local tests plus optional live OpenAI-ready embedding execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, and direct embedding HTTP transport are implemented; General-model transport and Codex device-code acquisition/refresh remain outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
+Development uses deterministic local tests plus optional live OpenAI-ready execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, and ChatGPT/Codex device-code acquisition are implemented. Codex provider-native General transport and OAuth token refresh remain outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
 ## Repository boundary
 
@@ -176,4 +176,4 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 
 ## Notes
 
-Additional provider-native/local embedding adapters, General-model transport, Codex device-code acquisition/token refresh, and production import interfaces are not implemented in this repository.
+Additional provider-native/local adapters, Codex provider-native General-model transport, Codex OAuth token refresh, and production import interfaces are not implemented in this repository.

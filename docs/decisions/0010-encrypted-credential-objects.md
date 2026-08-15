@@ -40,7 +40,7 @@ Credential ciphertext lives in `continuity.cfg`; the master key does not. The cu
 - Removing a credential removes its encrypted config object on the next save; no credential history accumulates internally.
 - Saving credentials re-encrypts them with fresh nonces, so encrypted bytes are intentionally nondeterministic even when plaintext is unchanged.
 - Missing or wrong-kind credentials prevent construction of an executable `ModelSwitchboard` but do not make the underlying config file unreadable.
-- ChatGPT device-code acquisition/refresh remains a separate transport/authentication slice; this decision defines persistence and request attachment.
+- ChatGPT device-code acquisition is now implemented as a separate authentication slice using the encrypted credential format defined here. Token refresh and provider-native Codex execution remain separate slices.
 
 ## Rejected alternatives
 

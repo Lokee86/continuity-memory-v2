@@ -45,7 +45,7 @@ Not implemented yet:
 - compression, checksums, encryption, packing, reclamation, or concurrent writer coordination;
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
-- production OS credential-store master-key integration, General-model HTTP transport, and Codex device-code/token-refresh execution;
+- production OS credential-store master-key integration, Codex provider-native General-model transport/token refresh, and broader provider adapters;
 - ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;

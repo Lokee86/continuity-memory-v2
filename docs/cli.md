@@ -61,7 +61,7 @@ The global `--config` option defaults to `continuity.cfg` in the current directo
 
 `config credential add-api-key <id>` prompts for the API key without terminal echo. `--stdin` is available for automation and tests. Secrets are not accepted as command-line arguments so they are not placed directly into shell history/process arguments.
 
-`config credential add-codex-tokens` is a development bridge for already-obtained ChatGPT OAuth material. The CLI does not yet perform Codex device-code login or token refresh.
+`config credential login-codex <id>` performs the ChatGPT/Codex device-code flow directly. It requests a one-time code, prints the verification URL and code, waits for authorization, exchanges the resulting authorization code for OAuth ID/access/refresh tokens, extracts the ChatGPT account ID, and saves the credential under the requested ID. Manual token copy/paste is not part of the CLI. OAuth token refresh is not implemented yet.
 
 `config model set-general` and `set-embedding` persist route selection and require the referenced credential to make the resulting switchboard executable. `config verify` performs the same route/credential compatibility validation without sending network requests.
 

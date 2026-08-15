@@ -238,6 +238,7 @@ name = "continuity-memory"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "base64",
  "lodestone-packed",
  "reqwest",
  "serde_json",

@@ -3,6 +3,7 @@ use crate::util::{credential_id, normalization, provider, read_secret};
 use anyhow::{Result, anyhow};
 use continuity_memory::{
     ContinuityConfig, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelSwitchboard,
+    OpenAiCodexDeviceAuth,
 };
 use std::path::Path;
 
@@ -64,18 +65,16 @@ fn credential(path: &Path, command: CredentialCommand) -> Result<()> {
             config.save()?;
             println!("saved API-key credential: {}", id.as_str());
         }
-        CredentialCommand::AddCodexTokens { id, account_id } => {
+        CredentialCommand::LoginCodex { id } => {
             let id = credential_id(id)?;
-            let id_token = read_secret("ID token: ", false)?;
-            let access_token = read_secret("Access token: ", false)?;
-            let refresh_token = read_secret("Refresh token: ", false)?;
-            config.credentials.insert_chatgpt_oauth(
-                id.clone(),
-                id_token,
-                access_token,
-                refresh_token,
-                account_id,
-            )?;
+            let auth = OpenAiCodexDeviceAuth::new()?;
+            let code = auth.request_device_code()?;
+            println!("Open this URL in your browser:");
+            println!("  {}", code.verification_url);
+            println!("Enter this one-time code:");
+            println!("  {}", code.user_code);
+            println!("Waiting for ChatGPT authorization...");
+            auth.complete_device_code(code, &mut config.credentials, id.clone())?;
             config.save()?;
             println!("saved ChatGPT OAuth credential: {}", id.as_str());
         }

@@ -35,3 +35,13 @@ cargo run --manifest-path cli/Cargo.toml -- \
 ```
 
 For automation/tests, `--stdin` reads the first line from standard input instead. Passing secrets directly as command-line arguments is intentionally unsupported.
+
+ChatGPT/Codex authentication uses device codes rather than pasted tokens:
+
+```text
+cargo run --manifest-path cli/Cargo.toml -- \
+  --config ./continuity.cfg \
+  config credential login-codex codex
+```
+
+The command prints the OpenAI verification URL and one-time code, waits for authorization, then stores the returned OAuth credential encrypted in `continuity.cfg`.
