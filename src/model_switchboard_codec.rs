@@ -1,9 +1,11 @@
 use crate::{
-    ConfigError, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelProvider, VectorNormalization,
+    ConfigError, CredentialId, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelProvider,
+    VectorNormalization,
 };
 
 pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
 pub(crate) const EMBEDDING_MODEL_KEY: &str = "models.embedding";
+pub(crate) const MODEL_OBJECT_SCHEMA_V2: u16 = 2;
 
 pub(crate) fn encode_general(endpoint: &GeneralModelEndpoint) -> Result<Vec<u8>, ConfigError> {
     let mut bytes = Vec::new();
@@ -11,6 +13,7 @@ pub(crate) fn encode_general(endpoint: &GeneralModelEndpoint) -> Result<Vec<u8>,
     bytes.extend_from_slice(&[0; 3]);
     encode_string(&mut bytes, &endpoint.model)?;
     encode_string(&mut bytes, endpoint.url.as_deref().unwrap_or(""))?;
+    encode_string(&mut bytes, endpoint.credential_id.as_str())?;
     Ok(bytes)
 }
 
@@ -24,6 +27,7 @@ pub(crate) fn decode_general(bytes: &[u8]) -> Result<GeneralModelEndpoint, Confi
     let mut cursor = 4;
     let model = decode_string(bytes, &mut cursor)?;
     let url = decode_string(bytes, &mut cursor)?;
+    let credential_id = CredentialId::new(decode_string(bytes, &mut cursor)?)?;
     if cursor != bytes.len() {
         return Err(ConfigError::InvalidModelSwitchboard);
     }
@@ -31,6 +35,7 @@ pub(crate) fn decode_general(bytes: &[u8]) -> Result<GeneralModelEndpoint, Confi
         provider,
         model,
         url: (!url.is_empty()).then_some(url),
+        credential_id,
     })
 }
 
@@ -42,6 +47,7 @@ pub(crate) fn encode_embedding(endpoint: &EmbeddingModelEndpoint) -> Result<Vec<
     bytes.extend_from_slice(&endpoint.dimensions.to_le_bytes());
     encode_string(&mut bytes, &endpoint.model)?;
     encode_string(&mut bytes, endpoint.url.as_deref().unwrap_or(""))?;
+    encode_string(&mut bytes, endpoint.credential_id.as_str())?;
     Ok(bytes)
 }
 
@@ -58,6 +64,7 @@ pub(crate) fn decode_embedding(bytes: &[u8]) -> Result<EmbeddingModelEndpoint, C
     let mut cursor = 8;
     let model = decode_string(bytes, &mut cursor)?;
     let url = decode_string(bytes, &mut cursor)?;
+    let credential_id = CredentialId::new(decode_string(bytes, &mut cursor)?)?;
     if cursor != bytes.len() {
         return Err(ConfigError::InvalidModelSwitchboard);
     }
@@ -65,6 +72,7 @@ pub(crate) fn decode_embedding(bytes: &[u8]) -> Result<EmbeddingModelEndpoint, C
         provider,
         model,
         url: (!url.is_empty()).then_some(url),
+        credential_id,
         dimensions,
         normalization,
     })

@@ -21,9 +21,7 @@ Cva
     └── vector_version: u64 + current generation per profile
 ```
 `Cva` owns physical composition and the single Container handle. It is not a generalized semantic database, store registry, root, or dependency engine.
-
 Machine-local application configuration is a separate owner:
-
 ```text
 ContinuityConfig
 └── continuity.cfg
@@ -31,20 +29,18 @@ ContinuityConfig
     ├── retrieval.default
     ├── models.general
     ├── models.embedding
-    └── future credential objects
+    └── credential.<id> (AES-256-GCM)
 ```
-
 `continuity.cfg` is current-state configuration only. It is not contained in a `.cva`, consumes no semantic clocks, and has no append-only/history semantics.
 ## Responsibilities
 ### Local configuration
-`ContinuityConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Object flags are reserved for later per-object credential encryption.
-
+`ContinuityConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Ordinary objects are unencrypted; credential objects are authenticated encrypted payloads.
 ### Model switchboard
-`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL. Provider auth kind is explicit but credential persistence/transport are not implemented yet.
+`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. Each configured route carries a stable `CredentialId`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL.
 
-Switchboard provider/model/URL choices are routing configuration only. They do not enter Compatibility Profile identity or decide vector compatibility.
+`CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. The switchboard can then produce request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
 ### Master key
-`MasterKeyStore` owns retrieval/creation of the 256-bit key that will protect credential objects. The current `JsonMasterKeyStore` is a temporary implementation that stores plaintext `continuity.master-key.json` beside `continuity.cfg`; production storage will move behind the same ownership boundary to the operating-system credential store. The master key is machine-local and is never CVA semantic state.
+`MasterKeyStore` owns retrieval/creation of the 256-bit key that protects credential objects. The current `JsonMasterKeyStore` is a temporary implementation that stores plaintext `continuity.master-key.json` beside `continuity.cfg`; production storage will move behind the same ownership boundary to the operating-system credential store. Credential ciphertext uses AES-256-GCM with fresh nonces and object-key-bound authenticated data. The master key is machine-local and is never CVA semantic state.
 ### Container
 Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
 ### Archive
@@ -170,12 +166,15 @@ G102 / A701   Archive mutation
 - the semantic retrieval channel searches exactly one selected profile's current generation and never mixes profile score spaces;
 - default hybrid retrieval preserves the original 30-candidate / 10-result policy and `0.45/0.55` lexical-semantic fusion;
 - local configuration is current-state machine configuration, not CVA semantic state or an internal history system;
-- model-switchboard routing is machine-local integration policy and cannot establish vector compatibility.
+- credential objects are encrypted independently and never become CVA semantic state;
+- model routes reference credentials by stable ID; executable switchboards reject missing or wrong-kind credentials;
+- model-switchboard routing/authentication is machine-local integration policy and cannot establish vector compatibility.
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |
 | local configuration | `src/config*.rs` |
-| model switchboard/provider capabilities | `src/model_switchboard*.rs` |
+| encrypted credentials | `src/credential*.rs`, `src/config_credentials.rs` |
+| model switchboard/provider capabilities/auth binding | `src/model_switchboard*.rs`, `src/model_auth.rs` |
 | master key / temporary key store | `src/master_key*.rs` |
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
 | physical Container/global clock | `src/container*.rs` |
@@ -196,5 +195,6 @@ G102 / A701   Archive mutation
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
+- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 ## Notes
 Production endpoint adapters, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

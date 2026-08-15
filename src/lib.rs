@@ -24,12 +24,16 @@ mod compatibility_profile_store;
 mod compatibility_vector;
 pub mod config;
 mod config_codec;
+mod config_credentials;
 mod config_error;
 mod config_io;
 mod config_object;
 pub mod container;
 mod container_error;
 mod container_version;
+mod credential;
+mod credential_codec;
+mod credential_crypto;
 pub mod cva;
 mod cva_archive_vectors;
 mod cva_compatibility_profiles;
@@ -45,6 +49,7 @@ mod fragmenter;
 mod lexical_search;
 mod master_key;
 mod master_key_entropy;
+mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
 mod packed_vector_codec;
@@ -82,6 +87,7 @@ pub use compatibility_profile_model::{
 pub use config::ContinuityConfig;
 pub use config_error::ConfigError;
 pub use container::{ChunkRef, Container, ContainerError, FormatVersion};
+pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
 pub use cva_error::CvaError;
 pub use embedding_endpoint::{
@@ -93,6 +99,7 @@ pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
     JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
 };
+pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
     ModelSwitchboard, ModelSwitchboardConfig,
@@ -119,6 +126,8 @@ mod compatibility_profile_tests;
 mod config_tests;
 #[cfg(test)]
 mod container_tests;
+#[cfg(test)]
+mod credential_tests;
 #[cfg(test)]
 mod fragment_tests;
 #[cfg(test)]

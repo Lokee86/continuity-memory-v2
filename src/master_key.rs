@@ -76,14 +76,20 @@ impl JsonMasterKeyStore {
     pub fn path(&self) -> &Path {
         &self.path
     }
+
+    pub fn load_existing(&self) -> Result<MasterKey, MasterKeyError> {
+        decode_key_file(&fs::read(&self.path)?)
+    }
 }
 
 impl MasterKeyStore for JsonMasterKeyStore {
     fn load_or_create(&self) -> Result<MasterKey, MasterKeyError> {
-        match fs::read(&self.path) {
-            Ok(bytes) => decode_key_file(&bytes),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => self.create_key(),
-            Err(error) => Err(error.into()),
+        match self.load_existing() {
+            Ok(key) => Ok(key),
+            Err(MasterKeyError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
+                self.create_key()
+            }
+            Err(error) => Err(error),
         }
     }
 }

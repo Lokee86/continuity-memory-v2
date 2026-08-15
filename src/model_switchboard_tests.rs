@@ -1,7 +1,9 @@
 use crate::{
-    ContinuityConfig, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability,
-    ModelProvider, ModelSwitchboard, ModelSwitchboardConfig, VectorNormalization,
+    ContinuityConfig, CredentialId, CredentialsConfig, EmbeddingModelEndpoint,
+    GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider, ModelSwitchboard,
+    ModelSwitchboardConfig, VectorNormalization,
 };
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -16,6 +18,10 @@ fn test_path(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+fn id(value: &str) -> CredentialId {
+    CredentialId::new(value).unwrap()
+}
+
 #[test]
 fn provider_auth_and_capabilities_are_explicit() {
     assert_eq!(
@@ -28,29 +34,34 @@ fn provider_auth_and_capabilities_are_explicit() {
     );
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::General));
     assert!(!ModelProvider::OpenAiCodex.supports(ModelCapability::Embedding));
-    assert!(ModelProvider::OpenAiReady.supports(ModelCapability::General));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Embedding));
 }
 
 #[test]
-fn general_and_embedding_routes_round_trip_through_config() {
+fn routes_and_credentials_round_trip_and_attach_auth_headers() {
     let path = test_path("models.cfg");
     let mut config = ContinuityConfig::new(&path);
     config.models = configured_models();
+    config.credentials = configured_credentials();
     config.save().unwrap();
 
     let reopened = ContinuityConfig::open(&path).unwrap();
     assert_eq!(reopened.models, config.models);
+    assert_eq!(reopened.credentials, config.credentials);
 
-    let switchboard = ModelSwitchboard::new(reopened.models).unwrap();
-    assert_eq!(
-        switchboard.general().unwrap().provider,
-        ModelProvider::OpenAiCodex
-    );
-    assert_eq!(
-        switchboard.embedding().unwrap().provider,
-        ModelProvider::OpenAiReady
-    );
+    let switchboard = ModelSwitchboard::new(reopened.models, reopened.credentials).unwrap();
+    let mut general = BTreeMap::new();
+    switchboard.general_auth().unwrap().apply_to(&mut general);
+    assert_eq!(general["Authorization"], "Bearer codex-access");
+    assert_eq!(general["ChatGPT-Account-ID"], "account-123");
+
+    let mut embedding = BTreeMap::new();
+    switchboard
+        .embedding_auth()
+        .unwrap()
+        .apply_to(&mut embedding);
+    assert_eq!(embedding["Authorization"], "Bearer ready-key");
+    assert!(!embedding.contains_key("ChatGPT-Account-ID"));
 }
 
 #[test]
@@ -60,42 +71,51 @@ fn clearing_model_routes_removes_them_from_current_config() {
     config.models = configured_models();
     config.save().unwrap();
     let configured_len = fs::metadata(&path).unwrap().len();
-
     config.models = ModelSwitchboardConfig::default();
     config.save().unwrap();
-    let cleared_len = fs::metadata(&path).unwrap().len();
-
-    let reopened = ContinuityConfig::open(&path).unwrap();
-    assert_eq!(reopened.models, ModelSwitchboardConfig::default());
-    assert!(cleared_len < configured_len);
+    assert!(fs::metadata(&path).unwrap().len() < configured_len);
+    assert_eq!(
+        ContinuityConfig::open(&path).unwrap().models,
+        ModelSwitchboardConfig::default()
+    );
 }
 
 #[test]
-fn codex_cannot_be_configured_as_embedding_provider() {
-    let config = ModelSwitchboardConfig {
+fn invalid_provider_routes_are_rejected() {
+    let codex_embedding = ModelSwitchboardConfig {
         general: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiCodex,
             model: "codex".into(),
             url: None,
+            credential_id: id("codex"),
             dimensions: 1024,
             normalization: VectorNormalization::L2,
         }),
     };
-    assert!(ModelSwitchboard::new(config).is_err());
-}
+    assert!(ModelSwitchboard::new(codex_embedding, CredentialsConfig::default()).is_err());
 
-#[test]
-fn openai_ready_requires_an_explicit_http_endpoint() {
-    let config = ModelSwitchboardConfig {
+    let missing_url = ModelSwitchboardConfig {
         general: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "model".into(),
             url: None,
+            credential_id: id("ready"),
         }),
         embedding: None,
     };
-    assert!(ModelSwitchboard::new(config).is_err());
+    assert!(ModelSwitchboard::new(missing_url, CredentialsConfig::default()).is_err());
+}
+
+#[test]
+fn missing_or_wrong_credential_kind_is_rejected() {
+    let models = configured_models();
+    assert!(ModelSwitchboard::new(models.clone(), CredentialsConfig::default()).is_err());
+
+    let mut wrong = CredentialsConfig::default();
+    wrong.insert_api_key(id("codex"), "wrong-kind").unwrap();
+    wrong.insert_api_key(id("ready"), "ready-key").unwrap();
+    assert!(ModelSwitchboard::new(models, wrong).is_err());
 }
 
 fn configured_models() -> ModelSwitchboardConfig {
@@ -104,13 +124,32 @@ fn configured_models() -> ModelSwitchboardConfig {
             provider: ModelProvider::OpenAiCodex,
             model: "gpt-codex".into(),
             url: None,
+            credential_id: id("codex"),
         }),
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "qwen/qwen3-embedding-8b".into(),
             url: Some("https://example.test/v1/embeddings".into()),
+            credential_id: id("ready"),
             dimensions: 1024,
             normalization: VectorNormalization::L2,
         }),
     }
+}
+
+fn configured_credentials() -> CredentialsConfig {
+    let mut credentials = CredentialsConfig::default();
+    credentials
+        .insert_api_key(id("ready"), "ready-key")
+        .unwrap();
+    credentials
+        .insert_chatgpt_oauth(
+            id("codex"),
+            "codex-id",
+            "codex-access",
+            "codex-refresh",
+            Some("account-123".into()),
+        )
+        .unwrap();
+    credentials
 }

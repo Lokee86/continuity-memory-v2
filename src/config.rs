@@ -1,4 +1,5 @@
 use crate::config_codec::{RawConfigObject, decode_config, encode_config};
+use crate::config_credentials::{insert_credentials, load_credentials, master_key_path};
 use crate::config_io::{read_config_file, replace_config_file};
 use crate::config_object::{
     FRAGMENT_KEY, OBJECT_FLAGS_NONE, OBJECT_SCHEMA_V1, RETRIEVAL_KEY, decode_fragments,
@@ -6,12 +7,12 @@ use crate::config_object::{
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
-    EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, decode_embedding, decode_general, encode_embedding,
-    encode_general,
+    EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, MODEL_OBJECT_SCHEMA_V2, decode_embedding,
+    decode_general, encode_embedding, encode_general,
 };
 use crate::{
-    ConfigError, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError, MasterKeyStore,
-    ModelSwitchboardConfig, RetrievalConfig,
+    ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
+    MasterKeyStore, ModelSwitchboardConfig, RetrievalConfig,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -22,6 +23,7 @@ pub struct ContinuityConfig {
     pub fragments: FragmentConfig,
     pub retrieval: RetrievalConfig,
     pub models: ModelSwitchboardConfig,
+    pub credentials: CredentialsConfig,
     extra_objects: BTreeMap<String, RawConfigObject>,
 }
 
@@ -32,6 +34,7 @@ impl ContinuityConfig {
             fragments: FragmentConfig::default(),
             retrieval: RetrievalConfig::default(),
             models: ModelSwitchboardConfig::default(),
+            credentials: CredentialsConfig::default(),
             extra_objects: BTreeMap::new(),
         }
     }
@@ -58,11 +61,13 @@ impl ContinuityConfig {
         };
         let models = ModelSwitchboardConfig { general, embedding };
         validate_switchboard(&models)?;
+        let credentials = load_credentials(&path, &mut objects)?;
         Ok(Self {
             path,
             fragments,
             retrieval,
             models,
+            credentials,
             extra_objects: objects,
         })
     }
@@ -72,8 +77,7 @@ impl ContinuityConfig {
     }
 
     pub fn load_or_create_master_key(&self) -> Result<MasterKey, MasterKeyError> {
-        JsonMasterKeyStore::new(self.path.with_file_name("continuity.master-key.json"))
-            .load_or_create()
+        JsonMasterKeyStore::new(master_key_path(&self.path)).load_or_create()
     }
 
     pub fn save(&self) -> Result<(), ConfigError> {
@@ -100,15 +104,16 @@ impl ContinuityConfig {
         if let Some(endpoint) = &self.models.general {
             objects.insert(
                 GENERAL_MODEL_KEY.to_owned(),
-                known_object(encode_general(endpoint)?),
+                model_object(encode_general(endpoint)?),
             );
         }
         if let Some(endpoint) = &self.models.embedding {
             objects.insert(
                 EMBEDDING_MODEL_KEY.to_owned(),
-                known_object(encode_embedding(endpoint)?),
+                model_object(encode_embedding(endpoint)?),
             );
         }
+        insert_credentials(&self.path, &self.credentials, &mut objects)?;
         let bytes = encode_config(&objects)?;
         replace_config_file(&self.path, &bytes)
     }
@@ -127,23 +132,30 @@ fn decode_known_retrieval(object: RawConfigObject) -> Result<RetrievalConfig, Co
 fn decode_known_general(
     object: RawConfigObject,
 ) -> Result<crate::GeneralModelEndpoint, ConfigError> {
-    validate_known_object(&object)?;
+    validate_model_object(&object)?;
     decode_general(&object.payload)
 }
 
 fn decode_known_embedding(
     object: RawConfigObject,
 ) -> Result<crate::EmbeddingModelEndpoint, ConfigError> {
-    validate_known_object(&object)?;
+    validate_model_object(&object)?;
     decode_embedding(&object.payload)
 }
 
-fn known_object(payload: Vec<u8>) -> RawConfigObject {
+fn model_object(payload: Vec<u8>) -> RawConfigObject {
     RawConfigObject {
-        schema: OBJECT_SCHEMA_V1,
+        schema: MODEL_OBJECT_SCHEMA_V2,
         flags: OBJECT_FLAGS_NONE,
         payload,
     }
+}
+
+fn validate_model_object(object: &RawConfigObject) -> Result<(), ConfigError> {
+    if object.schema != MODEL_OBJECT_SCHEMA_V2 || object.flags != OBJECT_FLAGS_NONE {
+        return Err(ConfigError::InvalidObject);
+    }
+    Ok(())
 }
 
 fn validate_known_object(object: &RawConfigObject) -> Result<(), ConfigError> {

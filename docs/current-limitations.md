@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Purpose-built local configuration, initial model-switchboard routing, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production provider transport/auth, later semantic databases, and production storage hardening remain incomplete.
+Purpose-built local configuration, encrypted credential persistence, initial model-switchboard routing/auth attachment, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production provider transport/login, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -51,11 +51,12 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 ## Local configuration limits
 - Purpose-built `continuity.cfg` persistence is implemented with replaceable logical objects and atomic whole-file replacement.
 - The default operating-system config location is not selected yet; callers currently provide the config path.
-- Fragment, retrieval, `models.general`, and `models.embedding` objects are implemented.
-- The switchboard currently validates/stores routing only; direct provider HTTP transport is not implemented yet.
-- `openai-codex` device-code auth execution and `openai-ready` API-key credential objects are not implemented yet.
-- A 256-bit master key can now be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
-- Per-object credential encryption and Windows Credential Manager integration are not implemented yet.
+- Fragment, retrieval, `models.general`, `models.embedding`, and encrypted `credential.<id>` objects are implemented.
+- Model routes reference credentials by ID; the switchboard validates auth kind and can attach bearer/auth account headers.
+- Direct provider HTTP transport is not implemented yet.
+- `openai-codex` device-code acquisition and OAuth token refresh are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.
+- A 256-bit master key can be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
+- Windows Credential Manager integration is not implemented yet.
 - No text import/export format exists yet.
 
 ## Product/runtime limits
@@ -71,6 +72,7 @@ Repository-local Pitlord policy has not yet been added.
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
+- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.

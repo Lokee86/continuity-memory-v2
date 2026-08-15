@@ -19,8 +19,12 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Unknown future config objects survive known-object replacement | `config_tests::unknown_objects_survive_known_config_replacement` |
 | Invalid config is rejected before replacing the existing file | `config_tests::invalid_values_do_not_replace_existing_config` |
 | Switchboard provider auth/capabilities are explicit | `model_switchboard_tests::provider_auth_and_capabilities_are_explicit` |
-| General and embedding model routes round-trip through `continuity.cfg`, and clearing them removes the current objects | `model_switchboard_tests::general_and_embedding_routes_round_trip_through_config`, `model_switchboard_tests::clearing_model_routes_removes_them_from_current_config` |
-| Unsupported Codex embedding and incomplete OpenAI-ready routes are rejected | `model_switchboard_tests::codex_cannot_be_configured_as_embedding_provider`, `model_switchboard_tests::openai_ready_requires_an_explicit_http_endpoint` |
+| General/embedding routes and encrypted credentials round-trip together; route removal remains current-state replacement | `model_switchboard_tests::routes_and_credentials_round_trip_and_attach_auth_headers`, `model_switchboard_tests::clearing_model_routes_removes_them_from_current_config` |
+| Unsupported provider routes plus missing/wrong-kind credentials are rejected | `model_switchboard_tests::invalid_provider_routes_are_rejected`, `model_switchboard_tests::missing_or_wrong_credential_kind_is_rejected` |
+| OpenAI-ready and Codex credentials resolve to bearer auth; Codex also attaches ChatGPT account ID when present | `model_switchboard_tests::routes_and_credentials_round_trip_and_attach_auth_headers` |
+| Credential plaintext never appears in `continuity.cfg` and encrypted credentials round-trip | `credential_tests::encrypted_credentials_round_trip_without_plaintext_in_config` |
+| Wrong master keys and ciphertext tampering fail authenticated decryption | `credential_tests::wrong_master_key_cannot_decrypt_credentials`, `credential_tests::authenticated_encryption_rejects_tampering` |
+| Clearing credentials removes encrypted credential objects rather than accumulating history | `credential_tests::clearing_credentials_removes_encrypted_objects` |
 | Master key is generated once from OS entropy and remains stable across reloads | `master_key_tests::json_store_generates_and_reloads_one_stable_key` |
 | Independent key stores produce different keys and debug output redacts key material | `master_key_tests::separately_created_stores_get_different_keys`, `master_key_tests::debug_output_never_contains_key_material` |
 | `ContinuityConfig` places the temporary JSON master key beside the config | `config_tests::config_creates_temporary_master_key_beside_itself` |

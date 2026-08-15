@@ -8,14 +8,16 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ## Overview
 
-Development uses deterministic local tests and simulated embedding execution. Model-switchboard routing/configuration is implemented; production provider authentication and HTTP adapters remain outside the current slice.
+Development uses deterministic local tests and simulated embedding execution. Model-switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider HTTP transport and Codex device-code acquisition/refresh remain outside the current slice.
 
 ## Repository boundary
 
 ```text
 Cargo.toml / Cargo.lock              crate definition and locked dependencies
 src/config*.rs                      local config framing/object codecs/atomic replacement
+src/credential*.rs                 encrypted credentials + authenticated crypto/codecs
 src/model_switchboard*.rs           provider capabilities + general/embedding routing
+src/model_auth.rs                   credential validation + request auth attachment
 src/master_key*.rs                  generated master key + temporary JSON key store
 src/cva*.rs                         composition/public CVA lifecycle
 src/container*.rs                   physical CVA substrate/global ordering
@@ -108,7 +110,7 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 
 - `cargo fmt --check` catches Rust formatting drift.
 - `cargo check` catches type/compile errors.
-- `cargo test` owns focused behavioral verification, including config replacement, switchboard routing, and master-key generation/reload/redaction.
+- `cargo test` owns focused behavioral verification, including config replacement, encrypted credential round trips/tamper rejection, switchboard auth binding, and master-key generation/reload/redaction.
 - The documentation checker validates repository documentation policy but not semantic correctness.
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.
@@ -121,7 +123,8 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 - [Behavioral contracts](behavioral-contracts.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
+- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 
 ## Notes
 
-Live endpoint adapters and production import interfaces are not implemented in this repository.
+Direct provider HTTP adapters, Codex device-code acquisition/token refresh, and production import interfaces are not implemented in this repository.

@@ -1,3 +1,4 @@
+use crate::{CredentialError, MasterKeyError};
 use std::{fmt, io};
 
 #[derive(Debug)]
@@ -11,6 +12,8 @@ pub enum ConfigError {
     InvalidFragmentConfig,
     InvalidRetrievalConfig,
     InvalidModelSwitchboard,
+    Credential(CredentialError),
+    MasterKey(MasterKeyError),
 }
 
 impl fmt::Display for ConfigError {
@@ -30,6 +33,8 @@ impl fmt::Display for ConfigError {
             Self::InvalidFragmentConfig => write!(f, "invalid fragment configuration"),
             Self::InvalidRetrievalConfig => write!(f, "invalid retrieval configuration"),
             Self::InvalidModelSwitchboard => write!(f, "invalid model switchboard configuration"),
+            Self::Credential(error) => error.fmt(f),
+            Self::MasterKey(error) => error.fmt(f),
         }
     }
 }
@@ -39,5 +44,17 @@ impl std::error::Error for ConfigError {}
 impl From<io::Error> for ConfigError {
     fn from(value: io::Error) -> Self {
         Self::Io(value)
+    }
+}
+
+impl From<CredentialError> for ConfigError {
+    fn from(value: CredentialError) -> Self {
+        Self::Credential(value)
+    }
+}
+
+impl From<MasterKeyError> for ConfigError {
+    fn from(value: MasterKeyError) -> Self {
+        Self::MasterKey(value)
     }
 }

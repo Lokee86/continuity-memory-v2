@@ -1,17 +1,13 @@
 # Rust API Reference
-
 Parent index: [Documentation index](INDEX.md)
-
 ## Purpose
 This document owns the current public Rust library surface exposed by `continuity_memory`.
-
 ## Overview
 The public API exposes `ContinuityConfig` and the initial model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; vector backing/publication; compatibility profiles; hybrid retrieval; simulated embedding capabilities; chunk references; and errors. It remains development-stage.
-
 ## Exact contract
 
 ### Local configuration
-`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, and `models: ModelSwitchboardConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
+`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
 
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
@@ -69,12 +65,17 @@ ArchiveVectorError
 ### Master key
 Public types are `MasterKey`, `MasterKeyError`, `MasterKeyStore`, `JsonMasterKeyStore`, and `MASTER_KEY_BYTES = 32`. `JsonMasterKeyStore::load_or_create()` reads an existing version-1 JSON key or creates one from operating-system entropy without overwriting an existing file. `MasterKey` does not expose key bytes publicly and redacts its `Debug` representation. The JSON store is transitional and is not a production secret store.
 
+### Credentials
+Public types are `CredentialId`, `Credential`, `CredentialsConfig`, `CredentialError`, and redacting `SecretString`. `CredentialId::new` accepts non-empty ASCII alphanumeric/`.`/`_`/`-` IDs up to 128 bytes. `CredentialsConfig::insert_api_key` stores API-key auth in memory; `insert_chatgpt_oauth` stores ID/access/refresh tokens plus optional account ID. `get`, `remove`, and `ids` expose current credential inventory without exposing secret strings through `Debug`.
+
+Credential objects are persisted as AES-256-GCM encrypted `credential.<id>` config objects. Wrong master keys and modified ciphertext are rejected during `ContinuityConfig::open`.
+
 ### Model switchboard
-Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, and `ModelSwitchboard`.
+Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, `ModelRequestAuth`, and `ModelSwitchboard`.
 
-`ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` currently supports General only, uses provider-owned routing, and reports `ChatGptDeviceCode`; `OpenAiReady` supports General and Embedding, requires explicit HTTP(S) URLs, and reports `ApiKey`. Embedding routes also require non-zero dimensions and explicit normalization.
+Each route includes a `CredentialId`. `ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` currently supports General only, uses provider-owned routing, and requires ChatGPT OAuth material; `OpenAiReady` supports General and Embedding, requires explicit HTTP(S) URLs, and requires API-key material. Embedding routes also require non-zero dimensions and explicit normalization.
 
-`ModelSwitchboard::new(config)` validates selections; `general()`, `embedding()`, and `config()` expose them. The switchboard currently owns routing only: HTTP transport, device-code execution, credential resolution, and replacement of the low-level `EmbeddingEndpoint` seam remain future work.
+`ModelSwitchboard::new(config, credentials)` validates both route structure and credential availability/auth kind. `general_auth()` and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. Direct HTTP transport, Codex device-code acquisition/token refresh, and replacement of the low-level `EmbeddingEndpoint` execution seam remain future work.
 
 ### Embedding endpoint abstraction
 Public types:
@@ -193,6 +194,7 @@ G102/A701  Archive mutation
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
+- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. Switchboard routing/configuration is implemented; direct provider transport, credentials, and replacement of the development embedding capability seam remain next.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. Switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider transport, Codex device-code acquisition/refresh, and replacement of the development embedding capability seam remain next.

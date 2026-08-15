@@ -1,4 +1,5 @@
-use crate::{ConfigError, VectorNormalization};
+use crate::model_auth::{resolve_auth, validate_credentials};
+use crate::{ConfigError, CredentialId, CredentialsConfig, ModelRequestAuth, VectorNormalization};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ModelProvider {
@@ -55,6 +56,7 @@ pub struct GeneralModelEndpoint {
     pub provider: ModelProvider,
     pub model: String,
     pub url: Option<String>,
+    pub credential_id: CredentialId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -62,6 +64,7 @@ pub struct EmbeddingModelEndpoint {
     pub provider: ModelProvider,
     pub model: String,
     pub url: Option<String>,
+    pub credential_id: CredentialId,
     pub dimensions: u32,
     pub normalization: VectorNormalization,
 }
@@ -75,12 +78,20 @@ pub struct ModelSwitchboardConfig {
 #[derive(Clone, Debug)]
 pub struct ModelSwitchboard {
     config: ModelSwitchboardConfig,
+    credentials: CredentialsConfig,
 }
 
 impl ModelSwitchboard {
-    pub fn new(config: ModelSwitchboardConfig) -> Result<Self, ConfigError> {
+    pub fn new(
+        config: ModelSwitchboardConfig,
+        credentials: CredentialsConfig,
+    ) -> Result<Self, ConfigError> {
         validate_switchboard(&config)?;
-        Ok(Self { config })
+        validate_credentials(&config, &credentials)?;
+        Ok(Self {
+            config,
+            credentials,
+        })
     }
 
     pub fn general(&self) -> Option<&GeneralModelEndpoint> {
@@ -91,6 +102,26 @@ impl ModelSwitchboard {
         self.config.embedding.as_ref()
     }
 
+    pub fn general_auth(&self) -> Option<ModelRequestAuth> {
+        self.config.general.as_ref().map(|endpoint| {
+            resolve_auth(
+                endpoint.provider,
+                &endpoint.credential_id,
+                &self.credentials,
+            )
+        })
+    }
+
+    pub fn embedding_auth(&self) -> Option<ModelRequestAuth> {
+        self.config.embedding.as_ref().map(|endpoint| {
+            resolve_auth(
+                endpoint.provider,
+                &endpoint.credential_id,
+                &self.credentials,
+            )
+        })
+    }
+
     pub fn config(&self) -> &ModelSwitchboardConfig {
         &self.config
     }
@@ -98,23 +129,15 @@ impl ModelSwitchboard {
 
 pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<(), ConfigError> {
     if let Some(endpoint) = &config.general {
-        validate_general(endpoint)?;
+        validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
     }
     if let Some(endpoint) = &config.embedding {
-        validate_embedding(endpoint)?;
+        if !endpoint.provider.supports(ModelCapability::Embedding) || endpoint.dimensions == 0 {
+            return Err(ConfigError::InvalidModelSwitchboard);
+        }
+        validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
     }
     Ok(())
-}
-
-fn validate_general(endpoint: &GeneralModelEndpoint) -> Result<(), ConfigError> {
-    validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())
-}
-
-fn validate_embedding(endpoint: &EmbeddingModelEndpoint) -> Result<(), ConfigError> {
-    if !endpoint.provider.supports(ModelCapability::Embedding) || endpoint.dimensions == 0 {
-        return Err(ConfigError::InvalidModelSwitchboard);
-    }
-    validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())
 }
 
 fn validate_endpoint(

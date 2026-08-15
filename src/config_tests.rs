@@ -25,6 +25,7 @@ fn default_config_saves_and_reopens() {
     assert_eq!(reopened.fragments, FragmentConfig::default());
     assert_eq!(reopened.retrieval, RetrievalConfig::default());
     assert_eq!(reopened.models, crate::ModelSwitchboardConfig::default());
+    assert_eq!(reopened.credentials, crate::CredentialsConfig::default());
     assert_eq!(&fs::read(&path).unwrap()[..8], b"CVCFG\0\r\n");
 }
 

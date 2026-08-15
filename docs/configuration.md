@@ -59,7 +59,7 @@ Logical keys are stable names rather than content hashes. Replacing a setting re
 
 Unknown logical objects are preserved byte-for-byte when a newer/foreign object is present and known objects are changed. This lets the object vocabulary expand without requiring config history or an append-only store.
 
-Flags are currently `0`. The field is reserved so later credential or other sensitive objects can mark encrypted payloads without encrypting the entire configuration file.
+Flags are `0` for ordinary objects. Credential objects use flag `1` to mark an authenticated encrypted payload; the whole configuration file remains unencrypted.
 
 ## Implemented objects
 
@@ -91,20 +91,21 @@ Current defaults are `30`, `10`, `0.45`, and `0.55`. Limits must be non-zero, re
 
 ### `models.general`
 
-Schema `1`, flags `0`:
+Schema `2`, flags `0`:
 
 ```text
 u8        provider
 3 bytes   reserved = 0
 string    model
 string    URL; empty for provider-owned routing
+string    credential ID
 ```
 
-The general endpoint currently accepts `openai-codex` or `openai-ready`. `openai-codex` uses provider-owned routing and therefore stores no URL. `openai-ready` requires an explicit `http://` or `https://` endpoint URL.
+The general endpoint currently accepts `openai-codex` or `openai-ready`. `openai-codex` uses provider-owned routing and therefore stores no URL. `openai-ready` requires an explicit `http://` or `https://` endpoint URL. The credential ID names a separate encrypted `credential.<id>` object.
 
 ### `models.embedding`
 
-Schema `1`, flags `0`:
+Schema `2`, flags `0`:
 
 ```text
 u8        provider
@@ -113,11 +114,25 @@ u8        normalization: 0=None, 1=L2
 u32       dimensions
 string    model
 string    URL
+string    credential ID
 ```
 
 The embedding endpoint currently accepts `openai-ready` only, requires non-zero dimensions, and requires an explicit endpoint URL. The current provider tags are `1=openai-codex` and `2=openai-ready`.
 
-`ModelSwitchboardConfig` owns the two optional endpoint selections. `ModelSwitchboard` validates the configured capability boundary and exposes the selected general and embedding endpoints to the runtime. Provider authentication is explicit: `openai-codex` is reserved for ChatGPT device-code auth and `openai-ready` for API-key auth. Credential persistence and transport are separate implementation slices.
+### `credential.<id>`
+
+Schema `1`, flags `1`:
+
+```text
+12 bytes  AES-GCM nonce
+N bytes   AES-256-GCM ciphertext + 16-byte authentication tag
+```
+
+Authenticated additional data is the fixed domain `CVCFG-CREDENTIAL-V1\0` followed by the exact logical object key. A credential object therefore cannot be copied to another credential ID without failing authentication.
+
+The encrypted plaintext begins with a credential-kind tag plus three reserved zero bytes. Kind `1` stores one API-key string. Kind `2` stores ChatGPT OAuth ID token, access token, refresh token, and optional account ID as length-prefixed strings. Each encryption uses a fresh 96-bit nonce from operating-system entropy.
+
+`ModelSwitchboardConfig` owns endpoint selections and their credential references. `ModelSwitchboard` additionally receives `CredentialsConfig`, rejects missing/wrong-kind references, and can produce request auth. `openai-ready` produces `Authorization: Bearer <api-key>`; `openai-codex` produces `Authorization: Bearer <access-token>` plus `ChatGPT-Account-ID` when present.
 
 ## Replacement and durability
 
@@ -140,14 +155,15 @@ Generation uses operating-system entropy (`BCryptGenRandom` on Windows and `/dev
 
 The JSON store is explicitly temporary development plumbing, not the final security boundary. Because the master key is plaintext on disk, it provides no meaningful at-rest protection against an actor who can read both files. The intended production replacement remains the operating-system credential store while encrypted credential payloads remain in `continuity.cfg`.
 
-The whole config file does not need encryption. Object-level encryption will permit ordinary settings to remain inexpensive and inspectable while secrets receive authenticated encryption.
+Credential objects are now encrypted independently with AES-256-GCM. Ordinary settings remain inexpensive and inspectable. Secret strings redact `Debug` output and are zeroized when dropped; plaintext codec buffers are also zeroized after encryption/decryption.
+
+Encrypted credential bytes are intentionally nondeterministic because each save uses fresh nonces. Object ordering and ordinary object encoding remain deterministic.
 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
-- General and embedding switchboard objects are implemented, but direct HTTP transport is not wired yet.
-- `openai-codex` device-code execution and `openai-ready` API-key credential objects are not implemented yet.
-- Credential-payload encryption is not implemented yet.
+- General/embedding routes, encrypted credentials, credential references, and request-auth attachment are implemented, but direct provider HTTP transport is not wired yet.
+- `openai-codex` device-code acquisition and token refresh are not implemented yet; ChatGPT OAuth material can already be stored and attached once supplied.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.
 
@@ -158,6 +174,7 @@ The whole config file does not need encryption. Object-level encryption will per
 - [Current limitations](current-limitations.md)
 - [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
+- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 
 ## Notes
 

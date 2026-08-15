@@ -34,6 +34,7 @@ Completed bootstrap slices:
 18. Purpose-built replaceable local configuration container with fragment/retrieval objects, deterministic framing, unknown-object preservation, and atomic whole-file replacement.
 19. Expandable model-switchboard routing with `General`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, and persisted `models.general` / `models.embedding` objects.
 20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
+21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
 
 ## Expected ownership or ownership boundary
 
@@ -43,7 +44,7 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Add authenticated encrypted credential objects using the master key, then direct provider transport: `openai-ready` API-key HTTP first, then `openai-codex` ChatGPT device-code auth; replace temporary JSON key persistence with an OS credential-store implementation before production.
+1. Add direct provider transport: `openai-ready` API-key HTTP first, then `openai-codex` ChatGPT device-code acquisition/token refresh; replace temporary JSON key persistence with an OS credential-store implementation before production.
 2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
 3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
 4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
@@ -90,6 +91,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
+- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 
 ## Notes
 
