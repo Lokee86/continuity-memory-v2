@@ -33,6 +33,7 @@ Completed bootstrap slices:
 17. Original default lexical/hybrid retrieval with 30-candidate fusion, `0.45/0.55` channel weighting, overlap diversification, and 10 final results.
 18. Purpose-built replaceable local configuration container with fragment/retrieval objects, deterministic framing, unknown-object preservation, and atomic whole-file replacement.
 19. Expandable model-switchboard routing with `General`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, and persisted `models.general` / `models.embedding` objects.
+20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
 
 ## Expected ownership or ownership boundary
 
@@ -42,7 +43,7 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Add encrypted credential objects plus direct provider transport: `openai-ready` API-key HTTP first, then `openai-codex` ChatGPT device-code auth; route the embedding capability through the switchboard and run the first real embedding/retrieval tests.
+1. Add authenticated encrypted credential objects using the master key, then direct provider transport: `openai-ready` API-key HTTP first, then `openai-codex` ChatGPT device-code auth; replace temporary JSON key persistence with an OS credential-store implementation before production.
 2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
 3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
 4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.

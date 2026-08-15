@@ -16,6 +16,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 | --- | --- | --- | --- |
 | Local configuration | [Local configuration](configuration.md), [ADR 0008](decisions/0008-purpose-built-local-configuration.md) | `src/config*.rs` | `src/config_tests.rs` |
 | Model switchboard / provider capabilities | [Architecture](architecture.md), [Local configuration](configuration.md), [ADR 0009](decisions/0009-expandable-model-switchboard.md) | `src/model_switchboard*.rs` | `src/model_switchboard_tests.rs` |
+| Master key / temporary key persistence | [Local configuration](configuration.md), [Current limitations](current-limitations.md) | `src/master_key*.rs`, `src/config.rs` | `src/master_key_tests.rs`, config master-key test |
 | CVA composition / single physical owner | [Architecture](architecture.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*.rs`, `src/cva_error.rs` | concrete-store reopen tests |
 | CVA header/chunks/file lifecycle | [Storage format](storage-format.md), [Architecture](architecture.md) | `src/container.rs`, `src/container_scan.rs` | `src/container_tests.rs` |
 | Global CVA version ordering | [Architecture](architecture.md), [Storage format](storage-format.md) | `src/container_version.rs` | global-version tests |

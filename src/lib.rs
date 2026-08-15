@@ -43,6 +43,8 @@ mod fragment_model;
 mod fragment_store;
 mod fragmenter;
 mod lexical_search;
+mod master_key;
+mod master_key_entropy;
 mod model_switchboard;
 mod model_switchboard_codec;
 mod packed_vector_codec;
@@ -88,6 +90,9 @@ pub use embedding_endpoint::{
 };
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
+pub use master_key::{
+    JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
+};
 pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
     ModelSwitchboard, ModelSwitchboardConfig,
@@ -118,6 +123,8 @@ mod container_tests;
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod master_key_tests;
 #[cfg(test)]
 mod model_switchboard_tests;
 #[cfg(test)]

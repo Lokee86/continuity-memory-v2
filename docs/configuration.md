@@ -127,24 +127,28 @@ Repeated replacement does not accumulate superseded configuration objects or req
 
 ## Security boundary
 
-Credential objects and encryption are not implemented yet. The intended boundary is:
+A locally generated 256-bit `MasterKey` is implemented. `ContinuityConfig::load_or_create_master_key()` currently persists it beside the config as `continuity.master-key.json`:
 
 ```text
 continuity.cfg
-    encrypted credential payloads only
-
-OS credential store
-    locally generated master encryption key
+continuity.master-key.json
+    version: 1
+    master_key_hex: 64 hex characters
 ```
 
-The whole config file does not need encryption. Object-level encryption permits ordinary settings to remain inexpensive and inspectable while secrets receive authenticated encryption.
+Generation uses operating-system entropy (`BCryptGenRandom` on Windows and `/dev/urandom` on Unix). The key is created once and reused; normal load-or-create behavior never overwrites an existing key, and `Debug` output redacts the key material.
+
+The JSON store is explicitly temporary development plumbing, not the final security boundary. Because the master key is plaintext on disk, it provides no meaningful at-rest protection against an actor who can read both files. The intended production replacement remains the operating-system credential store while encrypted credential payloads remain in `continuity.cfg`.
+
+The whole config file does not need encryption. Object-level encryption will permit ordinary settings to remain inexpensive and inspectable while secrets receive authenticated encryption.
 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
 - General and embedding switchboard objects are implemented, but direct HTTP transport is not wired yet.
 - `openai-codex` device-code execution and `openai-ready` API-key credential objects are not implemented yet.
-- Encryption and Windows Credential Manager integration are not implemented yet.
+- Credential-payload encryption is not implemented yet.
+- The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.
 
 ## Related docs

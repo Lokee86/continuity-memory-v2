@@ -21,6 +21,9 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Switchboard provider auth/capabilities are explicit | `model_switchboard_tests::provider_auth_and_capabilities_are_explicit` |
 | General and embedding model routes round-trip through `continuity.cfg`, and clearing them removes the current objects | `model_switchboard_tests::general_and_embedding_routes_round_trip_through_config`, `model_switchboard_tests::clearing_model_routes_removes_them_from_current_config` |
 | Unsupported Codex embedding and incomplete OpenAI-ready routes are rejected | `model_switchboard_tests::codex_cannot_be_configured_as_embedding_provider`, `model_switchboard_tests::openai_ready_requires_an_explicit_http_endpoint` |
+| Master key is generated once from OS entropy and remains stable across reloads | `master_key_tests::json_store_generates_and_reloads_one_stable_key` |
+| Independent key stores produce different keys and debug output redacts key material | `master_key_tests::separately_created_stores_get_different_keys`, `master_key_tests::debug_output_never_contains_key_material` |
+| `ContinuityConfig` places the temporary JSON master key beside the config | `config_tests::config_creates_temporary_master_key_beside_itself` |
 | New CVA header reopens | `container_tests::create_then_reopen_cva` |
 | Opaque chunks retain stable references | `container_tests::append_then_read_chunks` |
 | Global versions survive reopen | `container_tests::global_versions_survive_reopen` |

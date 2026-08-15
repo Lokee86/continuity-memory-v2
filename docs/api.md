@@ -11,7 +11,7 @@ The public API exposes `ContinuityConfig` and the initial model-switchboard type
 ## Exact contract
 
 ### Local configuration
-`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, and `models: ModelSwitchboardConfig`; `path()` reports the configured path. Unknown framed objects are preserved across saves. `ConfigError` reports format, validation, and I/O failures. Configuration is separate from `.cva` and has no semantic history.
+`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, and `models: ModelSwitchboardConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
 
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
@@ -65,6 +65,9 @@ ArchiveVectorError
 `Cva::put_archive_vectors(packed_vector_id, fragment_ids)` creates/reuses an immutable row binding. Packed row `N` maps to `fragment_ids[N]`. Matrix existence, exact row count, real fragments, and per-set fragment uniqueness are required.
 
 `max_fragment_archive_version` is derived validation metadata, not Archive-Vector persistent identity. Archive Vectors contain no compatibility profile or active-generation state.
+
+### Master key
+Public types are `MasterKey`, `MasterKeyError`, `MasterKeyStore`, `JsonMasterKeyStore`, and `MASTER_KEY_BYTES = 32`. `JsonMasterKeyStore::load_or_create()` reads an existing version-1 JSON key or creates one from operating-system entropy without overwriting an existing file. `MasterKey` does not expose key bytes publicly and redacts its `Debug` representation. The JSON store is transitional and is not a production secret store.
 
 ### Model switchboard
 Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, and `ModelSwitchboard`.

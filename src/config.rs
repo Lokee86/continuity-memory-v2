@@ -9,7 +9,10 @@ use crate::model_switchboard_codec::{
     EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, decode_embedding, decode_general, encode_embedding,
     encode_general,
 };
-use crate::{ConfigError, FragmentConfig, ModelSwitchboardConfig, RetrievalConfig};
+use crate::{
+    ConfigError, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError, MasterKeyStore,
+    ModelSwitchboardConfig, RetrievalConfig,
+};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -66,6 +69,11 @@ impl ContinuityConfig {
 
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    pub fn load_or_create_master_key(&self) -> Result<MasterKey, MasterKeyError> {
+        JsonMasterKeyStore::new(self.path.with_file_name("continuity.master-key.json"))
+            .load_or_create()
     }
 
     pub fn save(&self) -> Result<(), ConfigError> {

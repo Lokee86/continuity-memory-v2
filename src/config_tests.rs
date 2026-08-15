@@ -100,3 +100,13 @@ fn invalid_magic_is_rejected() {
     fs::write(&path, b"not a continuity config").unwrap();
     assert!(ContinuityConfig::open(&path).is_err());
 }
+
+#[test]
+fn config_creates_temporary_master_key_beside_itself() {
+    let path = test_path("continuity.cfg");
+    let config = ContinuityConfig::new(&path);
+    let first = config.load_or_create_master_key().unwrap();
+    let second = config.load_or_create_master_key().unwrap();
+    assert_eq!(first, second);
+    assert!(path.with_file_name("continuity.master-key.json").exists());
+}

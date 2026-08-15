@@ -43,7 +43,8 @@ ContinuityConfig
 `ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL. Provider auth kind is explicit but credential persistence/transport are not implemented yet.
 
 Switchboard provider/model/URL choices are routing configuration only. They do not enter Compatibility Profile identity or decide vector compatibility.
-
+### Master key
+`MasterKeyStore` owns retrieval/creation of the 256-bit key that will protect credential objects. The current `JsonMasterKeyStore` is a temporary implementation that stores plaintext `continuity.master-key.json` beside `continuity.cfg`; production storage will move behind the same ownership boundary to the operating-system credential store. The master key is machine-local and is never CVA semantic state.
 ### Container
 Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
 ### Archive
@@ -175,6 +176,7 @@ G102 / A701   Archive mutation
 | --- | --- |
 | local configuration | `src/config*.rs` |
 | model switchboard/provider capabilities | `src/model_switchboard*.rs` |
+| master key / temporary key store | `src/master_key*.rs` |
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
 | physical Container/global clock | `src/container*.rs` |
 | Archive/history/fragments | `src/archive*.rs`, `src/fragment*.rs` |

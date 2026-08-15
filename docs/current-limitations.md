@@ -54,7 +54,8 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - Fragment, retrieval, `models.general`, and `models.embedding` objects are implemented.
 - The switchboard currently validates/stores routing only; direct provider HTTP transport is not implemented yet.
 - `openai-codex` device-code auth execution and `openai-ready` API-key credential objects are not implemented yet.
-- Per-object encryption, locally generated master-key handling, and Windows Credential Manager integration are not implemented yet.
+- A 256-bit master key can now be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
+- Per-object credential encryption and Windows Credential Manager integration are not implemented yet.
 - No text import/export format exists yet.
 
 ## Product/runtime limits

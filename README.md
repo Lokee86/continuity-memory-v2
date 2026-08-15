@@ -11,6 +11,7 @@ Implemented now:
 - purpose-built `continuity.cfg` current-state configuration with replaceable typed objects and atomic whole-file replacement;
 - configurable fragment and retrieval policy with the original defaults preserved;
 - expandable model-switchboard routing with General/Embedding capabilities and `openai-codex` / `openai-ready` providers;
+- self-generated 256-bit master key with a temporary local JSON key store, ready for later credential encryption;
 - CVA format header and append-only opaque chunks;
 - CVA-global monotonic `u64` version tickets;
 - Archive-local contiguous `u64` mutation watermarks;
@@ -41,7 +42,7 @@ Not implemented yet:
 - compression, checksums, encryption, packing, reclamation, or concurrent writer coordination;
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
-- encrypted credential objects, OS credential-store master-key integration, and direct provider authentication/transport;
+- encrypted credential objects, production OS credential-store master-key integration, and direct provider authentication/transport;
 - live embedding-provider execution through the switchboard, ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;

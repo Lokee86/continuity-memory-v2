@@ -6,4 +6,5 @@ bin/
 *.sqlite-shm
 *.sqlite-wal
 *.cva
+continuity.master-key.json
 .env
