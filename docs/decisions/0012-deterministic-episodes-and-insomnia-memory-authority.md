@@ -35,7 +35,7 @@ Within a class, source chronology determines order.
 
 The live model receives only a narrow `create_memory` capability. It cannot supply a memory payload or write the Memories owner. `create_memory` finalizes the current uncovered episode tail and queues the resulting tail episode at immediate-live priority. Earlier episodes produced by a size boundary retain normal live priority.
 
-Explicit imperative retention language such as “remember this” remains part of the Insomnia extraction contract. The tool affects when Insomnia runs; the archived user instruction affects what Insomnia must retain when its referent is identifiable. Correct retention must not depend on the live model having called the tool.
+Explicit imperative retention language such as “remember this” remains part of the Insomnia extraction contract. The tool affects when Insomnia runs; the archived user instruction affects what Insomnia must retain when its referent is identifiable. Correct retention must not depend on the live model having called the tool. When the referent lies outside the authoritative Episode, Insomnia may perform one bounded read-only Archive evidence round. Historical evidence may supply context or an earlier assistant content source, but never user authority; `source_node_id` remains constrained to the authoritative Episode.
 
 Memories are a separate mutable semantic owner with stable memory IDs, immutable revisions, expected-revision conflict checks, mutation-ID replay protection, exact Archive/Episode provenance, a dense `memory_version`, and CVA-global ordering only at publication. Memory authority is independent of embedding availability.
 

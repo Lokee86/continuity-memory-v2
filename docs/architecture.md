@@ -67,6 +67,8 @@ Insomnia operational state owns finalized-Episode processing coordination rather
 
 `create_memory` is not a Memory write API. It finalizes the current uncovered live Episode tail and queues it at immediate-live priority; Insomnia remains the only authority that can turn source material into working-memory revisions.
 
+Insomnia extraction may perform one bounded read-only Archive evidence round when the authoritative Episode contains an explicit callback or adopted historical assistant content that cannot be resolved locally. The model may request at most four reads: an exact `(conversation_id, node_id)` turn, a maximum-64-node ancestry range, or lexical Archive search with at most five fragment hits. Returned evidence is deduplicated and capped globally at 64 turns / 128 KiB. Historical evidence can clarify interpretation or supply an earlier assistant content source, but it can never provide the user authority for a Memory: `source_node_id` must still be a user turn inside the authoritative Episode. External assistant provenance is accepted only when that exact historical turn was actually returned in the bounded evidence set. A second evidence round is rejected.
+
 ### PackedVectorStore
 Packed vectors own immutable matrix bytes and physical row representation. `VectorSchema` defines dimensions and scalar representation; rows are fixed-width and contiguous. Equal schema+bytes deduplicate.
 Packed vectors do not know which Archive fragments or Memory bodies rows represent or which embedding space produced them.

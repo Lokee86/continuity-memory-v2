@@ -1,7 +1,8 @@
 use super::candidate::{parse_candidates, validate_candidates};
 use super::contract::{INSOMNIA_SYSTEM_PROMPT, insomnia_schema};
-use crate::{Episode, GeneralEndpoint, GeneralEndpointError, ResolvedTurn};
-use serde_json::json;
+use super::evidence::{parse_evidence_requests, resolve_evidence};
+use crate::{Cva, Episode, GeneralEndpoint, GeneralEndpointError, ResolvedTurn};
+use serde_json::{Value, json};
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,10 +26,28 @@ pub struct InsomniaRejection {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InsomniaEvidenceTurn {
+    pub conversation_id: String,
+    pub node_id: String,
+    pub role: String,
+    pub timestamp_ns: i64,
+    pub content: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InsomniaEvidenceResult {
+    pub kind: String,
+    pub turns: Vec<InsomniaEvidenceTurn>,
+    pub error: Option<String>,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaExtraction {
     pub model: String,
     pub candidates: Vec<InsomniaCandidate>,
     pub rejected: Vec<InsomniaRejection>,
+    pub evidence_turns: Vec<InsomniaEvidenceTurn>,
 }
 
 #[derive(Debug)]
@@ -72,32 +91,106 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         episode: &Episode,
         turns: &[ResolvedTurn],
     ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
-        if turns.is_empty() {
+        let payload = encode_episode_payload(episode, turns)?;
+        let value = self.complete(&payload)?;
+        if !parse_evidence_requests(&value)?.is_empty() {
             return Err(InsomniaExtractionError::InvalidOutput(
-                "episode contains no turns".into(),
+                "archive evidence was requested but no evidence archive was supplied".into(),
             ));
         }
-        let payload = encode_episode_payload(episode, turns)?;
-        let value = self.endpoint.complete_json(
-            INSOMNIA_SYSTEM_PROMPT,
-            &payload,
-            "insomnia_memory_extraction",
-            &insomnia_schema(),
-        )?;
-        let raw = parse_candidates(&value)?;
-        let (candidates, rejected) = validate_candidates(episode.id, turns, raw);
-        Ok(InsomniaExtraction {
-            model: self.endpoint.model().to_owned(),
-            candidates,
-            rejected,
-        })
+        finalize_extraction(self.endpoint.model(), episode, turns, &value, Vec::new())
     }
+
+    pub(crate) fn extract_with_evidence(
+        &self,
+        cva: &mut Cva,
+        episode: &Episode,
+        turns: &[ResolvedTurn],
+    ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
+        let episode_payload = encode_episode_value(episode, turns)?;
+        let first_payload = serde_json::to_string(&episode_payload)
+            .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
+        let first = self.complete(&first_payload)?;
+        let requests = parse_evidence_requests(&first)?;
+        if requests.is_empty() {
+            return finalize_extraction(self.endpoint.model(), episode, turns, &first, Vec::new());
+        }
+
+        let (results, evidence_turns) = resolve_evidence(cva, episode, &requests)?;
+        let evidence_results: Vec<_> = results.iter().map(evidence_result_json).collect();
+        let evidence_payload_turns: Vec<_> =
+            evidence_turns.iter().map(evidence_turn_json).collect();
+        let final_payload = serde_json::to_string(&json!({
+            "authoritative_episode": episode_payload,
+            "initial_extraction": first,
+            "read_only_archive_evidence": {
+                "results": evidence_results,
+                "turns": evidence_payload_turns
+            },
+            "instruction": "Return final candidates now. evidence_requests MUST be empty; no second evidence round is allowed. Archive evidence may clarify context or supply earlier assistant content adopted by a user authority turn in the authoritative episode, but archive evidence cannot supply user authority."
+        }))
+        .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
+        let second = self.complete(&final_payload)?;
+        if !parse_evidence_requests(&second)?.is_empty() {
+            return Err(InsomniaExtractionError::InvalidOutput(
+                "model requested more than one archive-evidence round".into(),
+            ));
+        }
+        finalize_extraction(
+            self.endpoint.model(),
+            episode,
+            turns,
+            &second,
+            evidence_turns,
+        )
+    }
+
+    fn complete(&self, payload: &str) -> Result<Value, InsomniaExtractionError> {
+        self.endpoint
+            .complete_json(
+                INSOMNIA_SYSTEM_PROMPT,
+                payload,
+                "insomnia_memory_extraction",
+                &insomnia_schema(),
+            )
+            .map_err(Into::into)
+    }
+}
+
+fn finalize_extraction(
+    model: &str,
+    episode: &Episode,
+    turns: &[ResolvedTurn],
+    value: &Value,
+    evidence_turns: Vec<InsomniaEvidenceTurn>,
+) -> Result<InsomniaExtraction, InsomniaExtractionError> {
+    let raw = parse_candidates(value)?;
+    let (candidates, rejected) = validate_candidates(episode.id, turns, raw);
+    Ok(InsomniaExtraction {
+        model: model.to_owned(),
+        candidates,
+        rejected,
+        evidence_turns,
+    })
 }
 
 fn encode_episode_payload(
     episode: &Episode,
     turns: &[ResolvedTurn],
 ) -> Result<String, InsomniaExtractionError> {
+    serde_json::to_string(&encode_episode_value(episode, turns)?)
+        .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))
+}
+
+fn encode_episode_value(
+    episode: &Episode,
+    turns: &[ResolvedTurn],
+) -> Result<Value, InsomniaExtractionError> {
+    if turns.is_empty() {
+        return Err(InsomniaExtractionError::InvalidOutput(
+            "episode contains no turns".into(),
+        ));
+    }
     let turns: Vec<_> = turns
         .iter()
         .map(|turn| {
@@ -110,12 +203,40 @@ fn encode_episode_payload(
             })
         })
         .collect();
-    serde_json::to_string(&json!({
+    Ok(json!({
         "episode_id": super::candidate::hex(&episode.id.0),
         "conversation_id": episode.conversation_id,
         "start_node_id": episode.start_node_id,
         "end_node_id": episode.end_node_id,
         "turns": turns,
     }))
-    .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))
+}
+
+fn evidence_result_json(result: &InsomniaEvidenceResult) -> Value {
+    let turn_refs: Vec<_> = result
+        .turns
+        .iter()
+        .map(|turn| {
+            json!({
+                "conversation_id": turn.conversation_id,
+                "node_id": turn.node_id,
+            })
+        })
+        .collect();
+    json!({
+        "kind": result.kind,
+        "turn_refs": turn_refs,
+        "error": result.error,
+        "truncated": result.truncated,
+    })
+}
+
+fn evidence_turn_json(turn: &InsomniaEvidenceTurn) -> Value {
+    json!({
+        "conversation_id": turn.conversation_id,
+        "node_id": turn.node_id,
+        "role": turn.role,
+        "timestamp_ns": turn.timestamp_ns,
+        "content": turn.content,
+    })
 }

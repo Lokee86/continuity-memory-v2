@@ -84,14 +84,19 @@ impl Cva {
             .cloned()
             .ok_or(InsomniaProcessError::MissingEpisode)?;
         let turns = self.episode_turns(claim.episode_id)?;
-        let extraction = extractor.extract(&episode, &turns)?;
+        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
         let mut result = InsomniaProcessResult {
             created: Vec::new(),
             existing: Vec::new(),
             rejected: extraction.rejected,
         };
         for candidate in extraction.candidates {
-            if let Err(reason) = self.validate_content_source(&candidate, &turns) {
+            if let Err(reason) = self.validate_content_source(
+                &candidate,
+                &episode.conversation_id,
+                &turns,
+                &extraction.evidence_turns,
+            ) {
                 result.rejected.push(InsomniaRejection {
                     candidate_key: Some(candidate.key.clone()),
                     reason,
@@ -146,7 +151,9 @@ impl Cva {
     fn validate_content_source(
         &mut self,
         candidate: &InsomniaCandidate,
+        episode_conversation_id: &str,
         episode_turns: &[crate::ResolvedTurn],
+        evidence_turns: &[crate::InsomniaEvidenceTurn],
     ) -> Result<(), String> {
         let Some(conversation_id) = candidate.content_source_conversation_id.as_deref() else {
             return Ok(());
@@ -159,6 +166,16 @@ impl Cva {
             .content_source_quote
             .as_deref()
             .ok_or_else(|| "content source quote is missing".to_owned())?;
+        let source_is_in_episode = conversation_id == episode_conversation_id
+            && episode_turns.iter().any(|turn| turn.node_id == node_id);
+        let source_is_in_evidence = evidence_turns
+            .iter()
+            .any(|turn| turn.conversation_id == conversation_id && turn.node_id == node_id);
+        if !source_is_in_episode && !source_is_in_evidence {
+            return Err(
+                "external content source was not supplied by bounded archive evidence".into(),
+            );
+        }
         let source = self
             .archive
             .require_node(

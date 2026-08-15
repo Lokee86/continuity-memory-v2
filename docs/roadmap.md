@@ -42,6 +42,7 @@ Completed bootstrap slices:
 26. A separate Insomnia operational owner with immediate-live/live/import scheduling classes, oldest-source ordering within each class, durable queue/attempt history, restart reclamation, leases, retries, terminal state, and a narrow `create_memory` tail-finalization + immediate-queue seam.
 27. An `insomnia` Rust module with exact Episode input reads, strict JSON-schema General-model extraction, candidate/user-authority validation, explicit-retention semantics, deterministic candidate identity, and idempotent Memory publication.
 28. Immutable Memory Vectors over shared packed matrices, keyed by `(CompatibilityProfileId, MemoryBodyId)`, with missing-only embedding, reopen validation, and enforced immutable Memory semantic bodies across metadata revisions.
+29. One bounded read-only Insomnia Archive-evidence round with exact-turn, maximum-64-node ancestry-range, and lexical-search reads; four-request and 64-turn/128-KiB global bounds; second-round rejection; current-Episode-only user authority; and evidence-bound external assistant provenance.
 
 ## Expected ownership or ownership boundary
 
@@ -51,7 +52,7 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Finish Insomnia processing around the implemented extraction core: add bounded archive evidence, the grouped Memory/outcome publication boundary, retry classification, and the whole-file worker loop over the operational queue; have that loop fill missing Memory Vectors as a separate asynchronous/derived step.
+1. Finish Insomnia processing around the implemented extraction core: add the grouped Memory/outcome publication boundary, retry classification, and the whole-file worker loop over the operational queue; have that loop fill missing Memory Vectors as a separate asynchronous/derived step.
 2. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, worker-pool orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
 3. Extend provider transport beyond the implemented `openai-ready` embedding/General paths: add `openai-codex` ChatGPT device-code acquisition/token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
 4. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.

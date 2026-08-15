@@ -125,10 +125,12 @@ pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
 pub use insomnia::{
     EpisodeSchedulingResult, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_SYSTEM_PROMPT,
-    InsomniaAttempt, InsomniaCandidate, InsomniaError, InsomniaExtraction, InsomniaExtractionError,
-    InsomniaExtractor, InsomniaLeaseToken, InsomniaPriority, InsomniaProcessError,
-    InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork, InsomniaWorkState,
-    MAX_INSOMNIA_CANDIDATES, insomnia_schema,
+    InsomniaAttempt, InsomniaCandidate, InsomniaError, InsomniaEvidenceResult,
+    InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError, InsomniaExtractor,
+    InsomniaLeaseToken, InsomniaPriority, InsomniaProcessError, InsomniaProcessResult,
+    InsomniaRejection, InsomniaStats, InsomniaWork, InsomniaWorkState, MAX_INSOMNIA_CANDIDATES,
+    MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
+    insomnia_schema,
 };
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
