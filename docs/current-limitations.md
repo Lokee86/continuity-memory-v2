@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production endpoints, later semantic databases, and production storage hardening remain incomplete.
+Purpose-built local configuration, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production endpoints, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -47,6 +47,13 @@ Archive, packed matrices, Archive row bindings, compatibility profiles, vector-g
 Archive node/branch/fragment lookup uses dense records plus compact open-addressed slots. Fragment indexes retain one derived `u64` Archive creation version per fragment so generation coverage can be validated. `ContentId -> ChunkRef` remains a direct fixed-width hash table.
 
 Reopen uses one streaming physical pass shared by all concrete stores. Current measurements are recorded in [development](development.md); larger realistic-dimension vector-bearing measurements remain useful before storage optimization.
+
+## Local configuration limits
+- Purpose-built `continuity.cfg` persistence is implemented with replaceable logical objects and atomic whole-file replacement.
+- The default operating-system config location is not selected yet; callers currently provide the config path.
+- Only fragment and retrieval objects are implemented. Model-switchboard/provider and credential objects are next.
+- Per-object encryption, locally generated master-key handling, and Windows Credential Manager integration are not implemented yet.
+- No text import/export format exists yet.
 
 ## Product/runtime limits
 Memories, Memory Vectors, Graph, the shared long-lived runtime, Insomnia, Dream, Ego, production importers, and durable operational worker state are not implemented in this repository yet.

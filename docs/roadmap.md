@@ -31,6 +31,7 @@ Completed bootstrap slices:
 15. Vector-generation semantic publication with dense local `vector_version`, CVA-global ordering, per-profile current generations, Archive coverage validation, and inert incomplete publications.
 16. Exact semantic retrieval through compatibility verification, Query-mode embedding, current-generation resolution, exact cosine scan, and row-to-FragmentId mapping.
 17. Original default lexical/hybrid retrieval with 30-candidate fusion, `0.45/0.55` channel weighting, overlap diversification, and 10 final results.
+18. Purpose-built replaceable local configuration container with fragment/retrieval objects, deterministic framing, unknown-object preservation, and atomic whole-file replacement.
 
 ## Expected ownership or ownership boundary
 
@@ -40,7 +41,7 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Replace the development embedding-endpoint seam with the model switchboard and run the first real embedding/retrieval tests.
+1. Add model-switchboard/provider objects to `continuity.cfg`, replace the development embedding-endpoint seam with that switchboard, and run the first real embedding/retrieval tests.
 2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
 3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
 4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.

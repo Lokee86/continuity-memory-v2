@@ -21,7 +21,22 @@ Cva
     └── vector_version: u64 + current generation per profile
 ```
 `Cva` owns physical composition and the single Container handle. It is not a generalized semantic database, store registry, root, or dependency engine.
+
+Machine-local application configuration is a separate owner:
+
+```text
+ContinuityConfig
+└── continuity.cfg
+    ├── archive.fragments
+    ├── retrieval.default
+    └── future model/credential objects
+```
+
+`continuity.cfg` is current-state configuration only. It is not contained in a `.cva`, consumes no semantic clocks, and has no append-only/history semantics.
 ## Responsibilities
+### Local configuration
+`ContinuityConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Object flags are reserved for later per-object credential encryption.
+
 ### Container
 Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
 ### Archive
@@ -145,10 +160,12 @@ G102 / A701   Archive mutation
 - published generations currently require `f32` matrices until alternate representation semantics exist;
 - generation source watermark must cover every mapped fragment;
 - the semantic retrieval channel searches exactly one selected profile's current generation and never mixes profile score spaces;
-- default hybrid retrieval preserves the original 30-candidate / 10-result policy and `0.45/0.55` lexical-semantic fusion.
+- default hybrid retrieval preserves the original 30-candidate / 10-result policy and `0.45/0.55` lexical-semantic fusion;
+- local configuration is current-state machine configuration, not CVA semantic state or an internal history system.
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |
+| local configuration | `src/config*.rs` |
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
 | physical Container/global clock | `src/container*.rs` |
 | Archive/history/fragments | `src/archive*.rs`, `src/fragment*.rs` |
@@ -161,6 +178,7 @@ G102 / A701   Archive mutation
 | corpus vector/retrieval smoke | `examples/vector_generation_smoke.rs` |
 ## Related docs
 - [Storage format](storage-format.md)
+- [Local configuration](configuration.md)
 - [Rust API](api.md)
 - [Architectural invariants](invariants.md)
 - [Versioning and rollback plan](version-history-plan.md)

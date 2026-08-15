@@ -8,6 +8,8 @@ A `.cva` is one physical container for several purpose-built databases. The cont
 
 Implemented now:
 
+- purpose-built `continuity.cfg` current-state configuration with replaceable typed objects and atomic whole-file replacement;
+- configurable fragment and retrieval policy with the original defaults preserved;
 - CVA format header and append-only opaque chunks;
 - CVA-global monotonic `u64` version tickets;
 - Archive-local contiguous `u64` mutation watermarks;
@@ -38,6 +40,7 @@ Not implemented yet:
 - compression, checksums, encryption, packing, reclamation, or concurrent writer coordination;
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
+- model-switchboard/provider config objects, encrypted credential objects, and OS credential-store master-key integration;
 - live embedding-provider adapters, ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;
@@ -49,10 +52,10 @@ The current indexes remain derived acceleration state. Archive and Vector Genera
 
 > Defer mechanics, not ownership.
 
-Storage mechanisms may remain simple while owning database boundaries remain explicit. The project does not use a generalized semantic database/root/dependency layer. Integer version adjacency provides ordering and historical cuts; it does not define semantic ancestry.
+Storage mechanisms may remain simple while owning database boundaries remain explicit. The project does not use a generalized semantic database/root/dependency layer. Local configuration is a separate purpose-built replaceable file, not another semantic database. Integer version adjacency provides ordering and historical cuts; it does not define semantic ancestry.
 
 ## Documentation
 
-Start with [the documentation index](docs/INDEX.md), [current architecture](docs/architecture.md), [storage format](docs/storage-format.md), and [current limitations](docs/current-limitations.md).
+Start with [the documentation index](docs/INDEX.md), [current architecture](docs/architecture.md), [local configuration](docs/configuration.md), [storage format](docs/storage-format.md), and [current limitations](docs/current-limitations.md).
 
 Implemented Archive versioning plus the remaining whole-CVA historical-recovery plan are documented in [versioning, historical cuts, and rollback](docs/version-history-plan.md).

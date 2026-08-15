@@ -1,0 +1,128 @@
+# Local Configuration
+
+Parent index: [Documentation index](INDEX.md)
+
+## Purpose
+
+This document owns the local Continuity configuration format, mutation semantics, and boundary from CVA semantic state.
+
+## Overview
+
+Continuity uses one small purpose-built `continuity.cfg` file for machine-local current configuration. It uses replaceable logical objects, whole-file atomic replacement, and no internal history.
+
+## Ownership
+
+`continuity.cfg` is a purpose-built local application-configuration file. It is not part of a `.cva`, does not participate in CVA semantic clocks, and has no historical or append-only semantics.
+
+Configuration is current-state only:
+
+```text
+load current objects
+    ↓
+replace typed values in memory
+    ↓
+serialize one complete current file image
+    ↓
+write + sync temporary file
+    ↓
+atomically replace continuity.cfg
+```
+
+If a user wants configuration history, that belongs in an external version-control system such as Git.
+
+## File header
+
+All multi-byte values are little-endian.
+
+```text
+8 bytes   magic = "CVCFG\0\r\n"
+u16       major = 1
+u16       minor = 0
+u32       object count
+```
+
+## Object framing
+
+Each logical configuration object is independently framed:
+
+```text
+u16       UTF-8 key byte length
+u16       object schema version
+u32       flags
+u32       payload byte length
+u32       reserved = 0
+N bytes   UTF-8 logical key
+M bytes   object payload
+```
+
+Logical keys are stable names rather than content hashes. Replacing a setting replaces the object associated with that key in the next complete file image; superseded objects are not retained.
+
+Unknown logical objects are preserved byte-for-byte when a newer/foreign object is present and known objects are changed. This lets the object vocabulary expand without requiring config history or an append-only store.
+
+Flags are currently `0`. The field is reserved so later credential or other sensitive objects can mark encrypted payloads without encrypting the entire configuration file.
+
+## Implemented objects
+
+### `archive.fragments`
+
+Schema `1`, flags `0`:
+
+```text
+u64       turns
+u64       overlap
+```
+
+Current defaults are `turns = 8`, `overlap = 2`. `turns` must be non-zero and `overlap < turns`.
+
+### `retrieval.default`
+
+Schema `1`, flags `0`:
+
+```text
+u64       candidate_limit
+u64       result_limit
+f64       lexical_weight
+f64       semantic_weight
+```
+
+Current defaults are `30`, `10`, `0.45`, and `0.55`. Limits must be non-zero, result limit cannot exceed candidate limit, and candidate limit cannot exceed the semantic-search maximum. Weights must be finite and positive; search normalizes them before hybrid fusion.
+
+`Cva::search_with_config` consumes `RetrievalConfig`. `Cva::search` remains the default-policy convenience method.
+
+## Replacement and durability
+
+`ContinuityConfig::save` validates all known objects before touching the existing file. It writes the new image to a temporary file in the same directory, flushes it, then performs a replace operation. Windows uses `MoveFileExW` with replace/write-through flags; Unix uses same-filesystem rename and synchronizes the parent directory.
+
+Repeated replacement does not accumulate superseded configuration objects or require compaction.
+
+## Security boundary
+
+Credential objects and encryption are not implemented yet. The intended boundary is:
+
+```text
+continuity.cfg
+    encrypted credential payloads only
+
+OS credential store
+    locally generated master encryption key
+```
+
+The whole config file does not need encryption. Object-level encryption permits ordinary settings to remain inexpensive and inspectable while secrets receive authenticated encryption.
+
+## Current limitations
+
+- The default operating-system config location is not selected yet; callers currently supply a path.
+- Model-switchboard and credential objects are not implemented yet.
+- Encryption and Windows Credential Manager integration are not implemented yet.
+- No import/export text format exists yet.
+
+## Related docs
+
+- [Architecture](architecture.md)
+- [Rust API](api.md)
+- [Current limitations](current-limitations.md)
+- [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
+
+## Notes
+
+The config object vocabulary is intentionally concrete. Shared framing does not make the file a generalized semantic store.

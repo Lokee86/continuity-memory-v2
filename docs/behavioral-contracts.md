@@ -14,6 +14,10 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 
 | Contract | Protection |
 | --- | --- |
+| Default local config saves/reopens with Continuity magic and typed defaults | `config_tests::default_config_saves_and_reopens` |
+| Config replacement keeps only current objects and does not grow from history | `config_tests::replacing_config_does_not_accumulate_old_objects` |
+| Unknown future config objects survive known-object replacement | `config_tests::unknown_objects_survive_known_config_replacement` |
+| Invalid config is rejected before replacing the existing file | `config_tests::invalid_values_do_not_replace_existing_config` |
 | New CVA header reopens | `container_tests::create_then_reopen_cva` |
 | Opaque chunks retain stable references | `container_tests::append_then_read_chunks` |
 | Global versions survive reopen | `container_tests::global_versions_survive_reopen` |
@@ -57,8 +61,8 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Exact semantic search verifies compatibility, uses Query mode, ranks by cosine, drops non-positive scores, advances no semantic clock, and survives reopen | `semantic_search_tests::semantic_search_exactly_ranks_current_generation_and_reopens` |
 | Semantic search resolves the newest generation for the selected profile | `semantic_search_tests::semantic_search_uses_newest_generation_for_profile` |
 | Semantic search rejects missing generations, empty/invalid limits, and incompatible endpoints | `semantic_search_tests::semantic_search_rejects_invalid_requests_and_incompatible_endpoint` |
-| Default search restores `0.45/0.55` fusion, 30 candidates, 10 results, and undiluted single-channel scores | `search_tests::old_default_weights_and_limits_are_restored`, `search_tests::hybrid_search_preserves_single_channel_scores_and_blends_shared_hits` |
-| Lexical scoring preserves the original coverage+density formula | `search_tests::lexical_scoring_matches_original_coverage_density_formula` |
+| Default search restores `0.45/0.55` fusion, 30 candidates, 10 results, undiluted single-channel scores, and accepts explicit validated retrieval policy | `search_policy_tests::old_default_weights_and_limits_are_restored`, `search_tests::hybrid_search_preserves_single_channel_scores_and_blends_shared_hits`, `search_tests::duplicate_ranges_are_removed_and_default_result_limit_is_ten` |
+| Lexical scoring preserves the original coverage+density formula | `search_policy_tests::lexical_scoring_matches_original_coverage_density_formula` |
 | Same-conversation overlapping ranges are diversified | `search_tests::diversification_penalizes_overlapping_ranges_from_same_conversation` |
 | Duplicate ranges are removed and default output is capped at 10 | `search_tests::duplicate_ranges_are_removed_and_default_result_limit_is_ten` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |

@@ -14,6 +14,7 @@ Development uses deterministic local tests and simulated embedding endpoints; pr
 
 ```text
 Cargo.toml / Cargo.lock              crate definition and locked dependencies
+src/config*.rs                      local config framing/object codecs/atomic replacement
 src/cva*.rs                         composition/public CVA lifecycle
 src/container*.rs                   physical CVA substrate/global ordering
 src/archive*.rs / fragment*.rs      Archive semantics/history/fragments
@@ -105,7 +106,7 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 
 - `cargo fmt --check` catches Rust formatting drift.
 - `cargo check` catches type/compile errors.
-- `cargo test` owns focused behavioral verification.
+- `cargo test` owns focused behavioral verification, including config replacement/validation/forward-object preservation.
 - The documentation checker validates repository documentation policy but not semantic correctness.
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.

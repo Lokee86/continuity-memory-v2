@@ -1,7 +1,5 @@
 use crate::{
-    CompatibilityProfileId, Cva, DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT,
-    DEFAULT_SEARCH_RESULT_LIMIT, DEFAULT_SEMANTIC_WEIGHT, EmbeddingEndpoint, SearchCandidate,
-    SearchError,
+    CompatibilityProfileId, Cva, EmbeddingEndpoint, RetrievalConfig, SearchCandidate, SearchError,
 };
 use std::collections::HashMap;
 
@@ -12,11 +10,32 @@ impl Cva {
         endpoint: &impl EmbeddingEndpoint,
         query: &str,
     ) -> Result<Vec<SearchCandidate>, SearchError> {
+        self.search_with_config(
+            compatibility_profile_id,
+            endpoint,
+            query,
+            RetrievalConfig::default(),
+        )
+    }
+
+    pub fn search_with_config(
+        &mut self,
+        compatibility_profile_id: CompatibilityProfileId,
+        endpoint: &impl EmbeddingEndpoint,
+        query: &str,
+        config: RetrievalConfig,
+    ) -> Result<Vec<SearchCandidate>, SearchError> {
         if query.trim().is_empty() {
             return Err(SearchError::EmptyQuery);
         }
+        let Some(weights) = config.normalized_weights() else {
+            return Err(SearchError::InvalidConfig);
+        };
+        if config.candidate_limit > crate::MAX_SEMANTIC_SEARCH_LIMIT {
+            return Err(SearchError::InvalidConfig);
+        }
         let mut by_id = HashMap::new();
-        for hit in self.lexical_candidates(query)? {
+        for hit in self.lexical_candidates(query, config.candidate_limit)? {
             by_id.insert(
                 hit.fragment.id,
                 SearchCandidate {
@@ -32,7 +51,7 @@ impl Cva {
             compatibility_profile_id,
             endpoint,
             query,
-            DEFAULT_SEARCH_CANDIDATE_LIMIT,
+            config.candidate_limit,
         )? {
             let candidate = by_id
                 .entry(hit.fragment.id)
@@ -48,13 +67,16 @@ impl Cva {
         }
         let mut candidates: Vec<_> = by_id.into_values().collect();
         for candidate in &mut candidates {
-            candidate.combined_score =
-                combine_scores(candidate.lexical_score, candidate.semantic_score);
+            candidate.combined_score = combine_scores_with_weights(
+                candidate.lexical_score,
+                candidate.semantic_score,
+                weights,
+            );
         }
         sort_candidates(&mut candidates);
         candidates = deduplicate_candidates(candidates);
-        candidates = self.diversify_candidates(candidates, DEFAULT_SEARCH_CANDIDATE_LIMIT)?;
-        candidates.truncate(DEFAULT_SEARCH_RESULT_LIMIT);
+        candidates = self.diversify_candidates(candidates, config.candidate_limit)?;
+        candidates.truncate(config.result_limit);
         Ok(candidates)
     }
 
@@ -116,9 +138,21 @@ impl Cva {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn combine_scores(lexical: f64, semantic: f64) -> f64 {
+    combine_scores_with_weights(
+        lexical,
+        semantic,
+        (
+            crate::DEFAULT_LEXICAL_WEIGHT,
+            crate::DEFAULT_SEMANTIC_WEIGHT,
+        ),
+    )
+}
+
+fn combine_scores_with_weights(lexical: f64, semantic: f64, weights: (f64, f64)) -> f64 {
     match (valid_score(lexical), valid_score(semantic)) {
-        (true, true) => DEFAULT_LEXICAL_WEIGHT * lexical + DEFAULT_SEMANTIC_WEIGHT * semantic,
+        (true, true) => weights.0 * lexical + weights.1 * semantic,
         (true, false) => lexical,
         (false, true) => semantic,
         (false, false) => 0.0,

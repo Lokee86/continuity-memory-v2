@@ -22,6 +22,11 @@ mod compatibility_profile_probe;
 mod compatibility_profile_rebuild;
 mod compatibility_profile_store;
 mod compatibility_vector;
+pub mod config;
+mod config_codec;
+mod config_error;
+mod config_io;
+mod config_object;
 pub mod container;
 mod container_error;
 mod container_version;
@@ -70,6 +75,8 @@ pub use compatibility_profile_model::{
     CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileId,
     CompatibilityProfileStats, CompatibilityReport,
 };
+pub use config::ContinuityConfig;
+pub use config_error::ConfigError;
 pub use container::{ChunkRef, Container, ContainerError, FormatVersion};
 pub use cva::Cva;
 pub use cva_error::CvaError;
@@ -84,7 +91,7 @@ pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStat
 pub use search_error::SearchError;
 pub use search_model::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
-    DEFAULT_SEMANTIC_WEIGHT, SearchCandidate,
+    DEFAULT_SEMANTIC_WEIGHT, RetrievalConfig, SearchCandidate,
 };
 pub use semantic_search_error::SemanticSearchError;
 pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
@@ -98,6 +105,8 @@ mod archive_vector_tests;
 #[cfg(test)]
 mod compatibility_profile_tests;
 #[cfg(test)]
+mod config_tests;
+#[cfg(test)]
 mod container_tests;
 #[cfg(test)]
 mod fragment_tests;
@@ -105,6 +114,8 @@ mod fragment_tests;
 mod history_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod search_policy_tests;
 #[cfg(test)]
 mod search_tests;
 #[cfg(test)]

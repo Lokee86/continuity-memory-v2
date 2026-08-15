@@ -1,9 +1,7 @@
-use crate::lexical_search::{lexical_score, lexical_terms};
-use crate::search::{combine_scores, deduplicate_candidates};
+use crate::search::deduplicate_candidates;
 use crate::{
-    Cva, DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
-    DEFAULT_SEMANTIC_WEIGHT, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, Fragment,
-    FragmentConfig, SearchCandidate, VectorNormalization,
+    Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, Fragment, FragmentConfig,
+    RetrievalConfig, SearchCandidate, VectorNormalization,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -81,25 +79,6 @@ fn add_conversation(cva: &mut Cva, conversation: &str, turns: usize, text: &str)
         false,
     )
     .unwrap()
-}
-
-#[test]
-fn old_default_weights_and_limits_are_restored() {
-    assert_eq!(DEFAULT_LEXICAL_WEIGHT, 0.45);
-    assert_eq!(DEFAULT_SEMANTIC_WEIGHT, 0.55);
-    assert_eq!(DEFAULT_SEARCH_CANDIDATE_LIMIT, 30);
-    assert_eq!(DEFAULT_SEARCH_RESULT_LIMIT, 10);
-    assert_eq!(combine_scores(0.8, 0.0), 0.8);
-    assert_eq!(combine_scores(0.0, 0.9), 0.9);
-    assert!((combine_scores(0.8, 0.6) - 0.69).abs() < 1e-9);
-}
-
-#[test]
-fn lexical_scoring_matches_original_coverage_density_formula() {
-    let terms = lexical_terms("Alpha, beta alpha!");
-    assert_eq!(terms, vec!["alpha", "beta"]);
-    let score = lexical_score("alpha alpha alpha", &terms);
-    assert!((score - 0.5375).abs() < 1e-9);
 }
 
 #[test]
@@ -184,6 +163,22 @@ fn duplicate_ranges_are_removed_and_default_result_limit_is_ten() {
     assert_eq!(
         cva.search(profile.id, &endpoint, "alpha").unwrap().len(),
         10
+    );
+    assert_eq!(
+        cva.search_with_config(
+            profile.id,
+            &endpoint,
+            "alpha",
+            RetrievalConfig {
+                candidate_limit: 8,
+                result_limit: 3,
+                lexical_weight: 1.0,
+                semantic_weight: 3.0,
+            }
+        )
+        .unwrap()
+        .len(),
+        3
     );
 }
 

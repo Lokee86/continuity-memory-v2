@@ -54,6 +54,8 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 40. **Retrieval never mixes vector spaces.** Exact semantic search resolves one selected Compatibility Profile's current Vector Generation, searches only that generation, and maps only its row bindings back to Archive fragments.
 41. **Published generation representation must be interpretable.** Until alternate scalar/quantization semantics are explicitly defined, Vector Generations may reference only `f32` packed matrices even though raw PackedVectorStore objects support other scalar types.
 42. **Retrieval is derived and read-only.** Lexical scoring, semantic search, hybrid fusion, deduplication, and diversification persist no authority and consume no semantic version ticket.
+43. **Local configuration is current state, not semantic history.** `continuity.cfg` is separate from `.cva`, uses replaceable logical objects, and consumes no semantic version ticket.
+44. **Configuration replacement does not accumulate history.** Saving writes one complete validated current image and atomically replaces the prior file; superseded config objects are not retained.
 
 ## Safety boundaries
 

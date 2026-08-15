@@ -1,4 +1,4 @@
-use crate::{Cva, DEFAULT_SEARCH_CANDIDATE_LIMIT, Fragment, SearchError};
+use crate::{Cva, Fragment, SearchError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct LexicalHit {
@@ -10,9 +10,10 @@ impl Cva {
     pub(crate) fn lexical_candidates(
         &mut self,
         query: &str,
+        limit: usize,
     ) -> Result<Vec<LexicalHit>, SearchError> {
         let terms = lexical_terms(query);
-        if terms.is_empty() {
+        if terms.is_empty() || limit == 0 {
             return Ok(Vec::new());
         }
         let mut hits = Vec::new();
@@ -36,7 +37,7 @@ impl Cva {
                 .then_with(|| right.1.cmp(&left.1))
                 .then_with(|| left.0.fragment.id.0.cmp(&right.0.fragment.id.0))
         });
-        hits.truncate(DEFAULT_SEARCH_CANDIDATE_LIMIT);
+        hits.truncate(limit);
         Ok(hits.into_iter().map(|(hit, _)| hit).collect())
     }
 }

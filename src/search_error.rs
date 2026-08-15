@@ -6,6 +6,7 @@ pub enum SearchError {
     Archive(ArchiveError),
     Semantic(SemanticSearchError),
     EmptyQuery,
+    InvalidConfig,
 }
 
 impl fmt::Display for SearchError {
