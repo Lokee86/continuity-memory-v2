@@ -40,7 +40,7 @@ ContinuityConfig
 ### Model switchboard
 `ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. Each configured route carries a stable `CredentialId`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL.
 
-`CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. The switchboard can then produce request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
+`CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. The switchboard can then produce request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. `OpenAiReadyEmbeddingEndpoint` consumes the validated embedding route/auth, performs direct OpenAI-compatible HTTP embedding requests, preserves input order across concurrent batches, and normalizes output according to the declared route contract. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
 ### Master key
 `MasterKeyStore` owns retrieval/creation of the 256-bit key that protects credential objects. The current `JsonMasterKeyStore` is a temporary implementation that stores plaintext `continuity.master-key.json` beside `continuity.cfg`; production storage will move behind the same ownership boundary to the operating-system credential store. Credential ciphertext uses AES-256-GCM with fresh nonces and object-key-bound authenticated data. The master key is machine-local and is never CVA semantic state.
 ### Container
@@ -183,7 +183,7 @@ G102 / A701   Archive mutation
 | Archive/history/fragments | `src/archive*.rs`, `src/fragment*.rs` |
 | packed matrices | `src/packed_vector_*.rs` |
 | Archive row bindings | `src/archive_vector_*.rs` |
-| endpoint simulation/compatibility | `src/embedding_endpoint.rs`, `src/compatibility_profile_*.rs` |
+| embedding execution/compatibility | `src/embedding_endpoint.rs`, `src/openai_ready_embedding*.rs`, `src/compatibility_profile_*.rs` |
 | generation publication/history | `src/vector_generation_*.rs` |
 | exact semantic retrieval | `src/semantic_search*.rs` |
 | lexical + hybrid retrieval | `src/lexical_search.rs`, `src/search*.rs` |
@@ -197,4 +197,4 @@ G102 / A701   Archive mutation
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 ## Notes
-Production endpoint adapters, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.
+General-model/Codex provider transport, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

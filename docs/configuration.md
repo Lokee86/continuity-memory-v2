@@ -162,7 +162,7 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
-- General/embedding routes, encrypted credentials, credential references, and request-auth attachment are implemented, but direct provider HTTP transport is not wired yet.
+- General/embedding routes, encrypted credentials, credential references, request-auth attachment, and direct `openai-ready` embedding HTTP execution are implemented; General-model HTTP transport is not wired yet.
 - `openai-codex` device-code acquisition and token refresh are not implemented yet; ChatGPT OAuth material can already be stored and attached once supplied.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.

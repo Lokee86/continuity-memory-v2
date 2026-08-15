@@ -18,10 +18,10 @@ The package can be removed or moved without changing the core library. If detach
 - `import graph-jsonl`: ingest the current graph JSONL development corpus format.
 - `archive`: list conversations/branches, show branch turns, and inspect fragments.
 - `config`: inspect/verify config, manage encrypted credentials, and select General/Embedding routes.
-- `vectors`: inspect profiles and generation status.
+- `vectors`: inspect profiles/generations, probe the configured live embedding endpoint, and build real Archive vector generations.
 - `dev`: exercise compatibility profiles, vector generation, and retrieval through the deterministic simulated embedding endpoint.
 
-Live provider transport is not implemented yet, so normal model configuration/auth can be entered now but real model requests are not sent by this CLI yet.
+Direct `openai-ready` embedding transport is implemented. `vectors probe` tests the configured live embedding endpoint and `vectors build` establishes/reuses its compatibility profile and publishes a real Archive vector generation. General-model transport is not implemented yet.
 
 ## Credentials
 

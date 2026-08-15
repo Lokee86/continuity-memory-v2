@@ -1,4 +1,4 @@
-use crate::args::{Cli, Command, CvaCommand};
+use crate::args::{Cli, Command, CvaCommand, VectorsCommand};
 use crate::config_args::{ConfigCommand, CredentialCommand};
 use clap::Parser;
 
@@ -46,4 +46,40 @@ fn api_key_command_rejects_direct_secret_option() {
         "do-not-accept",
     ]);
     assert!(result.is_err());
+}
+
+#[test]
+fn live_vector_probe_accepts_free_text() {
+    let cli = Cli::try_parse_from(["continuity", "vectors", "probe", "hello", "world"]).unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Vectors {
+            command: VectorsCommand::Probe { .. }
+        }
+    ));
+}
+
+#[test]
+fn live_vector_build_accepts_concurrency_controls() {
+    let cli = Cli::try_parse_from([
+        "continuity",
+        "vectors",
+        "build",
+        "sample.cva",
+        "--batch-size",
+        "32",
+        "--concurrency",
+        "8",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Vectors {
+            command: VectorsCommand::Build {
+                batch_size: 32,
+                concurrency: 8,
+                ..
+            }
+        }
+    ));
 }

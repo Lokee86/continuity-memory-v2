@@ -40,14 +40,16 @@ continuity
 │   └── model ...
 ├── vectors
 │   ├── status
-│   └── profiles
+│   ├── profiles
+│   ├── probe
+│   └── build
 └── dev
     ├── establish-profile
     ├── build-vectors
     └── search
 ```
 
-`dev` commands deliberately use `SimulatedEmbeddingEndpoint`. They expose current compatibility-profile, vector-generation, and retrieval machinery before live provider transport exists. They are not the intended production model interface.
+`vectors probe` and `vectors build` use the configured live `openai-ready` embedding route. `build` establishes/reuses the compatibility profile, embeds the Archive, and publishes one generation. `dev` commands deliberately remain on `SimulatedEmbeddingEndpoint` for deterministic development work.
 
 ## Configuration and credentials
 
@@ -89,4 +91,4 @@ Repository verification also performs command-level smoke tests for CVA create/i
 
 ## Notes
 
-Live provider HTTP transport is intentionally still outside this package. Once the library/runtime exposes live provider execution, normal CLI vector/search commands can consume that public boundary and the simulated `dev` path can remain development-only.
+The CLI owns no HTTP protocol semantics; live embedding is supplied by the core `OpenAiReadyEmbeddingEndpoint`. General-model transport and the shared long-lived runtime remain future boundaries.

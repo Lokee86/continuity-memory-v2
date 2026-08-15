@@ -8,7 +8,7 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ## Overview
 
-Development uses deterministic local tests and simulated embedding execution. Model-switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider HTTP transport and Codex device-code acquisition/refresh remain outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
+Development uses deterministic local tests plus optional live OpenAI-ready embedding execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, and direct embedding HTTP transport are implemented; General-model transport and Codex device-code acquisition/refresh remain outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
 ## Repository boundary
 
@@ -117,7 +117,7 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 - `cargo check` catches type/compile errors.
 - Core `cargo test` owns focused library behavior, including config replacement, encrypted credential round trips/tamper rejection, switchboard auth binding, and master-key generation/reload/redaction.
 - The separate CLI fmt/check/test commands verify that the detachable package compiles only against the public library surface.
-- Command-level CLI smoke tests exercise CVA create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
+- Command-level CLI smoke tests exercise CVA create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary. Live `vectors probe/build` requires an external endpoint and credential and is not part of deterministic CI.
 - The documentation checker validates repository documentation policy but not semantic correctness.
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.

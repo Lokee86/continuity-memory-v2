@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Purpose-built local configuration, encrypted credential persistence, initial model-switchboard routing/auth attachment, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production provider transport/login, later semantic databases, and production storage hardening remain incomplete.
+Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding transport, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. General/Codex provider transport, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -26,7 +26,7 @@ Purpose-built local configuration, encrypted credential persistence, initial mod
 - Archive branch/session retention and generation retention/vacuum policies are undefined.
 
 ## Compatibility-profile and endpoint limits
-- `SimulatedEmbeddingEndpoint` is the only built-in endpoint implementation. No live OpenAI-compatible, provider-native, local-runtime, or other production adapters exist yet.
+- Direct `openai-ready` embedding HTTP execution is implemented. Provider-native/local-runtime adapters and General-model HTTP execution are not implemented yet.
 - Compatibility policy v1 uses fixed probe texts and requires cosine `>= 0.99999` for every corresponding probe. That policy preserves the tolerance lesson from the prior implementation, but it has not yet been calibrated against a representative set of real routed/local embedding endpoints.
 - Provider, model, route, and revision are intentionally not compatibility-profile fields. Separate optional provenance metadata has not been designed yet.
 - Compatibility profiles currently require dimensions and declared normalization to match exactly. More nuanced compatibility rules, if real endpoints demonstrate a need, remain measurement-driven future work.
@@ -53,7 +53,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - The default operating-system config location is not selected yet; callers currently provide the config path.
 - Fragment, retrieval, `models.general`, `models.embedding`, and encrypted `credential.<id>` objects are implemented.
 - Model routes reference credentials by ID; the switchboard validates auth kind and can attach bearer/auth account headers.
-- Direct provider HTTP transport is not implemented yet.
+- Direct `openai-ready` embedding HTTP transport is implemented; General-model HTTP transport is not implemented yet.
 - `openai-codex` device-code acquisition and OAuth token refresh are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.
 - A 256-bit master key can be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
 - Windows Credential Manager integration is not implemented yet.
@@ -61,7 +61,8 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 
 ## CLI limits
 - `cli/` is repo-local and deliberately not installed or built by the core package; invoke it with `cargo run --manifest-path cli/Cargo.toml -- ...`.
-- Normal live-provider vector/search execution is not wired yet. The `dev` profile/build/search commands use `SimulatedEmbeddingEndpoint` explicitly.
+- `vectors probe` and `vectors build` use the configured live `openai-ready` embedding route. The `dev` profile/build/search commands remain explicit simulator paths.
+- Remote embedding defaults are 64 inputs per HTTP request and 16 concurrent requests; retry/backoff and provider-specific rate-limit adaptation are not implemented yet.
 - `import graph-jsonl` supports the current development corpus format only; production ChatGPT/Claude/provider importers remain future work.
 
 ## Product/runtime limits

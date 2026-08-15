@@ -12,6 +12,7 @@ Implemented now:
 - configurable fragment and retrieval policy with the original defaults preserved;
 - expandable model-switchboard routing with General/Embedding capabilities and `openai-codex` / `openai-ready` providers;
 - encrypted credential objects referenced by model routes, with bearer/ChatGPT account auth-header attachment;
+- direct `openai-ready` embedding HTTP execution with deterministic response ordering, L2 normalization, batching, and bounded concurrency;
 - detachable repo-local `cli/` package for CVA/config/auth/archive/vector bring-up without installing a binary;
 - self-generated 256-bit master key with a temporary local JSON key store;
 - CVA format header and append-only opaque chunks;
@@ -44,7 +45,7 @@ Not implemented yet:
 - compression, checksums, encryption, packing, reclamation, or concurrent writer coordination;
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
-- production OS credential-store master-key integration, direct provider HTTP transport, and Codex device-code/token-refresh execution;
+- production OS credential-store master-key integration, General-model HTTP transport, and Codex device-code/token-refresh execution;
 - live embedding-provider execution through the switchboard, ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;

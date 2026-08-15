@@ -3,9 +3,8 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 ## Overview
-The public API exposes `ContinuityConfig` and the initial model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; vector backing/publication; compatibility profiles; hybrid retrieval; simulated embedding capabilities; chunk references; and errors. It remains development-stage.
+The public API exposes `ContinuityConfig` and the initial model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; vector backing/publication; compatibility profiles; hybrid retrieval; simulated and direct OpenAI-ready embedding capabilities; chunk references; and errors. It remains development-stage.
 ## Exact contract
-
 ### Local configuration
 `ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
 ### Container
@@ -73,7 +72,7 @@ Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::
 
 Each route includes a `CredentialId`. `ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` currently supports General only, uses provider-owned routing, and requires ChatGPT OAuth material; `OpenAiReady` supports General and Embedding, requires explicit HTTP(S) URLs, and requires API-key material. Embedding routes also require non-zero dimensions and explicit normalization.
 
-`ModelSwitchboard::new(config, credentials)` validates both route structure and credential availability/auth kind. `general_auth()` and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. Direct HTTP transport, Codex device-code acquisition/token refresh, and replacement of the low-level `EmbeddingEndpoint` execution seam remain future work.
+`ModelSwitchboard::new(config, credentials)` validates both route structure and credential availability/auth kind. `general_auth()` and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. Direct OpenAI-ready embedding transport is implemented; General-model HTTP transport and Codex device-code acquisition/token refresh remain future work.
 
 ### Embedding endpoint abstraction
 Public types:
@@ -84,11 +83,12 @@ VectorNormalization::{None, L2}
 EmbeddingEndpoint
 EmbeddingEndpointError
 SimulatedEmbeddingEndpoint
+OpenAiReadyEmbeddingEndpoint
 ```
 
-`EmbeddingEndpoint` reports dimensions and normalization and embeds a batch in either Query or Document mode. The repository currently ships only `SimulatedEmbeddingEndpoint` for deterministic tests/building; production provider adapters are not implemented.
+`EmbeddingEndpoint` reports dimensions and normalization and embeds a batch in either Query or Document mode. `SimulatedEmbeddingEndpoint` remains deterministic test plumbing. `OpenAiReadyEmbeddingEndpoint::from_switchboard` creates a live API-key endpoint from a validated embedding route; Query/Document map to `search_query`/`search_document`, requests use float encoding and the configured dimensions, and returned rows are restored by response index before optional L2 normalization.
 
-`SimulatedEmbeddingEndpoint::new(dimensions, normalization, seed)` creates a deterministic endpoint. `with_drift(value)` introduces deterministic small numeric drift for compatibility tests.
+`OpenAiReadyEmbeddingEndpoint` defaults to 64 inputs per HTTP batch and at most 16 concurrent requests; `with_batching(batch_size, concurrency)` overrides both with non-zero values. `SimulatedEmbeddingEndpoint::new(dimensions, normalization, seed)` and `with_drift(value)` remain available for deterministic compatibility tests.
 
 ### Compatibility profiles
 Public types/constants:
@@ -197,4 +197,4 @@ G102/A701  Archive mutation
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. Switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider transport, Codex device-code acquisition/refresh, and replacement of the development embedding capability seam remain next.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. OpenAI-ready embedding transport is implemented; General-model provider transport, Codex device-code acquisition/refresh, and the long-lived runtime remain next.

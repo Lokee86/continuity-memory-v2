@@ -90,8 +90,23 @@ pub enum ArchiveCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum VectorsCommand {
-    Status { cva: PathBuf },
-    Profiles { cva: PathBuf },
+    Status {
+        cva: PathBuf,
+    },
+    Profiles {
+        cva: PathBuf,
+    },
+    Probe {
+        #[arg(required = true, trailing_var_arg = true)]
+        text: Vec<String>,
+    },
+    Build {
+        cva: PathBuf,
+        #[arg(long, default_value_t = 64)]
+        batch_size: usize,
+        #[arg(long, default_value_t = 16)]
+        concurrency: usize,
+    },
 }
 
 #[derive(Subcommand, Debug)]

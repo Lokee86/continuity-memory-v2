@@ -36,6 +36,7 @@ Completed bootstrap slices:
 20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
 21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
 22. Detachable repo-local CLI package exposing CVA/config/auth/archive/vector inspection plus simulated vector/retrieval bring-up through public library APIs only.
+23. Direct `openai-ready` embedding HTTP transport with configured dimensions, Query/Document input types, deterministic response ordering, L2 normalization, 64-input batching, and bounded 16-request concurrency.
 
 ## Expected ownership or ownership boundary
 
@@ -45,7 +46,7 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Add direct provider transport: `openai-ready` API-key HTTP first, then `openai-codex` ChatGPT device-code acquisition/token refresh; replace temporary JSON key persistence with an OS credential-store implementation before production.
+1. Extend provider transport beyond the implemented `openai-ready` embedding path: add General-model HTTP, then `openai-codex` ChatGPT device-code acquisition/token refresh; replace temporary JSON key persistence with an OS credential-store implementation before production.
 2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
 3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
 4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
@@ -79,7 +80,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Archive checkpoint representation, cadence, and retention.
 - Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
 - Actual concurrent file append/version reservation mechanics.
-- Calibration of compatibility policy v1 against representative real routed/local embedding endpoints; switchboard routing is implemented but only simulated embedding execution is wired.
+- Calibration of compatibility policy v1 against representative real routed/local embedding endpoints; direct OpenAI-ready embedding execution is now available for that measurement.
 - Explicit vector-generation retirement/deactivation and retention policy.
 - Quantization metadata and alternate packed representations for published generations.
 - Whole-CVA historical materialization and restore/timeline representation now that two mutable semantic domains exist.

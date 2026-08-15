@@ -52,6 +52,8 @@ mod master_key_entropy;
 mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
+mod openai_ready_embedding;
+mod openai_ready_embedding_response;
 mod packed_vector_codec;
 mod packed_vector_error;
 mod packed_vector_model;
@@ -104,6 +106,10 @@ pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
     ModelSwitchboard, ModelSwitchboardConfig,
 };
+pub use openai_ready_embedding::{
+    DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE, DEFAULT_REMOTE_EMBEDDING_CONCURRENCY,
+    OpenAiReadyEmbeddingEndpoint,
+};
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use search_error::SearchError;
@@ -138,6 +144,8 @@ mod history_tests;
 mod master_key_tests;
 #[cfg(test)]
 mod model_switchboard_tests;
+#[cfg(test)]
+mod openai_ready_embedding_tests;
 #[cfg(test)]
 mod packed_vector_tests;
 #[cfg(test)]
