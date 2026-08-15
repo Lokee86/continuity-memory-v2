@@ -37,11 +37,15 @@ mod embedding_endpoint;
 mod fragment_model;
 mod fragment_store;
 mod fragmenter;
+mod lexical_search;
 mod packed_vector_codec;
 mod packed_vector_error;
 mod packed_vector_model;
 mod packed_vector_rebuild;
 mod packed_vector_store;
+mod search;
+mod search_error;
+mod search_model;
 mod semantic_search;
 mod semantic_search_error;
 mod semantic_search_model;
@@ -77,6 +81,11 @@ pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
+pub use search_error::SearchError;
+pub use search_model::{
+    DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
+    DEFAULT_SEMANTIC_WEIGHT, SearchCandidate,
+};
 pub use semantic_search_error::SemanticSearchError;
 pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
 pub use vector_generation_error::VectorGenerationError;
@@ -96,6 +105,8 @@ mod fragment_tests;
 mod history_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod search_tests;
 #[cfg(test)]
 mod semantic_search_tests;
 #[cfg(test)]

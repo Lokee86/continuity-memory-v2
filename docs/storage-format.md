@@ -174,4 +174,4 @@ Default fragments use eight turns with two-turn overlap. Compatibility probe sui
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 ## Notes
-These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, lexical/hybrid search, ANN acceleration, and retention/vacuum remain future work.
+These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, persistent lexical indexing, ANN acceleration, and retention/vacuum remain future work.

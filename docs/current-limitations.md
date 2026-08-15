@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, and exact semantic retrieval are implemented. Lexical/hybrid retrieval, production endpoints, later semantic databases, and production storage hardening remain incomplete.
+Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production endpoints, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -38,7 +38,9 @@ Archive, packed matrices, Archive row bindings, compatibility profiles, vector-g
 - Each search currently materializes that packed matrix object into memory before scanning it; mapped/segmented/streaming search is not implemented.
 - The direct `Cva::semantic_search` API re-runs compatibility probes for every request because no shared long-lived runtime/capability cache exists yet.
 - Searchable published generations currently require `f32` matrices. Packed storage still supports other scalar types, but alternate searchable representations wait for explicit quantization/dequantization semantics.
-- No lexical retrieval, hybrid ranking, conversation/time/metadata filters, reranking, or retrieval controller is implemented in v2 yet.
+- Lexical retrieval is currently a full fragment-text scan; no persistent lexical index exists yet.
+- Default hybrid retrieval uses the original fixed `30` candidate pool, `10` final results, and `0.45/0.55` lexical-semantic weights. Those are policy constants rather than a runtime configuration surface today.
+- Conversation/time/metadata filters, reranking, and a broader retrieval controller are not implemented in v2 yet.
 - Different compatibility profiles have independent current generations, but there is no multi-profile score-fusion policy; scores from unrelated vector spaces must not be compared directly.
 
 ## Indexing and memory limits

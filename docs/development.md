@@ -23,6 +23,7 @@ src/embedding_endpoint.rs           endpoint contract + deterministic simulation
 src/compatibility_profile*.rs       tolerant compatibility contracts/probes/reopen
 src/vector_generation*.rs           generation publication/history/reopen
 src/semantic_search*.rs             exact current-generation semantic retrieval
+src/lexical_search.rs / search*.rs  original lexical + hybrid retrieval policy
 src/lib.rs                          public exports
 examples/archive_roundtrip.rs        prepared Archive corpus smoke
 examples/vector_generation_smoke.rs  two-profile vector + retrieval smoke
@@ -54,7 +55,7 @@ Two-profile simulated vector-generation smoke:
 cargo run --release --example vector_generation_smoke -- <source.cva> <output.cva>
 ```
 
-The vector smoke copies the source CVA, creates two materially different deterministic simulated endpoints, establishes two compatibility profiles, builds one full Archive generation per profile, syncs, reopens, verifies both current generations, and runs a positive-score exact semantic query through one reopened generation.
+The vector smoke copies the source CVA, creates two materially different deterministic simulated endpoints, establishes two compatibility profiles, builds one full Archive generation per profile, syncs, reopens, verifies both current generations, and runs the default hybrid retrieval path through one reopened generation.
 
 Open benchmark:
 
@@ -85,7 +86,7 @@ The retained-heap increase from the prior slice includes one derived `u64` Archi
 
 ### Simulated vector-bearing smoke
 
-The same corpus with two simulated profiles and two current generations is `2,289,410` bytes. Each profile uses 32-dimensional `f32` rows and covers all 281 fragments, for `562` total Archive-Vector rows. The current retrieval smoke reopens that CVA and returns five positive-score exact semantic hits through one selected profile/generation without changing file size.
+The same corpus with two simulated profiles and two current generations is `2,289,410` bytes. Each profile uses 32-dimensional `f32` rows and covers all 281 fragments, for `562` total Archive-Vector rows. The current retrieval smoke reopens that CVA and exercises the original default 30-candidate / top-10 hybrid path through one selected profile/generation without changing file size.
 
 Release warm-cache `Cva::open`, 50 runs:
 
@@ -107,7 +108,7 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 - `cargo test` owns focused behavioral verification.
 - The documentation checker validates repository documentation policy but not semantic correctness.
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
-- `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened exact semantic retrieval disagree.
+- `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.
 
 ## Related docs
 

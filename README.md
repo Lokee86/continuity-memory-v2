@@ -27,6 +27,7 @@ Implemented now:
 - versioned vector-generation publication that binds one profile to one Archive-Vector set and Archive coverage watermark;
 - independent current generations per profile plus historical generation lookup by vector-version cut;
 - exact semantic retrieval over the selected profile's current generation: endpoint compatibility verification, Query-mode embedding, exact cosine scan, and row-to-fragment resolution;
+- restored default hybrid retrieval: 30 lexical + semantic candidates, `0.45/0.55` score fusion when both channels match, range deduplication, overlap diversification, and top-10 results;
 - unit tests plus prepared-corpus Archive and two-profile vector-generation/retrieval smoke tests.
 
 The current development format requires Archive `CVAAFMT2`, packed-vector `CVAPVFM1`, Archive-Vector `CVAAVFM1`, compatibility-profile `CVACPFM1`, and vector-generation `CVAVGFM2` markers. Earlier development CVAs are rejected; migration code is intentionally not implemented yet.
@@ -37,10 +38,10 @@ Not implemented yet:
 - compression, checksums, encryption, packing, reclamation, or concurrent writer coordination;
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
-- live embedding-provider adapters, lexical/hybrid retrieval, ANN search, reranking, or retrieval-controller policy;
+- live embedding-provider adapters, ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;
-- shared Continuity runtime, retrieval ranking, Insomnia, Dream, or Ego.
+- shared Continuity runtime, Insomnia, Dream, or Ego.
 
 The current indexes remain derived acceleration state. Archive and Vector Generations are the two mutable semantic timelines; compatibility profiles, packed matrices, and Archive-Vector bindings are immutable backing objects. Reopen performs one streaming physical chunk pass. Current measurements are in `docs/development.md`; a current-format cold-cache sample and larger realistic-dimension vector measurements remain required.
 

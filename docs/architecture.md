@@ -67,10 +67,12 @@ VectorGeneration
 ```
 `vector_version` is a dense local watermark for generation publications. The newest generation for each compatibility profile is current; older generations remain retained and can be resolved at a historical vector-version cut.
 Generation publication is the first vector-layer operation that consumes a CVA-global ticket. Source Archive versions cannot regress for a profile, exceed current Archive state, or predate any mapped fragment. Until quantization semantics are defined, published generations must reference `f32` matrices.
-### Semantic retrieval
-Semantic retrieval is a read-only query layer, not another database. `Cva::semantic_search` verifies the supplied endpoint against the selected compatibility profile, embeds the raw query in Query mode, resolves that profile's current Vector Generation, reads its Archive-Vector binding and packed matrix, performs an exact cosine scan, discards scores `<= 0`, sorts descending with row ordinal as the deterministic tie-break, caps to the requested limit, and resolves row ordinals back to Archive fragments.
+### Retrieval
+Retrieval is a read-only query layer, not another database. `Cva::semantic_search` is the low-level semantic channel: it verifies the supplied endpoint against the selected compatibility profile, embeds the raw query in Query mode, resolves that profile's current Vector Generation, exact-scans its packed matrix by cosine, drops scores `<= 0`, and maps row ordinals back to Archive fragments.
 
-The current direct `Cva` API performs compatibility verification for each search call because no shared long-lived runtime/capability cache exists yet. Search allocates no semantic versions and persists no retrieval state.
+`Cva::search` restores the original default product behavior. It independently takes up to 30 lexical and 30 semantic candidates, merges by `FragmentId`, preserves a single available channel's score undiluted, otherwise combines `0.45 × lexical + 0.55 × semantic`, sorts, removes duplicate conversation/ranges, greedily penalizes overlapping fragments from conversations already selected, retains a 30-candidate diversified pool, and returns the first 10. Lexical scoring is the original `0.85 × query-term coverage + 0.15 × bounded term-frequency density` formula.
+
+The current direct `Cva` API performs compatibility verification for each semantic search call because no shared long-lived runtime/capability cache exists yet. Retrieval allocates no semantic versions and persists no retrieval state.
 ## Write lifecycles
 ### Archive semantic mutation
 ```text
@@ -142,7 +144,8 @@ G102 / A701   Archive mutation
 - generation matrix dimensions must match the compatibility profile;
 - published generations currently require `f32` matrices until alternate representation semantics exist;
 - generation source watermark must cover every mapped fragment;
-- semantic retrieval searches exactly one selected profile's current generation and never mixes profile score spaces.
+- the semantic retrieval channel searches exactly one selected profile's current generation and never mixes profile score spaces;
+- default hybrid retrieval preserves the original 30-candidate / 10-result policy and `0.45/0.55` lexical-semantic fusion.
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |
@@ -154,6 +157,7 @@ G102 / A701   Archive mutation
 | endpoint simulation/compatibility | `src/embedding_endpoint.rs`, `src/compatibility_profile_*.rs` |
 | generation publication/history | `src/vector_generation_*.rs` |
 | exact semantic retrieval | `src/semantic_search*.rs` |
+| lexical + hybrid retrieval | `src/lexical_search.rs`, `src/search*.rs` |
 | corpus vector/retrieval smoke | `examples/vector_generation_smoke.rs` |
 ## Related docs
 - [Storage format](storage-format.md)
@@ -163,4 +167,4 @@ G102 / A701   Archive mutation
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 ## Notes
-Lexical/hybrid retrieval, production endpoint adapters, explicit generation retirement, ANN acceleration, and whole-CVA restore-and-continue remain separate slices.
+Production endpoint adapters, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

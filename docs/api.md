@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 
 ## Overview
-The public API exposes `Cva` as the physical composition owner; Archive history; packed-vector backing objects; Archive-Vector row bindings; compatibility profiles; vector-generation publication/history; exact semantic retrieval; simulated embedding endpoints; chunk references; and errors. It remains development-stage.
+The public API exposes `Cva` as the physical composition owner; Archive history; packed-vector backing objects; Archive-Vector row bindings; compatibility profiles; vector-generation publication/history; exact semantic retrieval; default lexical/hybrid retrieval; simulated embedding endpoints; chunk references; and errors. It remains development-stage.
 
 ## Exact contract
 
@@ -151,7 +151,16 @@ MAX_SEMANTIC_SEARCH_LIMIT = 1000
 
 Each hit carries the generation ID actually searched. Search is read-only: it does not advance Archive, vector, or CVA-global semantic clocks. The current direct API verifies endpoint compatibility on every call; a future long-lived runtime may cache a verified capability without changing the generation/search ownership model.
 
-No lexical search, hybrid score fusion, ANN index, reranker, or retrieval controller is part of this method.
+No lexical search, hybrid score fusion, ANN index, reranker, or retrieval controller is part of this low-level method.
+
+### Default hybrid retrieval
+Public surface: `SearchCandidate { fragment, lexical_score, semantic_score, combined_score, generation_id }`, `SearchError`, `DEFAULT_LEXICAL_WEIGHT = 0.45`, `DEFAULT_SEMANTIC_WEIGHT = 0.55`, `DEFAULT_SEARCH_CANDIDATE_LIMIT = 30`, and `DEFAULT_SEARCH_RESULT_LIMIT = 10`.
+
+`Cva::search(profile_id, endpoint, query)` restores the original default search path. Lexical and semantic channels independently contribute up to 30 candidates. Candidates are merged by `FragmentId`; if only one channel produced a positive finite score, that score is retained without dilution. If both did, the combined score is `0.45 × lexical + 0.55 × semantic`.
+
+Lexical scoring uses the original formula: `0.85 × unique query-term coverage + 0.15 × bounded matched-term frequency density`. Candidate ordering is followed by duplicate range removal and greedy diversity selection that multiplies same-conversation candidates by `1 - overlap` for each already-selected fragment. V2 computes overlap from actual node membership because fragments store node ranges rather than v1 numeric turn sequences. The diversified candidate pool is capped at 30 and the default method returns the first 10.
+
+The current default path has no reranker and no conversation/time/metadata filters. It remains read-only and does not advance semantic clocks.
 
 ## Defaults or precedence
 `FragmentConfig::default()` is eight turns with two-turn overlap. Compatibility probe suite/policy v1 are fixed by the current implementation.
@@ -159,7 +168,7 @@ No lexical search, hybrid score fusion, ANN index, reranker, or retrieval contro
 Node identity is `(conversation_id, node_id)`. Branch identity is `(conversation_id, branch_id)`. Repeated branch records are revisions; the newest Archive version is current.
 
 ## Diagnostics or failure behavior
-`ArchiveError`, `PackedVectorError`, `ArchiveVectorError`, `CompatibilityProfileError`, `VectorGenerationError`, and `SemanticSearchError` own their concrete domains. `CvaError` composes create/open failures and rejects global-version claims shared by multiple semantic owners.
+`ArchiveError`, `PackedVectorError`, `ArchiveVectorError`, `CompatibilityProfileError`, `VectorGenerationError`, `SemanticSearchError`, and `SearchError` own their concrete domains. `CvaError` composes create/open failures and rejects global-version claims shared by multiple semantic owners.
 
 Durability remains explicit through `Cva::sync()`.
 
@@ -181,4 +190,4 @@ G102/A701  Archive mutation
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. Exact semantic retrieval is implemented; lexical/hybrid retrieval and production runtime integration remain later slices.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. Exact semantic retrieval and the original default lexical/hybrid path are implemented; production model-switchboard/runtime integration remains the next retrieval-facing slice.

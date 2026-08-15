@@ -36,15 +36,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             Some(generation)
         );
     }
-    let hits = reopened.semantic_search(
+    let hits = reopened.search(
         search_profile,
         &endpoint(101),
         "continuity semantic retrieval smoke",
-        5,
     )?;
     assert!(!hits.is_empty());
-    assert!(hits.iter().all(|hit| hit.score > 0.0));
-    assert!(hits.windows(2).all(|pair| pair[0].score >= pair[1].score));
+    assert!(hits.len() <= 10);
+    assert!(hits.iter().all(|hit| hit.combined_score > 0.0));
     assert_eq!(reopened.compatibility_profile_stats().profiles, 2);
     assert_eq!(reopened.vector_generation_stats().generations, 2);
     assert_eq!(reopened.vector_generation_stats().active_profiles, 2);

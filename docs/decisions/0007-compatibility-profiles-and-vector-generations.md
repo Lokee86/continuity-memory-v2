@@ -84,7 +84,7 @@ Small floating-point differences do not create a new profile when the endpoint r
 
 Focused tests prove tolerant reuse under small deterministic drift, separation of materially different endpoints, dimension/scalar rejection, profile round-trip and clock neutrality, generation activation/history, endpoint compatibility enforcement, source-Archive coverage validation, inert unversioned generation payloads, global-ticket collision rejection, and exact current-generation semantic retrieval.
 
-The corpus smoke builds two simulated compatibility profiles and two independent vector generations over the same Archive population, verifies both after reopen, and executes exact semantic retrieval through one selected profile.
+The corpus smoke builds two simulated compatibility profiles and two independent vector generations over the same Archive population, verifies both after reopen, and executes the default hybrid retrieval path through one selected profile.
 
 ## References
 
