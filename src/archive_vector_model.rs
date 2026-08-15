@@ -15,6 +15,7 @@ pub struct ArchiveVectorInfo {
     pub id: ArchiveVectorId,
     pub packed_vector_id: PackedVectorId,
     pub rows: u64,
+    pub max_fragment_archive_version: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

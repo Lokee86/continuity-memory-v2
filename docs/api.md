@@ -3,29 +3,18 @@
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
-
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 
 ## Overview
-
-The public API exposes `Cva` as the file/composition owner, the physical `Container`, Archive state/models, packed-vector backing objects, Archive-Vector row bindings, dual Archive version metadata, chunk references, and errors. It remains development-stage.
+The public API exposes `Cva` as the physical composition owner; Archive history; packed-vector backing objects; Archive-Vector row bindings; compatibility profiles; vector-generation publication/history; simulated embedding endpoints; chunk references; and errors. It remains development-stage.
 
 ## Exact contract
 
 ### Container
+Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
 
-Public types:
-
-```text
-Container
-ContainerError
-ChunkRef { offset: u64, len: u64 }
-FormatVersion { major: u16, minor: u16 }
-```
-
-Public operations include create/open, opaque append/read/chunk enumeration, path/format inspection, `sync()`, and `latest_version()` for the current CVA-global `u64` clock.
-
-### Archive version metadata
+### Archive
+Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, and:
 
 ```text
 ArchiveRecordVersion {
@@ -35,120 +24,141 @@ ArchiveRecordVersion {
 }
 ```
 
-`global_version` orders the mutation in the CVA. `archive_version` is the contiguous Archive-local watermark. Neither field is a semantic parent pointer.
+Core operations through `Cva` include `append_node`, `append_branch`, `branch_turns`, `branch_at`, fragment materialization/read methods, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
 
-### Cva
-
-`Cva::create(path)` creates one CVA, initializes the Archive, packed-vector, and Archive-Vector format markers, and owns the single Container handle. `Cva::open(path)` performs one streaming physical scan and rebuilds all current concrete stores.
-
-Archive mutation/read operations are exposed through `Cva`: `append_node`, `append_branch`, `branch_turns`, `branch_at`, fragment materialization/read operations, `stats`, Archive-version inspection, and `sync`. `archive()` returns read-only access to the Archive semantic state.
-
-### Archive
-
-Public models:
-
-```text
-ContentId([u8; 32])
-Node
-Branch
-ResolvedTurn
-ArchiveStats
-FragmentId([u8; 32])
-Fragment
-FragmentConfig
-ArchiveRecordVersion
-```
-
-Core Archive operations through `Cva`:
-
-- `append_node(...)` appends an immutable conversation node and its dual-version metadata.
-- `append_branch(branch)` appends a branch/session-head revision when that logical branch changed; an identical current revision is idempotent. An existing branch head may advance only to a descendant node; reviving an older point requires a new branch identity.
-- `branch_turns(...)` resolves the current branch leaf through node parent links.
-- `stats()` reports current derived Archive counts.
-- `sync()` flushes the CVA container.
-
-Version/history operations:
-
-- `archive_version()` returns the latest Archive-local version, or `0` for no semantic Archive records.
-- `record_versions()` returns retained Archive record-version metadata in Archive-version order.
-- `record_version(A)` returns exact metadata for Archive version `A`.
-- `branch_at(conversation_id, branch_id, A)` returns the latest revision of that branch visible through Archive version `A`.
-
-The current API tracks every whole-Archive cut but does not yet expose a general materialized historical `ArchiveView`.
-
-Fragment operations remain `materialize_path_fragments`, `materialize_branch_fragments`, `fragment_turns`, `fragment_text`, and deterministic `fragments()` enumeration.
+Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
 
 ### Packed vectors
-
 Public types:
 
 ```text
 ScalarType
-VectorSchema { dimensions, scalar }
+VectorSchema
 PackedVectors
-PackedVectorId([u8; 32])
-PackedVectorInfo { id, schema, count, byte_len }
-PackedVectorStats { objects, rows, matrix_bytes }
+PackedVectorId
+PackedVectorInfo
+PackedVectorStats
 PackedVectorError
 ```
 
-`ScalarType` currently covers signed/unsigned 8/16/32/64-bit integers plus f16, bf16, f32, and f64. `VectorSchema` accepts any non-zero `u32` dimension count. `PackedVectors` is a contiguous fixed-row byte matrix supplied by Lodestone's lightweight `lodestone-packed` crate.
-
-`Cva::put_packed_vectors(packed)` content-addresses and deduplicates an immutable matrix inside the CVA and returns its `PackedVectorId`. `Cva::packed_vectors(id)` reads and validates the matrix. `packed_vector_infos()` and `packed_vector_stats()` inspect the derived object inventory.
-
-Raw packed-vector objects have no embedding profile or row meaning and do not advance global/Archive semantic clocks.
+`Cva::put_packed_vectors(packed)` content-addresses and deduplicates an immutable matrix. `packed_vectors(id)` reads it; `packed_vector_infos()` and `packed_vector_stats()` inspect inventory. Packed matrices have no row-to-domain or compatibility semantics and consume no semantic clock.
 
 ### Archive Vectors
-
 Public types:
 
 ```text
-ArchiveVectorId([u8; 32])
+ArchiveVectorId
 ArchiveVectorSet { id, packed_vector_id, fragment_ids }
-ArchiveVectorInfo { id, packed_vector_id, rows }
-ArchiveVectorStats { objects, rows }
+ArchiveVectorInfo {
+    id,
+    packed_vector_id,
+    rows,
+    max_fragment_archive_version,
+}
+ArchiveVectorStats
 ArchiveVectorError
 ```
 
-`Cva::put_archive_vectors(packed_vector_id, fragment_ids)` creates or reuses an immutable row binding. Mapping order is exact: packed row `N` corresponds to `fragment_ids[N]`. The referenced packed matrix must exist, row counts must match exactly, every `FragmentId` must exist in Archive, and one set cannot map the same fragment twice.
+`Cva::put_archive_vectors(packed_vector_id, fragment_ids)` creates/reuses an immutable row binding. Packed row `N` maps to `fragment_ids[N]`. Matrix existence, exact row count, real fragments, and per-set fragment uniqueness are required.
 
-`Cva::archive_vectors(id)` reads the full binding. `archive_vector_infos()` and `archive_vector_stats()` inspect the derived object inventory.
+`max_fragment_archive_version` is derived validation metadata, not Archive-Vector persistent identity. Archive Vectors contain no compatibility profile or active-generation state.
 
-Archive-Vector sets contain no profile, model, metric, normalization, or Archive-watermark metadata. They do not publish an active retrieval generation and do not advance semantic clocks.
+### Embedding endpoint abstraction
+Public types:
+
+```text
+EmbeddingMode::{Query, Document}
+VectorNormalization::{None, L2}
+EmbeddingEndpoint
+EmbeddingEndpointError
+SimulatedEmbeddingEndpoint
+```
+
+`EmbeddingEndpoint` reports dimensions and normalization and embeds a batch in either Query or Document mode. The repository currently ships only `SimulatedEmbeddingEndpoint` for deterministic tests/building; production provider adapters are not implemented.
+
+`SimulatedEmbeddingEndpoint::new(dimensions, normalization, seed)` creates a deterministic endpoint. `with_drift(value)` introduces deterministic small numeric drift for compatibility tests.
+
+### Compatibility profiles
+Public types/constants:
+
+```text
+CompatibilityProfileId
+CompatibilityProbeReference { mode, vector }
+CompatibilityProfile {
+    id,
+    dimensions,
+    normalization,
+    probe_suite_version,
+    compatibility_policy_version,
+    references,
+}
+CompatibilityReport { compatible, minimum_cosine }
+CompatibilityProfileStats
+CompatibilityProfileError
+COMPATIBILITY_PROBE_SUITE_VERSION
+COMPATIBILITY_POLICY_VERSION
+COMPATIBILITY_MIN_COSINE
+```
+
+`Cva::establish_compatibility_profile(endpoint)` probes Query and Document behavior. If the candidate is tolerantly compatible with an existing profile, that existing profile is returned; otherwise a new immutable profile is stored.
+
+`compatibility_profile(id)`, `compatibility_profiles()`, and `compatibility_profile_stats()` inspect stored contracts. `verify_compatibility_endpoint(id, endpoint)` returns a `CompatibilityReport` without creating state.
+
+Provider, model, route, and revision are not compatibility-profile fields. Profile ID content-addresses exact stored reference evidence, but endpoint compatibility is tolerant cosine comparison. Current policy requires every corresponding probe to reach cosine `>= 0.99999` and requires dimensions, normalization, probe-suite version, and policy version to match.
+
+Compatibility-profile creation consumes no semantic version ticket.
+
+### Vector generations
+Public types:
+
+```text
+VectorGenerationId
+VectorGeneration {
+    id,
+    compatibility_profile_id,
+    archive_vector_id,
+    source_archive_version,
+    global_version,
+    vector_version,
+}
+VectorGenerationStats
+VectorGenerationError
+```
+
+`build_archive_vector_generation(profile_id, endpoint)` verifies endpoint compatibility, embeds all current durable fragments in deterministic `FragmentId` order using Document mode, stores an `f32` matrix plus Archive-Vector binding, and publishes the generation.
+
+`publish_vector_generation(profile_id, archive_vector_id, source_archive_version)` publishes already-created backing state after cross-store validation.
+
+`vector_generation(id)`, `current_vector_generation(profile_id)`, `vector_generation_at(profile_id, vector_version)`, `vector_version()`, and `vector_generation_stats()` expose current/historical generation state.
+
+Generation publication consumes one CVA-global semantic ticket and one dense local vector version. The latest generation per compatibility profile is current. Unversioned generation payloads are inert on reopen.
 
 ## Defaults or precedence
+`FragmentConfig::default()` is eight turns with two-turn overlap. Compatibility probe suite/policy v1 are fixed by the current implementation.
 
-`FragmentConfig::default()` is eight turns with two-turn overlap.
-
-Node identity is `(conversation_id, node_id)`. Branch/session identity is `(conversation_id, branch_id)`. Repeated branch records with the same identity are revisions; the newest Archive version is current.
+Node identity is `(conversation_id, node_id)`. Branch identity is `(conversation_id, branch_id)`. Repeated branch records are revisions; the newest Archive version is current.
 
 ## Diagnostics or failure behavior
-
-`ArchiveError` covers Archive semantic/reference failures. `PackedVectorError` covers packed-vector format/object failures. `ArchiveVectorError` covers row-binding format/reference failures. `CvaError` covers create/open/composition failures across all current stores.
+`ArchiveError`, `PackedVectorError`, `ArchiveVectorError`, `CompatibilityProfileError`, and `VectorGenerationError` own their concrete domains. `CvaError` composes create/open failures and rejects global-version claims shared by multiple semantic owners.
 
 Durability remains explicit through `Cva::sync()`.
 
 ## Examples
+A compatibility profile may be established using one endpoint execution and later accept a slightly drifting execution when all probe similarities remain inside policy. A materially different endpoint cannot build a generation under that profile.
 
-Concurrent conversations may interleave:
+Archive and vector semantic clocks may interleave:
 
 ```text
-G1/A1  conversation A node
-G2/A2  conversation B node
-G3/A3  conversation A node
+G100/A700  Archive mutation
+G101/V20   vector generation
+G102/A701  Archive mutation
 ```
 
-The clocks capture ordering; A's node parent links capture A's ancestry.
-
-To revive an old conversation point, create another branch identity at that old node, append a descendant node, then append a new revision of that branch head.
-
 ## Related docs
-
 - [Architecture](architecture.md)
 - [Storage format](storage-format.md)
 - [Behavioral contracts](behavioral-contracts.md)
-- [Versioning and rollback plan](version-history-plan.md)
+- [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 
 ## Notes
-
-No compatibility promise has yet been made for Rust method signatures or the bootstrap persistence format. Embedding profiles, vector-generation publication, and search APIs remain above the implemented packed-vector and Archive-Vector backing layers.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. Retrieval/search remains the next vector-layer slice.

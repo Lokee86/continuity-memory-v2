@@ -3,60 +3,58 @@
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
-
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-
-Archive now has layered global/Archive ordering and conversation-local branch ancestry; the CVA also contains immutable packed-vector matrices and Archive-Vector row bindings. Embedding-profile/generation semantics and retrieval remain incomplete.
+Archive, packed matrices, Archive row bindings, compatibility profiles, and vector-generation publication are implemented. Retrieval/search, production endpoints, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
-
-- Archive, immutable packed-vector backing objects, and Archive-Vector row-to-fragment bindings are implemented; embedding profiles, vector generations, Memories, and Graph are not.
-- Chunks are uncompressed and lack container-level checksum/authentication/encryption; packed-vector objects do verify their own SHA-256 content identity.
-- No object packing, compaction, vacuum, reachability, or reclamation exists.
+- Chunks are uncompressed and lack container-level checksum/authentication/encryption.
+- No object packing, compaction, vacuum, reachability, or reclamation exists; failed vector builders may leave unreachable matrix/binding artifacts.
 - No persistent snapshot/checkpoint acceleration exists.
 - No concurrent-writer/locking model exists beyond one `Container` file handle.
-- Format migration is not implemented.
-- Whole-CVA rollback across multiple semantic databases is not implemented. Packed matrices and Archive-Vector sets are backing data and do not yet create a second semantic timeline.
-- A general full historical `ArchiveView` API is not yet exposed, although each Archive cut is durably identified by its Archive version.
+- Format migration is not implemented; older development CVAs are rejected.
+- The physical scanner materializes each chunk transiently, so a very large matrix object can create a large peak allocation even though matrix bytes are not retained in the reopen index.
 
 ## Version/history limits
+- Archive and Vector Generations are separate mutable semantic timelines with dense local `u64` watermarks and shared CVA-global ordering.
+- Packed matrices, Archive-Vector bindings, and Compatibility Profiles are immutable backing objects and do not independently consume semantic versions.
+- An unversioned generation payload is inert after a crash.
+- The latest generation for each compatibility profile is implicitly current. Explicit retirement, disabling, rollback, and retention policy are not implemented.
+- `source_archive_version` is validated against current Archive state and the creation versions of mapped fragments, but a general whole-CVA historical materialization API is not exposed.
+- Whole-CVA restore-and-continue/timeline branching remains unresolved now that two mutable semantic domains exist.
+- Archive branch/session retention and generation retention/vacuum policies are undefined.
 
-- Every semantic Archive node, branch revision, or fragment gets one Archive version and one CVA-global version.
-- Each such mutation adds 72 bytes of ordering metadata/framing.
-- Content-object creation does not independently advance Archive semantic versioning.
-- Branch/session history is represented by repeated immutable branch-head revisions plus node ancestry; there is no separate generalized session database yet.
-- Whole-Archive historical cuts are linear watermarks. Continuing one old conversation does not branch the Archive; it branches that conversation/session locally.
-- Retention/vacuum policy for old branch/session revisions is undefined.
-
-## Indexing and memory limits
-
-Composite `HashMap<String, ...>` lookup keys have been removed. Nodes, current branch heads, and fragments now use dense record vectors plus compact open-addressed hash-to-index slots; exact keys are checked against the record itself. `ContentId -> ChunkRef` remains a direct fixed-width hash table because measurement showed that representation is smaller than an indirect record-plus-index layout for this key/value pair.
-
-Remaining Archive record strings are still individually allocated; conversation/role/string interning has not been attempted.
-
-Reopen uses one streaming physical pass: Container validates chunk framing/global tickets while `Cva` feeds the same payloads to Archive, packed-vector, and Archive-Vector rebuild. Current measurements are recorded in `development.md`. Packed-vector matrix bytes and Archive-Vector mappings are not retained in steady-state reopen indexes, but the scanner still materializes each physical chunk transiently; a very large single object can therefore create a large peak allocation.
+## Compatibility-profile and endpoint limits
+- `SimulatedEmbeddingEndpoint` is the only built-in endpoint implementation. No live OpenAI-compatible, provider-native, local-runtime, or other production adapters exist yet.
+- Compatibility policy v1 uses fixed probe texts and requires cosine `>= 0.99999` for every corresponding probe. That policy preserves the tolerance lesson from the prior implementation, but it has not yet been calibrated against a representative set of real routed/local embedding endpoints.
+- Provider, model, route, and revision are intentionally not compatibility-profile fields. Separate optional provenance metadata has not been designed yet.
+- Compatibility profiles currently require dimensions and declared normalization to match exactly. More nuanced compatibility rules, if real endpoints demonstrate a need, remain measurement-driven future work.
+- The development generation builder stores endpoint output as `f32` packed rows. Packed storage supports other scalar types, but quantization/dequantization semantics are not yet modeled.
+- Low-level `publish_vector_generation` validates references, dimensions, and Archive coverage but cannot prove externally supplied vector bytes actually came from the claimed compatibility profile. The high-level builder performs endpoint/profile verification.
 
 ## Retrieval limits
+- No exact similarity search is wired through Vector Generations yet.
+- No query-embedding retrieval path, lexical retrieval, hybrid ranking, ANN index, reranking, or retrieval controller is implemented.
+- Different compatibility profiles have independent current generations, but there is no multi-profile score-fusion policy; scores from unrelated vector spaces must not be compared directly.
 
-Fragments, generic packed matrices, and row-to-Archive-fragment bindings exist. Embedding profiles, semantic vector generations, lexical search, exact similarity search, hybrid ranking, and retrieval control are not implemented here yet.
+## Indexing and memory limits
+Archive node/branch/fragment lookup uses dense records plus compact open-addressed slots. Fragment indexes retain one derived `u64` Archive creation version per fragment so generation coverage can be validated. `ContentId -> ChunkRef` remains a direct fixed-width hash table.
+
+Reopen uses one streaming physical pass shared by all concrete stores. Current measurements are recorded in [development](development.md); larger realistic-dimension vector-bearing measurements remain useful before storage optimization.
 
 ## Product/runtime limits
-
-No shared long-lived runtime, Insomnia, Dream, Ego, production importer, or durable operational worker state is implemented in this repository yet.
+Memories, Memory Vectors, Graph, the shared long-lived runtime, Insomnia, Dream, Ego, production importers, and durable operational worker state are not implemented in this repository yet.
 
 ## Enforcement limits
-
 Repository-local Pitlord policy has not yet been added.
 
 ## Related docs
-
 - [Roadmap](roadmap.md)
 - [Architecture](architecture.md)
 - [Storage format](storage-format.md)
 - [Versioning and rollback plan](version-history-plan.md)
+- [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 
 ## Notes
-
-These limits should change in the same implementation change that removes them.
+These limitations should be updated in the same implementation change that removes them.

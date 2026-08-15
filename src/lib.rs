@@ -15,13 +15,25 @@ mod archive_vector_error;
 mod archive_vector_model;
 mod archive_vector_rebuild;
 mod archive_vector_store;
+mod compatibility_profile_codec;
+mod compatibility_profile_error;
+mod compatibility_profile_model;
+mod compatibility_profile_probe;
+mod compatibility_profile_rebuild;
+mod compatibility_profile_store;
+mod compatibility_vector;
 pub mod container;
 mod container_error;
 mod container_version;
 pub mod cva;
 mod cva_archive_vectors;
+mod cva_compatibility_profiles;
 mod cva_error;
+mod cva_global_validation;
+mod cva_lifecycle;
 mod cva_packed_vectors;
+mod cva_vector_generations;
+mod embedding_endpoint;
 mod fragment_model;
 mod fragment_store;
 mod fragmenter;
@@ -30,6 +42,12 @@ mod packed_vector_error;
 mod packed_vector_model;
 mod packed_vector_rebuild;
 mod packed_vector_store;
+mod vector_generation_codec;
+mod vector_generation_error;
+mod vector_generation_model;
+mod vector_generation_rebuild;
+mod vector_generation_store;
+mod vector_generation_validation;
 
 pub use archive::Archive;
 pub use archive_error::ArchiveError;
@@ -39,18 +57,32 @@ pub use archive_vector_error::ArchiveVectorError;
 pub use archive_vector_model::{
     ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet, ArchiveVectorStats,
 };
+pub use compatibility_profile_error::CompatibilityProfileError;
+pub use compatibility_profile_model::{
+    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION,
+    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileId,
+    CompatibilityProfileStats, CompatibilityReport,
+};
 pub use container::{ChunkRef, Container, ContainerError, FormatVersion};
 pub use cva::Cva;
 pub use cva_error::CvaError;
+pub use embedding_endpoint::{
+    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
+    VectorNormalization,
+};
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
+pub use vector_generation_error::VectorGenerationError;
+pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
 
 #[cfg(test)]
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod compatibility_profile_tests;
 #[cfg(test)]
 mod container_tests;
 #[cfg(test)]
@@ -59,3 +91,7 @@ mod fragment_tests;
 mod history_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod vector_generation_tests;
+#[cfg(test)]
+mod vector_generation_validation_tests;

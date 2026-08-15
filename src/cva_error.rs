@@ -1,4 +1,7 @@
-use crate::{ArchiveError, ArchiveVectorError, ContainerError, PackedVectorError};
+use crate::{
+    ArchiveError, ArchiveVectorError, CompatibilityProfileError, ContainerError, PackedVectorError,
+    VectorGenerationError,
+};
 use std::fmt;
 
 #[derive(Debug)]
@@ -7,6 +10,9 @@ pub enum CvaError {
     Archive(ArchiveError),
     PackedVectors(PackedVectorError),
     ArchiveVectors(ArchiveVectorError),
+    CompatibilityProfiles(CompatibilityProfileError),
+    VectorGenerations(VectorGenerationError),
+    SemanticGlobalVersionConflict(u64),
 }
 
 impl fmt::Display for CvaError {
@@ -16,32 +22,33 @@ impl fmt::Display for CvaError {
             Self::Archive(error) => write!(f, "{error}"),
             Self::PackedVectors(error) => write!(f, "{error}"),
             Self::ArchiveVectors(error) => write!(f, "{error}"),
+            Self::CompatibilityProfiles(error) => write!(f, "{error}"),
+            Self::VectorGenerations(error) => write!(f, "{error}"),
+            Self::SemanticGlobalVersionConflict(version) => {
+                write!(
+                    f,
+                    "CVA global version {version} is claimed by multiple semantic mutations"
+                )
+            }
         }
     }
 }
 
 impl std::error::Error for CvaError {}
 
-impl From<ContainerError> for CvaError {
-    fn from(value: ContainerError) -> Self {
-        Self::Container(value)
-    }
+macro_rules! from_error {
+    ($source:ty, $variant:ident) => {
+        impl From<$source> for CvaError {
+            fn from(value: $source) -> Self {
+                Self::$variant(value)
+            }
+        }
+    };
 }
 
-impl From<ArchiveError> for CvaError {
-    fn from(value: ArchiveError) -> Self {
-        Self::Archive(value)
-    }
-}
-
-impl From<PackedVectorError> for CvaError {
-    fn from(value: PackedVectorError) -> Self {
-        Self::PackedVectors(value)
-    }
-}
-
-impl From<ArchiveVectorError> for CvaError {
-    fn from(value: ArchiveVectorError) -> Self {
-        Self::ArchiveVectors(value)
-    }
-}
+from_error!(ContainerError, Container);
+from_error!(ArchiveError, Archive);
+from_error!(PackedVectorError, PackedVectors);
+from_error!(ArchiveVectorError, ArchiveVectors);
+from_error!(CompatibilityProfileError, CompatibilityProfiles);
+from_error!(VectorGenerationError, VectorGenerations);

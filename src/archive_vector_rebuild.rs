@@ -46,6 +46,7 @@ impl ArchiveVectorOpenState {
                 packed_vector_id: decoded.packed_vector_id,
                 rows: u64::try_from(decoded.fragment_ids.len())
                     .map_err(|_| ArchiveVectorError::SizeOverflow)?,
+                max_fragment_archive_version: 0,
             },
             chunk,
             fragment_ids: decoded.fragment_ids,
@@ -63,13 +64,14 @@ impl ArchiveVectorOpenState {
         }
         let mut store = ArchiveVectorStore::default();
         for record in self.records {
-            validate_mapping(
+            let mut info = record.info;
+            info.max_fragment_archive_version = validate_mapping(
                 archive,
                 packed_vectors,
-                record.info.packed_vector_id,
+                info.packed_vector_id,
                 &record.fragment_ids,
             )?;
-            store.insert_rebuilt(record.info, record.chunk)?;
+            store.insert_rebuilt(info, record.chunk)?;
         }
         Ok(store)
     }

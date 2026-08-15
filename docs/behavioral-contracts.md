@@ -39,7 +39,22 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Archive Vector mappings require real unique fragments | `archive_vector_tests::binding_requires_real_unique_fragments` |
 | Archive Vector backing objects consume no semantic clock | `archive_vector_tests::archive_vector_objects_do_not_advance_semantic_clocks` |
 | Corrupt Archive Vector mappings are rejected on reopen | `archive_vector_tests::corrupt_archive_vector_mapping_is_rejected_on_reopen` |
+| Compatibility Profiles round-trip and consume no semantic clock | `compatibility_profile_tests::profile_round_trips_and_is_clock_neutral` |
+| Small numerical drift remains compatible and reuses the existing profile | `compatibility_profile_tests::tiny_endpoint_drift_is_compatible_and_reuses_profile` |
+| Materially different endpoint behavior creates a distinct compatibility profile | `compatibility_profile_tests::materially_different_endpoint_gets_a_distinct_profile` |
+| Dimension mismatch is incompatible before vector comparison | `compatibility_profile_tests::dimensions_are_part_of_compatibility` |
+| Simulated endpoint builds/reopens an active vector generation | `vector_generation_tests::simulated_endpoint_builds_and_reopens_active_generation` |
+| Rebuilding unchanged profile/Archive population is idempotent | `vector_generation_tests::repeated_build_is_idempotent` |
+| Newer Archive cuts supersede only that profile's current generation | `vector_generation_tests::newer_archive_cut_supersedes_compatibility_profile_generation` |
+| Different compatibility profiles retain independent current generations | `vector_generation_tests::compatibility_profiles_keep_independent_active_generations` |
+| Small compatible endpoint drift can build under an existing profile | `vector_generation_tests::compatible_endpoint_drift_can_build_under_existing_profile` |
+| Incompatible endpoint behavior cannot build under a profile | `vector_generation_tests::incompatible_endpoint_cannot_build_under_profile` |
+| Profile/packed dimensions must match | `vector_generation_validation_tests::publication_rejects_profile_matrix_dimension_mismatch` |
+| Generation source cut must cover every mapped fragment | `vector_generation_validation_tests::publication_rejects_source_before_mapped_fragments` |
+| One global version cannot be claimed by both Archive and Vector Generations | `vector_generation_validation_tests::reopen_rejects_global_version_claimed_by_archive_and_vectors` |
+| Unversioned generation payloads are inert | `vector_generation_validation_tests::unversioned_generation_payload_is_inert_on_reopen` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
+| Prepared corpus supports two independent simulated profiles/generations over all fragments | `examples/vector_generation_smoke.rs` |
 
 ## Future contracts
 

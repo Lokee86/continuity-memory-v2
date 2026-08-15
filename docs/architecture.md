@@ -1,15 +1,9 @@
 # Architecture
-
 Parent index: [Documentation index](INDEX.md)
-
 ## Purpose
-
 This document owns the current Continuity Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
-
 ## Overview
-
-The repository currently implements one physical CVA container plus three concrete data owners:
-
+A `.cva` is one physical file containing explicit concrete owners:
 ```text
 Cva
 ├── Container
@@ -19,171 +13,147 @@ Cva
 │   └── conversation/session-local ancestry
 ├── PackedVectorStore
 │   └── immutable numeric matrices
-└── ArchiveVectorStore
-    └── immutable row -> FragmentId bindings
+├── ArchiveVectorStore
+│   └── immutable row -> FragmentId bindings
+├── CompatibilityProfileStore
+│   └── immutable vector-space compatibility contracts
+└── VectorGenerationStore
+    └── vector_version: u64 + current generation per profile
 ```
-
-`Cva` owns physical composition only. Archive owns source-history semantics. Packed vectors own numeric representation. Archive Vectors own the mapping between packed rows and Archive fragments. Embedding-profile and generation semantics are intentionally not part of Archive Vectors.
-
-## Code root
-
-Current implementation lives in `src/`; the corpus smoke harness is `examples/archive_roundtrip.rs`.
-
+`Cva` owns physical composition and the single Container handle. It is not a generalized semantic database, store registry, root, or dependency engine.
 ## Responsibilities
-
-### Cva
-
-`Cva` owns the single physical `Container` handle, writes required concrete format markers, and feeds one physical reopen scan to each concrete rebuild state. It is not a generalized semantic store, registry, root, or dependency engine.
-
 ### Container
-
-`Container` owns fixed-header validation, opaque length-prefixed chunk I/O, stable `ChunkRef` addressing, explicit sync, and the append-only CVA-global `u64` version-ticket sequence. The global clock orders semantic mutations; it is not state identity or ancestry.
-
+Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
 ### Archive
-
-`Archive` owns content-addressed conversation text, immutable nodes, conversation-local parent links, append-only branch/session-head revisions, immutable fragment ranges, the contiguous Archive-local `u64` watermark, and Archive-owned derived indexes.
-
-`A=500` means the first 500 semantic Archive mutations. Archive-version adjacency is not conversation ancestry.
-
+Archive owns source-history semantics: content-addressed text, immutable conversation nodes, conversation-local parent ancestry, branch/session-head revisions, fragments, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes.
+`archive_version` is a whole-Archive mutation cut. It is not conversation ancestry.
 ### PackedVectorStore
-
-`PackedVectorStore` owns immutable dense matrix backing objects. Each object has a `VectorSchema`, row count, contiguous fixed-width row bytes, and SHA-256 content identity. Equal schema+matrix bytes deduplicate. The `lodestone-packed` representation supports non-zero dimensions and integer/floating scalar widths from 8-bit through 64-bit.
-
-Packed vectors do not own embedding model identity, metrics, quantization meaning, row-to-domain identity, active generations, or semantic clocks.
-
+Packed vectors own immutable matrix bytes and physical row representation. `VectorSchema` defines dimensions and scalar representation; rows are fixed-width and contiguous. Equal schema+bytes deduplicate.
+Packed vectors do not know which Archive records rows represent or which embedding space produced them.
 ### ArchiveVectorStore
-
-`ArchiveVectorStore` owns immutable `ArchiveVectorSet` objects:
-
+Archive Vectors own one relationship only:
 ```text
 ArchiveVectorSet
 ├── packed_vector_id
-└── ordered FragmentId list
-    row 0 -> fragment_ids[0]
-    row 1 -> fragment_ids[1]
-    ...
+└── ordered FragmentIds
+    row N -> fragment_ids[N]
 ```
-
-A set is content-addressed by the packed-matrix ID plus the ordered fragment mapping. Creation/reopen require an existing packed matrix, exact row-count equality, real Archive fragments, unique fragments within the set, and a valid content identity.
-
-Archive Vectors do not own embedding profiles, model identity, metrics, normalization, Archive coverage watermarks, or active-generation state. Those belong to the profile/generation layer above this mapping.
-
-Raw packed matrices and Archive-Vector sets are immutable backing objects and do not allocate semantic version tickets. A future vector-generation publication is the first vector-layer mutation expected to require semantic ordering.
-
-## Does not own
-
-Container does not interpret semantic records. `Cva` dispatches payloads but owns no database semantics. Archive does not own vector representation. Packed vectors do not know what rows mean. Archive Vectors do not know how rows were produced. Current indexes are derived acceleration state, not authority.
-
-## Flow or lifecycle
-
-### Semantic Archive write
-
+Creation/reopen require an existing matrix, exact row count, real unique Archive fragments, and valid content identity. The persistent object contains no compatibility profile or Archive watermark.
+The derived Archive-Vector index records the newest Archive creation version among mapped fragments. That value is not persistent identity; it supports generation coverage validation.
+### CompatibilityProfileStore
+A compatibility profile is an endpoint-independent contract for one usable vector space:
 ```text
-validate Archive record
-    ↓
-append immutable payload
+CompatibilityProfile
+├── dimensions
+├── normalization
+├── probe-suite version
+├── compatibility-policy version
+└── 4 reference vectors
+    ├── 2 Query probes
+    └── 2 Document probes
+```
+Provider, model name, route, and revision are not profile fields. They may be provenance elsewhere later, but they do not prove vector compatibility.
+`CompatibilityProfileId` content-addresses the exact stored contract artifact. Compatibility itself is checked separately by embedding the fixed probes and comparing corresponding vectors with cosine similarity. Policy v1 requires every probe to reach `>= 0.99999` and requires dimensions, normalization, probe-suite version, and policy version to match.
+Establishing a profile probes the endpoint once. If the resulting candidate is tolerantly compatible with an existing profile, the existing profile is reused even when its exact returned floats differ slightly. Otherwise a new profile is stored. Profile creation is clock-neutral.
+### VectorGenerationStore
+Vector Generations own active vector-population publication:
+```text
+VectorGeneration
+├── compatibility_profile_id
+├── archive_vector_id
+├── source_archive_version
+├── global_version
+└── vector_version
+```
+`vector_version` is a dense local watermark for generation publications. The newest generation for each compatibility profile is current; older generations remain retained and can be resolved at a historical vector-version cut.
+Generation publication is the first vector-layer operation that consumes a CVA-global ticket. Source Archive versions cannot regress for a profile, exceed current Archive state, or predate any mapped fragment.
+## Write lifecycles
+### Archive semantic mutation
+```text
+append Archive payload
     ↓
 allocate global version G
     ↓
-allocate next Archive version A
+allocate Archive version A
     ↓
-append ArchiveRecordVersion { G, A, record_ref }
+append ArchiveRecordVersion { G, A, record }
+```
+An unversioned node/branch/fragment payload is inert.
+### Compatibility-profile establishment
+```text
+embed fixed Query + Document probes
     ↓
-update derived Archive lookup
+validate dimensions/normalization
+    ↓
+compare tolerantly with existing profiles
+    ├── compatible -> reuse existing profile
+    └── none compatible -> store immutable profile
 ```
-
-No Archive-wide semantic parent pointer exists.
-
-### Vector backing objects
-
+No semantic clock advances.
+### Vector generation publication
 ```text
-PackedVectors
-    ↓ validate/store
-PackedVectorId
-    ↓ + ordered FragmentIds
-ArchiveVectorSet
+compatibility profile + packed matrix + ArchiveVectorSet exist
+    ↓
+append immutable generation payload
+    ↓
+allocate global version G
+    ↓
+allocate vector version V
+    ↓
+append generation metadata { G, V, record }
 ```
-
-Neither step publishes an active retrieval generation.
-
-### Open
-
+An unversioned generation payload is inert.
+### Development generation builder
+`build_archive_vector_generation` verifies the supplied endpoint against the selected compatibility profile, snapshots the current Archive watermark, embeds all durable fragments in deterministic `FragmentId` order using Document mode, writes an `f32` packed matrix and Archive-Vector binding, then publishes the generation.
+## Reopen
 ```text
-single streaming chunk walk
-    ├── Container validates framing + global tickets
+one physical chunk scan
+    ├── Container framing/global-ticket validation
     └── Cva dispatches each payload
-        ├── Archive rebuild
-        ├── PackedVectorStore rebuild
-        └── ArchiveVectorStore rebuild
-                ↓
-           after scan, validate row bindings against
-           rebuilt Archive + PackedVectorStore
+        ├── Archive
+        ├── PackedVectorStore
+        ├── ArchiveVectorStore
+        ├── CompatibilityProfileStore
+        └── VectorGenerationStore
 ```
-
-Archive-Vector mappings are retained transiently during reopen so cross-store validation does not require a second physical scan. Steady-state indexes retain metadata plus `ChunkRef`, not full vector matrices or fragment mappings.
-
-## State or data ownership
-
-Durable authorities:
-
+After the scan, cross-store references are validated in dependency order. Full packed matrices and Archive-Vector mappings are not retained in steady-state indexes.
+## Ordering model
+Archive and Vector Generations are independently mutable semantic domains:
 ```text
-CVA header/chunks/global tickets          Container
-Archive format/content/domain records     Archive
-ArchiveRecordVersion metadata             Archive
-Packed-vector format/matrix objects       PackedVectorStore
-Archive-vector format/mapping objects     ArchiveVectorStore
+G100 / A700   Archive mutation
+G101 / V20    vector generation
+G102 / A701   Archive mutation
 ```
-
-Derived process state:
-
-```text
-Archive compact indexes                    Archive
-PackedVectorId -> info + ChunkRef          PackedVectorStore
-ArchiveVectorId -> info + ChunkRef         ArchiveVectorStore
-```
-
-A historical whole-Archive cut is identified by Archive version. General `ArchiveView` materialization remains unimplemented.
-
+`G`, `A`, and `V` are ordering/watermark integers, not parent relationships. Conversation ancestry remains node-local. Compatibility profiles and vector backing objects are not timeline events.
 ## Invariants and safety boundaries
-
-- Global and Archive versions are exact integer ordering only.
-- Conversation ancestry is node-local and never inferred from physical/version order.
-- Unversioned Archive semantic payloads are inert.
-- Packed matrices are immutable and content-addressed.
-- Archive-Vector identity includes the packed matrix and ordered fragment mapping.
-- Archive-Vector row count must exactly match packed-matrix row count.
-- Archive-Vector mappings reference only existing, unique Archive fragments.
-- Profile/generation semantics remain above Archive Vectors.
-- Reopen uses one physical CVA scan shared by all current concrete stores.
-
-See [architectural invariants](invariants.md).
-
+- one physical CVA owner and one shared reopen scan;
+- no generalized semantic database/root/dependency layer;
+- Archive and vector-generation local clocks remain independent;
+- each global version is claimed by at most one semantic mutation;
+- packed matrices, Archive-Vector bindings, and compatibility profiles are immutable backing objects;
+- Archive Vectors own row-to-fragment identity only;
+- compatibility profiles own vector-space compatibility contracts, not endpoint provenance;
+- endpoint compatibility is tolerant probe comparison, never provider/model labels or exact probe hashes;
+- generations own profile-to-ArchiveVector association, coverage, activation, and vector semantic ordering;
+- generation matrix dimensions must match the compatibility profile;
+- generation source watermark must cover every mapped fragment.
 ## Code map
-
 | Responsibility | Primary code |
 | --- | --- |
-| CVA composition/public operations | `src/cva.rs`, `src/cva_packed_vectors.rs`, `src/cva_archive_vectors.rs`, `src/cva_error.rs` |
-| CVA header/chunks/global ordering | `src/container.rs`, `src/container_scan.rs`, `src/container_version.rs` |
-| Archive semantics/history | `src/archive*.rs`, `src/fragment*.rs` |
-| Packed-vector backing objects | `src/packed_vector_*.rs` |
-| Archive-Vector row bindings | `src/archive_vector_*.rs` |
-| History tests | `src/history_tests.rs` |
-| Vector backing/binding tests | `src/packed_vector_tests.rs`, `src/archive_vector_tests.rs` |
-| Corpus smoke | `examples/archive_roundtrip.rs` |
-
-## Tests
-
-Focused tests cover Archive clocks/history, fragments/content, packed-vector round trip/dedupe/corruption, and Archive-Vector mapping/reference/corruption rules. The prepared corpus smoke verifies complete Archive reconstruction across reopen.
-
+| CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
+| physical Container/global clock | `src/container*.rs` |
+| Archive/history/fragments | `src/archive*.rs`, `src/fragment*.rs` |
+| packed matrices | `src/packed_vector_*.rs` |
+| Archive row bindings | `src/archive_vector_*.rs` |
+| endpoint simulation/compatibility | `src/embedding_endpoint.rs`, `src/compatibility_profile_*.rs` |
+| generation publication/history | `src/vector_generation_*.rs` |
+| corpus vector smoke | `examples/vector_generation_smoke.rs` |
 ## Related docs
-
 - [Storage format](storage-format.md)
 - [Rust API](api.md)
 - [Architectural invariants](invariants.md)
 - [Versioning and rollback plan](version-history-plan.md)
-- [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md)
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
-
+- [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 ## Notes
-
-Whole-CVA restore across several future semantic databases remains a separate design problem. No every-write global state manifest is introduced here.
+Exact similarity search, production endpoint adapters, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

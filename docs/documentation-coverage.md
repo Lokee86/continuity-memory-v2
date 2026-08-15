@@ -14,7 +14,7 @@ Coverage remains intentionally small while the rebuild is early.
 
 | Implementation | Responsibility | Canonical owners |
 | --- | --- | --- |
-| `src/cva.rs`, `src/cva_packed_vectors.rs`, `src/cva_archive_vectors.rs`, `src/cva_error.rs` | Single-Container composition, concrete-store scan dispatch, public lifecycle/API | [Architecture](architecture.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |
+| `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*.rs`, `src/cva_error.rs` | Single-Container composition, concrete-store scan dispatch, public lifecycle/API | [Architecture](architecture.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |
 | `src/container.rs` | CVA header/chunks/read/append/sync | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md) |
 | `src/container_scan.rs` | Single-pass physical payload scan and global-ticket observation | [Architecture](architecture.md), [Storage format](storage-format.md), [Development](development.md) |
 | `src/container_version.rs` | CVA-global monotonic version tickets | [Architecture](architecture.md), [Storage format](storage-format.md) |
@@ -33,10 +33,13 @@ Coverage remains intentionally small while the rebuild is early.
 | `src/fragment_*` | Fragment identity/materialization/storage/tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Behavioral contracts](behavioral-contracts.md) |
 | `src/history_tests.rs` | Dual clocks, independent conversations, branch revisions/revival | [Behavioral contracts](behavioral-contracts.md), [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md) |
 | `src/packed_vector_*` | Packed-vector format, content identity, derived lookup, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |
-| `src/archive_vector_*` | Row-to-FragmentId binding format, identity, reference validation, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0006](decisions/0006-archive-vector-row-bindings.md) |
+| `src/archive_vector_*` | Row-to-FragmentId binding format, identity, reference/coverage derivation, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0006](decisions/0006-archive-vector-row-bindings.md) |
+| `src/embedding_endpoint.rs`, `src/compatibility_profile_*`, `src/cva_compatibility_profiles.rs` | Endpoint abstraction, tolerant compatibility probing, durable compatibility contracts, tests | [Architecture](architecture.md), [Rust API](api.md), [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md) |
+| `src/vector_generation_*` | Generation format, local/global ordering, current-per-profile state, validation, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Versioning plan](version-history-plan.md), [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md) |
 | `src/lib.rs` | Public crate exports | [Rust API](api.md) |
 | `examples/archive_roundtrip.rs` | Prepared-corpus reopen smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
 | `examples/archive_open_profile.rs` | Standalone open-time/allocator benchmark | [Development](development.md) |
+| `examples/vector_generation_smoke.rs` | Two-profile simulated generation build/reopen over prepared corpus | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
 
 ## Coverage rules
 
