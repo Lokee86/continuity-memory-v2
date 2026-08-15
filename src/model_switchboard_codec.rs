@@ -1,30 +1,63 @@
 use crate::{
     ConfigError, CredentialId, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelProvider,
-    VectorNormalization,
+    ModelReasoningEffort, VectorNormalization,
 };
 
 pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
 pub(crate) const INSOMNIA_MODEL_KEY: &str = "models.insomnia";
 pub(crate) const EMBEDDING_MODEL_KEY: &str = "models.embedding";
-pub(crate) const MODEL_OBJECT_SCHEMA_V2: u16 = 2;
+pub(crate) const GENERAL_MODEL_SCHEMA_V3: u16 = 3;
+pub(crate) const EMBEDDING_MODEL_SCHEMA_V2: u16 = 2;
 
 pub(crate) fn encode_general(endpoint: &GeneralModelEndpoint) -> Result<Vec<u8>, ConfigError> {
     let mut bytes = Vec::new();
     bytes.push(endpoint.provider.tag());
-    bytes.extend_from_slice(&[0; 3]);
+    bytes.push(
+        endpoint
+            .reasoning_effort
+            .map(ModelReasoningEffort::tag)
+            .unwrap_or(0),
+    );
+    bytes.extend_from_slice(&[0; 2]);
     encode_string(&mut bytes, &endpoint.model)?;
     encode_string(&mut bytes, endpoint.url.as_deref().unwrap_or(""))?;
     encode_string(&mut bytes, endpoint.credential_id.as_str())?;
     Ok(bytes)
 }
 
-pub(crate) fn decode_general(bytes: &[u8]) -> Result<GeneralModelEndpoint, ConfigError> {
+pub(crate) fn decode_general_v3(bytes: &[u8]) -> Result<GeneralModelEndpoint, ConfigError> {
+    let header = bytes.get(..4).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    if header[2..4] != [0; 2] {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    let provider =
+        ModelProvider::from_tag(header[0]).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let reasoning_effort = if header[1] == 0 {
+        None
+    } else {
+        Some(
+            ModelReasoningEffort::from_tag(header[1])
+                .ok_or(ConfigError::InvalidModelSwitchboard)?,
+        )
+    };
+    decode_general_body(bytes, provider, reasoning_effort)
+}
+
+pub(crate) fn decode_general_v2(bytes: &[u8]) -> Result<GeneralModelEndpoint, ConfigError> {
     let header = bytes.get(..4).ok_or(ConfigError::InvalidModelSwitchboard)?;
     if header[1..4] != [0; 3] {
         return Err(ConfigError::InvalidModelSwitchboard);
     }
     let provider =
         ModelProvider::from_tag(header[0]).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    decode_general_body(bytes, provider, None)
+}
+
+fn decode_general_body(
+    bytes: &[u8],
+    provider: ModelProvider,
+    reasoning_effort: Option<ModelReasoningEffort>,
+) -> Result<GeneralModelEndpoint, ConfigError> {
     let mut cursor = 4;
     let model = decode_string(bytes, &mut cursor)?;
     let url = decode_string(bytes, &mut cursor)?;
@@ -37,6 +70,7 @@ pub(crate) fn decode_general(bytes: &[u8]) -> Result<GeneralModelEndpoint, Confi
         model,
         url: (!url.is_empty()).then_some(url),
         credential_id,
+        reasoning_effort,
     })
 }
 

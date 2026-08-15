@@ -109,6 +109,7 @@ fn invalid_provider_routes_are_rejected() {
             model: "model".into(),
             url: None,
             credential_id: id("ready"),
+            reasoning_effort: None,
         }),
         insomnia: None,
         embedding: None,
@@ -130,6 +131,19 @@ fn insomnia_route_falls_back_to_general_when_unset() {
 }
 
 #[test]
+fn legacy_general_schema_decodes_without_reasoning() {
+    let mut bytes = vec![ModelProvider::OpenAiCodex.tag(), 0, 0, 0];
+    for value in ["legacy-codex", "", "codex"] {
+        bytes.extend_from_slice(&(value.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(value.as_bytes());
+    }
+    let endpoint = crate::model_switchboard_codec::decode_general_v2(&bytes).unwrap();
+    assert_eq!(endpoint.provider, ModelProvider::OpenAiCodex);
+    assert_eq!(endpoint.model, "legacy-codex");
+    assert_eq!(endpoint.reasoning_effort, None);
+}
+
+#[test]
 fn missing_or_wrong_credential_kind_is_rejected() {
     let models = configured_models();
     assert!(ModelSwitchboard::new(models.clone(), CredentialsConfig::default()).is_err());
@@ -147,12 +161,14 @@ fn configured_models() -> ModelSwitchboardConfig {
             model: "gpt-codex".into(),
             url: None,
             credential_id: id("codex"),
+            reasoning_effort: Some(crate::ModelReasoningEffort::Low),
         }),
         insomnia: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "insomnia-model".into(),
             url: Some("https://example.test/v1/chat/completions".into()),
             credential_id: id("ready"),
+            reasoning_effort: None,
         }),
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,

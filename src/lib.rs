@@ -28,6 +28,7 @@ mod config_credentials;
 mod config_error;
 mod config_io;
 mod config_object;
+mod configured_general;
 pub mod container;
 mod container_error;
 mod container_version;
@@ -72,6 +73,7 @@ mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
 mod openai_codex_device_auth;
+mod openai_codex_general;
 mod openai_ready_embedding;
 mod openai_ready_embedding_response;
 mod openai_ready_general;
@@ -109,6 +111,7 @@ pub use compatibility_profile_model::{
 };
 pub use config::ContinuityConfig;
 pub use config_error::ConfigError;
+pub use configured_general::ConfiguredGeneralEndpoint;
 pub use container::{ChunkRef, Container, ContainerError, FormatVersion};
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
@@ -152,11 +155,14 @@ pub use memory_vector_model::{
 pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
-    ModelSwitchboard, ModelSwitchboardConfig,
+    ModelReasoningEffort, ModelSwitchboard, ModelSwitchboardConfig,
 };
 pub use openai_codex_device_auth::{
     OPENAI_CODEX_AUTH_ISSUER, OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS, OPENAI_CODEX_OAUTH_CLIENT_ID,
     OpenAiCodexDeviceAuth, OpenAiCodexDeviceAuthError, OpenAiCodexDeviceCode,
+};
+pub use openai_codex_general::{
+    OPENAI_CODEX_COMPAT_VERSION, OPENAI_CODEX_RESPONSES_URL, OpenAiCodexGeneralEndpoint,
 };
 pub use openai_ready_embedding::{
     DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE, DEFAULT_REMOTE_EMBEDDING_CONCURRENCY,
@@ -205,6 +211,8 @@ mod memory_vector_tests;
 mod model_switchboard_tests;
 #[cfg(test)]
 mod openai_codex_device_auth_tests;
+#[cfg(test)]
+mod openai_codex_general_tests;
 #[cfg(test)]
 mod openai_ready_embedding_tests;
 #[cfg(test)]

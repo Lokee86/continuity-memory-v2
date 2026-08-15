@@ -8,7 +8,7 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ## Overview
 
-Development uses deterministic local tests plus optional live OpenAI-ready execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, and ChatGPT/Codex device-code acquisition are implemented. Codex provider-native General transport and OAuth token refresh remain outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
+Development uses deterministic local tests plus optional live provider execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, ChatGPT/Codex device-code acquisition, and provider-native Codex Responses execution are implemented. Codex OAuth token refresh remains outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
 ## Repository boundary
 
@@ -143,6 +143,10 @@ After applying those measured defaults and policy v2, a fresh copy of the zero-v
 
 A live default hybrid search over that published generation for `compatibility profiles vector generations` returned the configured top 10 results in `12.828` seconds. All ten carried semantic scores from the active live generation, confirming endpoint re-verification, query embedding, exact semantic scan, row-to-fragment mapping, and hybrid result assembly after reopen.
 
+### Live Codex General transport smoke — 2026-08-15
+
+The configured ChatGPT/Codex route was set to `gpt-5.6-luna` with `low` reasoning and the existing device-code credential. A disposable one-conversation/two-turn CVA was imported and processed through the ordinary `insomnia run` path with one worker. The first backend probe exposed an invalid `reasoning.summary = none` request; the transport was corrected to `auto`. The fresh rerun completed one Episode in one claim with zero retries, zero terminal failures, zero Memories, and no embedding work, confirming live authentication, account routing, Luna model selection, low reasoning, structured Responses output, SSE parsing, and Insomnia provider dispatch.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
@@ -176,4 +180,4 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 
 ## Notes
 
-Additional provider-native/local adapters, Codex provider-native General-model transport, Codex OAuth token refresh, and production import interfaces are not implemented in this repository.
+Additional provider-native/local adapters, Codex OAuth token refresh, and production import interfaces are not implemented in this repository.

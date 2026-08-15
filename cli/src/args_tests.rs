@@ -1,5 +1,5 @@
 use crate::args::{Cli, Command, CvaCommand, InsomniaCommand, VectorsCommand};
-use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
+use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand, ReasoningArg};
 use clap::Parser;
 
 #[test]
@@ -84,6 +84,36 @@ fn insomnia_model_route_is_configurable() {
         Command::Config {
             command: ConfigCommand::Model {
                 command: ModelCommand::SetInsomnia { .. }
+            }
+        }
+    ));
+}
+
+#[test]
+fn codex_general_route_accepts_low_reasoning() {
+    let cli = Cli::try_parse_from([
+        "continuity",
+        "config",
+        "model",
+        "set-general",
+        "--provider",
+        "openai-codex",
+        "--model",
+        "gpt-5.6-luna",
+        "--credential",
+        "codex",
+        "--reasoning",
+        "low",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Config {
+            command: ConfigCommand::Model {
+                command: ModelCommand::SetGeneral {
+                    reasoning: Some(ReasoningArg::Low),
+                    ..
+                }
             }
         }
     ));

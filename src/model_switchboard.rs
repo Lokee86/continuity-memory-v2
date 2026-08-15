@@ -20,6 +20,56 @@ pub enum ModelAuthKind {
     ApiKey,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ModelReasoningEffort {
+    None,
+    Minimal,
+    Low,
+    Medium,
+    High,
+    XHigh,
+    Max,
+}
+
+impl ModelReasoningEffort {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Minimal => "minimal",
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+            Self::XHigh => "xhigh",
+            Self::Max => "max",
+        }
+    }
+
+    pub(crate) fn tag(self) -> u8 {
+        match self {
+            Self::None => 1,
+            Self::Minimal => 2,
+            Self::Low => 3,
+            Self::Medium => 4,
+            Self::High => 5,
+            Self::XHigh => 6,
+            Self::Max => 7,
+        }
+    }
+
+    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
+        match tag {
+            1 => Some(Self::None),
+            2 => Some(Self::Minimal),
+            3 => Some(Self::Low),
+            4 => Some(Self::Medium),
+            5 => Some(Self::High),
+            6 => Some(Self::XHigh),
+            7 => Some(Self::Max),
+            _ => None,
+        }
+    }
+}
+
 impl ModelProvider {
     pub fn auth_kind(self) -> ModelAuthKind {
         match self {
@@ -58,6 +108,7 @@ pub struct GeneralModelEndpoint {
     pub model: String,
     pub url: Option<String>,
     pub credential_id: CredentialId,
+    pub reasoning_effort: Option<ModelReasoningEffort>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -148,10 +199,10 @@ impl ModelSwitchboard {
 
 pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<(), ConfigError> {
     if let Some(endpoint) = &config.general {
-        validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
+        validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.insomnia {
-        validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
+        validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.embedding {
         if !endpoint.provider.supports(ModelCapability::Embedding) || endpoint.dimensions == 0 {
@@ -160,6 +211,13 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
         validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
     }
     Ok(())
+}
+
+fn validate_general_endpoint(endpoint: &GeneralModelEndpoint) -> Result<(), ConfigError> {
+    if endpoint.provider == ModelProvider::OpenAiReady && endpoint.reasoning_effort.is_some() {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())
 }
 
 fn validate_endpoint(

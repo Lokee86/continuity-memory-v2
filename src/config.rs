@@ -7,8 +7,9 @@ use crate::config_object::{
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
-    EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, INSOMNIA_MODEL_KEY, MODEL_OBJECT_SCHEMA_V2,
-    decode_embedding, decode_general, encode_embedding, encode_general,
+    EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2, GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3,
+    INSOMNIA_MODEL_KEY, decode_embedding, decode_general_v2, decode_general_v3, encode_embedding,
+    encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
@@ -112,19 +113,19 @@ impl ContinuityConfig {
         if let Some(endpoint) = &self.models.general {
             objects.insert(
                 GENERAL_MODEL_KEY.to_owned(),
-                model_object(encode_general(endpoint)?),
+                general_model_object(encode_general(endpoint)?),
             );
         }
         if let Some(endpoint) = &self.models.insomnia {
             objects.insert(
                 INSOMNIA_MODEL_KEY.to_owned(),
-                model_object(encode_general(endpoint)?),
+                general_model_object(encode_general(endpoint)?),
             );
         }
         if let Some(endpoint) = &self.models.embedding {
             objects.insert(
                 EMBEDDING_MODEL_KEY.to_owned(),
-                model_object(encode_embedding(endpoint)?),
+                embedding_model_object(encode_embedding(endpoint)?),
             );
         }
         insert_credentials(&self.path, &self.credentials, &mut objects)?;
@@ -146,30 +147,39 @@ fn decode_known_retrieval(object: RawConfigObject) -> Result<RetrievalConfig, Co
 fn decode_known_general(
     object: RawConfigObject,
 ) -> Result<crate::GeneralModelEndpoint, ConfigError> {
-    validate_model_object(&object)?;
-    decode_general(&object.payload)
+    if object.flags != OBJECT_FLAGS_NONE {
+        return Err(ConfigError::InvalidObject);
+    }
+    match object.schema {
+        2 => decode_general_v2(&object.payload),
+        GENERAL_MODEL_SCHEMA_V3 => decode_general_v3(&object.payload),
+        _ => Err(ConfigError::InvalidObject),
+    }
 }
 
 fn decode_known_embedding(
     object: RawConfigObject,
 ) -> Result<crate::EmbeddingModelEndpoint, ConfigError> {
-    validate_model_object(&object)?;
+    if object.schema != EMBEDDING_MODEL_SCHEMA_V2 || object.flags != OBJECT_FLAGS_NONE {
+        return Err(ConfigError::InvalidObject);
+    }
     decode_embedding(&object.payload)
 }
 
-fn model_object(payload: Vec<u8>) -> RawConfigObject {
+fn general_model_object(payload: Vec<u8>) -> RawConfigObject {
     RawConfigObject {
-        schema: MODEL_OBJECT_SCHEMA_V2,
+        schema: GENERAL_MODEL_SCHEMA_V3,
         flags: OBJECT_FLAGS_NONE,
         payload,
     }
 }
 
-fn validate_model_object(object: &RawConfigObject) -> Result<(), ConfigError> {
-    if object.schema != MODEL_OBJECT_SCHEMA_V2 || object.flags != OBJECT_FLAGS_NONE {
-        return Err(ConfigError::InvalidObject);
+fn embedding_model_object(payload: Vec<u8>) -> RawConfigObject {
+    RawConfigObject {
+        schema: EMBEDDING_MODEL_SCHEMA_V2,
+        flags: OBJECT_FLAGS_NONE,
+        payload,
     }
-    Ok(())
 }
 
 fn validate_known_object(object: &RawConfigObject) -> Result<(), ConfigError> {

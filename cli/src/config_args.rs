@@ -44,6 +44,8 @@ pub enum ModelCommand {
         credential: String,
         #[arg(long)]
         url: Option<String>,
+        #[arg(long, value_enum)]
+        reasoning: Option<ReasoningArg>,
     },
     ClearGeneral,
     SetInsomnia {
@@ -55,6 +57,8 @@ pub enum ModelCommand {
         credential: String,
         #[arg(long)]
         url: Option<String>,
+        #[arg(long, value_enum)]
+        reasoning: Option<ReasoningArg>,
     },
     ClearInsomnia,
     SetEmbedding {
@@ -80,6 +84,17 @@ pub enum ProviderArg {
     OpenAiCodex,
     #[value(name = "openai-ready")]
     OpenAiReady,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum ReasoningArg {
+    None,
+    Minimal,
+    Low,
+    Medium,
+    High,
+    Xhigh,
+    Max,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]

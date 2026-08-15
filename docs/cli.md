@@ -63,7 +63,7 @@ The global `--config` option defaults to `continuity.cfg` in the current directo
 
 `config credential login-codex <id>` performs the ChatGPT/Codex device-code flow directly. It requests a one-time code, prints the verification URL and code, waits for authorization, exchanges the resulting authorization code for OAuth ID/access/refresh tokens, extracts the ChatGPT account ID, and saves the credential under the requested ID. Manual token copy/paste is not part of the CLI. OAuth token refresh is not implemented yet.
 
-`config model set-general` and `set-embedding` persist route selection and require the referenced credential to make the resulting switchboard executable. `config verify` performs the same route/credential compatibility validation without sending network requests.
+`config model set-general` and `set-insomnia` persist General-model route selection and accept `--reasoning` for `openai-codex` routes. For example, `config model set-general --provider openai-codex --model gpt-5.6-luna --credential codex --reasoning low` selects Luna at low reasoning; if `models.insomnia` is unset, Insomnia inherits that General route. `set-embedding` persists the separate embedding route. `config verify` performs route/credential compatibility validation without sending network requests.
 
 ## CVA and import behavior
 
@@ -95,4 +95,4 @@ Repository verification also performs command-level smoke tests for CVA create/i
 
 ## Notes
 
-The CLI owns no HTTP protocol semantics; live embedding and General-model execution are supplied by the core OpenAI-ready endpoints. The CLI's Insomnia worker is a finite bring-up/drain command, not the future shared long-lived runtime.
+The CLI owns no HTTP protocol semantics; live embedding and General-model execution are supplied by the core provider endpoints and `ConfiguredGeneralEndpoint` dispatch. The CLI's Insomnia worker is a finite bring-up/drain command, not the future shared long-lived runtime.

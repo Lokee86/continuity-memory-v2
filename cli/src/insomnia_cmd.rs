@@ -2,8 +2,8 @@ use crate::args::InsomniaCommand;
 use crate::util::hex32;
 use anyhow::Result;
 use continuity_memory::{
-    ContinuityConfig, Cva, EpisodeConfig, InsomniaExtractor, InsomniaWorkerConfig,
-    ModelSwitchboard, OpenAiReadyEmbeddingEndpoint, OpenAiReadyGeneralEndpoint,
+    ConfiguredGeneralEndpoint, ContinuityConfig, Cva, EpisodeConfig, InsomniaExtractor,
+    InsomniaWorkState, InsomniaWorkerConfig, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint,
 };
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -41,7 +41,7 @@ fn run_file(
 ) -> Result<()> {
     let config = ContinuityConfig::open(config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
-    let general = OpenAiReadyGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
+    let general = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
     let embedding = OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard)?
         .with_batching(embedding_batch_size, embedding_concurrency)?;
     let extractor = InsomniaExtractor::new(general);
@@ -96,6 +96,17 @@ fn run_file(
                 .unwrap_or_else(|| "none".into())
         ),
         None => println!("memory_vectors: skipped (no memories)"),
+    }
+    for episode in cva.episodes() {
+        if let Some(work) = cva.insomnia_work(episode.id)
+            && work.state == InsomniaWorkState::Terminal
+        {
+            println!(
+                "terminal_error: episode={} error={}",
+                hex32(&episode.id.0),
+                work.last_error.as_deref().unwrap_or("<missing>")
+            );
+        }
     }
     Ok(())
 }

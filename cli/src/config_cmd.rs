@@ -1,5 +1,5 @@
 use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
-use crate::util::{credential_id, normalization, provider, read_secret};
+use crate::util::{credential_id, normalization, provider, read_secret, reasoning};
 use anyhow::{Result, anyhow};
 use continuity_memory::{
     ContinuityConfig, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelSwitchboard,
@@ -99,12 +99,14 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
             model,
             credential,
             url,
+            reasoning: r,
         } => {
             config.models.general = Some(GeneralModelEndpoint {
                 provider: provider(p),
                 model,
                 url,
                 credential_id: credential_id(credential)?,
+                reasoning_effort: r.map(reasoning),
             });
             validate_runtime(&config)?;
         }
@@ -114,12 +116,14 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
             model,
             credential,
             url,
+            reasoning: r,
         } => {
             config.models.insomnia = Some(GeneralModelEndpoint {
                 provider: provider(p),
                 model,
                 url,
                 credential_id: credential_id(credential)?,
+                reasoning_effort: r.map(reasoning),
             });
             validate_runtime(&config)?;
         }
@@ -165,9 +169,13 @@ fn validate_runtime(config: &ContinuityConfig) -> Result<()> {
 fn show_general(value: Option<&GeneralModelEndpoint>) {
     match value {
         Some(endpoint) => println!(
-            "general: provider={:?} model={} url={} credential={}",
+            "general: provider={:?} model={} reasoning={} url={} credential={}",
             endpoint.provider,
             endpoint.model,
+            endpoint
+                .reasoning_effort
+                .map(|value| value.as_str())
+                .unwrap_or("<unset>"),
             endpoint.url.as_deref().unwrap_or("<provider-owned>"),
             endpoint.credential_id.as_str()
         ),
@@ -178,9 +186,13 @@ fn show_general(value: Option<&GeneralModelEndpoint>) {
 fn show_insomnia(value: Option<&GeneralModelEndpoint>) {
     match value {
         Some(endpoint) => println!(
-            "insomnia: provider={:?} model={} url={} credential={}",
+            "insomnia: provider={:?} model={} reasoning={} url={} credential={}",
             endpoint.provider,
             endpoint.model,
+            endpoint
+                .reasoning_effort
+                .map(|value| value.as_str())
+                .unwrap_or("<unset>"),
             endpoint.url.as_deref().unwrap_or("<provider-owned>"),
             endpoint.credential_id.as_str()
         ),

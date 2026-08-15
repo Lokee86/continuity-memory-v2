@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding and General-model transport, Archive, deterministic Episodes, authoritative Memory revisions, durable Insomnia queue/lease/retry state, structured Insomnia extraction/Memory publication with one bounded Archive-evidence round, a configurable concurrent whole-backlog Insomnia worker, immutable Memory Vectors, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Grouped attempt publication, the shared long-lived runtime, Codex/provider-native transport, later Graph/Dream/Ego layers, and production storage hardening remain incomplete.
+Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding/General transport, provider-native Codex General/Insomnia transport, Archive, deterministic Episodes, authoritative Memory revisions, durable Insomnia queue/lease/retry state, structured Insomnia extraction/Memory publication with one bounded Archive-evidence round, a configurable concurrent whole-backlog Insomnia worker, immutable Memory Vectors, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Grouped attempt publication, the shared long-lived runtime, Codex OAuth refresh, later Graph/Dream/Ego layers, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -26,7 +26,7 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 - Archive branch/session retention and generation retention/vacuum policies are undefined.
 
 ## Compatibility-profile and endpoint limits
-- Direct `openai-ready` embedding and General-model HTTP execution are implemented. Provider-native/local-runtime adapters and Codex General transport are not implemented yet.
+- Direct `openai-ready` embedding/General HTTP execution and provider-native `openai-codex` General/Insomnia Responses execution are implemented. Additional provider-native/local-runtime adapters remain future work.
 - Compatibility policy v2 uses the fixed probe suite and requires cosine `>= 0.9998` for every corresponding probe. On 2026-08-15, eight repeated same-route comparisons of `qwen/qwen3-embedding-8b` through OpenRouter produced minimum cosine values from `0.99988147` to `0.99993311`; policy v1's `0.99999` threshold rejected all eight. Broader routed/local endpoint calibration is still incomplete.
 - Provider, model, route, and revision are intentionally not compatibility-profile fields. Separate optional provenance metadata has not been designed yet.
 - Compatibility profiles currently require dimensions and declared normalization to match exactly. More nuanced compatibility rules, if real endpoints demonstrate a need, remain measurement-driven future work.
@@ -53,8 +53,8 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - The default operating-system config location is not selected yet; callers currently provide the config path.
 - Fragment, retrieval, `models.general`, optional `models.insomnia`, `models.embedding`, and encrypted `credential.<id>` objects are implemented. Insomnia resolves to `models.general` when its dedicated route is absent.
 - Model routes reference credentials by ID; the switchboard validates auth kind and can attach bearer/auth account headers.
-- Direct `openai-ready` embedding and General-model HTTP transport are implemented.
-- `openai-codex` ChatGPT device-code acquisition is implemented through the same auth.openai.com device-code protocol used by Codex. OAuth token refresh and provider-native Codex General transport are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.
+- Direct `openai-ready` embedding/General HTTP transport and provider-native `openai-codex` General/Insomnia Responses transport are implemented. Codex routes require explicit reasoning effort and use the stored ChatGPT OAuth credential/account ID.
+- `openai-codex` ChatGPT device-code acquisition is implemented through the auth.openai.com device-code protocol. OAuth token refresh is not implemented yet.
 - A 256-bit master key can be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
 - Windows Credential Manager integration is not implemented yet.
 - No text import/export format exists yet.
@@ -73,7 +73,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - `create_memory` exists as a library-level tail-finalization + immediate-queue seam; it is not yet exposed through a shared live-model runtime/tool adapter.
 - Automatic 15-minute inactivity scanning is represented by durable timestamp-derived policy methods but no long-lived runtime currently wakes and applies the policy.
 - A one-shot whole-backlog worker pool is implemented with 1–64 workers and a default of 16. Claims and CVA mutation remain serialized, while General-model calls overlap across workers; evidence reads briefly reacquire the CVA lock between model rounds. Retryable extraction failures are requeued until the configured attempt limit, while invalid endpoint configuration is terminal. The default worker count carries forward the previous implementation's measured sweet spot and still needs live v2 corpus retuning.
-- The one-shot worker uses a 15-minute default lease and renews immediately before successful publication; it does not yet run an in-flight heartbeat during one blocking model request. The current OpenAI-ready request timeout is 180 seconds and extraction permits at most two model rounds, but heartbeat/cancellation belongs in the shared long-lived runtime before production.
+- The one-shot worker uses a 15-minute default lease and renews immediately before successful publication; it does not yet run an in-flight heartbeat during one blocking model request. Current OpenAI-ready and Codex General request timeouts are 180 seconds and extraction permits at most two model rounds, but heartbeat/cancellation belongs in the shared long-lived runtime before production.
 - Memory Vector storage and automatic missing-body embedding are implemented in the core finite Insomnia drain. A Memory is authoritative before embedding; vectorization/profile errors are returned after Episode processing without undoing Memories, and a later drain retries missing bindings. Continuous background vector work between finite drains still belongs to the future shared long-lived runtime; Graph, Dream, Ego, and production importers remain unimplemented.
 - Memory authority is independent from embeddings. Memory semantic title/content is immutable across revisions, so metadata-only revisions do not cause embedding regeneration; only a new compatibility profile creates another vector for an existing body.
 

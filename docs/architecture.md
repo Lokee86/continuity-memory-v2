@@ -236,4 +236,4 @@ G103 / A701   Archive mutation
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 - [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 ## Notes
-Codex/provider-native General transport, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.
+Codex OAuth token refresh, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

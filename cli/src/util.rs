@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use continuity_memory::{
-    CompatibilityProfileId, CredentialId, FragmentId, ModelProvider, VectorNormalization,
+    CompatibilityProfileId, CredentialId, FragmentId, ModelProvider, ModelReasoningEffort,
+    VectorNormalization,
 };
 use std::io::{self, Read};
 use std::path::Path;
@@ -13,6 +14,18 @@ pub fn provider(value: crate::config_args::ProviderArg) -> ModelProvider {
     match value {
         crate::config_args::ProviderArg::OpenAiCodex => ModelProvider::OpenAiCodex,
         crate::config_args::ProviderArg::OpenAiReady => ModelProvider::OpenAiReady,
+    }
+}
+
+pub fn reasoning(value: crate::config_args::ReasoningArg) -> ModelReasoningEffort {
+    match value {
+        crate::config_args::ReasoningArg::None => ModelReasoningEffort::None,
+        crate::config_args::ReasoningArg::Minimal => ModelReasoningEffort::Minimal,
+        crate::config_args::ReasoningArg::Low => ModelReasoningEffort::Low,
+        crate::config_args::ReasoningArg::Medium => ModelReasoningEffort::Medium,
+        crate::config_args::ReasoningArg::High => ModelReasoningEffort::High,
+        crate::config_args::ReasoningArg::Xhigh => ModelReasoningEffort::XHigh,
+        crate::config_args::ReasoningArg::Max => ModelReasoningEffort::Max,
     }
 }
 
