@@ -147,6 +147,31 @@ A live default hybrid search over that published generation for `compatibility p
 
 The configured ChatGPT/Codex route was set to `gpt-5.6-luna` with `low` reasoning and the existing device-code credential. A disposable one-conversation/two-turn CVA was imported and processed through the ordinary `insomnia run` path with one worker. The first backend probe exposed an invalid `reasoning.summary = none` request; the transport was corrected to `auto`. The fresh rerun completed one Episode in one claim with zero retries, zero terminal failures, zero Memories, and no embedding work, confirming live authentication, account routing, Luna model selection, low reasoning, structured Responses output, SSE parsing, and Insomnia provider dispatch.
 
+### Live Insomnia worker concurrency — 2026-08-15
+
+The prepared 12-conversation ChatGPT corpus was converted to the current canonical graph-JSONL development format without adding a production importer. It produced 1,441 canonical text nodes and 66 deterministic import Episodes. Each concurrency point used a fresh copy of the same pre-Insomnia CVA, the configured `gpt-5.6-luna` Codex route at `low` reasoning, and the configured Qwen3 embedding route. Episode-processing time and Memory-Vector time were measured separately so embedding latency did not contaminate the worker scaling curve.
+
+```text
+workers   processing     episodes/s   speedup vs 1   retries   terminals
+1         456.578 s       0.145         1.00x         0         0
+2         240.614 s       0.274         1.90x         0         0
+4         108.906 s       0.606         4.19x         0         0
+8          79.076 s       0.835         5.77x         0         0
+16         46.561 s       1.417         9.81x         0         0
+32         29.078 s       2.270        15.70x         0         0
+40         28.605 s       2.307        15.96x         0         0
+44         30.530 s       2.162        14.95x         0         0
+48         21.356 s       3.091        21.38x         0         0
+48 repeat  21.162 s       3.119        21.58x         0         0
+52         32.516 s       2.030        14.04x         0         0
+56         23.527 s       2.805        19.41x         0         0
+64         24.579 s       2.685        18.58x         0         0
+```
+
+The measured sweet spot is therefore 48 workers for this provider/model/corpus, and the default has been changed from 16 to 48 while retaining the 1–64 configurable range. Bracketing runs at 44 and 52 workers took 30.530 s and 32.516 s, while 56 and 64 workers also trailed the repeated 48-worker result. No point produced retries or terminal failures, indicating a latency/contention optimum rather than a hard rate-limit boundary.
+
+Memory extraction itself is stochastic across runs: the sweep produced 133–157 created Memories and 9–30 rejected candidates from the same 66 Episodes. Every run completed all Episodes, and none requested historical evidence. Those differences are not concurrency failures; they are now a separate extraction-quality/stability question to inspect before treating this corpus as a quality benchmark. Memory-Vector filling remained a distinct derived phase and is not used in the worker-concurrency timing.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
