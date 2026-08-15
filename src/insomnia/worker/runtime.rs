@@ -1,27 +1,44 @@
 use super::{InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError};
-use crate::insomnia::evidence::resolve_evidence;
+use crate::insomnia::evidence::resolve_evidence_parts;
 use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor};
-use crate::{
-    Cva, GeneralEndpoint, GeneralEndpointError, InsomniaError, InsomniaExtractionError,
-    InsomniaWork,
-};
+use crate::insomnia::processor::claimed_episode_input_parts;
+use crate::insomnia::store::InsomniaStore;
+use crate::memory_store::MemoryStore;
+use crate::{Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaWork};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+mod outcome;
+
+use outcome::{apply_success, record_failure, terminal_claim};
+
 #[derive(Default)]
-struct DrainCounters {
-    active: AtomicUsize,
-    peak: AtomicUsize,
-    claimed: AtomicUsize,
-    completed: AtomicUsize,
-    failed: AtomicUsize,
-    terminal: AtomicUsize,
-    created: AtomicUsize,
-    existing: AtomicUsize,
-    rejected: AtomicUsize,
-    evidence_turns: AtomicUsize,
+pub(super) struct DrainCounters {
+    pub(super) active: AtomicUsize,
+    pub(super) peak: AtomicUsize,
+    pub(super) claimed: AtomicUsize,
+    pub(super) completed: AtomicUsize,
+    pub(super) failed: AtomicUsize,
+    pub(super) terminal: AtomicUsize,
+    pub(super) created: AtomicUsize,
+    pub(super) existing: AtomicUsize,
+    pub(super) rejected: AtomicUsize,
+    pub(super) evidence_turns: AtomicUsize,
+}
+
+pub(super) struct DrainShared<'a> {
+    pub(super) archive: &'a Archive,
+    pub(super) container: Mutex<&'a mut Container>,
+    pub(super) memories: Mutex<&'a mut MemoryStore>,
+    pub(super) insomnia: Mutex<&'a mut InsomniaStore>,
+}
+
+enum ClaimState {
+    Claimed(InsomniaWork),
+    Idle,
+    Done,
 }
 
 pub(super) fn drain<E: GeneralEndpoint>(
@@ -29,7 +46,12 @@ pub(super) fn drain<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-    let shared = Mutex::new(cva);
+    let shared = DrainShared {
+        archive: &cva.archive,
+        container: Mutex::new(&mut cva.container),
+        memories: Mutex::new(&mut cva.memories),
+        insomnia: Mutex::new(&mut cva.insomnia),
+    };
     let counters = DrainCounters::default();
     let results = thread::scope(|scope| {
         let mut handles = Vec::with_capacity(config.workers);
@@ -51,9 +73,6 @@ pub(super) fn drain<E: GeneralEndpoint>(
             Err(_) => return Err(InsomniaWorkerError::ThreadPanicked),
         }
     }
-    shared
-        .into_inner()
-        .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
     Ok(InsomniaDrainResult {
         workers: config.workers,
         peak_active_workers: counters.peak.load(Ordering::Relaxed),
@@ -70,7 +89,7 @@ pub(super) fn drain<E: GeneralEndpoint>(
 }
 
 fn worker_loop<E: GeneralEndpoint>(
-    shared: &Mutex<&mut Cva>,
+    shared: &DrainShared<'_>,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
     counters: &DrainCounters,
@@ -79,38 +98,27 @@ fn worker_loop<E: GeneralEndpoint>(
     let worker_id = format!("{}-{}", config.worker_id_prefix.trim(), index + 1);
     loop {
         let started_at_ns = now_ns();
-        let claimed = {
-            let mut cva = shared
+        let claim = match claim_next(shared, config, &worker_id, started_at_ns)? {
+            ClaimState::Claimed(claim) => claim,
+            ClaimState::Idle => {
+                sleep_ns(config.poll_interval_ns);
+                continue;
+            }
+            ClaimState::Done => return Ok(()),
+        };
+        let input = {
+            let mut container = shared
+                .container
                 .lock()
                 .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
-            let claim =
-                cva.claim_insomnia_episode(&worker_id, started_at_ns, config.lease_duration_ns)?;
-            match claim {
-                Some(claim) => match cva.claimed_episode_input(&claim, &config.scope) {
-                    Ok((episode, turns)) => Some((claim, episode, turns)),
-                    Err(error) => {
-                        terminal_claim(
-                            &mut cva,
-                            &claim,
-                            started_at_ns,
-                            error.to_string(),
-                            counters,
-                        )?;
-                        None
-                    }
-                },
-                None => {
-                    let stats = cva.insomnia_stats();
-                    if stats.pending == 0 && stats.processing == 0 && stats.failed == 0 {
-                        return Ok(());
-                    }
-                    None
-                }
-            }
+            claimed_episode_input_parts(shared.archive, &mut container, &claim, &config.scope)
         };
-        let Some((claim, episode, turns)) = claimed else {
-            sleep_ns(config.poll_interval_ns);
-            continue;
+        let (episode, turns) = match input {
+            Ok(input) => input,
+            Err(error) => {
+                terminal_claim(shared, &claim, started_at_ns, error.to_string(), counters)?;
+                continue;
+            }
         };
         counters.claimed.fetch_add(1, Ordering::Relaxed);
         let active = counters.active.fetch_add(1, Ordering::SeqCst) + 1;
@@ -133,8 +141,42 @@ fn worker_loop<E: GeneralEndpoint>(
     }
 }
 
+fn claim_next(
+    shared: &DrainShared<'_>,
+    config: &InsomniaWorkerConfig,
+    worker_id: &str,
+    started_at_ns: i64,
+) -> Result<ClaimState, InsomniaWorkerError> {
+    // Global order for combined mutable access is Container -> semantic store.
+    let mut container = shared
+        .container
+        .lock()
+        .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
+    let mut insomnia = shared
+        .insomnia
+        .lock()
+        .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
+    let claim = insomnia.claim_next(
+        &mut container,
+        worker_id,
+        started_at_ns,
+        config.lease_duration_ns,
+    )?;
+    match claim {
+        Some(claim) => Ok(ClaimState::Claimed(claim)),
+        None => {
+            let stats = insomnia.stats();
+            if stats.pending == 0 && stats.processing == 0 && stats.failed == 0 {
+                Ok(ClaimState::Done)
+            } else {
+                Ok(ClaimState::Idle)
+            }
+        }
+    }
+}
+
 fn run_extraction<E: GeneralEndpoint>(
-    shared: &Mutex<&mut Cva>,
+    shared: &DrainShared<'_>,
     extractor: &InsomniaExtractor<E>,
     episode: &crate::Episode,
     turns: &[crate::ResolvedTurn],
@@ -143,126 +185,17 @@ fn run_extraction<E: GeneralEndpoint>(
         InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
         InsomniaExtractionStage::Evidence(round) => {
             let (results, evidence_turns) = {
-                let mut cva = shared.lock().map_err(|_| {
-                    InsomniaExtractionError::InvalidOutput("CVA evidence lock poisoned".into())
+                let mut container = shared.container.lock().map_err(|_| {
+                    InsomniaExtractionError::InvalidOutput("CVA container lock poisoned".into())
                 })?;
-                resolve_evidence(&mut cva, episode, &round.requests)?
+                resolve_evidence_parts(shared.archive, &mut container, episode, &round.requests)?
             };
             extractor.finish_evidence(episode, turns, round, results, evidence_turns)
         }
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn apply_success(
-    shared: &Mutex<&mut Cva>,
-    claim: &InsomniaWork,
-    episode: &crate::Episode,
-    turns: &[crate::ResolvedTurn],
-    extraction: crate::InsomniaExtraction,
-    started_at_ns: i64,
-    config: &InsomniaWorkerConfig,
-    counters: &DrainCounters,
-) -> Result<(), InsomniaWorkerError> {
-    counters
-        .evidence_turns
-        .fetch_add(extraction.evidence_turns.len(), Ordering::Relaxed);
-    let completed_at_ns = now_ns();
-    let mut cva = shared
-        .lock()
-        .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
-    cva.renew_insomnia_lease(
-        claim.episode_id,
-        claim.lease_token.unwrap(),
-        completed_at_ns,
-        config.lease_duration_ns,
-    )?;
-    let result = cva.apply_claimed_insomnia_extraction(
-        claim,
-        episode,
-        turns,
-        extraction,
-        &config.scope,
-        started_at_ns,
-        completed_at_ns,
-    )?;
-    counters.completed.fetch_add(1, Ordering::Relaxed);
-    counters
-        .created
-        .fetch_add(result.created.len(), Ordering::Relaxed);
-    counters
-        .existing
-        .fetch_add(result.existing.len(), Ordering::Relaxed);
-    counters
-        .rejected
-        .fetch_add(result.rejected.len(), Ordering::Relaxed);
-    Ok(())
-}
-
-fn record_failure(
-    shared: &Mutex<&mut Cva>,
-    claim: &InsomniaWork,
-    started_at_ns: i64,
-    error: InsomniaExtractionError,
-    config: &InsomniaWorkerConfig,
-    counters: &DrainCounters,
-) -> Result<(), InsomniaWorkerError> {
-    let failed_at_ns = now_ns();
-    let reason = bounded_reason(error.to_string());
-    let mut cva = shared
-        .lock()
-        .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
-    if retryable(&error) && claim.attempt_count < config.max_attempts {
-        cva.fail_insomnia_episode(
-            claim.episode_id,
-            claim.lease_token.unwrap(),
-            started_at_ns,
-            failed_at_ns,
-            failed_at_ns.saturating_add(config.retry_delay_ns),
-            reason,
-        )?;
-        counters.failed.fetch_add(1, Ordering::Relaxed);
-    } else {
-        terminal_claim(&mut cva, claim, started_at_ns, reason, counters)?;
-    }
-    Ok(())
-}
-
-fn terminal_claim(
-    cva: &mut Cva,
-    claim: &InsomniaWork,
-    started_at_ns: i64,
-    reason: String,
-    counters: &DrainCounters,
-) -> Result<(), InsomniaWorkerError> {
-    cva.terminal_insomnia_episode(
-        claim.episode_id,
-        claim.lease_token.ok_or(InsomniaError::InvalidLease)?,
-        started_at_ns,
-        now_ns(),
-        bounded_reason(reason),
-    )?;
-    counters.terminal.fetch_add(1, Ordering::Relaxed);
-    Ok(())
-}
-
-fn retryable(error: &InsomniaExtractionError) -> bool {
-    !matches!(
-        error,
-        InsomniaExtractionError::Endpoint(GeneralEndpointError::InvalidConfiguration(_))
-    )
-}
-
-fn bounded_reason(mut reason: String) -> String {
-    reason = reason.trim().to_owned();
-    if reason.is_empty() {
-        return "Insomnia processing failed".into();
-    }
-    reason.truncate(4096);
-    reason
-}
-
-fn now_ns() -> i64 {
+pub(super) fn now_ns() -> i64 {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()

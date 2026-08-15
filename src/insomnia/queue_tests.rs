@@ -39,6 +39,7 @@ fn scheduling_priority_is_immediate_then_live_then_import() {
     cva.queue_insomnia_episode(immediate.id, InsomniaPriority::ImmediateLive, 300)
         .unwrap();
 
+    assert_eq!(cva.insomnia.scheduler_counts(), (3, 0, 0));
     let first = cva.claim_insomnia_episode("w1", 301, 100).unwrap().unwrap();
     assert_eq!(first.episode_id, immediate.id);
     cva.complete_insomnia_episode(
@@ -151,6 +152,7 @@ fn stale_lease_cannot_finalize_reclaimed_work() {
     cva.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 20)
         .unwrap();
     let first = cva.claim_insomnia_episode("w1", 30, 10).unwrap().unwrap();
+    assert_eq!(cva.insomnia.scheduler_counts(), (0, 0, 1));
     let old_token = first.lease_token.unwrap();
     let second = cva.claim_insomnia_episode("w2", 41, 10).unwrap().unwrap();
     assert_eq!(second.attempt_count, 2);

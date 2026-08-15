@@ -4,14 +4,18 @@ use crate::{
     InsomniaPriority, InsomniaStats, InsomniaWork, InsomniaWorkState,
 };
 use sha2::{Digest, Sha256};
-use std::cmp::Ordering;
 use std::collections::HashMap;
 
+mod scheduler;
 mod transitions;
+
+use scheduler::Scheduler;
 
 pub(crate) struct InsomniaStore {
     work: HashMap<EpisodeId, InsomniaWork>,
     attempts: Vec<InsomniaAttempt>,
+    scheduler: Scheduler,
+    state_counts: [usize; 5],
 }
 
 impl InsomniaStore {
@@ -19,6 +23,8 @@ impl InsomniaStore {
         Self {
             work: HashMap::new(),
             attempts: Vec::new(),
+            scheduler: Scheduler::default(),
+            state_counts: [0; 5],
         }
     }
 
@@ -27,9 +33,14 @@ impl InsomniaStore {
         Ok(())
     }
 
+    pub(crate) fn rebuild_schedule(&mut self, archive: &Archive) -> Result<(), InsomniaError> {
+        self.scheduler.rebuild(archive, &self.work)
+    }
+
     pub(crate) fn queue(
         &mut self,
         container: &mut Container,
+        archive: &Archive,
         episode_id: EpisodeId,
         priority: InsomniaPriority,
         now_ns: i64,
@@ -49,14 +60,15 @@ impl InsomniaStore {
             last_error: None,
             updated_at_ns: now_ns,
         };
-        self.persist_work(container, work.clone())?;
+        container.append(&encode_work(&work)?)?;
+        self.scheduler.register(archive, &work)?;
+        self.insert_work(work.clone());
         Ok((work, true))
     }
 
     pub(crate) fn claim_next(
         &mut self,
         container: &mut Container,
-        archive: &Archive,
         worker_id: &str,
         now_ns: i64,
         lease_duration_ns: i64,
@@ -64,16 +76,15 @@ impl InsomniaStore {
         if worker_id.trim().is_empty() || lease_duration_ns <= 0 {
             return Err(InsomniaError::InvalidField("worker lease"));
         }
-        let episode_id = self
-            .work
-            .values()
-            .filter(|work| eligible(work, now_ns))
-            .min_by(|left, right| compare_work(archive, left, right))
-            .map(|work| work.episode_id);
-        let Some(episode_id) = episode_id else {
+        let Some(key) = self.scheduler.next_ready(now_ns) else {
             return Ok(None);
         };
-        let current = self.work.get(&episode_id).unwrap().clone();
+        let episode_id = key.episode_id();
+        let current = self
+            .work
+            .get(&episode_id)
+            .cloned()
+            .ok_or(InsomniaError::MissingWork)?;
         let attempt_count = current.attempt_count.saturating_add(1);
         let token = lease_token(episode_id, worker_id, attempt_count, now_ns);
         let mut claimed = current;
@@ -120,25 +131,15 @@ impl InsomniaStore {
     }
 
     pub(crate) fn stats(&self) -> InsomniaStats {
-        let mut stats = InsomniaStats {
+        InsomniaStats {
             total: self.work.len(),
-            pending: 0,
-            processing: 0,
-            complete: 0,
-            failed: 0,
-            terminal: 0,
+            pending: self.state_counts[0],
+            processing: self.state_counts[1],
+            complete: self.state_counts[2],
+            failed: self.state_counts[3],
+            terminal: self.state_counts[4],
             attempts: self.attempts.len(),
-        };
-        for work in self.work.values() {
-            match work.state {
-                InsomniaWorkState::Pending => stats.pending += 1,
-                InsomniaWorkState::Processing => stats.processing += 1,
-                InsomniaWorkState::Complete => stats.complete += 1,
-                InsomniaWorkState::Failed => stats.failed += 1,
-                InsomniaWorkState::Terminal => stats.terminal += 1,
-            }
         }
-        stats
     }
 
     pub(crate) fn apply_work(&mut self, mut work: InsomniaWork) {
@@ -146,7 +147,7 @@ impl InsomniaStore {
             work.state = InsomniaWorkState::Pending;
             clear_lease(&mut work);
         }
-        self.work.insert(work.episode_id, work);
+        self.insert_work(work);
     }
 
     pub(crate) fn apply_attempt(&mut self, attempt: InsomniaAttempt) {
@@ -181,7 +182,7 @@ impl InsomniaStore {
         }
     }
 
-    fn active_claim(
+    pub(super) fn active_claim(
         &self,
         episode_id: EpisodeId,
         token: InsomniaLeaseToken,
@@ -203,47 +204,49 @@ impl InsomniaStore {
         Ok(work.clone())
     }
 
-    fn persist_work(
+    pub(super) fn persist_work(
         &mut self,
         container: &mut Container,
         work: InsomniaWork,
     ) -> Result<(), InsomniaError> {
+        let old = self
+            .work
+            .get(&work.episode_id)
+            .cloned()
+            .ok_or(InsomniaError::MissingWork)?;
         container.append(&encode_work(&work)?)?;
-        self.work.insert(work.episode_id, work);
+        self.scheduler.replace(&old, &work);
+        self.insert_work(work);
         Ok(())
+    }
+
+    fn insert_work(&mut self, work: InsomniaWork) {
+        if let Some(old) = self.work.insert(work.episode_id, work.clone()) {
+            self.state_counts[state_slot(old.state)] -= 1;
+        }
+        self.state_counts[state_slot(work.state)] += 1;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn scheduler_counts(&self) -> (usize, usize, usize) {
+        self.scheduler.counts()
     }
 }
 
-fn clear_lease(work: &mut InsomniaWork) {
+pub(super) fn clear_lease(work: &mut InsomniaWork) {
     work.lease_owner = None;
     work.lease_token = None;
     work.lease_expires_ns = None;
 }
 
-fn eligible(work: &InsomniaWork, now_ns: i64) -> bool {
-    match work.state {
-        InsomniaWorkState::Pending => true,
-        InsomniaWorkState::Failed => work.retry_after_ns.is_some_and(|at| at <= now_ns),
-        InsomniaWorkState::Processing => work.lease_expires_ns.is_none_or(|at| at <= now_ns),
-        InsomniaWorkState::Complete | InsomniaWorkState::Terminal => false,
+fn state_slot(state: InsomniaWorkState) -> usize {
+    match state {
+        InsomniaWorkState::Pending => 0,
+        InsomniaWorkState::Processing => 1,
+        InsomniaWorkState::Complete => 2,
+        InsomniaWorkState::Failed => 3,
+        InsomniaWorkState::Terminal => 4,
     }
-}
-
-fn compare_work(archive: &Archive, left: &InsomniaWork, right: &InsomniaWork) -> Ordering {
-    left.priority.cmp(&right.priority).then_with(|| {
-        let left_episode = archive.episode(left.episode_id).unwrap();
-        let right_episode = archive.episode(right.episode_id).unwrap();
-        left_episode
-            .source_through_ns
-            .cmp(&right_episode.source_through_ns)
-            .then_with(|| {
-                left_episode
-                    .conversation_id
-                    .cmp(&right_episode.conversation_id)
-            })
-            .then_with(|| left_episode.start_node_id.cmp(&right_episode.start_node_id))
-            .then_with(|| left.episode_id.0.cmp(&right.episode_id.0))
-    })
 }
 
 fn lease_token(

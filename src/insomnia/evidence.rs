@@ -1,5 +1,6 @@
 use super::extraction::{InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtractionError};
-use crate::{Cva, Episode, ResolvedTurn};
+use crate::lexical_search::lexical_candidates_parts;
+use crate::{Archive, Container, Cva, Episode, ResolvedTurn};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
@@ -52,41 +53,17 @@ fn parse_request(value: &Value) -> Result<EvidenceRequest, InsomniaExtractionErr
     })
 }
 
-fn string_field(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
-    value
-        .get(field)
-        .and_then(Value::as_str)
-        .map(str::to_owned)
-        .ok_or_else(|| {
-            InsomniaExtractionError::InvalidOutput(format!("missing string field {field}"))
-        })
-}
-
-fn optional_string(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
-    match value.get(field) {
-        None | Some(Value::Null) => Ok(String::new()),
-        Some(value) => value.as_str().map(str::to_owned).ok_or_else(|| {
-            InsomniaExtractionError::InvalidOutput(format!("{field} must be a string"))
-        }),
-    }
-}
-
-fn optional_usize(value: &Value, field: &str) -> Result<usize, InsomniaExtractionError> {
-    match value.get(field) {
-        None | Some(Value::Null) => Ok(0),
-        Some(value) => value
-            .as_u64()
-            .and_then(|value| usize::try_from(value).ok())
-            .ok_or_else(|| {
-                InsomniaExtractionError::InvalidOutput(format!(
-                    "{field} must be a non-negative integer"
-                ))
-            }),
-    }
-}
-
 pub(crate) fn resolve_evidence(
     cva: &mut Cva,
+    episode: &Episode,
+    requests: &[EvidenceRequest],
+) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
+    resolve_evidence_parts(&cva.archive, &mut cva.container, episode, requests)
+}
+
+pub(crate) fn resolve_evidence_parts(
+    archive: &Archive,
+    container: &mut Container,
     _episode: &Episode,
     requests: &[EvidenceRequest],
 ) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
@@ -94,9 +71,9 @@ pub(crate) fn resolve_evidence(
     let mut all_turns = Vec::new();
     for request in requests {
         let resolved = match request.kind.as_str() {
-            "turn" => resolve_turn(cva, request),
-            "conversation_range" => resolve_range(cva, request),
-            "archive_search" => resolve_search(cva, request),
+            "turn" => resolve_turn(archive, container, request),
+            "conversation_range" => resolve_range(archive, container, request),
+            "archive_search" => resolve_search(archive, container, request),
             _ => Err(format!("unknown evidence request kind {:?}", request.kind)),
         };
         match resolved {
@@ -133,7 +110,8 @@ pub(crate) fn resolve_evidence(
 }
 
 fn resolve_turn(
-    cva: &mut Cva,
+    archive: &Archive,
+    container: &mut Container,
     request: &EvidenceRequest,
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
     let conversation_id = request.conversation_id.trim();
@@ -141,14 +119,12 @@ fn resolve_turn(
     if conversation_id.is_empty() || node_id.is_empty() {
         return Err("turn evidence requires conversation_id and node_id".into());
     }
-    let node = cva
-        .archive
+    let node = archive
         .require_node(conversation_id, node_id, crate::ArchiveError::MissingNode)
         .map_err(|_| "requested turn was not found".to_owned())?
         .clone();
-    let content = cva
-        .archive
-        .content(&mut cva.container, node.content_id)
+    let content = archive
+        .content(container, node.content_id)
         .map_err(|error| error.to_string())?;
     Ok(vec![to_evidence_turn(
         conversation_id,
@@ -162,7 +138,8 @@ fn resolve_turn(
 }
 
 fn resolve_range(
-    cva: &mut Cva,
+    archive: &Archive,
+    container: &mut Container,
     request: &EvidenceRequest,
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
     let conversation_id = request.conversation_id.trim();
@@ -173,8 +150,7 @@ fn resolve_range(
             "conversation_range requires conversation_id, start_node_id, and end_node_id".into(),
         );
     }
-    let path = cva
-        .archive
+    let path = archive
         .branch_nodes(conversation_id, end_node_id)
         .map_err(|_| "conversation range end node was not found".to_owned())?;
     let start = path
@@ -190,9 +166,8 @@ fn resolve_range(
     selected
         .iter()
         .map(|node| {
-            let content = cva
-                .archive
-                .content(&mut cva.container, node.content_id)
+            let content = archive
+                .content(container, node.content_id)
                 .map_err(|error| error.to_string())?;
             Ok(InsomniaEvidenceTurn {
                 conversation_id: conversation_id.to_owned(),
@@ -206,7 +181,8 @@ fn resolve_range(
 }
 
 fn resolve_search(
-    cva: &mut Cva,
+    archive: &Archive,
+    container: &mut Container,
     request: &EvidenceRequest,
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
     let query = request.query.trim();
@@ -223,8 +199,7 @@ fn resolve_search(
             "archive_search limit must be between 1 and {MAX_SEARCH_RESULTS}"
         ));
     }
-    let candidates = cva
-        .lexical_candidates(query, limit.saturating_mul(4))
+    let candidates = lexical_candidates_parts(archive, container, query, limit.saturating_mul(4))
         .map_err(|error| error.to_string())?;
     let conversation_filter = request.conversation_id.trim();
     let mut turns = Vec::new();
@@ -234,8 +209,8 @@ fn resolve_search(
             continue;
         }
         let conversation_id = hit.fragment.conversation_id.clone();
-        let fragment_turns = cva
-            .fragment_turns(hit.fragment.id)
+        let fragment_turns = archive
+            .fragment_turns(container, hit.fragment.id)
             .map_err(|error| error.to_string())?;
         turns.extend(
             fragment_turns
@@ -248,6 +223,39 @@ fn resolve_search(
         }
     }
     Ok(turns)
+}
+
+fn string_field(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
+    value
+        .get(field)
+        .and_then(Value::as_str)
+        .map(str::to_owned)
+        .ok_or_else(|| {
+            InsomniaExtractionError::InvalidOutput(format!("missing string field {field}"))
+        })
+}
+
+fn optional_string(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
+    match value.get(field) {
+        None | Some(Value::Null) => Ok(String::new()),
+        Some(value) => value.as_str().map(str::to_owned).ok_or_else(|| {
+            InsomniaExtractionError::InvalidOutput(format!("{field} must be a string"))
+        }),
+    }
+}
+
+fn optional_usize(value: &Value, field: &str) -> Result<usize, InsomniaExtractionError> {
+    match value.get(field) {
+        None | Some(Value::Null) => Ok(0),
+        Some(value) => value
+            .as_u64()
+            .and_then(|value| usize::try_from(value).ok())
+            .ok_or_else(|| {
+                InsomniaExtractionError::InvalidOutput(format!(
+                    "{field} must be a non-negative integer"
+                ))
+            }),
+    }
 }
 
 fn to_evidence_turn(conversation_id: &str, turn: ResolvedTurn) -> InsomniaEvidenceTurn {

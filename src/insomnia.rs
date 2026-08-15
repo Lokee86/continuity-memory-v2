@@ -45,6 +45,8 @@ mod queue_recovery_tests;
 #[cfg(test)]
 mod queue_tests;
 #[cfg(test)]
+mod scheduler_tests;
+#[cfg(test)]
 mod test_support;
 #[cfg(test)]
 mod worker_tests;

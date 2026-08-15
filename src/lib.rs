@@ -41,6 +41,7 @@ mod cva_compatibility_profiles;
 mod cva_error;
 mod cva_global_validation;
 mod cva_lifecycle;
+mod cva_memory_publish;
 mod cva_memory_vectors;
 mod cva_packed_vectors;
 mod cva_vector_generations;

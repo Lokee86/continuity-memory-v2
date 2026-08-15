@@ -66,7 +66,7 @@ Protected by tests for independent conversation ancestry, divergent global/Archi
 
 ## Risks and debt
 
-- Current code has no real concurrent writer implementation yet.
+- The finite Insomnia drain now uses read-only Archive sharing, independent Memories/Insomnia store locks, indexed operational scheduling, and a narrow Container I/O/version lock. A general long-lived arbitrary concurrent-writer runtime is still not implemented.
 - Generic whole-Archive historical view materialization is not exposed yet.
 - Whole-CVA restore-and-continue timeline semantics remain open.
 - Retention/vacuum of old branch revisions is undefined.

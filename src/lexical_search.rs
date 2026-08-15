@@ -1,4 +1,4 @@
-use crate::{Cva, Fragment, SearchError};
+use crate::{Archive, Container, Cva, Fragment, SearchError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct LexicalHit {
@@ -12,34 +12,39 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<LexicalHit>, SearchError> {
-        let terms = lexical_terms(query);
-        if terms.is_empty() || limit == 0 {
-            return Ok(Vec::new());
-        }
-        let mut hits = Vec::new();
-        for fragment in self.fragments() {
-            let text = self.fragment_text(fragment.id)?;
-            let score = lexical_score(&text, &terms);
-            if score > 0.0 {
-                let archive_version = self
-                    .archive
-                    .fragments
-                    .archive_version(fragment.id)
-                    .unwrap_or(0);
-                hits.push((LexicalHit { fragment, score }, archive_version));
-            }
-        }
-        hits.sort_by(|left, right| {
-            right
-                .0
-                .score
-                .total_cmp(&left.0.score)
-                .then_with(|| right.1.cmp(&left.1))
-                .then_with(|| left.0.fragment.id.0.cmp(&right.0.fragment.id.0))
-        });
-        hits.truncate(limit);
-        Ok(hits.into_iter().map(|(hit, _)| hit).collect())
+        lexical_candidates_parts(&self.archive, &mut self.container, query, limit)
     }
+}
+
+pub(crate) fn lexical_candidates_parts(
+    archive: &Archive,
+    container: &mut Container,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<LexicalHit>, SearchError> {
+    let terms = lexical_terms(query);
+    if terms.is_empty() || limit == 0 {
+        return Ok(Vec::new());
+    }
+    let mut hits = Vec::new();
+    for fragment in archive.fragments() {
+        let text = archive.fragment_text(container, fragment.id)?;
+        let score = lexical_score(&text, &terms);
+        if score > 0.0 {
+            let archive_version = archive.fragments.archive_version(fragment.id).unwrap_or(0);
+            hits.push((LexicalHit { fragment, score }, archive_version));
+        }
+    }
+    hits.sort_by(|left, right| {
+        right
+            .0
+            .score
+            .total_cmp(&left.0.score)
+            .then_with(|| right.1.cmp(&left.1))
+            .then_with(|| left.0.fragment.id.0.cmp(&right.0.fragment.id.0))
+    });
+    hits.truncate(limit);
+    Ok(hits.into_iter().map(|(hit, _)| hit).collect())
 }
 
 pub(crate) fn lexical_score(text: &str, terms: &[String]) -> f64 {

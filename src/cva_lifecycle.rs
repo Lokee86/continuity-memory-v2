@@ -74,8 +74,9 @@ impl Cva {
         archive.validate_references()?;
         let memories = memory_state.finish()?;
         memories.validate_provenance(&archive)?;
-        let insomnia = insomnia_state.finish()?;
+        let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
+        insomnia.rebuild_schedule(&archive)?;
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
         let memory_vectors =

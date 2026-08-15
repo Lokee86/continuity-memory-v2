@@ -1,5 +1,6 @@
 use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::cva_memory_publish::publish_memory_parts;
 use crate::insomnia::store::InsomniaStore;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
@@ -174,35 +175,14 @@ impl Cva {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
-        self.validate_memory_provenance(&draft)?;
-        self.memories
-            .publish(&mut self.container, id, expected_revision, draft)
-    }
-
-    fn validate_memory_provenance(&self, draft: &MemoryDraft) -> Result<(), MemoryError> {
-        match (draft.source_episode_id, draft.source_node_id.as_deref()) {
-            (Some(episode_id), Some(node_id)) => {
-                if !self
-                    .archive
-                    .episode_contains_node(episode_id, node_id)
-                    .map_err(|_| MemoryError::InvalidProvenance)?
-                {
-                    return Err(MemoryError::InvalidProvenance);
-                }
-            }
-            (None, None) => {}
-            _ => return Err(MemoryError::InvalidProvenance),
-        }
-        match (
-            draft.content_source_conversation_id.as_deref(),
-            draft.content_source_node_id.as_deref(),
-        ) {
-            (Some(conversation_id), Some(node_id))
-                if self.archive.has_node(conversation_id, node_id) => {}
-            (None, None) => {}
-            _ => return Err(MemoryError::InvalidProvenance),
-        }
-        Ok(())
+        publish_memory_parts(
+            &self.archive,
+            &mut self.memories,
+            &mut self.container,
+            id,
+            expected_revision,
+            draft,
+        )
     }
 
     pub fn memory(&mut self, id: MemoryId) -> Result<Memory, MemoryError> {

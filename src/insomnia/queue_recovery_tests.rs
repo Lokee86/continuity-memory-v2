@@ -21,6 +21,7 @@ fn processing_claims_are_reclaimable_after_restart_and_attempt_history_persists(
     drop(cva);
 
     let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.insomnia.scheduler_counts(), (1, 0, 0));
     assert_eq!(
         reopened.insomnia_work(episode.id).unwrap().state,
         InsomniaWorkState::Pending
@@ -76,6 +77,7 @@ fn retry_delay_is_durable_and_respected() {
         "provider overloaded".into(),
     )
     .unwrap();
+    assert_eq!(cva.insomnia.scheduler_counts(), (0, 1, 0));
     assert!(cva.claim_insomnia_episode("w2", 49, 100).unwrap().is_none());
     cva.sync().unwrap();
     drop(cva);

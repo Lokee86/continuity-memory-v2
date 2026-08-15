@@ -14,8 +14,13 @@ impl Cva {
         if self.archive.episode(episode_id).is_none() {
             return Err(InsomniaError::MissingEpisode);
         }
-        self.insomnia
-            .queue(&mut self.container, episode_id, priority, now_ns)
+        self.insomnia.queue(
+            &mut self.container,
+            &self.archive,
+            episode_id,
+            priority,
+            now_ns,
+        )
     }
 
     pub fn materialize_live_path_and_queue(
@@ -146,13 +151,8 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<Option<InsomniaWork>, InsomniaError> {
-        self.insomnia.claim_next(
-            &mut self.container,
-            &self.archive,
-            worker_id,
-            now_ns,
-            lease_duration_ns,
-        )
+        self.insomnia
+            .claim_next(&mut self.container, worker_id, now_ns, lease_duration_ns)
     }
 
     pub fn renew_insomnia_lease(
