@@ -1,0 +1,100 @@
+use crate::{
+    ConfigError, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelProvider, VectorNormalization,
+};
+
+pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
+pub(crate) const EMBEDDING_MODEL_KEY: &str = "models.embedding";
+
+pub(crate) fn encode_general(endpoint: &GeneralModelEndpoint) -> Result<Vec<u8>, ConfigError> {
+    let mut bytes = Vec::new();
+    bytes.push(endpoint.provider.tag());
+    bytes.extend_from_slice(&[0; 3]);
+    encode_string(&mut bytes, &endpoint.model)?;
+    encode_string(&mut bytes, endpoint.url.as_deref().unwrap_or(""))?;
+    Ok(bytes)
+}
+
+pub(crate) fn decode_general(bytes: &[u8]) -> Result<GeneralModelEndpoint, ConfigError> {
+    let header = bytes.get(..4).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    if header[1..4] != [0; 3] {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    let provider =
+        ModelProvider::from_tag(header[0]).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let mut cursor = 4;
+    let model = decode_string(bytes, &mut cursor)?;
+    let url = decode_string(bytes, &mut cursor)?;
+    if cursor != bytes.len() {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    Ok(GeneralModelEndpoint {
+        provider,
+        model,
+        url: (!url.is_empty()).then_some(url),
+    })
+}
+
+pub(crate) fn encode_embedding(endpoint: &EmbeddingModelEndpoint) -> Result<Vec<u8>, ConfigError> {
+    let mut bytes = Vec::new();
+    bytes.push(endpoint.provider.tag());
+    bytes.push(endpoint.normalization.tag());
+    bytes.extend_from_slice(&[0; 2]);
+    bytes.extend_from_slice(&endpoint.dimensions.to_le_bytes());
+    encode_string(&mut bytes, &endpoint.model)?;
+    encode_string(&mut bytes, endpoint.url.as_deref().unwrap_or(""))?;
+    Ok(bytes)
+}
+
+pub(crate) fn decode_embedding(bytes: &[u8]) -> Result<EmbeddingModelEndpoint, ConfigError> {
+    let header = bytes.get(..8).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    if header[2..4] != [0; 2] {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    let provider =
+        ModelProvider::from_tag(header[0]).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let normalization =
+        VectorNormalization::from_tag(header[1]).ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let dimensions = u32::from_le_bytes(header[4..8].try_into().unwrap());
+    let mut cursor = 8;
+    let model = decode_string(bytes, &mut cursor)?;
+    let url = decode_string(bytes, &mut cursor)?;
+    if cursor != bytes.len() {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    Ok(EmbeddingModelEndpoint {
+        provider,
+        model,
+        url: (!url.is_empty()).then_some(url),
+        dimensions,
+        normalization,
+    })
+}
+
+fn encode_string(bytes: &mut Vec<u8>, value: &str) -> Result<(), ConfigError> {
+    let len = u32::try_from(value.len()).map_err(|_| ConfigError::InvalidModelSwitchboard)?;
+    bytes.extend_from_slice(&len.to_le_bytes());
+    bytes.extend_from_slice(value.as_bytes());
+    Ok(())
+}
+
+fn decode_string(bytes: &[u8], cursor: &mut usize) -> Result<String, ConfigError> {
+    let length_end = cursor
+        .checked_add(4)
+        .ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let len_bytes = bytes
+        .get(*cursor..length_end)
+        .ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let len = u32::from_le_bytes(len_bytes.try_into().unwrap()) as usize;
+    let value_end = length_end
+        .checked_add(len)
+        .ok_or(ConfigError::InvalidModelSwitchboard)?;
+    let value = std::str::from_utf8(
+        bytes
+            .get(length_end..value_end)
+            .ok_or(ConfigError::InvalidModelSwitchboard)?,
+    )
+    .map_err(|_| ConfigError::InvalidModelSwitchboard)?
+    .to_owned();
+    *cursor = value_end;
+    Ok(value)
+}

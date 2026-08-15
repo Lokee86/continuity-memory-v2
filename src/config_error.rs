@@ -10,6 +10,7 @@ pub enum ConfigError {
     DuplicateObject(String),
     InvalidFragmentConfig,
     InvalidRetrievalConfig,
+    InvalidModelSwitchboard,
 }
 
 impl fmt::Display for ConfigError {
@@ -28,6 +29,7 @@ impl fmt::Display for ConfigError {
             Self::DuplicateObject(key) => write!(f, "duplicate configuration object: {key}"),
             Self::InvalidFragmentConfig => write!(f, "invalid fragment configuration"),
             Self::InvalidRetrievalConfig => write!(f, "invalid retrieval configuration"),
+            Self::InvalidModelSwitchboard => write!(f, "invalid model switchboard configuration"),
         }
     }
 }

@@ -18,6 +18,9 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Config replacement keeps only current objects and does not grow from history | `config_tests::replacing_config_does_not_accumulate_old_objects` |
 | Unknown future config objects survive known-object replacement | `config_tests::unknown_objects_survive_known_config_replacement` |
 | Invalid config is rejected before replacing the existing file | `config_tests::invalid_values_do_not_replace_existing_config` |
+| Switchboard provider auth/capabilities are explicit | `model_switchboard_tests::provider_auth_and_capabilities_are_explicit` |
+| General and embedding model routes round-trip through `continuity.cfg`, and clearing them removes the current objects | `model_switchboard_tests::general_and_embedding_routes_round_trip_through_config`, `model_switchboard_tests::clearing_model_routes_removes_them_from_current_config` |
+| Unsupported Codex embedding and incomplete OpenAI-ready routes are rejected | `model_switchboard_tests::codex_cannot_be_configured_as_embedding_provider`, `model_switchboard_tests::openai_ready_requires_an_explicit_http_endpoint` |
 | New CVA header reopens | `container_tests::create_then_reopen_cva` |
 | Opaque chunks retain stable references | `container_tests::append_then_read_chunks` |
 | Global versions survive reopen | `container_tests::global_versions_survive_reopen` |

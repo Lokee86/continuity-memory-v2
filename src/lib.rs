@@ -43,6 +43,8 @@ mod fragment_model;
 mod fragment_store;
 mod fragmenter;
 mod lexical_search;
+mod model_switchboard;
+mod model_switchboard_codec;
 mod packed_vector_codec;
 mod packed_vector_error;
 mod packed_vector_model;
@@ -86,6 +88,10 @@ pub use embedding_endpoint::{
 };
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
+pub use model_switchboard::{
+    EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
+    ModelSwitchboard, ModelSwitchboardConfig,
+};
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use search_error::SearchError;
@@ -112,6 +118,8 @@ mod container_tests;
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod model_switchboard_tests;
 #[cfg(test)]
 mod packed_vector_tests;
 #[cfg(test)]

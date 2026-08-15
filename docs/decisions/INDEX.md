@@ -8,3 +8,4 @@
 - [ADR 0006: Archive Vectors are immutable row bindings](0006-archive-vector-row-bindings.md) — **Accepted**, 2026-08-14.
 - [ADR 0007: Compatibility profiles and vector-generation publication](0007-compatibility-profiles-and-vector-generations.md) — **Accepted**, 2026-08-14.
 - [ADR 0008: Purpose-built replaceable local configuration](0008-purpose-built-local-configuration.md) — **Accepted**, 2026-08-14.
+- [ADR 0009: Expandable model switchboard](0009-expandable-model-switchboard.md) — **Accepted**, 2026-08-14.

@@ -6,12 +6,12 @@ Parent index: [Documentation index](INDEX.md)
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 
 ## Overview
-The public API exposes `ContinuityConfig` for local current-state settings plus `Cva` for semantic storage/retrieval; Archive history; vector backing/publication; compatibility profiles; hybrid retrieval; simulated embedding endpoints; chunk references; and errors. It remains development-stage.
+The public API exposes `ContinuityConfig` and the initial model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; vector backing/publication; compatibility profiles; hybrid retrieval; simulated embedding capabilities; chunk references; and errors. It remains development-stage.
 
 ## Exact contract
 
 ### Local configuration
-`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig` and `retrieval: RetrievalConfig`; `path()` reports the configured path. Unknown framed objects are preserved across saves. `ConfigError` reports format, validation, and I/O failures. Configuration is separate from `.cva` and has no semantic history.
+`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, and `models: ModelSwitchboardConfig`; `path()` reports the configured path. Unknown framed objects are preserved across saves. `ConfigError` reports format, validation, and I/O failures. Configuration is separate from `.cva` and has no semantic history.
 
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
@@ -65,6 +65,13 @@ ArchiveVectorError
 `Cva::put_archive_vectors(packed_vector_id, fragment_ids)` creates/reuses an immutable row binding. Packed row `N` maps to `fragment_ids[N]`. Matrix existence, exact row count, real fragments, and per-set fragment uniqueness are required.
 
 `max_fragment_archive_version` is derived validation metadata, not Archive-Vector persistent identity. Archive Vectors contain no compatibility profile or active-generation state.
+
+### Model switchboard
+Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, and `ModelSwitchboard`.
+
+`ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` currently supports General only, uses provider-owned routing, and reports `ChatGptDeviceCode`; `OpenAiReady` supports General and Embedding, requires explicit HTTP(S) URLs, and reports `ApiKey`. Embedding routes also require non-zero dimensions and explicit normalization.
+
+`ModelSwitchboard::new(config)` validates selections; `general()`, `embedding()`, and `config()` expose them. The switchboard currently owns routing only: HTTP transport, device-code execution, credential resolution, and replacement of the low-level `EmbeddingEndpoint` seam remain future work.
 
 ### Embedding endpoint abstraction
 Public types:
@@ -137,18 +144,7 @@ VectorGenerationError
 Generation publication consumes one CVA-global semantic ticket and one dense local vector version. The latest generation per compatibility profile is current. Unversioned generation payloads are inert on reopen. Published generations currently require `f32` matrices; packed backing storage remains generic, but alternate searchable representations wait for explicit quantization/dequantization semantics.
 
 ### Exact semantic retrieval
-Public types/constants:
-
-```text
-SemanticSearchHit {
-    fragment,
-    score,
-    ordinal,
-    generation_id,
-}
-SemanticSearchError
-MAX_SEMANTIC_SEARCH_LIMIT = 1000
-```
+Public surface: `SemanticSearchHit { fragment, score, ordinal, generation_id }`, `SemanticSearchError`, and `MAX_SEMANTIC_SEARCH_LIMIT = 1000`.
 
 `Cva::semantic_search(profile_id, endpoint, query, limit)` requires a non-empty query and limit `1..=1000`. It verifies the endpoint against the selected compatibility profile, embeds the query in `EmbeddingMode::Query`, resolves that profile's current Vector Generation, exact-scans its `f32` packed matrix using cosine similarity, drops scores `<= 0`, orders descending with row ordinal as the deterministic tie-break, and maps selected rows through Archive Vectors to durable `Fragment` records.
 
@@ -193,6 +189,7 @@ G102/A701  Archive mutation
 - [Behavioral contracts](behavioral-contracts.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
+- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. Exact semantic retrieval and the original default lexical/hybrid path are implemented; production model-switchboard/runtime integration remains the next retrieval-facing slice.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. Switchboard routing/configuration is implemented; direct provider transport, credentials, and replacement of the development embedding capability seam remain next.

@@ -89,6 +89,36 @@ Current defaults are `30`, `10`, `0.45`, and `0.55`. Limits must be non-zero, re
 
 `Cva::search_with_config` consumes `RetrievalConfig`. `Cva::search` remains the default-policy convenience method.
 
+### `models.general`
+
+Schema `1`, flags `0`:
+
+```text
+u8        provider
+3 bytes   reserved = 0
+string    model
+string    URL; empty for provider-owned routing
+```
+
+The general endpoint currently accepts `openai-codex` or `openai-ready`. `openai-codex` uses provider-owned routing and therefore stores no URL. `openai-ready` requires an explicit `http://` or `https://` endpoint URL.
+
+### `models.embedding`
+
+Schema `1`, flags `0`:
+
+```text
+u8        provider
+u8        normalization: 0=None, 1=L2
+2 bytes   reserved = 0
+u32       dimensions
+string    model
+string    URL
+```
+
+The embedding endpoint currently accepts `openai-ready` only, requires non-zero dimensions, and requires an explicit endpoint URL. The current provider tags are `1=openai-codex` and `2=openai-ready`.
+
+`ModelSwitchboardConfig` owns the two optional endpoint selections. `ModelSwitchboard` validates the configured capability boundary and exposes the selected general and embedding endpoints to the runtime. Provider authentication is explicit: `openai-codex` is reserved for ChatGPT device-code auth and `openai-ready` for API-key auth. Credential persistence and transport are separate implementation slices.
+
 ## Replacement and durability
 
 `ContinuityConfig::save` validates all known objects before touching the existing file. It writes the new image to a temporary file in the same directory, flushes it, then performs a replace operation. Windows uses `MoveFileExW` with replace/write-through flags; Unix uses same-filesystem rename and synchronizes the parent directory.
@@ -112,7 +142,8 @@ The whole config file does not need encryption. Object-level encryption permits 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
-- Model-switchboard and credential objects are not implemented yet.
+- General and embedding switchboard objects are implemented, but direct HTTP transport is not wired yet.
+- `openai-codex` device-code execution and `openai-ready` API-key credential objects are not implemented yet.
 - Encryption and Windows Credential Manager integration are not implemented yet.
 - No import/export text format exists yet.
 
@@ -122,6 +153,7 @@ The whole config file does not need encryption. Object-level encryption permits 
 - [Rust API](api.md)
 - [Current limitations](current-limitations.md)
 - [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
+- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 
 ## Notes
 

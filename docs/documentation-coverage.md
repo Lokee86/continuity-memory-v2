@@ -14,7 +14,8 @@ Coverage remains intentionally small while the rebuild is early.
 
 | Implementation | Responsibility | Canonical owners |
 | --- | --- | --- |
-| `src/config*.rs` | Purpose-built local config framing, typed fragment/retrieval objects, validation, atomic replacement, tests | [Local configuration](configuration.md), [Architecture](architecture.md), [Rust API](api.md), [ADR 0008](decisions/0008-purpose-built-local-configuration.md) |
+| `src/config*.rs` | Purpose-built local config framing, typed fragment/retrieval/model objects, validation, atomic replacement, tests | [Local configuration](configuration.md), [Architecture](architecture.md), [Rust API](api.md), [ADR 0008](decisions/0008-purpose-built-local-configuration.md) |
+| `src/model_switchboard*.rs` | General/Embedding capability routing, provider/auth declarations, endpoint codecs, validation, tests | [Architecture](architecture.md), [Local configuration](configuration.md), [Rust API](api.md), [ADR 0009](decisions/0009-expandable-model-switchboard.md) |
 | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*.rs`, `src/cva_error.rs` | Single-Container composition, concrete-store scan dispatch, public lifecycle/API | [Architecture](architecture.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |
 | `src/container.rs` | CVA header/chunks/read/append/sync | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md) |
 | `src/container_scan.rs` | Single-pass physical payload scan and global-ticket observation | [Architecture](architecture.md), [Storage format](storage-format.md), [Development](development.md) |

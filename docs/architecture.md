@@ -29,13 +29,20 @@ ContinuityConfig
 └── continuity.cfg
     ├── archive.fragments
     ├── retrieval.default
-    └── future model/credential objects
+    ├── models.general
+    ├── models.embedding
+    └── future credential objects
 ```
 
 `continuity.cfg` is current-state configuration only. It is not contained in a `.cva`, consumes no semantic clocks, and has no append-only/history semantics.
 ## Responsibilities
 ### Local configuration
 `ContinuityConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Object flags are reserved for later per-object credential encryption.
+
+### Model switchboard
+`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL. Provider auth kind is explicit but credential persistence/transport are not implemented yet.
+
+Switchboard provider/model/URL choices are routing configuration only. They do not enter Compatibility Profile identity or decide vector compatibility.
 
 ### Container
 Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
@@ -161,11 +168,13 @@ G102 / A701   Archive mutation
 - generation source watermark must cover every mapped fragment;
 - the semantic retrieval channel searches exactly one selected profile's current generation and never mixes profile score spaces;
 - default hybrid retrieval preserves the original 30-candidate / 10-result policy and `0.45/0.55` lexical-semantic fusion;
-- local configuration is current-state machine configuration, not CVA semantic state or an internal history system.
+- local configuration is current-state machine configuration, not CVA semantic state or an internal history system;
+- model-switchboard routing is machine-local integration policy and cannot establish vector compatibility.
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |
 | local configuration | `src/config*.rs` |
+| model switchboard/provider capabilities | `src/model_switchboard*.rs` |
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
 | physical Container/global clock | `src/container*.rs` |
 | Archive/history/fragments | `src/archive*.rs`, `src/fragment*.rs` |
@@ -184,5 +193,6 @@ G102 / A701   Archive mutation
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
+- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 ## Notes
 Production endpoint adapters, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

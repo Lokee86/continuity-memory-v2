@@ -56,6 +56,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 42. **Retrieval is derived and read-only.** Lexical scoring, semantic search, hybrid fusion, deduplication, and diversification persist no authority and consume no semantic version ticket.
 43. **Local configuration is current state, not semantic history.** `continuity.cfg` is separate from `.cva`, uses replaceable logical objects, and consumes no semantic version ticket.
 44. **Configuration replacement does not accumulate history.** Saving writes one complete validated current image and atomically replaces the prior file; superseded config objects are not retained.
+45. **Model routing is not vector compatibility.** Switchboard provider/model/URL selections are machine-local integration policy; Compatibility Profiles remain the sole durable vector-space compatibility contract.
 
 ## Safety boundaries
 

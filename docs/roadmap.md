@@ -32,6 +32,7 @@ Completed bootstrap slices:
 16. Exact semantic retrieval through compatibility verification, Query-mode embedding, current-generation resolution, exact cosine scan, and row-to-FragmentId mapping.
 17. Original default lexical/hybrid retrieval with 30-candidate fusion, `0.45/0.55` channel weighting, overlap diversification, and 10 final results.
 18. Purpose-built replaceable local configuration container with fragment/retrieval objects, deterministic framing, unknown-object preservation, and atomic whole-file replacement.
+19. Expandable model-switchboard routing with `General`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, and persisted `models.general` / `models.embedding` objects.
 
 ## Expected ownership or ownership boundary
 
@@ -41,7 +42,7 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Add model-switchboard/provider objects to `continuity.cfg`, replace the development embedding-endpoint seam with that switchboard, and run the first real embedding/retrieval tests.
+1. Add encrypted credential objects plus direct provider transport: `openai-ready` API-key HTTP first, then `openai-codex` ChatGPT device-code auth; route the embedding capability through the switchboard and run the first real embedding/retrieval tests.
 2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
 3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
 4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
@@ -75,7 +76,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Archive checkpoint representation, cadence, and retention.
 - Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
 - Actual concurrent file append/version reservation mechanics.
-- Calibration of compatibility policy v1 against representative real routed/local embedding endpoints; current tolerant cosine policy is implemented but only simulated endpoints are wired.
+- Calibration of compatibility policy v1 against representative real routed/local embedding endpoints; switchboard routing is implemented but only simulated embedding execution is wired.
 - Explicit vector-generation retirement/deactivation and retention policy.
 - Quantization metadata and alternate packed representations for published generations.
 - Whole-CVA historical materialization and restore/timeline representation now that two mutable semantic domains exist.
@@ -87,6 +88,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - [Current limitations](current-limitations.md)
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
+- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 
 ## Notes
 

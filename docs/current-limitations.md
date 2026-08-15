@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Purpose-built local configuration, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production endpoints, later semantic databases, and production storage hardening remain incomplete.
+Purpose-built local configuration, initial model-switchboard routing, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Production provider transport/auth, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -39,7 +39,7 @@ Purpose-built local configuration, Archive, packed matrices, Archive row binding
 - The direct `Cva::semantic_search` API re-runs compatibility probes for every request because no shared long-lived runtime/capability cache exists yet.
 - Searchable published generations currently require `f32` matrices. Packed storage still supports other scalar types, but alternate searchable representations wait for explicit quantization/dequantization semantics.
 - Lexical retrieval is currently a full fragment-text scan; no persistent lexical index exists yet.
-- Default hybrid retrieval uses the original fixed `30` candidate pool, `10` final results, and `0.45/0.55` lexical-semantic weights. Those are policy constants rather than a runtime configuration surface today.
+- Default hybrid retrieval uses `30` candidates, `10` final results, and `0.45/0.55` lexical-semantic weights. These defaults can now be overridden through validated `RetrievalConfig`.
 - Conversation/time/metadata filters, reranking, and a broader retrieval controller are not implemented in v2 yet.
 - Different compatibility profiles have independent current generations, but there is no multi-profile score-fusion policy; scores from unrelated vector spaces must not be compared directly.
 
@@ -51,7 +51,9 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 ## Local configuration limits
 - Purpose-built `continuity.cfg` persistence is implemented with replaceable logical objects and atomic whole-file replacement.
 - The default operating-system config location is not selected yet; callers currently provide the config path.
-- Only fragment and retrieval objects are implemented. Model-switchboard/provider and credential objects are next.
+- Fragment, retrieval, `models.general`, and `models.embedding` objects are implemented.
+- The switchboard currently validates/stores routing only; direct provider HTTP transport is not implemented yet.
+- `openai-codex` device-code auth execution and `openai-ready` API-key credential objects are not implemented yet.
 - Per-object encryption, locally generated master-key handling, and Windows Credential Manager integration are not implemented yet.
 - No text import/export format exists yet.
 
@@ -67,6 +69,7 @@ Repository-local Pitlord policy has not yet been added.
 - [Storage format](storage-format.md)
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
+- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.

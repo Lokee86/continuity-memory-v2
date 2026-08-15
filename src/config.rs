@@ -4,7 +4,12 @@ use crate::config_object::{
     FRAGMENT_KEY, OBJECT_FLAGS_NONE, OBJECT_SCHEMA_V1, RETRIEVAL_KEY, decode_fragments,
     decode_retrieval, encode_fragments, encode_retrieval, validate_fragments, validate_retrieval,
 };
-use crate::{ConfigError, FragmentConfig, RetrievalConfig};
+use crate::model_switchboard::validate_switchboard;
+use crate::model_switchboard_codec::{
+    EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, decode_embedding, decode_general, encode_embedding,
+    encode_general,
+};
+use crate::{ConfigError, FragmentConfig, ModelSwitchboardConfig, RetrievalConfig};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -13,6 +18,7 @@ pub struct ContinuityConfig {
     path: PathBuf,
     pub fragments: FragmentConfig,
     pub retrieval: RetrievalConfig,
+    pub models: ModelSwitchboardConfig,
     extra_objects: BTreeMap<String, RawConfigObject>,
 }
 
@@ -22,6 +28,7 @@ impl ContinuityConfig {
             path: path.into(),
             fragments: FragmentConfig::default(),
             retrieval: RetrievalConfig::default(),
+            models: ModelSwitchboardConfig::default(),
             extra_objects: BTreeMap::new(),
         }
     }
@@ -38,10 +45,21 @@ impl ContinuityConfig {
             Some(object) => decode_known_retrieval(object)?,
             None => RetrievalConfig::default(),
         };
+        let general = match objects.remove(GENERAL_MODEL_KEY) {
+            Some(object) => Some(decode_known_general(object)?),
+            None => None,
+        };
+        let embedding = match objects.remove(EMBEDDING_MODEL_KEY) {
+            Some(object) => Some(decode_known_embedding(object)?),
+            None => None,
+        };
+        let models = ModelSwitchboardConfig { general, embedding };
+        validate_switchboard(&models)?;
         Ok(Self {
             path,
             fragments,
             retrieval,
+            models,
             extra_objects: objects,
         })
     }
@@ -53,6 +71,7 @@ impl ContinuityConfig {
     pub fn save(&self) -> Result<(), ConfigError> {
         validate_fragments(self.fragments)?;
         validate_retrieval(self.retrieval)?;
+        validate_switchboard(&self.models)?;
         let mut objects = self.extra_objects.clone();
         objects.insert(
             FRAGMENT_KEY.to_owned(),
@@ -70,6 +89,18 @@ impl ContinuityConfig {
                 payload: encode_retrieval(self.retrieval),
             },
         );
+        if let Some(endpoint) = &self.models.general {
+            objects.insert(
+                GENERAL_MODEL_KEY.to_owned(),
+                known_object(encode_general(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.embedding {
+            objects.insert(
+                EMBEDDING_MODEL_KEY.to_owned(),
+                known_object(encode_embedding(endpoint)?),
+            );
+        }
         let bytes = encode_config(&objects)?;
         replace_config_file(&self.path, &bytes)
     }
@@ -83,6 +114,28 @@ fn decode_known_fragments(object: RawConfigObject) -> Result<FragmentConfig, Con
 fn decode_known_retrieval(object: RawConfigObject) -> Result<RetrievalConfig, ConfigError> {
     validate_known_object(&object)?;
     decode_retrieval(&object.payload)
+}
+
+fn decode_known_general(
+    object: RawConfigObject,
+) -> Result<crate::GeneralModelEndpoint, ConfigError> {
+    validate_known_object(&object)?;
+    decode_general(&object.payload)
+}
+
+fn decode_known_embedding(
+    object: RawConfigObject,
+) -> Result<crate::EmbeddingModelEndpoint, ConfigError> {
+    validate_known_object(&object)?;
+    decode_embedding(&object.payload)
+}
+
+fn known_object(payload: Vec<u8>) -> RawConfigObject {
+    RawConfigObject {
+        schema: OBJECT_SCHEMA_V1,
+        flags: OBJECT_FLAGS_NONE,
+        payload,
+    }
 }
 
 fn validate_known_object(object: &RawConfigObject) -> Result<(), ConfigError> {
