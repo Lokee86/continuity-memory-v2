@@ -102,7 +102,7 @@ pub enum VectorsCommand {
     },
     Build {
         cva: PathBuf,
-        #[arg(long, default_value_t = 64)]
+        #[arg(long, default_value_t = 16)]
         batch_size: usize,
         #[arg(long, default_value_t = 16)]
         concurrency: usize,

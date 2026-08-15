@@ -130,7 +130,7 @@ repeated references:
     u32   vector length
     N×f32 reference values
 ```
-Current probe suite v1 stores two Query and two Document references. Policy v1 requires corresponding probe vectors from an endpoint to have cosine similarity `>= 0.99999`, with dimensions, normalization, suite version, and policy version equal.
+Current probe suite v1 stores two Query and two Document references. Compatibility policy v2 requires corresponding probe vectors from an endpoint to have cosine similarity `>= 0.9998`, with dimensions, normalization, suite version, and policy version equal.
 `CompatibilityProfileId` content-addresses the exact stored contract using `"CVA-COMPATIBILITY-PROFILE-V1\0"`, dimensions, normalization, suite/policy versions, and ordered mode+`f32` reference values. Exact ID equality is not the compatibility test; tolerant probe comparison is.
 Provider, model, route, and revision metadata are not stored in compatibility profiles. Profiles are immutable and consume no semantic version.
 ### Vector generations
@@ -168,7 +168,7 @@ Archive and Vector Generations have independent local watermarks. Global orderin
 `Cva::open` requires exactly one current format marker for Archive, Packed Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Earlier development formats are rejected rather than migrated.
 Container validates framing/global tickets. Concrete stores validate their own records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by both Archive and Vector Generations.
 ## Defaults or precedence
-Default fragments use eight turns with two-turn overlap. Compatibility probe suite v1 and policy v1 are fixed by the current implementation.
+Default fragments use eight turns with two-turn overlap. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 ## Related docs
 - [Architecture](architecture.md)
 - [Rust API](api.md)

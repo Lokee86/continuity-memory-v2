@@ -83,3 +83,18 @@ fn live_vector_build_accepts_concurrency_controls() {
         }
     ));
 }
+
+#[test]
+fn live_vector_build_uses_measured_defaults() {
+    let cli = Cli::try_parse_from(["continuity", "vectors", "build", "sample.cva"]).unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Vectors {
+            command: VectorsCommand::Build {
+                batch_size: 16,
+                concurrency: 16,
+                ..
+            }
+        }
+    ));
+}

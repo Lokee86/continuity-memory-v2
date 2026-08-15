@@ -11,7 +11,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-pub const DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE: usize = 64;
+pub const DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE: usize = 16;
 pub const DEFAULT_REMOTE_EMBEDDING_CONCURRENCY: usize = 16;
 const REQUEST_TIMEOUT_SECS: u64 = 120;
 

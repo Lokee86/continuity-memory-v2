@@ -56,11 +56,11 @@ fn profile_round_trips_and_is_clock_neutral() {
 }
 
 #[test]
-fn tiny_endpoint_drift_is_compatible_and_reuses_profile() {
+fn routed_scale_endpoint_drift_is_compatible_and_reuses_profile() {
     let path = test_path("drift.cva");
     let mut cva = Cva::create(path).unwrap();
     let profile = cva.establish_compatibility_profile(&endpoint(2)).unwrap();
-    let drifted = endpoint(2).with_drift(0.00001);
+    let drifted = endpoint(2).with_drift(0.01);
     let report = cva
         .verify_compatibility_endpoint(profile.id, &drifted)
         .unwrap();
@@ -69,6 +69,19 @@ fn tiny_endpoint_drift_is_compatible_and_reuses_profile() {
     let reused = cva.establish_compatibility_profile(&drifted).unwrap();
     assert_eq!(reused.id, profile.id);
     assert_eq!(cva.compatibility_profile_stats().profiles, 1);
+}
+
+#[test]
+fn larger_endpoint_drift_is_incompatible() {
+    let path = test_path("larger-drift.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let profile = cva.establish_compatibility_profile(&endpoint(2)).unwrap();
+    let drifted = endpoint(2).with_drift(0.012);
+    let report = cva
+        .verify_compatibility_endpoint(profile.id, &drifted)
+        .unwrap();
+    assert!(!report.compatible);
+    assert!(report.minimum_cosine.unwrap() < COMPATIBILITY_MIN_COSINE);
 }
 
 #[test]

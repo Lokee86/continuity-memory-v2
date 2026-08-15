@@ -1,8 +1,8 @@
 use crate::{EmbeddingMode, VectorNormalization};
 
 pub const COMPATIBILITY_PROBE_SUITE_VERSION: u32 = 1;
-pub const COMPATIBILITY_POLICY_VERSION: u32 = 1;
-pub const COMPATIBILITY_MIN_COSINE: f64 = 0.99999;
+pub const COMPATIBILITY_POLICY_VERSION: u32 = 2;
+pub const COMPATIBILITY_MIN_COSINE: f64 = 0.9998;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct CompatibilityProfileId(pub [u8; 32]);

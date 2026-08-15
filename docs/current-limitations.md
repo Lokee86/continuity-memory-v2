@@ -27,7 +27,7 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 
 ## Compatibility-profile and endpoint limits
 - Direct `openai-ready` embedding HTTP execution is implemented. Provider-native/local-runtime adapters and General-model HTTP execution are not implemented yet.
-- Compatibility policy v1 uses fixed probe texts and requires cosine `>= 0.99999` for every corresponding probe. That policy preserves the tolerance lesson from the prior implementation, but it has not yet been calibrated against a representative set of real routed/local embedding endpoints.
+- Compatibility policy v2 uses the fixed probe suite and requires cosine `>= 0.9998` for every corresponding probe. On 2026-08-15, eight repeated same-route comparisons of `qwen/qwen3-embedding-8b` through OpenRouter produced minimum cosine values from `0.99988147` to `0.99993311`; policy v1's `0.99999` threshold rejected all eight. Broader routed/local endpoint calibration is still incomplete.
 - Provider, model, route, and revision are intentionally not compatibility-profile fields. Separate optional provenance metadata has not been designed yet.
 - Compatibility profiles currently require dimensions and declared normalization to match exactly. More nuanced compatibility rules, if real endpoints demonstrate a need, remain measurement-driven future work.
 - The development generation builder stores endpoint output as `f32` packed rows. Packed storage supports other scalar types, but quantization/dequantization semantics are not yet modeled.
@@ -62,7 +62,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 ## CLI limits
 - `cli/` is repo-local and deliberately not installed or built by the core package; invoke it with `cargo run --manifest-path cli/Cargo.toml -- ...`.
 - `vectors probe` and `vectors build` use the configured live `openai-ready` embedding route. The `dev` profile/build/search commands remain explicit simulator paths.
-- Remote embedding defaults are 64 inputs per HTTP request and 16 concurrent requests; retry/backoff and provider-specific rate-limit adaptation are not implemented yet.
+- Remote embedding defaults are 16 inputs per HTTP request and 16 concurrent requests, based on the 2026-08-15 OpenRouter/Qwen3 throughput benchmark; retry/backoff and provider-specific rate-limit adaptation are not implemented yet.
 - `import graph-jsonl` supports the current development corpus format only; production ChatGPT/Claude/provider importers remain future work.
 
 ## Product/runtime limits

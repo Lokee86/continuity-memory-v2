@@ -36,7 +36,7 @@ Completed bootstrap slices:
 20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
 21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
 22. Detachable repo-local CLI package exposing CVA/config/auth/archive/vector inspection plus simulated vector/retrieval bring-up through public library APIs only.
-23. Direct `openai-ready` embedding HTTP transport with configured dimensions, Query/Document input types, deterministic response ordering, L2 normalization, 64-input batching, and bounded 16-request concurrency.
+23. Direct `openai-ready` embedding HTTP transport with configured dimensions, Query/Document input types, deterministic response ordering, L2 normalization, measured 16-input batching, and bounded 16-request concurrency.
 
 ## Expected ownership or ownership boundary
 

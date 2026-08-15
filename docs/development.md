@@ -109,6 +109,40 @@ peak additional: 910,413 bytes
 
 These 32-dimensional simulated vectors verify machinery and ownership; they are not a performance proxy for eventual production embedding dimensions or scalar representation.
 
+### Live OpenRouter embedding throughput — 2026-08-15
+
+The current configured live route is `qwen/qwen3-embedding-8b` through OpenRouter, with 1024-dimensional L2-normalized output. Throughput was measured over the same 281 durable fragments using a disposable runner under `target/` that calls `OpenAiReadyEmbeddingEndpoint` directly. Cargo compilation, CVA publication, and compatibility probes were excluded from the timed region.
+
+At fixed batch size 16:
+
+```text
+concurrency  wall time   fragments/s
+1            36.149 s     7.773
+4            16.397 s    17.138
+8            10.453 s    26.882
+16            8.733 s    32.176
+```
+
+At fixed concurrency 16:
+
+```text
+batch size   wall time   fragments/s
+8             9.870 s    28.471
+16            8.733 s    32.176
+24           11.344 s    24.771
+32           11.415 s    24.617
+48           17.393 s    16.156
+64           14.824 s    18.956
+```
+
+The best observed configuration was 16 inputs per request with 16 concurrent requests: `4.14x` the serial throughput and about `1.70x` the throughput of the former 64×16 default on this corpus/provider. The default live batching policy now uses 16×16.
+
+The same live run exposed compatibility-policy calibration rather than an embedding transport failure. Eight repeated profile/re-probe comparisons on the same configured route produced minimum cosine values from `0.99988147` through `0.99993311`; the former policy-v1 threshold `0.99999` rejected every sample. Compatibility policy v2 therefore uses `0.9998`, with the policy version bumped so existing v1 profiles are not silently reinterpreted.
+
+After applying those measured defaults and policy v2, a fresh copy of the zero-vector fixture completed the ordinary `vectors build` path with no batching overrides in `25.251` seconds. The resulting CVA is `3,374,366` bytes and reopens with one 1024-dimensional `f32` matrix containing all `281` fragment rows, one Archive-Vector binding, one compatibility profile, and one active generation at source Archive version `1875` / vector version `1`.
+
+A live default hybrid search over that published generation for `compatibility profiles vector generations` returned the configured top 10 results in `12.828` seconds. All ten carried semantic scores from the active live generation, confirming endpoint re-verification, query embedding, exact semantic scan, row-to-fragment mapping, and hybrid result assembly after reopen.
+
 A current-format cold-cache sample has not yet been recorded. Larger realistic-dimension vector populations require repeated cache eviction plus one open per sample before conclusions about cold scaling, segmentation, or checkpoints.
 
 ## Failure modes

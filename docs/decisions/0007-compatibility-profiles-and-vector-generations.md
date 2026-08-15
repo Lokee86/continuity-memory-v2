@@ -31,7 +31,7 @@ CompatibilityProfile
 
 Provider, model name, endpoint-reported model, and revision are not profile fields and do not participate in compatibility identity. Such values may be useful provenance elsewhere later, but they are not evidence that two endpoints share a vector space.
 
-The fixed probe suite is embedded through the endpoint in both Query and Document modes. Compatibility is verified by corresponding-vector cosine similarity, not exact output equality. Policy v1 requires every probe to reach cosine `>= 0.99999`. Dimensions, normalization, probe-suite version, and compatibility-policy version must also match.
+The fixed probe suite is embedded through the endpoint in both Query and Document modes. Compatibility is verified by corresponding-vector cosine similarity, not exact output equality. Initial policy v1 required every probe to reach cosine `>= 0.99999`. Live calibration on 2026-08-15 found same-route OpenRouter/Qwen3 minimum cosine values between `0.99988147` and `0.99993311`, so policy v2 lowers the threshold to `>= 0.9998`. Dimensions, normalization, probe-suite version, and compatibility-policy version must also match. The policy-version bump prevents existing v1 profiles from being silently reinterpreted under the wider tolerance.
 
 `CompatibilityProfileId` content-addresses the exact stored profile artifact, including its reference vectors. The ID is not itself the compatibility test. When establishing a profile, Continuity probes the endpoint once, compares the candidate tolerantly against existing profiles, reuses a compatible existing profile when one exists, and stores a new profile only when no compatible profile exists.
 

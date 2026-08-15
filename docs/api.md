@@ -88,7 +88,7 @@ OpenAiReadyEmbeddingEndpoint
 
 `EmbeddingEndpoint` reports dimensions and normalization and embeds a batch in either Query or Document mode. `SimulatedEmbeddingEndpoint` remains deterministic test plumbing. `OpenAiReadyEmbeddingEndpoint::from_switchboard` creates a live API-key endpoint from a validated embedding route; Query/Document map to `search_query`/`search_document`, requests use float encoding and the configured dimensions, and returned rows are restored by response index before optional L2 normalization.
 
-`OpenAiReadyEmbeddingEndpoint` defaults to 64 inputs per HTTP batch and at most 16 concurrent requests; `with_batching(batch_size, concurrency)` overrides both with non-zero values. `SimulatedEmbeddingEndpoint::new(dimensions, normalization, seed)` and `with_drift(value)` remain available for deterministic compatibility tests.
+`OpenAiReadyEmbeddingEndpoint` defaults to 16 inputs per HTTP batch and at most 16 concurrent requests; `with_batching(batch_size, concurrency)` overrides both with non-zero values. The 16×16 default is based on the 2026-08-15 live OpenRouter/Qwen3 embedding benchmark recorded in [development](development.md). `SimulatedEmbeddingEndpoint::new(dimensions, normalization, seed)` and `with_drift(value)` remain available for deterministic compatibility tests.
 
 ### Compatibility profiles
 Public types/constants:
@@ -116,7 +116,7 @@ COMPATIBILITY_MIN_COSINE
 
 `compatibility_profile(id)`, `compatibility_profiles()`, and `compatibility_profile_stats()` inspect stored contracts. `verify_compatibility_endpoint(id, endpoint)` returns a `CompatibilityReport` without creating state.
 
-Provider, model, route, and revision are not compatibility-profile fields. Profile ID content-addresses exact stored reference evidence, but endpoint compatibility is tolerant cosine comparison. Current policy requires every corresponding probe to reach cosine `>= 0.99999` and requires dimensions, normalization, probe-suite version, and policy version to match.
+Provider, model, route, and revision are not compatibility-profile fields. Profile ID content-addresses exact stored reference evidence, but endpoint compatibility is tolerant cosine comparison. Compatibility policy v2 requires every corresponding probe to reach cosine `>= 0.9998` and requires dimensions, normalization, probe-suite version, and policy version to match. Policy v2 was calibrated against observed same-route drift from `qwen/qwen3-embedding-8b` through OpenRouter; broader endpoint calibration remains measurement-driven.
 
 Compatibility-profile creation consumes no semantic version ticket.
 
@@ -164,7 +164,7 @@ Lexical scoring uses the original formula: `0.85 × unique query-term coverage +
 `Cva::search_with_config(profile_id, endpoint, query, config)` applies a validated `RetrievalConfig`; positive finite weights are normalized before fusion. `Cva::search` delegates to `RetrievalConfig::default()`. The current path has no reranker or conversation/time/metadata filters and remains read-only.
 
 ## Defaults or precedence
-`FragmentConfig::default()` is eight turns with two-turn overlap. Compatibility probe suite/policy v1 are fixed by the current implementation.
+`FragmentConfig::default()` is eight turns with two-turn overlap. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 
 Node identity is `(conversation_id, node_id)`. Branch identity is `(conversation_id, branch_id)`. Repeated branch records are revisions; the newest Archive version is current.
 

@@ -69,7 +69,7 @@ fn profiles(path: &Path) -> Result<()> {
 }
 
 fn probe(config_path: &Path, text: &str) -> Result<()> {
-    let endpoint = endpoint(config_path, 64, 16)?;
+    let endpoint = endpoint(config_path, 16, 16)?;
     let vectors = endpoint.embed(EmbeddingMode::Query, &[text.to_owned()])?;
     println!(
         "embedding ok: vectors={} dimensions={} normalization={:?}",
