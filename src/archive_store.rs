@@ -10,6 +10,7 @@ impl Archive {
             nodes: Default::default(),
             branches: Default::default(),
             fragments: Default::default(),
+            episodes: Default::default(),
             record_versions: Vec::new(),
             next_archive_version: 1,
         }
@@ -84,6 +85,7 @@ impl Archive {
             self.branch_nodes(&branch.conversation_id, &branch.leaf_node_id)?;
         }
         self.validate_fragments()?;
+        self.validate_episodes()?;
         Ok(())
     }
 

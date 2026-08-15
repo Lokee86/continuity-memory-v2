@@ -1,4 +1,6 @@
 use crate::archive_history_codec::encode_archive_format;
+use crate::insomnia_codec::encode_format as encode_insomnia_format;
+use crate::memory_codec::encode_format as encode_memory_format;
 use crate::packed_vector_codec::encode_format as encode_packed_format;
 use crate::{
     ArchiveVectorError, Cva, CvaError, FragmentConfig, FragmentId, PackedVectorId, PackedVectors,
@@ -137,6 +139,8 @@ fn archive_vector_store_requires_its_format_marker() {
     let path = test_path("missing-format.cva");
     let mut container = crate::Container::create(&path).unwrap();
     container.append(&encode_archive_format()).unwrap();
+    container.append(&encode_memory_format()).unwrap();
+    container.append(&encode_insomnia_format()).unwrap();
     container.append(&encode_packed_format()).unwrap();
     container.sync().unwrap();
     drop(container);

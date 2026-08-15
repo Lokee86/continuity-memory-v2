@@ -1,0 +1,106 @@
+use crate::memory_codec::{decode_body, decode_format, decode_record, decode_version};
+use crate::memory_model::{MemoryRecord, memory_body_id};
+use crate::{ChunkRef, MemoryError};
+use std::collections::HashMap;
+
+pub(crate) struct MemoryOpenState {
+    store: crate::memory_store::MemoryStore,
+    pending_records: HashMap<ChunkRef, MemoryRecord>,
+    format_seen: bool,
+}
+
+impl MemoryOpenState {
+    pub(crate) fn new() -> Self {
+        Self {
+            store: crate::memory_store::MemoryStore::empty(),
+            pending_records: HashMap::new(),
+            format_seen: false,
+        }
+    }
+
+    pub(crate) fn ingest(
+        &mut self,
+        chunk: ChunkRef,
+        payload: &[u8],
+        latest_global_version: u64,
+    ) -> Result<(), MemoryError> {
+        if decode_format(payload)? {
+            if self.format_seen {
+                return Err(MemoryError::ConflictingFormat);
+            }
+            self.format_seen = true;
+            return Ok(());
+        }
+        if let Some((id, body)) = decode_body(payload)? {
+            let (title, content) = decode_body_fields(&body)?;
+            if memory_body_id(&title, &content) != id {
+                return Err(MemoryError::CorruptBody);
+            }
+            self.store.insert_body(id, chunk);
+            return Ok(());
+        }
+        if let Some(record) = decode_record(payload)? {
+            self.pending_records.insert(chunk, record);
+            return Ok(());
+        }
+        if let Some(version) = decode_version(payload)? {
+            if version.global_version == 0 || version.global_version > latest_global_version {
+                return Err(MemoryError::InvalidVersion);
+            }
+            let mut record = self
+                .pending_records
+                .remove(&version.record)
+                .ok_or(MemoryError::InvalidVersion)?;
+            if version.memory_version != self.store.memory_version() + 1 {
+                return Err(MemoryError::InvalidVersion);
+            }
+            record.global_version = version.global_version;
+            record.memory_version = version.memory_version;
+            self.store.insert_rebuilt(record)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn finish(self) -> Result<crate::memory_store::MemoryStore, MemoryError> {
+        if !self.format_seen {
+            return Err(MemoryError::MissingFormat);
+        }
+        if !self.pending_records.is_empty() {
+            // Unversioned records are intentionally inert and may be left behind by an interrupted write.
+        }
+        self.store.validate_bodies()?;
+        Ok(self.store)
+    }
+}
+
+fn decode_body_fields(bytes: &[u8]) -> Result<(String, String), MemoryError> {
+    if bytes.len() < 16 {
+        return Err(MemoryError::CorruptBody);
+    }
+    let title_len = u64::from_le_bytes(bytes[0..8].try_into().unwrap()) as usize;
+    let title_end = 8usize
+        .checked_add(title_len)
+        .ok_or(MemoryError::FieldTooLarge)?;
+    let content_len_end = title_end.checked_add(8).ok_or(MemoryError::FieldTooLarge)?;
+    let title = bytes.get(8..title_end).ok_or(MemoryError::CorruptBody)?;
+    let content_len = u64::from_le_bytes(
+        bytes
+            .get(title_end..content_len_end)
+            .ok_or(MemoryError::CorruptBody)?
+            .try_into()
+            .unwrap(),
+    ) as usize;
+    let content_end = content_len_end
+        .checked_add(content_len)
+        .ok_or(MemoryError::FieldTooLarge)?;
+    let content = bytes
+        .get(content_len_end..content_end)
+        .ok_or(MemoryError::CorruptBody)?;
+    if content_end != bytes.len() {
+        return Err(MemoryError::CorruptBody);
+    }
+    Ok((
+        String::from_utf8(title.to_vec()).map_err(|_| MemoryError::InvalidUtf8)?,
+        String::from_utf8(content.to_vec()).map_err(|_| MemoryError::InvalidUtf8)?,
+    ))
+}

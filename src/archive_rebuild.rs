@@ -3,6 +3,7 @@ use crate::archive_history_codec::{decode_archive_format, decode_record_version}
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::hash_content;
+use crate::episode_index::EpisodeIndex;
 use crate::{Archive, ArchiveError, ArchiveRecordVersion, ChunkRef};
 use std::collections::{HashMap, HashSet};
 
@@ -11,6 +12,7 @@ pub(crate) struct ArchiveOpenState {
     nodes: NodeIndex,
     branches: BranchIndex,
     fragments: FragmentIndex,
+    episodes: EpisodeIndex,
     record_versions: Vec<ArchiveRecordVersion>,
     pending_records: HashMap<ChunkRef, ArchiveRecord>,
     versioned_records: HashSet<ChunkRef>,
@@ -25,6 +27,7 @@ impl ArchiveOpenState {
             nodes: Default::default(),
             branches: Default::default(),
             fragments: Default::default(),
+            episodes: Default::default(),
             record_versions: Vec::new(),
             pending_records: HashMap::new(),
             versioned_records: HashSet::new(),
@@ -59,7 +62,8 @@ impl ArchiveOpenState {
             }
             record @ (ArchiveRecord::Node(_)
             | ArchiveRecord::Branch(_)
-            | ArchiveRecord::Fragment(_)) => {
+            | ArchiveRecord::Fragment(_)
+            | ArchiveRecord::Episode(_)) => {
                 self.pending_records.insert(chunk, record);
             }
             ArchiveRecord::Other => {}
@@ -76,6 +80,7 @@ impl ArchiveOpenState {
             nodes: self.nodes,
             branches: self.branches,
             fragments: self.fragments,
+            episodes: self.episodes,
             record_versions: self.record_versions,
             next_archive_version: self.next_archive_version,
         })
@@ -128,6 +133,7 @@ impl ArchiveOpenState {
             ArchiveRecord::Fragment(fragment) => {
                 self.fragments.insert(fragment, archive_version).map(|_| ())
             }
+            ArchiveRecord::Episode(episode) => self.episodes.insert(episode).map(|_| ()),
             _ => Err(ArchiveError::InvalidArchiveRecordVersion),
         }
     }

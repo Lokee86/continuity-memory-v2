@@ -37,21 +37,24 @@ Completed bootstrap slices:
 21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
 22. Detachable repo-local CLI package exposing CVA/config/auth/archive/vector inspection plus simulated vector/retrieval bring-up through public library APIs only.
 23. Direct `openai-ready` embedding HTTP transport with configured dimensions, Query/Document input types, deterministic response ordering, L2 normalization, measured 16-input batching, and bounded 16-request concurrency.
+24. Archive-owned deterministic Episodes with response-cycle packing, 32 KiB default input ceiling, appendable-conversation semantics, 15-minute configurable inactivity finalization, finite-import tail finalization, and branch-prefix validation.
+25. A separate mutable Memories owner with immutable revisions, mutation-ID idempotency, exact Archive/Episode provenance, dense `memory_version`, and CVA-global publication ordering.
+26. A separate Insomnia operational owner with immediate-live/live/import scheduling classes, oldest-source ordering within each class, durable queue/attempt history, restart reclamation, leases, retries, terminal state, and a narrow `create_memory` tail-finalization + immediate-queue seam.
 
 ## Expected ownership or ownership boundary
 
-`Cva` owns physical composition and the single Container handle. Archive owns source-history semantics and `archive_version`. Packed vectors own immutable numeric matrices; Archive Vectors own immutable row-to-fragment bindings; Compatibility Profiles own immutable vector-space compatibility contracts. Vector Generations own profile/population activation and the independent dense `vector_version`. Archive and Vector Generations interleave only through CVA-global ordering.
+`Cva` owns physical composition and the single Container handle. Archive owns source-history semantics, immutable Episodes, and `archive_version`. Memories owns authoritative working-memory revisions and dense `memory_version`. Insomnia operational state owns episode-processing coordination but no semantic clock. Packed vectors own immutable numeric matrices; Archive Vectors own immutable row-to-fragment bindings; Compatibility Profiles own immutable vector-space compatibility contracts. Vector Generations own profile/population activation and the independent dense `vector_version`. Archive, Memories, and Vector Generations interleave only through CVA-global ordering.
 
 ## Planned behavior
 
 Near-term priorities:
 
-1. Extend provider transport beyond the implemented `openai-ready` embedding path: add General-model HTTP, then `openai-codex` ChatGPT device-code acquisition/token refresh; replace temporary JSON key persistence with an OS credential-store implementation before production.
-2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
-3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
-4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
-5. Add Memories, Memory Vectors, then Graph as separate owners.
-6. Build the shared long-lived Continuity runtime, move endpoint compatibility verification to a cached runtime capability boundary, and reconnect Insomnia/Dream, then Ego.
+1. Finish Insomnia extraction: exact Episode input reads, structured candidate validation/provenance, the explicit-retention contract, bounded archive evidence, idempotent Memory publication, and worker processing over the operational queue.
+2. Add Memory Vectors as a separate owner using the proven packed-vector/profile/generation pattern, bound to exact Memory revisions; keep embedding asynchronous from Memory authority.
+3. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, worker-pool orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
+4. Extend provider transport beyond the implemented `openai-ready` embedding path: add General-model HTTP, then `openai-codex` ChatGPT device-code acquisition/token refresh; replace temporary JSON key persistence with an OS credential-store implementation before production.
+5. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.
+6. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
 
 ## Implementation sequence
 
@@ -83,7 +86,8 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Broader calibration of compatibility policy v2 against representative routed/local embedding endpoints beyond the measured OpenRouter/Qwen3 route.
 - Explicit vector-generation retirement/deactivation and retention policy.
 - Quantization metadata and alternate packed representations for published generations.
-- Whole-CVA historical materialization and restore/timeline representation now that two mutable semantic domains exist.
+- Whole-CVA historical materialization and restore/timeline representation now that Archive, Memories, and Vector Generations are concrete mutable semantic domains.
+- Atomic grouped publication boundary for one completed Insomnia extraction attempt across zero-or-more Memory revisions and the durable processing outcome; mutation-ID replay already guarantees convergence, but the final grouped correctness boundary remains to be implemented.
 - Retention/vacuum semantics for abandoned conversation/session branches.
 
 ## Related docs
@@ -95,6 +99,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
+- [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
 
 ## Notes
 

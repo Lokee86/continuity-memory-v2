@@ -10,7 +10,12 @@ Cva
 │   └── global_version: u64
 ├── Archive
 │   ├── archive_version: u64
-│   └── conversation/session-local ancestry
+│   ├── conversation/session-local ancestry
+│   └── immutable Episodes
+├── Memories
+│   └── memory_version: u64 + immutable revisions
+├── InsomniaOperational
+│   └── queue / priority / leases / retries / attempts
 ├── PackedVectorStore
 │   └── immutable numeric matrices
 ├── ArchiveVectorStore
@@ -46,8 +51,19 @@ ContinuityConfig
 ### Container
 Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
 ### Archive
-Archive owns source-history semantics: content-addressed text, immutable conversation nodes, conversation-local parent ancestry, branch/session-head revisions, fragments, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes.
+Archive owns source-history semantics: content-addressed text, immutable conversation nodes, conversation-local parent ancestry, branch/session-head revisions, fragments, immutable deterministic Episodes, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes.
 `archive_version` is a whole-Archive mutation cut. It is not conversation ancestry.
+
+Episodes are contiguous ancestry ranges made from whole user-led response cycles. They are finalized by size, 15-minute configurable inactivity, finite-import end, or the narrow `create_memory` request. Finalizing an Episode never closes its conversation. No semantic topic detector participates in Episode identity.
+
+### Memories
+Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Memory authority does not depend on vector availability.
+
+### Insomnia operational state
+Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Retry and terminal outcomes plus immutable attempt history are retained. Processing claims are reclaimable after reopen. This owner consumes no semantic version clock.
+
+`create_memory` is not a Memory write API. It finalizes the current uncovered live Episode tail and queues it at immediate-live priority; Insomnia remains the only authority that can turn source material into working-memory revisions.
+
 ### PackedVectorStore
 Packed vectors own immutable matrix bytes and physical row representation. `VectorSchema` defines dimensions and scalar representation; rows are fixed-width and contiguous. Equal schema+bytes deduplicate.
 Packed vectors do not know which Archive records rows represent or which embedding space produced them.
@@ -136,7 +152,9 @@ An unversioned generation payload is inert.
 one physical chunk scan
     ├── Container framing/global-ticket validation
     └── Cva dispatches each payload
-        ├── Archive
+        ├── Archive (including Episodes)
+        ├── Memories
+        ├── Insomnia operational state
         ├── PackedVectorStore
         ├── ArchiveVectorStore
         ├── CompatibilityProfileStore
@@ -144,13 +162,14 @@ one physical chunk scan
 ```
 After the scan, cross-store references are validated in dependency order. Full packed matrices and Archive-Vector mappings are not retained in steady-state indexes.
 ## Ordering model
-Archive and Vector Generations are independently mutable semantic domains:
+Archive, Memories, and Vector Generations are independently mutable semantic domains:
 ```text
 G100 / A700   Archive mutation
-G101 / V20    vector generation
-G102 / A701   Archive mutation
+G101 / M12    Memory revision
+G102 / V20    vector generation
+G103 / A701   Archive mutation
 ```
-`G`, `A`, and `V` are ordering/watermark integers, not parent relationships. Conversation ancestry remains node-local. Compatibility profiles and vector backing objects are not timeline events.
+`G`, `A`, `M`, and `V` are ordering/watermark integers, not parent relationships. Conversation ancestry remains node-local. Compatibility profiles, vector backing objects, and Insomnia operational coordination are not semantic timeline events.
 ## Invariants and safety boundaries
 - one physical CVA owner and one shared reopen scan;
 - no generalized semantic database/root/dependency layer;
@@ -180,7 +199,9 @@ G102 / A701   Archive mutation
 | master key / temporary key store | `src/master_key*.rs` |
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
 | physical Container/global clock | `src/container*.rs` |
-| Archive/history/fragments | `src/archive*.rs`, `src/fragment*.rs` |
+| Archive/history/fragments/Episodes | `src/archive*.rs`, `src/fragment*.rs`, `src/episode*.rs` |
+| Memories | `src/memory*.rs` |
+| Insomnia operational scheduling | `src/insomnia*.rs`, `src/cva_insomnia.rs` |
 | packed matrices | `src/packed_vector_*.rs` |
 | Archive row bindings | `src/archive_vector_*.rs` |
 | embedding execution/compatibility | `src/embedding_endpoint.rs`, `src/openai_ready_embedding*.rs`, `src/compatibility_profile_*.rs` |

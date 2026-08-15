@@ -11,6 +11,7 @@ pub struct Archive {
     pub(crate) nodes: NodeIndex,
     pub(crate) branches: BranchIndex,
     pub(crate) fragments: FragmentIndex,
+    pub(crate) episodes: crate::episode_index::EpisodeIndex,
     pub(crate) record_versions: Vec<ArchiveRecordVersion>,
     pub(crate) next_archive_version: u64,
 }
@@ -112,12 +113,17 @@ impl Archive {
         self.branches.iter().cloned().collect()
     }
 
+    pub(crate) fn has_node(&self, conversation_id: &str, node_id: &str) -> bool {
+        self.nodes.get(conversation_id, node_id).is_some()
+    }
+
     pub fn stats(&self) -> ArchiveStats {
         ArchiveStats {
             content_objects: self.contents.len(),
             nodes: self.nodes.len(),
             branches: self.branches.len(),
             fragments: self.fragments.len(),
+            episodes: self.episodes.len(),
         }
     }
 }

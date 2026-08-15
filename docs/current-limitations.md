@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding transport, Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. General/Codex provider transport, later semantic databases, and production storage hardening remain incomplete.
+Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding transport, Archive, deterministic Episodes, authoritative Memory revisions, durable Insomnia queue/lease/retry state, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Insomnia model extraction, Memory Vectors, General/Codex provider transport, later Graph/Dream/Ego layers, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -17,12 +17,12 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 - The physical scanner materializes each chunk transiently, so a very large matrix object can create a large peak allocation even though matrix bytes are not retained in the reopen index.
 
 ## Version/history limits
-- Archive and Vector Generations are separate mutable semantic timelines with dense local `u64` watermarks and shared CVA-global ordering.
+- Archive, Memories, and Vector Generations are separate mutable semantic timelines with dense local `u64` watermarks and shared CVA-global ordering. Insomnia queue/lease/retry state is operational and consumes no semantic clock.
 - Packed matrices, Archive-Vector bindings, and Compatibility Profiles are immutable backing objects and do not independently consume semantic versions.
 - An unversioned generation payload is inert after a crash.
 - The latest generation for each compatibility profile is implicitly current. Explicit retirement, disabling, rollback, and retention policy are not implemented.
 - `source_archive_version` is validated against current Archive state and the creation versions of mapped fragments, but a general whole-CVA historical materialization API is not exposed.
-- Whole-CVA restore-and-continue/timeline branching remains unresolved now that two mutable semantic domains exist.
+- Whole-CVA restore-and-continue/timeline branching remains unresolved now that three mutable semantic domains exist.
 - Archive branch/session retention and generation retention/vacuum policies are undefined.
 
 ## Compatibility-profile and endpoint limits
@@ -66,7 +66,12 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - `import graph-jsonl` supports the current development corpus format only; production ChatGPT/Claude/provider importers remain future work.
 
 ## Product/runtime limits
-Memories, Memory Vectors, Graph, the shared long-lived runtime, Insomnia, Dream, Ego, production importers, and durable operational worker state are not implemented in this repository yet.
+- Deterministic Archive Episodes, authoritative Memory revision storage, and durable Insomnia queue/lease/retry/attempt state are implemented.
+- Insomnia does not yet invoke the General model, validate/extract candidates, perform bounded evidence reads, or publish a full episode result as one grouped correctness boundary.
+- `create_memory` exists as a library-level tail-finalization + immediate-queue seam; it is not yet exposed through a shared live-model runtime/tool adapter.
+- Automatic 15-minute inactivity scanning is represented by durable timestamp-derived policy methods but no long-lived runtime currently wakes and applies the policy.
+- Memory Vectors, Graph, the shared long-lived runtime, Dream, Ego, and production importers remain unimplemented.
+- Memory authority is already independent from embeddings; the asynchronous Memory Vector worker remains future work.
 
 ## Enforcement limits
 Repository-local Pitlord policy has not yet been added.
@@ -81,6 +86,7 @@ Repository-local Pitlord policy has not yet been added.
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
 - [Repo-local CLI](cli.md)
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
+- [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.

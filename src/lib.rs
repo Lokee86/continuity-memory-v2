@@ -39,16 +39,33 @@ mod cva_archive_vectors;
 mod cva_compatibility_profiles;
 mod cva_error;
 mod cva_global_validation;
+mod cva_insomnia;
 mod cva_lifecycle;
 mod cva_packed_vectors;
 mod cva_vector_generations;
 mod embedding_endpoint;
+mod episode_builder;
+mod episode_codec;
+mod episode_index;
+mod episode_model;
+mod episode_policy;
+mod episode_store;
 mod fragment_model;
 mod fragment_store;
 mod fragmenter;
+mod insomnia_codec;
+mod insomnia_error;
+mod insomnia_model;
+mod insomnia_rebuild;
+mod insomnia_store;
 mod lexical_search;
 mod master_key;
 mod master_key_entropy;
+mod memory_codec;
+mod memory_error;
+mod memory_model;
+mod memory_rebuild;
+mod memory_store;
 mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
@@ -96,10 +113,24 @@ pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
 };
+pub use episode_model::{
+    DEFAULT_EPISODE_MAX_INPUT_BYTES, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,
+    EpisodeId, EpisodeOrigin,
+};
+pub use episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
+pub use insomnia_error::InsomniaError;
+pub use insomnia_model::{
+    EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
+    InsomniaWork, InsomniaWorkState,
+};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
     JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
+};
+pub use memory_error::MemoryError;
+pub use memory_model::{
+    Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRevisionId, MemoryStats,
 };
 pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
@@ -137,11 +168,17 @@ mod container_tests;
 #[cfg(test)]
 mod credential_tests;
 #[cfg(test)]
+mod episode_tests;
+#[cfg(test)]
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]
+mod insomnia_queue_tests;
+#[cfg(test)]
 mod master_key_tests;
+#[cfg(test)]
+mod memory_tests;
 #[cfg(test)]
 mod model_switchboard_tests;
 #[cfg(test)]

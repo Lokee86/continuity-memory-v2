@@ -33,4 +33,5 @@ pub struct ArchiveStats {
     pub nodes: usize,
     pub branches: usize,
     pub fragments: usize,
+    pub episodes: usize,
 }

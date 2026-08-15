@@ -1,4 +1,5 @@
-use crate::{ArchiveError, Branch, ContentId, Fragment, FragmentId, Node};
+use crate::episode_codec::{EPISODE_MAGIC, decode_episode};
+use crate::{ArchiveError, Branch, ContentId, Episode, Fragment, FragmentId, Node};
 
 const CONTENT_MAGIC: [u8; 8] = *b"CVACONT1";
 const NODE_MAGIC: [u8; 8] = *b"CVANODE1";
@@ -10,6 +11,7 @@ pub enum ArchiveRecord {
     Node(Node),
     Branch(Branch),
     Fragment(Fragment),
+    Episode(Episode),
     Other,
 }
 
@@ -70,6 +72,11 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     }
     if bytes[..8] == FRAGMENT_MAGIC {
         return decode_fragment(bytes);
+    }
+    if bytes[..8] == EPISODE_MAGIC {
+        return decode_episode(bytes)?
+            .map(ArchiveRecord::Episode)
+            .ok_or(ArchiveError::CorruptRecord("invalid episode record"));
     }
     Ok(ArchiveRecord::Other)
 }
