@@ -53,7 +53,7 @@ continuity
 
 `vectors probe` and `vectors build` use the configured live `openai-ready` embedding route. `build` establishes/reuses the compatibility profile, embeds the Archive, and publishes one generation. `dev` commands deliberately remain on `SimulatedEmbeddingEndpoint` for deterministic development work.
 
-`insomnia run <cva>` is the whole-file bring-up surface. Unless `--existing-queue-only` is supplied, it materializes/queues uncovered canonical import paths first. It then drains all pending/retryable Insomnia work with `--workers` concurrent processors (default 16, maximum 64), using the dedicated Insomnia model route or General fallback. After extraction completes, it establishes/reuses the configured embedding compatibility profile and embeds only Memory bodies still missing for that profile. `--embedding-batch-size` and `--embedding-concurrency` control that final vector fill independently from Insomnia worker concurrency.
+`insomnia run <cva>` is the whole-file bring-up surface. Unless `--existing-queue-only` is supplied, it materializes/queues uncovered canonical import paths first. It then invokes the core Insomnia drain with `--workers` concurrent processors (default 16, maximum 64), using the dedicated Insomnia model route or General fallback plus the configured embedding route. The core drain automatically establishes/reuses the compatibility profile and embeds only Memory bodies still missing for that profile after authoritative Episode processing. `--embedding-batch-size` and `--embedding-concurrency` control that automatic derived-vector phase independently from Insomnia worker concurrency.
 
 ## Configuration and credentials
 

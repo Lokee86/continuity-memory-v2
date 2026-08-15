@@ -65,6 +65,7 @@ pub(super) fn drain<E: GeneralEndpoint>(
         memories_existing: counters.existing.load(Ordering::Relaxed),
         rejected_candidates: counters.rejected.load(Ordering::Relaxed),
         evidence_turns: counters.evidence_turns.load(Ordering::Relaxed),
+        ..InsomniaDrainResult::default()
     })
 }
 

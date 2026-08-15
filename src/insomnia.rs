@@ -48,3 +48,5 @@ mod queue_tests;
 mod test_support;
 #[cfg(test)]
 mod worker_tests;
+#[cfg(test)]
+mod worker_vector_tests;

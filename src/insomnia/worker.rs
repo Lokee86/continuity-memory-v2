@@ -1,4 +1,7 @@
-use crate::{Cva, GeneralEndpoint, InsomniaError, InsomniaExtractor, InsomniaProcessError};
+use crate::{
+    CompatibilityProfileError, CompatibilityProfileId, Cva, EmbeddingEndpoint, GeneralEndpoint,
+    InsomniaError, InsomniaExtractor, InsomniaProcessError, MemoryVectorError, MemoryVectorId,
+};
 use std::fmt;
 
 mod runtime;
@@ -47,6 +50,10 @@ pub struct InsomniaDrainResult {
     pub memories_existing: usize,
     pub rejected_candidates: usize,
     pub evidence_turns: usize,
+    pub memory_vector_profile_id: Option<CompatibilityProfileId>,
+    pub memory_vectors_embedded: usize,
+    pub memory_vectors_already_present: usize,
+    pub memory_vector_set_id: Option<MemoryVectorId>,
 }
 
 #[derive(Debug)]
@@ -54,6 +61,8 @@ pub enum InsomniaWorkerError {
     InvalidConfig(&'static str),
     Queue(InsomniaError),
     Process(InsomniaProcessError),
+    CompatibilityProfile(CompatibilityProfileError),
+    MemoryVectors(MemoryVectorError),
     LockPoisoned,
     ThreadPanicked,
 }
@@ -66,6 +75,8 @@ impl fmt::Display for InsomniaWorkerError {
             }
             Self::Queue(error) => write!(f, "{error}"),
             Self::Process(error) => write!(f, "{error}"),
+            Self::CompatibilityProfile(error) => write!(f, "{error}"),
+            Self::MemoryVectors(error) => write!(f, "{error}"),
             Self::LockPoisoned => write!(f, "Insomnia worker CVA lock is poisoned"),
             Self::ThreadPanicked => write!(f, "Insomnia worker thread panicked"),
         }
@@ -86,14 +97,37 @@ impl From<InsomniaProcessError> for InsomniaWorkerError {
     }
 }
 
+impl From<CompatibilityProfileError> for InsomniaWorkerError {
+    fn from(value: CompatibilityProfileError) -> Self {
+        Self::CompatibilityProfile(value)
+    }
+}
+
+impl From<MemoryVectorError> for InsomniaWorkerError {
+    fn from(value: MemoryVectorError) -> Self {
+        Self::MemoryVectors(value)
+    }
+}
+
 impl Cva {
-    pub fn drain_insomnia_backlog<E: GeneralEndpoint>(
+    pub fn drain_insomnia_backlog<E: GeneralEndpoint, V: EmbeddingEndpoint>(
         &mut self,
         extractor: &InsomniaExtractor<E>,
+        embedding_endpoint: &V,
         config: InsomniaWorkerConfig,
     ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
         validate_config(&config)?;
-        runtime::drain(self, extractor, &config)
+        let mut result = runtime::drain(self, extractor, &config)?;
+        if self.memory_stats().memories == 0 {
+            return Ok(result);
+        }
+        let profile = self.establish_compatibility_profile(embedding_endpoint)?;
+        let vectors = self.build_missing_memory_vectors(profile.id, embedding_endpoint)?;
+        result.memory_vector_profile_id = Some(profile.id);
+        result.memory_vectors_embedded = vectors.embedded;
+        result.memory_vectors_already_present = vectors.already_present;
+        result.memory_vector_set_id = vectors.created_set;
+        Ok(result)
     }
 }
 

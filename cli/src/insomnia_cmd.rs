@@ -54,28 +54,13 @@ fn run_file(
     let queued = cva.insomnia_stats();
     let drain = cva.drain_insomnia_backlog(
         &extractor,
+        &embedding,
         InsomniaWorkerConfig {
             workers,
             scope,
             ..Default::default()
         },
     )?;
-
-    let mut vector_summary = "memory_vectors: skipped (no memories)".to_owned();
-    if cva.memory_stats().memories > 0 {
-        let profile = cva.establish_compatibility_profile(&embedding)?;
-        let vectors = cva.build_missing_memory_vectors(profile.id, &embedding)?;
-        vector_summary = format!(
-            "memory_vectors: profile={} embedded={} already_present={} created_set={}",
-            hex32(&profile.id.0),
-            vectors.embedded,
-            vectors.already_present,
-            vectors
-                .created_set
-                .map(|id| hex32(&id.0))
-                .unwrap_or_else(|| "none".into())
-        );
-    }
     cva.sync()?;
     let final_stats = cva.insomnia_stats();
 
@@ -99,7 +84,19 @@ fn run_file(
         drain.rejected_candidates,
         drain.evidence_turns
     );
-    println!("{vector_summary}");
+    match drain.memory_vector_profile_id {
+        Some(profile_id) => println!(
+            "memory_vectors: profile={} embedded={} already_present={} created_set={}",
+            hex32(&profile_id.0),
+            drain.memory_vectors_embedded,
+            drain.memory_vectors_already_present,
+            drain
+                .memory_vector_set_id
+                .map(|id| hex32(&id.0))
+                .unwrap_or_else(|| "none".into())
+        ),
+        None => println!("memory_vectors: skipped (no memories)"),
+    }
     Ok(())
 }
 

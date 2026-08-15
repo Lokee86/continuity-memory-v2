@@ -22,7 +22,7 @@ The package can be removed or moved without changing the core library. If detach
 - `insomnia run`: register canonical import Episodes, drain the whole Insomnia backlog with configurable worker concurrency, and fill missing Memory Vectors.
 - `dev`: exercise compatibility profiles, vector generation, and retrieval through the deterministic simulated embedding endpoint.
 
-Direct `openai-ready` embedding and General-model transport are implemented. `vectors probe` tests the configured live embedding endpoint and `vectors build` establishes/reuses its compatibility profile and publishes a real Archive vector generation. Insomnia can use its own General-model route or fall back to `models.general`. `insomnia run <cva> --workers 16` is the current finite whole-file bring-up path; worker concurrency is independent from embedding batch/concurrency settings.
+Direct `openai-ready` embedding and General-model transport are implemented. `vectors probe` tests the configured live embedding endpoint and `vectors build` establishes/reuses its compatibility profile and publishes a real Archive vector generation. Insomnia can use its own General-model route or fall back to `models.general`. `insomnia run <cva> --workers 16` is the current finite whole-file bring-up path; the core drain automatically fills missing Memory Vectors after authoritative extraction, and worker concurrency is independent from embedding batch/concurrency settings.
 
 ## Credentials
 

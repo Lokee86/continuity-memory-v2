@@ -1,6 +1,6 @@
 use crate::{
     Branch, Cva, EpisodeConfig, GeneralEndpoint, GeneralEndpointError, InsomniaExtractor,
-    InsomniaWorkerConfig,
+    InsomniaWorkerConfig, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use serde_json::{Value, json};
 use std::fs;
@@ -150,7 +150,10 @@ fn worker_pool_overlaps_model_calls_and_drains_the_backlog() {
         poll_interval_ns: 1_000_000,
         ..Default::default()
     };
-    let result = cva.drain_insomnia_backlog(&extractor, config).unwrap();
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let result = cva
+        .drain_insomnia_backlog(&extractor, &embedding, config)
+        .unwrap();
 
     assert_eq!(result.completed_episodes, 8);
     assert_eq!(result.claimed_attempts, 8);
@@ -176,7 +179,10 @@ fn retryable_failure_is_reclaimed_and_completed_in_the_same_drain() {
         max_attempts: 3,
         ..Default::default()
     };
-    let result = cva.drain_insomnia_backlog(&extractor, config).unwrap();
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let result = cva
+        .drain_insomnia_backlog(&extractor, &embedding, config)
+        .unwrap();
 
     assert_eq!(calls.load(Ordering::SeqCst), 2);
     assert_eq!(result.claimed_attempts, 2);
@@ -198,7 +204,10 @@ fn invalid_endpoint_configuration_becomes_terminal_without_retry() {
         poll_interval_ns: 100_000,
         ..Default::default()
     };
-    let result = cva.drain_insomnia_backlog(&extractor, config).unwrap();
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let result = cva
+        .drain_insomnia_backlog(&extractor, &embedding, config)
+        .unwrap();
 
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(result.claimed_attempts, 1);

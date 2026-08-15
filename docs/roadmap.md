@@ -43,7 +43,7 @@ Completed bootstrap slices:
 27. An `insomnia` Rust module with exact Episode input reads, strict JSON-schema General-model extraction, candidate/user-authority validation, explicit-retention semantics, deterministic candidate identity, and idempotent Memory publication.
 28. Immutable Memory Vectors over shared packed matrices, keyed by `(CompatibilityProfileId, MemoryBodyId)`, with missing-only embedding, reopen validation, and enforced immutable Memory semantic bodies across metadata revisions.
 29. One bounded read-only Insomnia Archive-evidence round with exact-turn, maximum-64-node ancestry-range, and lexical-search reads; four-request and 64-turn/128-KiB global bounds; second-round rejection; current-Episode-only user authority; and evidence-bound external assistant provenance.
-30. A configurable one-shot Insomnia backlog worker pool with 1–64 workers (default 16), atomic distinct-Episode claims, model inference outside the serialized CVA mutation boundary, bounded evidence reads between model rounds, retry/terminal handling, whole-backlog drain semantics, canonical-import registration, and a repo-local `insomnia run` bring-up command that fills missing Memory Vectors after extraction.
+30. A configurable one-shot Insomnia backlog worker pool with 1–64 workers (default 16), atomic distinct-Episode claims, model inference outside the serialized CVA mutation boundary, bounded evidence reads between model rounds, retry/terminal handling, whole-backlog drain semantics, canonical-import registration, and automatic core Memory-Vector completion after authoritative extraction using missing-only `(CompatibilityProfileId, MemoryBodyId)` bindings.
 
 ## Expected ownership or ownership boundary
 
