@@ -46,7 +46,7 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 ## Indexing and memory limits
 Archive node/branch/fragment lookup uses dense records plus compact open-addressed slots. Fragment indexes retain one derived `u64` Archive creation version per fragment so generation coverage can be validated. `ContentId -> ChunkRef` remains a direct fixed-width hash table.
 
-Reopen uses one streaming physical pass shared by all concrete stores. Current measurements are recorded in [development](development.md); larger realistic-dimension vector-bearing measurements remain useful before storage optimization.
+Reopen uses one streaming physical pass shared by all concrete stores. Current measurements are recorded in [development](development.md); live 1024-dimensional vectors have been exercised on the prepared 281-fragment corpus, while larger-population realistic-dimension measurements remain useful before storage optimization.
 
 ## Local configuration limits
 - Purpose-built `continuity.cfg` persistence is implemented with replaceable logical objects and atomic whole-file replacement.

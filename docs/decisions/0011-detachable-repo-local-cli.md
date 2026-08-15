@@ -27,7 +27,7 @@ Secrets are not accepted as direct command-line values. Interactive secrets use 
 
 Core `cargo build/test` does not build or install the CLI. The CLI has its own lockfile and verification commands.
 
-Normal vector/search commands wait for live provider execution in the library/runtime. Development commands may use the existing simulated embedding endpoint to expose and test current vector/retrieval functionality without pretending simulation is product transport.
+`vectors probe` and `vectors build` now use live provider execution from the library. The CLI does not yet expose a normal live search command; `dev search` deliberately remains on the simulated embedding endpoint for deterministic bring-up without duplicating provider transport or retrieval semantics.
 
 The public library now exposes current branch inventory so a detached operator can enumerate conversations/branches without private-index access.
 

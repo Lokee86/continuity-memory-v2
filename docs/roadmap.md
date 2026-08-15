@@ -80,7 +80,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Archive checkpoint representation, cadence, and retention.
 - Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
 - Actual concurrent file append/version reservation mechanics.
-- Calibration of compatibility policy v1 against representative real routed/local embedding endpoints; direct OpenAI-ready embedding execution is now available for that measurement.
+- Broader calibration of compatibility policy v2 against representative routed/local embedding endpoints beyond the measured OpenRouter/Qwen3 route.
 - Explicit vector-generation retirement/deactivation and retention policy.
 - Quantization metadata and alternate packed representations for published generations.
 - Whole-CVA historical materialization and restore/timeline representation now that two mutable semantic domains exist.

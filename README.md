@@ -46,12 +46,14 @@ Not implemented yet:
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
 - production OS credential-store master-key integration, General-model HTTP transport, and Codex device-code/token-refresh execution;
-- live embedding-provider execution through the switchboard, ANN search, reranking, search filters, or a broader retrieval-controller policy;
+- ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;
 - shared Continuity runtime, Insomnia, Dream, or Ego.
 
-The current indexes remain derived acceleration state. Archive and Vector Generations are the two mutable semantic timelines; compatibility profiles, packed matrices, and Archive-Vector bindings are immutable backing objects. Reopen performs one streaming physical chunk pass. Current measurements are in `docs/development.md`; a current-format cold-cache sample and larger realistic-dimension vector measurements remain required.
+The current indexes remain derived acceleration state. Archive and Vector Generations are the two mutable semantic timelines; compatibility profiles, packed matrices, and Archive-Vector bindings are immutable backing objects. Reopen performs one streaming physical chunk pass. Current measurements are in `docs/development.md`; live 1024-dimensional OpenRouter/Qwen3 build and retrieval have been verified on the prepared 281-fragment corpus, while a current-format cold-cache sample and larger-population realistic-dimension measurements remain required.
+
+As of 2026-08-15, this repository has re-established the benchmark-baseline retrieval machinery: the original 8-turn / 2-overlap fragmentation policy, 1024-dimensional Qwen3 embeddings, exact cosine semantic retrieval, original lexical scoring, 30-candidate hybrid fusion at `0.45/0.55`, overlap diversification, and top-10 results. The historical LME has not been rerun against v2; this baseline marks restored benchmark functionality, not a new benchmark score.
 
 ## Architecture rule
 

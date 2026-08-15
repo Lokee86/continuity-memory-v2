@@ -143,7 +143,13 @@ After applying those measured defaults and policy v2, a fresh copy of the zero-v
 
 A live default hybrid search over that published generation for `compatibility profiles vector generations` returned the configured top 10 results in `12.828` seconds. All ten carried semantic scores from the active live generation, confirming endpoint re-verification, query embedding, exact semantic scan, row-to-fragment mapping, and hybrid result assembly after reopen.
 
-A current-format cold-cache sample has not yet been recorded. Larger realistic-dimension vector populations require repeated cache eviction plus one open per sample before conclusions about cold scaling, segmentation, or checkpoints.
+### Benchmark baseline — 2026-08-15
+
+This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
+
+The historical LME score has not been rerun against this v2 implementation. The baseline claim is therefore that the benchmark-required machinery and retrieval semantics are restored and live-tested, not that v2 has independently reproduced the prior judged score. Changes after this point that can affect retrieval quality should be compared against this baseline explicitly.
+
+A current-format cold-cache sample has not yet been recorded. Larger-population realistic-dimension vector runs require repeated cache eviction plus one open per sample before conclusions about cold scaling, segmentation, or checkpoints.
 
 ## Failure modes
 
@@ -170,4 +176,4 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 
 ## Notes
 
-Direct provider HTTP adapters, Codex device-code acquisition/token refresh, and production import interfaces are not implemented in this repository.
+Additional provider-native/local embedding adapters, General-model transport, Codex device-code acquisition/token refresh, and production import interfaces are not implemented in this repository.
