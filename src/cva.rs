@@ -124,6 +124,10 @@ impl Cva {
         self.archive.record_version(archive_version)
     }
 
+    pub fn branches(&self) -> Vec<Branch> {
+        self.archive.branches()
+    }
+
     pub fn fragments(&self) -> Vec<Fragment> {
         self.archive.fragments()
     }

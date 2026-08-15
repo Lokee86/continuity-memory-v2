@@ -35,6 +35,7 @@ Completed bootstrap slices:
 19. Expandable model-switchboard routing with `General`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, and persisted `models.general` / `models.embedding` objects.
 20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
 21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
+22. Detachable repo-local CLI package exposing CVA/config/auth/archive/vector inspection plus simulated vector/retrieval bring-up through public library APIs only.
 
 ## Expected ownership or ownership boundary
 
@@ -92,6 +93,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
+- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
 

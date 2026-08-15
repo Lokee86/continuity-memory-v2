@@ -8,10 +8,8 @@ The public API exposes `ContinuityConfig` and the initial model-switchboard type
 
 ### Local configuration
 `ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
-
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
-
 ### Archive
 Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, and:
 
@@ -23,7 +21,7 @@ ArchiveRecordVersion {
 }
 ```
 
-Core operations through `Cva` include `append_node`, `append_branch`, `branch_turns`, `branch_at`, fragment materialization/read methods, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
+Core operations through `Cva` include `append_node`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, fragment materialization/read methods, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
 
 Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
 
@@ -190,11 +188,13 @@ G102/A701  Archive mutation
 - [Architecture](architecture.md)
 - [Storage format](storage-format.md)
 - [Local configuration](configuration.md)
+- [Repo-local CLI](cli.md)
 - [Behavioral contracts](behavioral-contracts.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
+- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. Switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider transport, Codex device-code acquisition/refresh, and replacement of the development embedding capability seam remain next.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. Switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider transport, Codex device-code acquisition/refresh, and replacement of the development embedding capability seam remain next.

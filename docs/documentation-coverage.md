@@ -14,6 +14,7 @@ Coverage remains intentionally small while the rebuild is early.
 
 | Implementation | Responsibility | Canonical owners |
 | --- | --- | --- |
+| `cli/src/*.rs`, `cli/Cargo.toml` | Detachable repo-local command package for CVA/config/auth/archive/vector bring-up over the public library API | [Repo-local CLI](cli.md), [Development](development.md), [Architecture](architecture.md), [ADR 0011](decisions/0011-detachable-repo-local-cli.md) |
 | `src/config*.rs` | Purpose-built local config framing, typed fragment/retrieval/model/credential objects, validation, encryption integration, atomic replacement, tests | [Local configuration](configuration.md), [Architecture](architecture.md), [Rust API](api.md), [ADR 0008](decisions/0008-purpose-built-local-configuration.md), [ADR 0010](decisions/0010-encrypted-credential-objects.md) |
 | `src/credential*.rs` | Credential IDs/types, secret redaction/zeroization, AES-256-GCM object encryption/codecs, tamper/wrong-key tests | [Local configuration](configuration.md), [Architecture](architecture.md), [Rust API](api.md), [ADR 0010](decisions/0010-encrypted-credential-objects.md) |
 | `src/model_switchboard*.rs`, `src/model_auth.rs` | General/Embedding capability routing, credential references, provider auth validation, request-header attachment, tests | [Architecture](architecture.md), [Local configuration](configuration.md), [Rust API](api.md), [ADR 0009](decisions/0009-expandable-model-switchboard.md), [ADR 0010](decisions/0010-encrypted-credential-objects.md) |
@@ -33,7 +34,7 @@ Coverage remains intentionally small while the rebuild is early.
 | `src/archive_rebuild.rs` | Single-pass reopen reconstruction and semantic visibility activation | [Architecture](architecture.md), [Storage format](storage-format.md), [Current limitations](current-limitations.md) |
 | `src/archive_store.rs` | Content access, branch traversal, and current-state validation | [Architecture](architecture.md), [Current limitations](current-limitations.md) |
 | `src/archive_error.rs` | Archive error contract | [Rust API](api.md) |
-| `src/archive_tests.rs` | Archive dedupe/idempotency | [Behavioral contracts](behavioral-contracts.md) |
+| `src/archive_tests.rs`, `src/archive_inventory_tests.rs` | Archive dedupe/idempotency plus current branch-inventory read behavior | [Behavioral contracts](behavioral-contracts.md) |
 | `src/fragment_*` | Fragment identity/materialization/storage/tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Behavioral contracts](behavioral-contracts.md) |
 | `src/history_tests.rs` | Dual clocks, independent conversations, branch revisions/revival | [Behavioral contracts](behavioral-contracts.md), [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md) |
 | `src/packed_vector_*` | Packed-vector format, content identity, derived lookup, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |

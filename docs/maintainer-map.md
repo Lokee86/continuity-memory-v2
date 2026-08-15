@@ -14,6 +14,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 
 | Change area | Canonical documentation | Primary implementation boundary | Verification |
 | --- | --- | --- | --- |
+| Repo-local CLI / operator commands | [Repo-local CLI](cli.md), [ADR 0011](decisions/0011-detachable-repo-local-cli.md) | `cli/src/*.rs` | separate CLI fmt/check/test + command smokes |
 | Local configuration | [Local configuration](configuration.md), [ADR 0008](decisions/0008-purpose-built-local-configuration.md) | `src/config*.rs` | `src/config_tests.rs` |
 | Encrypted credentials | [Local configuration](configuration.md), [ADR 0010](decisions/0010-encrypted-credential-objects.md) | `src/credential*.rs`, `src/config_credentials.rs` | `src/credential_tests.rs` |
 | Model switchboard / provider auth | [Architecture](architecture.md), [Local configuration](configuration.md), [ADR 0009](decisions/0009-expandable-model-switchboard.md), [ADR 0010](decisions/0010-encrypted-credential-objects.md) | `src/model_switchboard*.rs`, `src/model_auth.rs` | `src/model_switchboard_tests.rs` |
@@ -39,6 +40,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 
 ## Boundaries
 
+- `cli/` owns only operator argument/prompt/output composition and depends exclusively on public library APIs; removing it cannot change core library semantics.
 - `ContinuityConfig` owns machine-local current configuration separately from `.cva`; config changes do not enter semantic history.
 - `CredentialsConfig` owns decrypted in-memory provider secrets; `credential.<id>` objects are independently authenticated/encrypted and route references use stable IDs.
 - `ModelSwitchboardConfig` owns provider/model/endpoint/credential selection; `ModelSwitchboard` validates matching credentials and attaches request auth. These choices cannot establish Compatibility Profile identity or vector compatibility.

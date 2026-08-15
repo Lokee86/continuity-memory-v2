@@ -117,6 +117,8 @@ pub use vector_generation_error::VectorGenerationError;
 pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
 
 #[cfg(test)]
+mod archive_inventory_tests;
+#[cfg(test)]
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;

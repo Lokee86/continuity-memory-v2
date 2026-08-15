@@ -37,6 +37,7 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Global and Archive clocks can diverge cleanly | `history_tests::global_and_archive_clocks_are_independent` |
 | Archive-local watermark survives reopen | `history_tests::archive_versions_survive_reopen` |
 | Branch/session heads are append-only revisions with historical lookup | `history_tests::branch_heads_are_append_only_revisions` |
+| Current branch inventory exposes only the latest branch revision after reopen | `archive_inventory_tests::current_branch_inventory_exposes_latest_revision_after_reopen` |
 | Existing branch heads cannot jump backward to an ancestor | `history_tests::existing_branch_head_cannot_jump_backwards` |
 | An old conversation point can seed a new local branch without Archive rollback | `history_tests::old_conversation_point_can_start_a_new_local_branch` |
 | Shared prefixes/content bodies deduplicate | `archive_tests::shared_branch_prefix_and_content_are_stored_once` |

@@ -108,6 +108,10 @@ impl Archive {
             .collect()
     }
 
+    pub fn branches(&self) -> Vec<Branch> {
+        self.branches.iter().cloned().collect()
+    }
+
     pub fn stats(&self) -> ArchiveStats {
         ArchiveStats {
             content_objects: self.contents.len(),

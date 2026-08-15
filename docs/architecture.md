@@ -35,6 +35,8 @@ ContinuityConfig
 ## Responsibilities
 ### Local configuration
 `ContinuityConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Ordinary objects are unencrypted; credential objects are authenticated encrypted payloads.
+### Repo-local CLI
+`cli/` is a separate, non-installed Cargo package that depends only on the public library API. It owns argument parsing, secret prompting, and human-readable command composition; it owns no CVA/config/auth/retrieval semantics and can be removed or detached without changing the core package.
 ### Model switchboard
 `ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. Each configured route carries a stable `CredentialId`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL.
 
@@ -88,7 +90,6 @@ VectorGeneration
 Generation publication is the first vector-layer operation that consumes a CVA-global ticket. Source Archive versions cannot regress for a profile, exceed current Archive state, or predate any mapped fragment. Until quantization semantics are defined, published generations must reference `f32` matrices.
 ### Retrieval
 Retrieval is a read-only query layer, not another database. `Cva::semantic_search` is the low-level semantic channel: it verifies the supplied endpoint against the selected compatibility profile, embeds the raw query in Query mode, resolves that profile's current Vector Generation, exact-scans its packed matrix by cosine, drops scores `<= 0`, and maps row ordinals back to Archive fragments.
-
 `Cva::search` restores the original default product behavior. It independently takes up to 30 lexical and 30 semantic candidates, merges by `FragmentId`, preserves a single available channel's score undiluted, otherwise combines `0.45 × lexical + 0.55 × semantic`, sorts, removes duplicate conversation/ranges, greedily penalizes overlapping fragments from conversations already selected, retains a 30-candidate diversified pool, and returns the first 10. Lexical scoring is the original `0.85 × query-term coverage + 0.15 × bounded term-frequency density` formula.
 
 The current direct `Cva` API performs compatibility verification for each semantic search call because no shared long-lived runtime/capability cache exists yet. Retrieval allocates no semantic versions and persists no retrieval state.
@@ -173,6 +174,7 @@ G102 / A701   Archive mutation
 | Responsibility | Primary code |
 | --- | --- |
 | local configuration | `src/config*.rs` |
+| detachable operator CLI | `cli/src/*.rs` |
 | encrypted credentials | `src/credential*.rs`, `src/config_credentials.rs` |
 | model switchboard/provider capabilities/auth binding | `src/model_switchboard*.rs`, `src/model_auth.rs` |
 | master key / temporary key store | `src/master_key*.rs` |
@@ -189,12 +191,10 @@ G102 / A701   Archive mutation
 ## Related docs
 - [Storage format](storage-format.md)
 - [Local configuration](configuration.md)
+- [Repo-local CLI](cli.md)
 - [Rust API](api.md)
 - [Architectural invariants](invariants.md)
 - [Versioning and rollback plan](version-history-plan.md)
-- [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
-- [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
-- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
-- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
+- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 ## Notes
 Production endpoint adapters, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.

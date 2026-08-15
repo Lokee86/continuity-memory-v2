@@ -60,6 +60,8 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 46. **Provider secrets are separate encrypted config objects.** Model routes reference credentials by stable ID; API keys and OAuth tokens are not stored in model-route payloads or `.cva` state.
 47. **Credential ciphertext is authenticated to its logical key.** Moving or modifying encrypted credential bytes must fail decryption rather than silently rebind a secret.
 48. **Executable model routing requires matching auth.** A runtime switchboard cannot resolve a route whose credential is missing or whose auth kind does not match the provider.
+49. **Current branch inventory is derived read state.** Enumerating current branches exposes the latest visible branch revision and adds no new Archive authority or persistent record.
+50. **The CLI owns no semantics.** The detachable `cli/` package may compose only public library operations; CVA, config, auth, and retrieval authority remain in the core library.
 
 ## Safety boundaries
 

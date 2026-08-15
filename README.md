@@ -12,6 +12,7 @@ Implemented now:
 - configurable fragment and retrieval policy with the original defaults preserved;
 - expandable model-switchboard routing with General/Embedding capabilities and `openai-codex` / `openai-ready` providers;
 - encrypted credential objects referenced by model routes, with bearer/ChatGPT account auth-header attachment;
+- detachable repo-local `cli/` package for CVA/config/auth/archive/vector bring-up without installing a binary;
 - self-generated 256-bit master key with a temporary local JSON key store;
 - CVA format header and append-only opaque chunks;
 - CVA-global monotonic `u64` version tickets;
@@ -59,6 +60,6 @@ Storage mechanisms may remain simple while owning database boundaries remain exp
 
 ## Documentation
 
-Start with [the documentation index](docs/INDEX.md), [current architecture](docs/architecture.md), [local configuration](docs/configuration.md), [storage format](docs/storage-format.md), and [current limitations](docs/current-limitations.md).
+Start with [the documentation index](docs/INDEX.md), [current architecture](docs/architecture.md), [the repo-local CLI](docs/cli.md), [local configuration](docs/configuration.md), [storage format](docs/storage-format.md), and [current limitations](docs/current-limitations.md).
 
 Implemented Archive versioning plus the remaining whole-CVA historical-recovery plan are documented in [versioning, historical cuts, and rollback](docs/version-history-plan.md).

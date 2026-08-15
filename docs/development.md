@@ -8,12 +8,14 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ## Overview
 
-Development uses deterministic local tests and simulated embedding execution. Model-switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider HTTP transport and Codex device-code acquisition/refresh remain outside the current slice.
+Development uses deterministic local tests and simulated embedding execution. Model-switchboard routing, encrypted credential persistence, and auth-header attachment are implemented; direct provider HTTP transport and Codex device-code acquisition/refresh remain outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
 ## Repository boundary
 
 ```text
-Cargo.toml / Cargo.lock              crate definition and locked dependencies
+Cargo.toml / Cargo.lock              core library package + locked dependencies
+cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfile
+cli/src/*.rs                         operator command composition over public API
 src/config*.rs                      local config framing/object codecs/atomic replacement
 src/credential*.rs                 encrypted credentials + authenticated crypto/codecs
 src/model_switchboard*.rs           provider capabilities + general/embedding routing
@@ -45,6 +47,9 @@ Do not copy large portions of previous Continuity implementations as a migration
 cargo fmt --check
 cargo check
 cargo test
+cargo fmt --manifest-path cli/Cargo.toml -- --check
+cargo check --manifest-path cli/Cargo.toml
+cargo test --manifest-path cli/Cargo.toml
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 ```
 
@@ -110,7 +115,9 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 
 - `cargo fmt --check` catches Rust formatting drift.
 - `cargo check` catches type/compile errors.
-- `cargo test` owns focused behavioral verification, including config replacement, encrypted credential round trips/tamper rejection, switchboard auth binding, and master-key generation/reload/redaction.
+- Core `cargo test` owns focused library behavior, including config replacement, encrypted credential round trips/tamper rejection, switchboard auth binding, and master-key generation/reload/redaction.
+- The separate CLI fmt/check/test commands verify that the detachable package compiles only against the public library surface.
+- Command-level CLI smoke tests exercise CVA create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
 - The documentation checker validates repository documentation policy but not semantic correctness.
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.
@@ -121,9 +128,11 @@ A current-format cold-cache sample has not yet been recorded. Larger realistic-d
 - [Maintainer map](maintainer-map.md)
 - [Documentation coverage](documentation-coverage.md)
 - [Behavioral contracts](behavioral-contracts.md)
+- [Repo-local CLI](cli.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
+- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
 

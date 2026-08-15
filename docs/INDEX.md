@@ -5,6 +5,7 @@
 - [Storage format](storage-format.md) — exact current CVA and Archive record format.
 - [Local configuration](configuration.md) — replaceable local config format, durability, and security boundary.
 - [Rust API](api.md) — current public library surface and behavior.
+- [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.
 - [Development](development.md) — repository workflow, tests, and smoke example.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.

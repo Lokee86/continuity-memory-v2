@@ -59,6 +59,11 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - Windows Credential Manager integration is not implemented yet.
 - No text import/export format exists yet.
 
+## CLI limits
+- `cli/` is repo-local and deliberately not installed or built by the core package; invoke it with `cargo run --manifest-path cli/Cargo.toml -- ...`.
+- Normal live-provider vector/search execution is not wired yet. The `dev` profile/build/search commands use `SimulatedEmbeddingEndpoint` explicitly.
+- `import graph-jsonl` supports the current development corpus format only; production ChatGPT/Claude/provider importers remain future work.
+
 ## Product/runtime limits
 Memories, Memory Vectors, Graph, the shared long-lived runtime, Insomnia, Dream, Ego, production importers, and durable operational worker state are not implemented in this repository yet.
 
@@ -73,6 +78,8 @@ Repository-local Pitlord policy has not yet been added.
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
+- [Repo-local CLI](cli.md)
+- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.

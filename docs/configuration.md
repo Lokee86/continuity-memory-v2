@@ -171,10 +171,12 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 
 - [Architecture](architecture.md)
 - [Rust API](api.md)
+- [Repo-local CLI](cli.md)
 - [Current limitations](current-limitations.md)
 - [ADR 0008](decisions/0008-purpose-built-local-configuration.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)
+- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
 

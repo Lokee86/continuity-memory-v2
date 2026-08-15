@@ -16,6 +16,7 @@
     "docs/invariants.md",
     "docs/storage-format.md",
     "docs/api.md",
+    "docs/cli.md",
     "docs/development.md",
     "docs/roadmap.md",
     "docs/current-limitations.md",
@@ -35,7 +36,7 @@
   "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
   "coverage": [
     {
-      "paths": ["src/**", "examples/**"],
+      "paths": ["src/**", "examples/**", "cli/src/**"],
       "docs": ["docs/documentation-coverage.md"]
     }
   ],
@@ -51,6 +52,10 @@
     {
       "paths": ["examples/**"],
       "docs": ["docs/development.md", "docs/documentation-coverage.md"]
+    },
+    {
+      "paths": ["cli/**"],
+      "docs": ["docs/cli.md", "docs/development.md", "docs/documentation-coverage.md"]
     }
   ]
 }
