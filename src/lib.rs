@@ -42,6 +42,9 @@ mod packed_vector_error;
 mod packed_vector_model;
 mod packed_vector_rebuild;
 mod packed_vector_store;
+mod semantic_search;
+mod semantic_search_error;
+mod semantic_search_model;
 mod vector_generation_codec;
 mod vector_generation_error;
 mod vector_generation_model;
@@ -74,6 +77,8 @@ pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
+pub use semantic_search_error::SemanticSearchError;
+pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
 pub use vector_generation_error::VectorGenerationError;
 pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
 
@@ -91,6 +96,8 @@ mod fragment_tests;
 mod history_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod semantic_search_tests;
 #[cfg(test)]
 mod vector_generation_tests;
 #[cfg(test)]

@@ -2,8 +2,8 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    Archive, ArchiveVectorId, CompatibilityProfileId, VectorGeneration, VectorGenerationError,
-    VectorGenerationId,
+    Archive, ArchiveVectorId, CompatibilityProfileId, ScalarType, VectorGeneration,
+    VectorGenerationError, VectorGenerationId,
 };
 use sha2::{Digest, Sha256};
 
@@ -33,6 +33,11 @@ pub(crate) fn validate_generation_reference(
         .ok_or(VectorGenerationError::MissingArchiveVectors)?;
     if profile.dimensions != packed.schema.dimensions {
         return Err(VectorGenerationError::DimensionMismatch);
+    }
+    if packed.schema.scalar != ScalarType::F32 {
+        return Err(VectorGenerationError::UnsupportedScalar(
+            packed.schema.scalar,
+        ));
     }
     Ok(())
 }

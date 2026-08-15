@@ -66,7 +66,11 @@ VectorGeneration
 └── vector_version
 ```
 `vector_version` is a dense local watermark for generation publications. The newest generation for each compatibility profile is current; older generations remain retained and can be resolved at a historical vector-version cut.
-Generation publication is the first vector-layer operation that consumes a CVA-global ticket. Source Archive versions cannot regress for a profile, exceed current Archive state, or predate any mapped fragment.
+Generation publication is the first vector-layer operation that consumes a CVA-global ticket. Source Archive versions cannot regress for a profile, exceed current Archive state, or predate any mapped fragment. Until quantization semantics are defined, published generations must reference `f32` matrices.
+### Semantic retrieval
+Semantic retrieval is a read-only query layer, not another database. `Cva::semantic_search` verifies the supplied endpoint against the selected compatibility profile, embeds the raw query in Query mode, resolves that profile's current Vector Generation, reads its Archive-Vector binding and packed matrix, performs an exact cosine scan, discards scores `<= 0`, sorts descending with row ordinal as the deterministic tie-break, caps to the requested limit, and resolves row ordinals back to Archive fragments.
+
+The current direct `Cva` API performs compatibility verification for each search call because no shared long-lived runtime/capability cache exists yet. Search allocates no semantic versions and persists no retrieval state.
 ## Write lifecycles
 ### Archive semantic mutation
 ```text
@@ -136,7 +140,9 @@ G102 / A701   Archive mutation
 - endpoint compatibility is tolerant probe comparison, never provider/model labels or exact probe hashes;
 - generations own profile-to-ArchiveVector association, coverage, activation, and vector semantic ordering;
 - generation matrix dimensions must match the compatibility profile;
-- generation source watermark must cover every mapped fragment.
+- published generations currently require `f32` matrices until alternate representation semantics exist;
+- generation source watermark must cover every mapped fragment;
+- semantic retrieval searches exactly one selected profile's current generation and never mixes profile score spaces.
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |
@@ -147,7 +153,8 @@ G102 / A701   Archive mutation
 | Archive row bindings | `src/archive_vector_*.rs` |
 | endpoint simulation/compatibility | `src/embedding_endpoint.rs`, `src/compatibility_profile_*.rs` |
 | generation publication/history | `src/vector_generation_*.rs` |
-| corpus vector smoke | `examples/vector_generation_smoke.rs` |
+| exact semantic retrieval | `src/semantic_search*.rs` |
+| corpus vector/retrieval smoke | `examples/vector_generation_smoke.rs` |
 ## Related docs
 - [Storage format](storage-format.md)
 - [Rust API](api.md)
@@ -156,4 +163,4 @@ G102 / A701   Archive mutation
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 ## Notes
-Exact similarity search, production endpoint adapters, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.
+Lexical/hybrid retrieval, production endpoint adapters, explicit generation retirement, ANN acceleration, and whole-CVA restore-and-continue remain separate slices.

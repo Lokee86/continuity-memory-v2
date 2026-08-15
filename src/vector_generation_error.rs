@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, ArchiveVectorError, CompatibilityProfileError, ContainerError,
-    EmbeddingEndpointError, PackedVectorError,
+    EmbeddingEndpointError, PackedVectorError, ScalarType,
 };
 use std::fmt;
 
@@ -20,6 +20,7 @@ pub enum VectorGenerationError {
     MissingArchiveVectors,
     IncompatibleEndpoint,
     DimensionMismatch,
+    UnsupportedScalar(ScalarType),
     SourceArchiveVersion,
     SourceVersionRegression,
     EmptyPopulation,

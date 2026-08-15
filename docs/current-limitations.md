@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Archive, packed matrices, Archive row bindings, compatibility profiles, and vector-generation publication are implemented. Retrieval/search, production endpoints, later semantic databases, and production storage hardening remain incomplete.
+Archive, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, and exact semantic retrieval are implemented. Lexical/hybrid retrieval, production endpoints, later semantic databases, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -31,11 +31,14 @@ Archive, packed matrices, Archive row bindings, compatibility profiles, and vect
 - Provider, model, route, and revision are intentionally not compatibility-profile fields. Separate optional provenance metadata has not been designed yet.
 - Compatibility profiles currently require dimensions and declared normalization to match exactly. More nuanced compatibility rules, if real endpoints demonstrate a need, remain measurement-driven future work.
 - The development generation builder stores endpoint output as `f32` packed rows. Packed storage supports other scalar types, but quantization/dequantization semantics are not yet modeled.
-- Low-level `publish_vector_generation` validates references, dimensions, and Archive coverage but cannot prove externally supplied vector bytes actually came from the claimed compatibility profile. The high-level builder performs endpoint/profile verification.
+- Low-level `publish_vector_generation` validates references, dimensions, current `f32` representation, and Archive coverage but cannot prove externally supplied vector bytes actually came from the claimed compatibility profile. The high-level builder performs endpoint/profile verification.
 
 ## Retrieval limits
-- No exact similarity search is wired through Vector Generations yet.
-- No query-embedding retrieval path, lexical retrieval, hybrid ranking, ANN index, reranking, or retrieval controller is implemented.
+- Exact semantic retrieval is implemented as a full cosine scan of one selected compatibility profile's current generation. It is intentionally `O(rows × dimensions)` and has no ANN acceleration yet.
+- Each search currently materializes that packed matrix object into memory before scanning it; mapped/segmented/streaming search is not implemented.
+- The direct `Cva::semantic_search` API re-runs compatibility probes for every request because no shared long-lived runtime/capability cache exists yet.
+- Searchable published generations currently require `f32` matrices. Packed storage still supports other scalar types, but alternate searchable representations wait for explicit quantization/dequantization semantics.
+- No lexical retrieval, hybrid ranking, conversation/time/metadata filters, reranking, or retrieval controller is implemented in v2 yet.
 - Different compatibility profiles have independent current generations, but there is no multi-profile score-fusion policy; scores from unrelated vector spaces must not be compared directly.
 
 ## Indexing and memory limits

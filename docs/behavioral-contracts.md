@@ -50,11 +50,15 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Small compatible endpoint drift can build under an existing profile | `vector_generation_tests::compatible_endpoint_drift_can_build_under_existing_profile` |
 | Incompatible endpoint behavior cannot build under a profile | `vector_generation_tests::incompatible_endpoint_cannot_build_under_profile` |
 | Profile/packed dimensions must match | `vector_generation_validation_tests::publication_rejects_profile_matrix_dimension_mismatch` |
+| Published generations reject non-`f32` matrices until alternate scalar semantics exist | `vector_generation_validation_tests::publication_rejects_non_f32_generation_matrix` |
 | Generation source cut must cover every mapped fragment | `vector_generation_validation_tests::publication_rejects_source_before_mapped_fragments` |
 | One global version cannot be claimed by both Archive and Vector Generations | `vector_generation_validation_tests::reopen_rejects_global_version_claimed_by_archive_and_vectors` |
 | Unversioned generation payloads are inert | `vector_generation_validation_tests::unversioned_generation_payload_is_inert_on_reopen` |
+| Exact semantic search verifies compatibility, uses Query mode, ranks by cosine, drops non-positive scores, advances no semantic clock, and survives reopen | `semantic_search_tests::semantic_search_exactly_ranks_current_generation_and_reopens` |
+| Semantic search resolves the newest generation for the selected profile | `semantic_search_tests::semantic_search_uses_newest_generation_for_profile` |
+| Semantic search rejects missing generations, empty/invalid limits, and incompatible endpoints | `semantic_search_tests::semantic_search_rejects_invalid_requests_and_incompatible_endpoint` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
-| Prepared corpus supports two independent simulated profiles/generations over all fragments | `examples/vector_generation_smoke.rs` |
+| Prepared corpus supports two independent simulated profiles/generations plus exact semantic retrieval | `examples/vector_generation_smoke.rs` |
 
 ## Future contracts
 

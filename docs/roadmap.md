@@ -29,6 +29,7 @@ Completed bootstrap slices:
 13. Immutable Archive-Vector sets that bind packed rows to ordered Archive `FragmentId`s with exact cross-store validation in the same physical reopen scan.
 14. Immutable endpoint-independent compatibility profiles with Query/Document reference probes, tolerant cosine verification, and deterministic simulated endpoints.
 15. Vector-generation semantic publication with dense local `vector_version`, CVA-global ordering, per-profile current generations, Archive coverage validation, and inert incomplete publications.
+16. Exact semantic retrieval through compatibility verification, Query-mode embedding, current-generation resolution, exact cosine scan, and row-to-FragmentId mapping.
 
 ## Expected ownership or ownership boundary
 
@@ -38,13 +39,12 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Implement exact similarity retrieval: select a profile, resolve its current generation, embed the query in query mode, search that generation's packed matrix, and map result rows back through Archive Vectors.
-2. Recover simple lexical retrieval and then hybrid ranking before considering specialized ANN indexes.
-3. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
-4. Measure pack size/compression tradeoffs plus repeated cold-open scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpointing only if measurements justify it.
-5. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
-6. Add Memories, Memory Vectors, then Graph as separate owners.
-7. Build the shared long-lived Continuity runtime and reconnect Insomnia/Dream, then Ego.
+1. Recover simple lexical retrieval and then hybrid ranking before considering specialized ANN indexes.
+2. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
+3. Measure pack size/compression tradeoffs plus repeated cold-open/search scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpoints or ANN search only if measurements justify them.
+4. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
+5. Add Memories, Memory Vectors, then Graph as separate owners.
+6. Build the shared long-lived Continuity runtime, move endpoint compatibility verification to a cached runtime capability boundary, and reconnect Insomnia/Dream, then Ego.
 
 ## Implementation sequence
 

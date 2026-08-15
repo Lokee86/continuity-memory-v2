@@ -26,7 +26,8 @@ Implemented now:
 - immutable endpoint-independent compatibility profiles with Query/Document reference probes, tolerant cosine verification, and deterministic simulated endpoints for development;
 - versioned vector-generation publication that binds one profile to one Archive-Vector set and Archive coverage watermark;
 - independent current generations per profile plus historical generation lookup by vector-version cut;
-- unit tests plus prepared-corpus Archive and two-profile vector-generation smoke tests.
+- exact semantic retrieval over the selected profile's current generation: endpoint compatibility verification, Query-mode embedding, exact cosine scan, and row-to-fragment resolution;
+- unit tests plus prepared-corpus Archive and two-profile vector-generation/retrieval smoke tests.
 
 The current development format requires Archive `CVAAFMT2`, packed-vector `CVAPVFM1`, Archive-Vector `CVAAVFM1`, compatibility-profile `CVACPFM1`, and vector-generation `CVAVGFM2` markers. Earlier development CVAs are rejected; migration code is intentionally not implemented yet.
 
@@ -36,7 +37,7 @@ Not implemented yet:
 - compression, checksums, encryption, packing, reclamation, or concurrent writer coordination;
 - a general materialized historical `ArchiveView` API;
 - whole-CVA restore-and-continue across multiple databases;
-- live embedding-provider adapters, exact vector search, or retrieval ranking;
+- live embedding-provider adapters, lexical/hybrid retrieval, ANN search, reranking, or retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Memories, Graph, or Memory Vector databases;
 - shared Continuity runtime, retrieval ranking, Insomnia, Dream, or Ego.

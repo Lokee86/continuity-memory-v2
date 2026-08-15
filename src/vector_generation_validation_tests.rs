@@ -118,6 +118,25 @@ fn reopen_rejects_global_version_claimed_by_archive_and_vectors() {
 }
 
 #[test]
+fn publication_rejects_non_f32_generation_matrix() {
+    let path = test_path("scalar.cva");
+    let mut cva = Cva::create(path).unwrap();
+    populate(&mut cva);
+    let profile = cva.establish_compatibility_profile(&endpoint()).unwrap();
+    let fragment_id = cva.fragments()[0].id;
+    let schema = VectorSchema::new(profile.dimensions, ScalarType::I8).unwrap();
+    let packed = PackedVectors::from_bytes(schema, vec![1; profile.dimensions as usize]).unwrap();
+    let packed_id = cva.put_packed_vectors(packed).unwrap();
+    let archive_vector_id = cva
+        .put_archive_vectors(packed_id, vec![fragment_id])
+        .unwrap();
+    assert!(matches!(
+        cva.publish_vector_generation(profile.id, archive_vector_id, cva.archive_version()),
+        Err(VectorGenerationError::UnsupportedScalar(ScalarType::I8))
+    ));
+}
+
+#[test]
 fn publication_rejects_profile_matrix_dimension_mismatch() {
     let path = test_path("dimensions.cva");
     let mut cva = Cva::create(path).unwrap();

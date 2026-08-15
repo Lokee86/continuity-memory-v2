@@ -155,7 +155,7 @@ u64       generation payload chunk offset
 u64       generation payload length
 ```
 `VectorGenerationId` is SHA-256 over `"CVA-VECTOR-GENERATION-V2\0"`, compatibility-profile ID, Archive-Vector ID, and source Archive version. Vector versions begin at `1` and are contiguous inside `VectorGenerationStore`. An unversioned generation payload is inert.
-The latest published generation for each compatibility profile is current. Source Archive version may not regress for that profile, exceed current Archive state, or predate any fragment in the referenced Archive-Vector set.
+The latest published generation for each compatibility profile is current. Source Archive version may not regress for that profile, exceed current Archive state, or predate any fragment in the referenced Archive-Vector set. Current generation publication requires the referenced packed matrix to use `f32`; packed storage remains generic, but alternate searchable scalar representations are not semantic generation formats until their interpretation is defined.
 ### Strings
 ```text
 u32 byte_length
@@ -174,4 +174,4 @@ Default fragments use eight turns with two-turn overlap. Compatibility probe sui
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 ## Notes
-These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, lexical search, exact similarity search, and retention/vacuum remain future work.
+These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, lexical/hybrid search, ANN acceleration, and retention/vacuum remain future work.

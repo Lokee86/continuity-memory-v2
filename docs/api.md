@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 
 ## Overview
-The public API exposes `Cva` as the physical composition owner; Archive history; packed-vector backing objects; Archive-Vector row bindings; compatibility profiles; vector-generation publication/history; simulated embedding endpoints; chunk references; and errors. It remains development-stage.
+The public API exposes `Cva` as the physical composition owner; Archive history; packed-vector backing objects; Archive-Vector row bindings; compatibility profiles; vector-generation publication/history; exact semantic retrieval; simulated embedding endpoints; chunk references; and errors. It remains development-stage.
 
 ## Exact contract
 
@@ -131,7 +131,27 @@ VectorGenerationError
 
 `vector_generation(id)`, `current_vector_generation(profile_id)`, `vector_generation_at(profile_id, vector_version)`, `vector_version()`, and `vector_generation_stats()` expose current/historical generation state.
 
-Generation publication consumes one CVA-global semantic ticket and one dense local vector version. The latest generation per compatibility profile is current. Unversioned generation payloads are inert on reopen.
+Generation publication consumes one CVA-global semantic ticket and one dense local vector version. The latest generation per compatibility profile is current. Unversioned generation payloads are inert on reopen. Published generations currently require `f32` matrices; packed backing storage remains generic, but alternate searchable representations wait for explicit quantization/dequantization semantics.
+
+### Exact semantic retrieval
+Public types/constants:
+
+```text
+SemanticSearchHit {
+    fragment,
+    score,
+    ordinal,
+    generation_id,
+}
+SemanticSearchError
+MAX_SEMANTIC_SEARCH_LIMIT = 1000
+```
+
+`Cva::semantic_search(profile_id, endpoint, query, limit)` requires a non-empty query and limit `1..=1000`. It verifies the endpoint against the selected compatibility profile, embeds the query in `EmbeddingMode::Query`, resolves that profile's current Vector Generation, exact-scans its `f32` packed matrix using cosine similarity, drops scores `<= 0`, orders descending with row ordinal as the deterministic tie-break, and maps selected rows through Archive Vectors to durable `Fragment` records.
+
+Each hit carries the generation ID actually searched. Search is read-only: it does not advance Archive, vector, or CVA-global semantic clocks. The current direct API verifies endpoint compatibility on every call; a future long-lived runtime may cache a verified capability without changing the generation/search ownership model.
+
+No lexical search, hybrid score fusion, ANN index, reranker, or retrieval controller is part of this method.
 
 ## Defaults or precedence
 `FragmentConfig::default()` is eight turns with two-turn overlap. Compatibility probe suite/policy v1 are fixed by the current implementation.
@@ -139,7 +159,7 @@ Generation publication consumes one CVA-global semantic ticket and one dense loc
 Node identity is `(conversation_id, node_id)`. Branch identity is `(conversation_id, branch_id)`. Repeated branch records are revisions; the newest Archive version is current.
 
 ## Diagnostics or failure behavior
-`ArchiveError`, `PackedVectorError`, `ArchiveVectorError`, `CompatibilityProfileError`, and `VectorGenerationError` own their concrete domains. `CvaError` composes create/open failures and rejects global-version claims shared by multiple semantic owners.
+`ArchiveError`, `PackedVectorError`, `ArchiveVectorError`, `CompatibilityProfileError`, `VectorGenerationError`, and `SemanticSearchError` own their concrete domains. `CvaError` composes create/open failures and rejects global-version claims shared by multiple semantic owners.
 
 Durability remains explicit through `Cva::sync()`.
 
@@ -161,4 +181,4 @@ G102/A701  Archive mutation
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. Retrieval/search remains the next vector-layer slice.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. Exact semantic retrieval is implemented; lexical/hybrid retrieval and production runtime integration remain later slices.

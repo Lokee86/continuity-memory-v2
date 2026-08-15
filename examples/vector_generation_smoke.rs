@@ -28,22 +28,33 @@ fn main() -> Result<(), Box<dyn Error>> {
     cva.sync()?;
     drop(cva);
 
-    let reopened = Cva::open(&output)?;
-    for (profile_id, generation) in expected {
+    let search_profile = expected[0].0;
+    let mut reopened = Cva::open(&output)?;
+    for &(profile_id, generation) in &expected {
         assert_eq!(
             reopened.current_vector_generation(profile_id),
             Some(generation)
         );
     }
+    let hits = reopened.semantic_search(
+        search_profile,
+        &endpoint(101),
+        "continuity semantic retrieval smoke",
+        5,
+    )?;
+    assert!(!hits.is_empty());
+    assert!(hits.iter().all(|hit| hit.score > 0.0));
+    assert!(hits.windows(2).all(|pair| pair[0].score >= pair[1].score));
     assert_eq!(reopened.compatibility_profile_stats().profiles, 2);
     assert_eq!(reopened.vector_generation_stats().generations, 2);
     assert_eq!(reopened.vector_generation_stats().active_profiles, 2);
     assert_eq!(reopened.archive_vector_stats().rows, rows * 2);
     println!(
-        "vector smoke ok: {rows} fragments, {} compatibility profiles, {} generations, {} vector rows, {} bytes",
+        "vector smoke ok: {rows} fragments, {} compatibility profiles, {} generations, {} vector rows, {} search hits, {} bytes",
         reopened.compatibility_profile_stats().profiles,
         reopened.vector_generation_stats().generations,
         reopened.archive_vector_stats().rows,
+        hits.len(),
         fs::metadata(&output)?.len()
     );
     Ok(())

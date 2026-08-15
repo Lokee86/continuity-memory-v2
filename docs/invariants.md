@@ -51,6 +51,8 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 37. **Generation coverage must be truthful.** A generation source watermark cannot predate any mapped fragment, exceed current Archive state, or regress for that profile.
 38. **Incomplete generation publication is inert.** A generation payload without valid generation-version metadata cannot become current semantic state.
 39. **Compatibility is behavioral and tolerant.** Endpoint compatibility is decided by the profile contract plus corresponding probe-vector cosine thresholds; provider/model labels and exact probe-byte equality cannot decide compatibility.
+40. **Retrieval never mixes vector spaces.** Exact semantic search resolves one selected Compatibility Profile's current Vector Generation, searches only that generation, and maps only its row bindings back to Archive fragments.
+41. **Published generation representation must be interpretable.** Until alternate scalar/quantization semantics are explicitly defined, Vector Generations may reference only `f32` packed matrices even though raw PackedVectorStore objects support other scalar types.
 
 ## Safety boundaries
 

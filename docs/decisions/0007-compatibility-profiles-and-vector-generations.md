@@ -50,7 +50,7 @@ VectorGeneration
 
 Generation publication is the first mutable vector-layer semantic operation. `vector_version` is dense within `VectorGenerationStore`; `global_version` orders generation publication against other CVA semantic mutations. The latest generation for each compatibility profile is current, while older generations remain addressable through historical vector-version cuts.
 
-Generation publication validates that the compatibility profile and Archive-Vector set exist, the packed-matrix dimensions match the profile, and the claimed source Archive version is not older than any mapped fragment. Building a generation from an endpoint first verifies that endpoint against the compatibility profile.
+Generation publication validates that the compatibility profile and Archive-Vector set exist, the packed-matrix dimensions match the profile, the current matrix representation is `f32`, and the claimed source Archive version is not older than any mapped fragment. Packed storage remains representation-generic, but a semantic generation cannot publish a representation whose search interpretation has not been defined. Building a generation from an endpoint first verifies that endpoint against the compatibility profile.
 
 The compatibility-profile and generation formats use new markers (`CVACPFM1` and `CVAVGFM2`). CVAs produced by the discarded endpoint-identity profile format are development artifacts and are rejected rather than migrated.
 
@@ -82,9 +82,9 @@ Small floating-point differences do not create a new profile when the endpoint r
 
 ## Verification
 
-Focused tests prove tolerant reuse under small deterministic drift, separation of materially different endpoints, dimension mismatch rejection, profile round-trip and clock neutrality, generation activation/history, endpoint compatibility enforcement, source-Archive coverage validation, inert unversioned generation payloads, and global-ticket collision rejection.
+Focused tests prove tolerant reuse under small deterministic drift, separation of materially different endpoints, dimension/scalar rejection, profile round-trip and clock neutrality, generation activation/history, endpoint compatibility enforcement, source-Archive coverage validation, inert unversioned generation payloads, global-ticket collision rejection, and exact current-generation semantic retrieval.
 
-The corpus smoke builds two simulated compatibility profiles and two independent vector generations over the same Archive population, then verifies both after reopen.
+The corpus smoke builds two simulated compatibility profiles and two independent vector generations over the same Archive population, verifies both after reopen, and executes exact semantic retrieval through one selected profile.
 
 ## References
 

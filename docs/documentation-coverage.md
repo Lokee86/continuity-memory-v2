@@ -36,6 +36,7 @@ Coverage remains intentionally small while the rebuild is early.
 | `src/archive_vector_*` | Row-to-FragmentId binding format, identity, reference/coverage derivation, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0006](decisions/0006-archive-vector-row-bindings.md) |
 | `src/embedding_endpoint.rs`, `src/compatibility_profile_*`, `src/cva_compatibility_profiles.rs` | Endpoint abstraction, tolerant compatibility probing, durable compatibility contracts, tests | [Architecture](architecture.md), [Rust API](api.md), [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md) |
 | `src/vector_generation_*` | Generation format, local/global ordering, current-per-profile state, validation, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Versioning plan](version-history-plan.md), [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md) |
+| `src/semantic_search*.rs` | Read-only compatibility-gated current-generation exact cosine retrieval and tests | [Architecture](architecture.md), [Rust API](api.md), [Current limitations](current-limitations.md), [Behavioral contracts](behavioral-contracts.md) |
 | `src/lib.rs` | Public crate exports | [Rust API](api.md) |
 | `examples/archive_roundtrip.rs` | Prepared-corpus reopen smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
 | `examples/archive_open_profile.rs` | Standalone open-time/allocator benchmark | [Development](development.md) |
