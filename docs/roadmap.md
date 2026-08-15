@@ -23,28 +23,27 @@ Completed bootstrap slices:
 7. Append-only branch/session-head revisions with historical lookup.
 8. Old-conversation revival through conversation-local branching, not Archive rollback.
 9. Reopen validation and prepared-corpus round trip.
-10. Compact Archive-owned derived indexes without composite string keys; current measurements are tracked in `development.md`.
+10. Compact Archive-owned derived indexes without composite string keys; current prepared-corpus retained open heap is `752,907` bytes.
 11. Single-pass Container/Archive reopen reconstruction.
 12. Lodestone-derived generic packed-vector rows plus an immutable content-addressed packed-vector store inside the CVA.
 13. Immutable Archive-Vector sets that bind packed rows to ordered Archive `FragmentId`s with exact cross-store validation in the same physical reopen scan.
-14. Immutable embedding profiles with query/document behavior probes and deterministic simulated endpoints.
-15. Vector-generation semantic publication with dense local `vector_version`, CVA-global ordering, per-profile current generations, Archive coverage validation, and inert incomplete publications.
 
 ## Expected ownership or ownership boundary
 
-`Cva` owns physical composition and the single Container handle. Archive owns source-history semantics and `archive_version`. Packed vectors own immutable numeric matrices; Archive Vectors own immutable row-to-fragment bindings; Embedding Profiles own immutable vector-space identity. Vector Generations own profile/population activation and the independent dense `vector_version`. Archive and Vector Generations interleave only through CVA-global ordering.
+`Cva` owns physical composition and the single Container handle. Archive owns Archive-local clocks and source-history semantics. Packed vectors own immutable numeric matrices; Archive Vectors own immutable row-to-fragment bindings. Neither backing layer consumes semantic clocks. Embedding-profile/generation, Memories, Graph, and later semantic owners receive local sequencing only if their mutation semantics require it.
 
 ## Planned behavior
 
 Near-term priorities:
 
-1. Implement exact similarity retrieval: select a profile, resolve its current generation, embed the query in query mode, search that generation's packed matrix, and map result rows back through Archive Vectors.
-2. Recover simple lexical retrieval and then hybrid ranking before considering specialized ANN indexes.
-3. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression at pack level and shared branch ancestry stored once.
-4. Measure pack size/compression tradeoffs plus repeated cold-open scaling on substantially larger and realistic-dimension vector-bearing Archives; add persistent Archive checkpointing only if measurements justify it.
-5. Define read-only whole-CVA historical materialization now that Archive and Vector Generations provide two concrete mutable semantic domains; defer restore-and-continue branching until that model is proven.
+1. Implement durable embedding profiles as embedding-space identity, independent of Archive row bindings.
+2. Implement vector-generation publication that associates one profile with one Archive-Vector set plus coverage/activation metadata.
+3. Recover simple lexical + exact similarity retrieval before considering specialized indexes.
+4. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression applied at pack level rather than as a prerequisite per-record feature; shared branch ancestry must remain stored once.
+5. Measure pack size/compression tradeoffs plus repeated cold-open scaling on substantially larger Archives; add persistent Archive checkpointing only if those measurements justify it.
 6. Add Memories, Memory Vectors, then Graph as separate owners.
-7. Build the shared long-lived Continuity runtime and reconnect Insomnia/Dream, then Ego.
+7. Define rare whole-CVA rollback/timeline activation across those stores without adding an every-write global state manifest.
+8. Build the shared long-lived Continuity runtime and reconnect Insomnia/Dream, then Ego.
 
 ## Implementation sequence
 
@@ -73,10 +72,8 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Archive checkpoint representation, cadence, and retention.
 - Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
 - Actual concurrent file append/version reservation mechanics.
-- Live-provider profile compatibility/fingerprint tolerance for endpoints with nondeterministic output.
-- Explicit vector-generation retirement/deactivation and retention policy.
-- Quantization metadata and alternate packed representations for published generations.
-- Whole-CVA historical materialization and restore/timeline representation now that two mutable semantic domains exist.
+- Embedding-profile and vector-generation publication semantics, including whether the first active vector-generation owner needs a dense local watermark.
+- Whole-CVA restore/timeline representation after at least two mutable semantic domains exist.
 - Retention/vacuum semantics for abandoned conversation/session branches.
 
 ## Related docs

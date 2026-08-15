@@ -32,8 +32,7 @@ impl ArchiveVectorStore {
         packed_vector_id: PackedVectorId,
         fragment_ids: Vec<FragmentId>,
     ) -> Result<ArchiveVectorId, ArchiveVectorError> {
-        let max_fragment_archive_version =
-            validate_mapping(archive, packed_vectors, packed_vector_id, &fragment_ids)?;
+        validate_mapping(archive, packed_vectors, packed_vector_id, &fragment_ids)?;
         let id = archive_vector_id(packed_vector_id, &fragment_ids);
         if let Some(existing) = self.objects.get(&id).copied() {
             let payload = container.read(existing.chunk)?;
@@ -53,7 +52,6 @@ impl ArchiveVectorStore {
             packed_vector_id,
             rows: u64::try_from(fragment_ids.len())
                 .map_err(|_| ArchiveVectorError::SizeOverflow)?,
-            max_fragment_archive_version,
         };
         self.objects.insert(id, ArchiveVectorEntry { info, chunk });
         Ok(id)
@@ -98,10 +96,6 @@ impl ArchiveVectorStore {
         Ok(())
     }
 
-    pub(crate) fn info(&self, id: ArchiveVectorId) -> Option<ArchiveVectorInfo> {
-        self.objects.get(&id).map(|entry| entry.info)
-    }
-
     pub(crate) fn infos(&self) -> Vec<ArchiveVectorInfo> {
         let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();
         infos.sort_by_key(|info| info.id.0);
@@ -121,7 +115,7 @@ pub(crate) fn validate_mapping(
     packed_vectors: &PackedVectorStore,
     packed_vector_id: PackedVectorId,
     fragment_ids: &[FragmentId],
-) -> Result<u64, ArchiveVectorError> {
+) -> Result<(), ArchiveVectorError> {
     let packed = packed_vectors
         .info(packed_vector_id)
         .ok_or(ArchiveVectorError::MissingPackedVector)?;
@@ -130,18 +124,15 @@ pub(crate) fn validate_mapping(
         return Err(ArchiveVectorError::RowCountMismatch);
     }
     let mut seen = HashSet::with_capacity(fragment_ids.len());
-    let mut max_archive_version = 0_u64;
     for fragment_id in fragment_ids {
-        let archive_version = archive
-            .fragments
-            .archive_version(*fragment_id)
-            .ok_or(ArchiveVectorError::MissingFragment)?;
-        max_archive_version = max_archive_version.max(archive_version);
+        if archive.fragments.get(*fragment_id).is_none() {
+            return Err(ArchiveVectorError::MissingFragment);
+        }
         if !seen.insert(*fragment_id) {
             return Err(ArchiveVectorError::DuplicateFragment);
         }
     }
-    Ok(max_archive_version)
+    Ok(())
 }
 
 pub(crate) fn archive_vector_id(

@@ -3,194 +3,195 @@
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
-This document is the exact reference owner for persistent records currently implemented by Continuity Memory v2.
+
+This document is the exact reference owner for the persistent CVA, Archive, packed-vector, and Archive-Vector records currently implemented.
 
 ## Overview
-The development format is one append-only CVA file containing explicit Archive, vector-backing, profile, and vector-generation records with one shared physical scan and concrete ownership.
 
-## Container
-CVA format `1.0` is a development append format. All integers are little-endian.
+CVA format `1.0` is a development append format. A fixed 16-byte header is followed by opaque length-prefixed chunks. `Cva::open` performs one physical scan and rebuilds Archive, packed-vector backing objects, and Archive-Vector row bindings.
 
-| Offset | Size | Header field | Value |
+## Exact contract
+
+### CVA header
+
+All integers are little-endian.
+
+| Offset | Size | Field | Value |
 | --- | ---: | --- | --- |
 | `0` | 8 | magic | `CVA\0\r\n\x1a\n` |
 | `8` | 2 | major | `1` |
 | `10` | 2 | minor | `0` |
 | `12` | 4 | header length | `16` |
 
-Physical chunks follow the header:
+### Physical chunk
+
 ```text
 u64 payload_length
 N bytes payload
 ```
-`ChunkRef` stores the length-prefix offset and payload length.
+
+A `ChunkRef` stores the length-prefix offset and payload length.
 
 ### Global version ticket
+
 ```text
 8 bytes   magic = "CVAVERS1"
 u64       global version
 ```
-Tickets begin at `1` and are physically consecutive. They order semantic mutations across concrete databases. Immutable backing objects do not independently consume tickets.
 
-## Archive records
-### Format marker
+Tickets begin at `1` and are physically consecutive. They order semantic mutations across the CVA. Immutable backing objects such as Archive content, packed matrices, and Archive-Vector bindings do not independently consume tickets.
+
+### Archive format marker
+
 ```text
-8 bytes   "CVAAFMT2"
-u32       schema = 1
+8 bytes   magic = "CVAAFMT2"
+u32       schema version = 1
 ```
-### Content
+
+Exactly one is required.
+
+### Archive content
+
 ```text
-8 bytes   "CVACONT1"
-32 bytes  ContentId = SHA-256(content)
-u32       byte length
+8 bytes   magic = "CVACONT1"
+32 bytes  SHA-256 content ID
+u32       content byte length
 N bytes   UTF-8 content
 ```
-### Node
+
+### Archive node
+
 ```text
-8 bytes   "CVANODE1"
-32 bytes  ContentId
+8 bytes   magic = "CVANODE1"
 i64       timestamp_ns
+32 bytes  content ID
 string    node ID
 string    conversation ID
 string    parent node ID; empty = none
 string    role
 ```
-### Branch/session head
+
+### Archive branch/session head
+
 ```text
-8 bytes   "CVABRCH1"
-u8        canonical
+8 bytes   magic = "CVABRCH1"
+u8        canonical flag
 string    branch ID
 string    conversation ID
 string    leaf node ID
 ```
+
 Repeated branch identities are immutable head revisions. Existing heads advance only to descendants.
 
-### Fragment
+### Archive fragment
+
 ```text
-8 bytes   "CVAFRAG1"
-32 bytes  FragmentId
+8 bytes   magic = "CVAFRAG1"
+32 bytes  fragment ID
 string    conversation ID
 string    start node ID
 string    end node ID
 ```
+
 Fragment ID is SHA-256 of conversation/start/end IDs with `0x00` separators. Branch identity is excluded.
 
 ### Archive record-version metadata
+
+Every semantic node, branch revision, or fragment has:
+
 ```text
-8 bytes   "CVAAREC1"
+8 bytes   magic = "CVAAREC1"
 u64       global version
 u64       Archive version
 u64       record chunk offset
 u64       record payload length
 ```
-Every semantic node, branch revision, or fragment has one metadata record. Archive versions begin at `1` and are contiguous. The referenced payload must precede metadata. A semantic payload without valid metadata is inert. With current chunk framing, each semantic Archive mutation adds 72 bytes of ordering metadata: 24 bytes for its global-ticket chunk plus 48 bytes for `CVAAREC1`.
 
-## Packed vectors
-### Format marker
+Archive versions start at `1` and are contiguous. Global versions must increase between Archive mutations but may have gaps. The metadata contains no publication parent or Archive-head pointer. With current chunk framing, each semantic Archive mutation adds 72 bytes of ordering metadata: 24 bytes for the global ticket chunk and 48 bytes for `CVAAREC1`.
+
+### Packed-vector format marker
+
 ```text
-8 bytes   "CVAPVFM1"
-u32       schema = 1
+8 bytes   magic = "CVAPVFM1"
+u32       schema version = 1
 ```
-### Matrix object
+
+Exactly one is required.
+
+### Packed-vector object
+
 ```text
-8 bytes   "CVAPVEC1"
-32 bytes  PackedVectorId
+8 bytes   magic = "CVAPVEC1"
+32 bytes  packed-vector ID
 u32       dimensions
 u8        scalar tag
 3 bytes   reserved = 0
 u64       row count
 u64       matrix byte length
-N bytes   contiguous rows
+N bytes   contiguous matrix rows
 ```
-`row_bytes = dimensions * scalar_width`; matrix length must equal `row_count * row_bytes`. Multi-byte values are little-endian. Scalar tags: `1=i8`, `2=u8`, `3=i16`, `4=u16`, `5=i32`, `6=u32`, `7=i64`, `8=u64`, `9=f16`, `10=bf16`, `11=f32`, `12=f64`.
+
+`row_bytes = dimensions * scalar_width`; `matrix_byte_length = row_count * row_bytes`. Multi-byte scalar values are little-endian. Scalar tags: `1=i8`, `2=u8`, `3=i16`, `4=u16`, `5=i32`, `6=u32`, `7=i64`, `8=u64`, `9=f16`, `10=bf16`, `11=f32`, `12=f64`.
 
 Packed-vector ID is SHA-256 over `"CVA-PACKED-VECTOR-V1\0"`, dimensions, scalar tag, and exact matrix bytes.
 
-## Archive Vectors
-### Format marker
+### Archive-Vector format marker
+
 ```text
-8 bytes   "CVAAVFM1"
-u32       schema = 1
+8 bytes   magic = "CVAAVFM1"
+u32       schema version = 1
 ```
-### Row-binding object
+
+Exactly one is required.
+
+### Archive-Vector set
+
 ```text
-8 bytes        "CVAAVEC1"
-32 bytes       ArchiveVectorId
-32 bytes       PackedVectorId
+8 bytes        magic = "CVAAVEC1"
+32 bytes       Archive-Vector ID
+32 bytes       packed-vector ID
 u64            row count
 row_count × 32 ordered FragmentIds
 ```
-Row `N` maps to `fragment_ids[N]`. Matrix row count must match exactly; every fragment must exist and be unique within the set. ArchiveVectorId is SHA-256 over `"CVA-ARCHIVE-VECTORS-V1\0"`, PackedVectorId, and ordered FragmentIds. Profile/source metadata is excluded.
 
-## Embedding profiles
-### Format marker
-```text
-8 bytes   "CVAEPFM1"
-u32       schema = 1
-```
-### Profile object
-```text
-8 bytes   "CVAEPRO1"
-32 bytes  EmbeddingProfileId
-u32       dimensions
-u8        normalization: 0=None, 1=L2
-3 bytes   reserved = 0
-u32       probe-suite version
-32 bytes  behavior fingerprint
-string    provider
-string    model
-string    revision
-```
-EmbeddingProfileId is SHA-256 over `"CVA-EMBEDDING-PROFILE-V1\0"`, provider/model/revision with `0x00` separators, dimensions, normalization tag, probe-suite version, and behavior fingerprint.
+Row ordinal maps directly to the FragmentId at the same ordinal. The referenced packed matrix must exist and have exactly the same row count. Every mapped fragment must exist in Archive and may occur only once within the set.
 
-Probe-suite v1 fingerprints exact `f32` embeddings from two fixed query probes and two fixed document probes; exact inputs are in ADR 0007. Profiles are immutable and consume no semantic version.
+Archive-Vector ID is SHA-256 over `"CVA-ARCHIVE-VECTORS-V1\0"`, the packed-vector ID, and the ordered FragmentId sequence. Order is therefore part of identity.
 
-## Vector generations
-### Format marker
-```text
-8 bytes   "CVAVGFM1"
-u32       schema = 1
-```
-### Generation payload
-```text
-8 bytes   "CVAVGEN1"
-32 bytes  VectorGenerationId
-32 bytes  EmbeddingProfileId
-32 bytes  ArchiveVectorId
-u64       source Archive version
-```
-VectorGenerationId is SHA-256 over `"CVA-VECTOR-GENERATION-V1\0"`, profile ID, ArchiveVectorId, and source Archive version.
+Archive-Vector sets contain no profile/model/metric/normalization metadata and no source Archive watermark. Those belong to the future profile/generation layer.
 
-### Generation version metadata
-```text
-8 bytes   "CVAVGRC1"
-u64       global version
-u64       vector version
-u64       generation payload chunk offset
-u64       generation payload length
-```
-Vector versions begin at `1` and are contiguous within VectorGenerationStore. Global versions increase but may have gaps. The payload must precede metadata; an unversioned generation payload is inert.
+### Strings
 
-The latest published generation for each profile is current. Source Archive version may not regress for a profile, exceed current Archive state, or predate any fragment in the referenced Archive-Vector set.
-
-## Strings
 ```text
 u32 byte_length
 N bytes UTF-8
 ```
 
-## Reopen and historical semantics
-`Cva::open` requires exactly one current format marker for Archive, Packed Vectors, Archive Vectors, Embedding Profiles, and Vector Generations. Earlier development files are rejected rather than migrated.
+## Historical semantics
 
-One physical chunk scan feeds all concrete rebuild states. Container validates framing/global tickets; each owner recognizes its own records. Cross-store references are validated after reconstruction in dependency order, and reopen rejects a global version claimed by more than one semantic mutation across Archive and Vector Generations.
+Archive state through `A=N` is defined by replaying Archive semantic metadata through that watermark. Conversation ancestry comes from node parents, not Archive-version adjacency.
 
-Archive and Vector Generations have independent local watermarks; global ordering may interleave them. Integer adjacency is never semantic ancestry. Packed matrices, Archive-Vector bindings, and profiles are immutable backing objects; a published VectorGeneration is the semantic association that makes one profile/population current.
+Packed matrices and Archive-Vector sets are immutable backing objects. Their existence does not publish an active retrieval generation and does not advance semantic clocks.
+
+## Diagnostics and failure behavior
+
+Container open rejects invalid/truncated framing and malformed/non-consecutive global tickets.
+
+`Cva::open` requires exactly one Archive, packed-vector, and Archive-Vector format marker. Archive rebuild validates content/history/references. Packed-vector rebuild validates schema, shape, reserved bytes, and content identity. Archive-Vector rebuild validates object identity plus matrix existence, exact row counts, real fragments, and unique fragment mappings.
+
+Unversioned Archive node/branch/fragment payloads remain physically tolerated but semantically inert.
+
+## Defaults or precedence
+
+Default fragments use eight turns, two-turn overlap, and six-turn stride.
 
 ## Related docs
+
 - [Architecture](architecture.md)
 - [Rust API](api.md)
+- [Current limitations](current-limitations.md)
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
-- [ADR 0007](decisions/0007-embedding-profiles-and-vector-generations.md)
 
 ## Notes
-These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, exact similarity search, and retention/vacuum remain future work.
+
+These remain development formats. Migration, compaction, retention, authentication, encryption, Archive packing/compression, embedding profiles, vector generations, and similarity search are not yet implemented.

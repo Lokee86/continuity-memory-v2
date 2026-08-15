@@ -100,7 +100,7 @@ impl ArchiveOpenState {
         }
 
         if let Some(record) = self.pending_records.remove(&version.record) {
-            self.apply_record(record, version.archive_version)?;
+            self.apply_record(record)?;
             self.versioned_records.insert(version.record);
         } else if !self.versioned_records.contains(&version.record) {
             return Err(ArchiveError::InvalidArchiveRecordVersion);
@@ -114,20 +114,14 @@ impl ArchiveOpenState {
         Ok(())
     }
 
-    fn apply_record(
-        &mut self,
-        record: ArchiveRecord,
-        archive_version: u64,
-    ) -> Result<(), ArchiveError> {
+    fn apply_record(&mut self, record: ArchiveRecord) -> Result<(), ArchiveError> {
         match record {
             ArchiveRecord::Node(node) => self.nodes.insert(node).map(|_| ()),
             ArchiveRecord::Branch(branch) => {
                 self.branches.put(branch);
                 Ok(())
             }
-            ArchiveRecord::Fragment(fragment) => {
-                self.fragments.insert(fragment, archive_version).map(|_| ())
-            }
+            ArchiveRecord::Fragment(fragment) => self.fragments.insert(fragment).map(|_| ()),
             _ => Err(ArchiveError::InvalidArchiveRecordVersion),
         }
     }

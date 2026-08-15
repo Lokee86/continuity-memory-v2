@@ -38,19 +38,11 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 24. **Persistent ordering uses exact integers.** No floating-point version identity.
 25. **Unversioned semantic payloads are inert.** Reopen may observe incomplete node/branch/fragment payloads physically, but they cannot enter Archive state without valid `ArchiveRecordVersion` metadata.
 26. **CVA composition has one physical owner.** `Cva` owns the single Container handle; concrete databases do not open competing handles or independently rescan the file during CVA reopen.
-27. **Shared scan does not imply shared semantics.** Archive, packed-vector, Archive-Vector, profile, and generation rebuild logic consume the same physical payload stream but classify and validate their own records explicitly.
+27. **Shared scan does not imply shared semantics.** Archive, packed-vector, and Archive-Vector rebuild logic consume the same physical payload stream but classify and validate their own records explicitly.
 28. **Packed-vector matrices are immutable backing objects.** Identity includes schema plus exact matrix bytes; equal objects deduplicate and raw matrix creation consumes no semantic version ticket.
 29. **Archive Vectors own row-to-Archive identity only.** An Archive-Vector set binds one packed matrix's row ordinals to an ordered list of existing unique `FragmentId`s.
 30. **Archive-Vector identity is profile-independent.** Profiles, models, metrics, normalization, coverage watermarks, and active-generation state cannot be embedded in the row-binding object.
-31. **Vector backing objects are not publication.** Creating a packed matrix, Archive-Vector set, or Embedding Profile consumes no semantic version ticket.
-32. **Embedding Profiles own vector-space identity only.** Profile identity includes observed endpoint behavior but excludes packed scalar representation, Archive mapping, and active-generation state.
-33. **Vector Generations own vector semantic publication.** A generation binds one profile to one Archive-Vector set and source Archive watermark; the latest generation per profile is current.
-34. **Vector version is a local watermark only.** It is dense within VectorGenerationStore and is not ancestry or a cross-database dependency identity.
-35. **Archive and vector clocks are independent.** Their mutations interleave only through CVA-global ordering.
-36. **A CVA-global version has at most one semantic claimant.** Reopen rejects a global ticket claimed by both Archive and Vector Generations.
-37. **Generation coverage must be truthful.** A generation source watermark cannot predate any mapped fragment, exceed current Archive state, or regress for that profile.
-38. **Incomplete generation publication is inert.** A generation payload without valid generation-version metadata cannot become current semantic state.
-39. **Profile compatibility is explicit.** Two endpoints with the same advertised metadata but different behavior fingerprints are different profiles and their vectors cannot be silently mixed.
+31. **Vector backing objects are not publication.** Creating a packed matrix or Archive-Vector set consumes no semantic version ticket; future generation publication owns activation/order.
 
 ## Safety boundaries
 
