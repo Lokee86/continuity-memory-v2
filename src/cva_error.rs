@@ -1,4 +1,4 @@
-use crate::{ArchiveError, ContainerError, PackedVectorError};
+use crate::{ArchiveError, ArchiveVectorError, ContainerError, PackedVectorError};
 use std::fmt;
 
 #[derive(Debug)]
@@ -6,6 +6,7 @@ pub enum CvaError {
     Container(ContainerError),
     Archive(ArchiveError),
     PackedVectors(PackedVectorError),
+    ArchiveVectors(ArchiveVectorError),
 }
 
 impl fmt::Display for CvaError {
@@ -14,6 +15,7 @@ impl fmt::Display for CvaError {
             Self::Container(error) => write!(f, "{error}"),
             Self::Archive(error) => write!(f, "{error}"),
             Self::PackedVectors(error) => write!(f, "{error}"),
+            Self::ArchiveVectors(error) => write!(f, "{error}"),
         }
     }
 }
@@ -35,5 +37,11 @@ impl From<ArchiveError> for CvaError {
 impl From<PackedVectorError> for CvaError {
     fn from(value: PackedVectorError) -> Self {
         Self::PackedVectors(value)
+    }
+}
+
+impl From<ArchiveVectorError> for CvaError {
+    fn from(value: ArchiveVectorError) -> Self {
+        Self::ArchiveVectors(value)
     }
 }

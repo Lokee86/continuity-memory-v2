@@ -33,6 +33,12 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Equal packed matrices deduplicate by schema+bytes | `packed_vector_tests::identical_packed_matrix_is_content_addressed_once` |
 | Raw packed-vector backing objects consume no semantic clock | `packed_vector_tests::raw_packed_vectors_do_not_advance_semantic_clocks` |
 | Packed representation handles 512×int8 through 4096×float64 without special-case layouts | `packed_vector_tests::supports_large_float64_rows_without_special_cases`, Lodestone packed tests |
+| Archive Vectors preserve exact row-to-FragmentId order across reopen | `archive_vector_tests::archive_vectors_bind_rows_to_fragments_and_round_trip` |
+| Equal Archive-Vector bindings deduplicate by matrix ID + ordered fragments | `archive_vector_tests::identical_archive_vector_binding_is_content_addressed_once` |
+| Archive Vectors require an existing matrix and exact row count | `archive_vector_tests::binding_requires_existing_matrix_and_exact_row_count` |
+| Archive Vector mappings require real unique fragments | `archive_vector_tests::binding_requires_real_unique_fragments` |
+| Archive Vector backing objects consume no semantic clock | `archive_vector_tests::archive_vector_objects_do_not_advance_semantic_clocks` |
+| Corrupt Archive Vector mappings are rejected on reopen | `archive_vector_tests::corrupt_archive_vector_mapping_is_rejected_on_reopen` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
 
 ## Future contracts

@@ -8,74 +8,80 @@ This document owns the current Continuity Memory v2 implementation boundaries, s
 
 ## Overview
 
-The repository currently implements the physical CVA container, Archive, and an immutable packed-vector backing store. `Cva` owns physical composition without merging database semantics:
+The repository currently implements one physical CVA container plus three concrete data owners:
 
 ```text
 Cva
 ├── Container
 │   └── global_version: u64
-├── Archive DB
+├── Archive
 │   ├── archive_version: u64
 │   └── conversation/session-local ancestry
-└── PackedVectorStore
-    └── immutable content-addressed matrices
+├── PackedVectorStore
+│   └── immutable numeric matrices
+└── ArchiveVectorStore
+    └── immutable row -> FragmentId bindings
 ```
 
-The clocks provide ordering and historical cuts for meaningful semantic mutations. They do not define semantic parentage. Raw packed-vector matrices are backing objects and do not consume semantic versions before embedding-profile/generation ownership exists.
+`Cva` owns physical composition only. Archive owns source-history semantics. Packed vectors own numeric representation. Archive Vectors own the mapping between packed rows and Archive fragments. Embedding-profile and generation semantics are intentionally not part of Archive Vectors.
 
 ## Code root
+
 Current implementation lives in `src/`; the corpus smoke harness is `examples/archive_roundtrip.rs`.
+
 ## Responsibilities
 
 ### Cva
 
-`Cva` owns the single physical `Container` handle and composes concrete database states. Creation writes the required concrete format markers. Reopen performs one physical scan and explicitly feeds each payload to Archive and packed-vector rebuild logic. `Cva` is not a generalized semantic store, database registry, or dependency owner.
+`Cva` owns the single physical `Container` handle, writes required concrete format markers, and feeds one physical reopen scan to each concrete rebuild state. It is not a generalized semantic store, registry, root, or dependency engine.
 
 ### Container
 
-`Container` owns:
-
-- fixed CVA header validation;
-- opaque length-prefixed chunk append/read;
-- stable `ChunkRef` addressing;
-- explicit `sync_all`;
-- one append-only global `u64` version-ticket sequence.
-
-The global clock orders durable mutations across future databases. It is not a CVA state root or dependency identity.
+`Container` owns fixed-header validation, opaque length-prefixed chunk I/O, stable `ChunkRef` addressing, explicit sync, and the append-only CVA-global `u64` version-ticket sequence. The global clock orders semantic mutations; it is not state identity or ancestry.
 
 ### Archive
 
-`Archive` owns:
+`Archive` owns content-addressed conversation text, immutable nodes, conversation-local parent links, append-only branch/session-head revisions, immutable fragment ranges, the contiguous Archive-local `u64` watermark, and Archive-owned derived indexes.
 
-- content-addressed conversation text;
-- immutable nodes with conversation-local parent links;
-- append-only branch/session head revisions;
-- immutable fragment ranges;
-- one contiguous Archive-local `u64` version sequence;
-- mapping each semantic Archive record to both global and Archive versions;
-- current branch-head reconstruction and historical branch-head queries;
-- Archive-local validation and derived indexes.
-
-The Archive-local clock is a watermark: `A=500` means the first 500 semantic Archive mutations, not a parent relationship.
+`A=500` means the first 500 semantic Archive mutations. Archive-version adjacency is not conversation ancestry.
 
 ### PackedVectorStore
 
-`PackedVectorStore` owns immutable dense matrix backing objects. Each object has a `VectorSchema` (non-zero dimensions plus scalar representation), a row count, contiguous fixed-width row bytes, and a SHA-256 content identity. Equal schema+matrix bytes deduplicate. The current schema layer comes from the lightweight `lodestone-packed` crate and supports integer/floating scalar widths from 8-bit through 64-bit.
+`PackedVectorStore` owns immutable dense matrix backing objects. Each object has a `VectorSchema`, row count, contiguous fixed-width row bytes, and SHA-256 content identity. Equal schema+matrix bytes deduplicate. The `lodestone-packed` representation supports non-zero dimensions and integer/floating scalar widths from 8-bit through 64-bit.
 
-Packed vectors deliberately do not own embedding model identity, quantization meaning, similarity metric, row-to-Archive mapping, active generations, or semantic clocks. Those belong to the embedding-profile and Archive-Vector slices that follow.
+Packed vectors do not own embedding model identity, metrics, quantization meaning, row-to-domain identity, active generations, or semantic clocks.
+
+### ArchiveVectorStore
+
+`ArchiveVectorStore` owns immutable `ArchiveVectorSet` objects:
+
+```text
+ArchiveVectorSet
+├── packed_vector_id
+└── ordered FragmentId list
+    row 0 -> fragment_ids[0]
+    row 1 -> fragment_ids[1]
+    ...
+```
+
+A set is content-addressed by the packed-matrix ID plus the ordered fragment mapping. Creation/reopen require an existing packed matrix, exact row-count equality, real Archive fragments, unique fragments within the set, and a valid content identity.
+
+Archive Vectors do not own embedding profiles, model identity, metrics, normalization, Archive coverage watermarks, or active-generation state. Those belong to the profile/generation layer above this mapping.
+
+Raw packed matrices and Archive-Vector sets are immutable backing objects and do not allocate semantic version tickets. A future vector-generation publication is the first vector-layer mutation expected to require semantic ordering.
 
 ## Does not own
 
-The container does not interpret Archive, Memories, Graph, vector, session, or dependency semantics. `Cva` dispatches physical payloads but owns none of those semantics. Archive does not impose ancestry between unrelated conversations merely because their writes are physically ordered. Packed-vector storage does not interpret what rows mean. Current lookup structures are derived acceleration state, not authority.
+Container does not interpret semantic records. `Cva` dispatches payloads but owns no database semantics. Archive does not own vector representation. Packed vectors do not know what rows mean. Archive Vectors do not know how rows were produced. Current indexes are derived acceleration state, not authority.
 
 ## Flow or lifecycle
 
 ### Semantic Archive write
 
 ```text
-validate domain record
+validate Archive record
     ↓
-append immutable semantic payload
+append immutable payload
     ↓
 allocate global version G
     ↓
@@ -83,81 +89,72 @@ allocate next Archive version A
     ↓
 append ArchiveRecordVersion { G, A, record_ref }
     ↓
-update derived current lookup
+update derived Archive lookup
 ```
 
-The metadata record contains no Archive-wide parent pointer.
+No Archive-wide semantic parent pointer exists.
 
-A failed operation may consume a global version ticket without producing an Archive version. Archive versions themselves remain contiguous.
+### Vector backing objects
 
-### Conversation and branch history
+```text
+PackedVectors
+    ↓ validate/store
+PackedVectorId
+    ↓ + ordered FragmentIds
+ArchiveVectorSet
+```
 
-Node `parent_id` links own conversation-local ancestry; unrelated conversations may interleave in global/Archive ordering without acquiring ancestry from one another. `Branch { conversation_id, id, leaf_node_id, canonical }` is an append-only logical head revision. `branch_at(..., A)` resolves the latest revision visible through Archive version `A`.
-
-Continuing an old conversation point creates a new branch identity and descendants from that old node. The Archive watermark continues forward; no whole-Archive rollback occurs and unrelated conversations are unaffected.
+Neither step publishes an active retrieval generation.
 
 ### Open
 
 ```text
 single streaming chunk walk
-    ├── Container validates framing + global version tickets
-    └── Cva dispatches the same payload
-        ├── Archive: format/content/semantic/version records
-        │       ↓
-        │  pending semantic records wait for version metadata
-        │       ↓
-        │  validate contiguous Archive versions + activate records
-        │       ↓
-        │  validate references/fragments
-        └── PackedVectorStore: format/object records
+    ├── Container validates framing + global tickets
+    └── Cva dispatches each payload
+        ├── Archive rebuild
+        ├── PackedVectorStore rebuild
+        └── ArchiveVectorStore rebuild
                 ↓
-           validate matrix shape + recompute content identity
-                ↓
-           retain metadata + ChunkRef, not matrix bytes
+           after scan, validate row bindings against
+           rebuilt Archive + PackedVectorStore
 ```
 
-Container supplies physical framing and the current global watermark but never interprets database meaning. An interrupted Archive node/branch/fragment payload without `ArchiveRecordVersion` remains inert. Packed matrices are immutable backing objects and are independently valid once their complete object chunk exists.
+Archive-Vector mappings are retained transiently during reopen so cross-store validation does not require a second physical scan. Steady-state indexes retain metadata plus `ChunkRef`, not full vector matrices or fragment mappings.
 
 ## State or data ownership
 
 Durable authorities:
 
 ```text
-CVA header/chunks/global tickets         Container
-Archive format marker                    Archive
-Archive content objects                  Archive
-Archive node/branch/fragment records     Archive
-ArchiveRecordVersion metadata            Archive
-Packed-vector format marker              PackedVectorStore
-Packed-vector matrix objects             PackedVectorStore
+CVA header/chunks/global tickets          Container
+Archive format/content/domain records     Archive
+ArchiveRecordVersion metadata             Archive
+Packed-vector format/matrix objects       PackedVectorStore
+Archive-vector format/mapping objects     ArchiveVectorStore
 ```
 
 Derived process state:
 
 ```text
-ContentId -> ChunkRef                  fixed-width content lookup
-NodeIndex                              dense Node records + compact hash-to-index slots
-BranchIndex                            dense current Branch records + compact hash-to-index slots
-FragmentIndex                          dense Fragment records + compact hash-to-index slots
-Vec<ArchiveRecordVersion>              dense Archive mutation metadata
-PackedVectorId -> info + ChunkRef       packed-vector object lookup
+Archive compact indexes                    Archive
+PackedVectorId -> info + ChunkRef          PackedVectorStore
+ArchiveVectorId -> info + ChunkRef         ArchiveVectorStore
 ```
 
-Node and branch lookups hash `(conversation_id, id)` without materializing composite key strings; exact identity is checked against dense records. Content keeps a direct fixed-width lookup. A historical whole-Archive cut is identified by Archive version; general `ArchiveView` materialization is not yet exposed.
+A historical whole-Archive cut is identified by Archive version. General `ArchiveView` materialization remains unimplemented.
 
 ## Invariants and safety boundaries
 
-- Global and Archive versions are exact integers used for ordering only.
-- Archive versions are contiguous within Archive; global versions may have gaps between Archive mutations.
-- No Archive-wide semantic parent chain exists.
-- Node ancestry never crosses conversation IDs.
-- Branch/session revisions do not rewrite older revisions.
-- Reviving an old conversation advances a local branch rather than rewinding the Archive.
-- Content bodies remain content-addressed and fragments remain branch-neutral ranges.
-- Normal Archive writes do not inspect or republish future Memories/Graph/vector state.
-- Raw packed-vector objects do not advance the global or Archive semantic clocks.
-- Packed-vector identity includes schema plus exact matrix bytes; row meaning is external to the packed store.
-- Reopen performs one physical CVA scan shared by the current concrete stores.
+- Global and Archive versions are exact integer ordering only.
+- Conversation ancestry is node-local and never inferred from physical/version order.
+- Unversioned Archive semantic payloads are inert.
+- Packed matrices are immutable and content-addressed.
+- Archive-Vector identity includes the packed matrix and ordered fragment mapping.
+- Archive-Vector row count must exactly match packed-matrix row count.
+- Archive-Vector mappings reference only existing, unique Archive fragments.
+- Profile/generation semantics remain above Archive Vectors.
+- Reopen uses one physical CVA scan shared by all current concrete stores.
 
 See [architectural invariants](invariants.md).
 
@@ -165,21 +162,18 @@ See [architectural invariants](invariants.md).
 
 | Responsibility | Primary code |
 | --- | --- |
-| CVA composition/public operations | `src/cva.rs`, `src/cva_error.rs` |
-| CVA header/chunks/streaming scan | `src/container.rs`, `src/container_scan.rs` |
-| Global version clock | `src/container_version.rs` |
-| Archive semantic operations | `src/archive.rs` |
-| Archive record-version clocks/history | `src/archive_history.rs` |
-| Archive version codec/model | `src/archive_history_codec.rs`, `src/archive_history_model.rs` |
-| Archive models/codecs | `src/archive_model.rs`, `src/archive_codec.rs` |
-| Reopen reconstruction/current indexes | `src/archive_rebuild.rs`, `src/archive_store.rs`, `src/archive_lookup.rs`, `src/archive_record_index.rs`, `src/archive_object_index.rs` |
-| Fragments | `src/fragment_model.rs`, `src/fragmenter.rs`, `src/fragment_store.rs` |
-| Packed-vector format/store/rebuild | `src/packed_vector_codec.rs`, `src/packed_vector_model.rs`, `src/packed_vector_store.rs`, `src/packed_vector_rebuild.rs` |
-| History/concurrency semantics tests | `src/history_tests.rs` |
-| Packed-vector tests | `src/packed_vector_tests.rs` |
+| CVA composition/public operations | `src/cva.rs`, `src/cva_packed_vectors.rs`, `src/cva_archive_vectors.rs`, `src/cva_error.rs` |
+| CVA header/chunks/global ordering | `src/container.rs`, `src/container_scan.rs`, `src/container_version.rs` |
+| Archive semantics/history | `src/archive*.rs`, `src/fragment*.rs` |
+| Packed-vector backing objects | `src/packed_vector_*.rs` |
+| Archive-Vector row bindings | `src/archive_vector_*.rs` |
+| History tests | `src/history_tests.rs` |
+| Vector backing/binding tests | `src/packed_vector_tests.rs`, `src/archive_vector_tests.rs` |
 | Corpus smoke | `examples/archive_roundtrip.rs` |
+
 ## Tests
-Focused tests cover layered clocks, conversation-local ancestry/branch history, inert unversioned Archive records, content/fragment invariants, packed-vector round trip/dedupe/clock neutrality, and corrupt-vector rejection. The prepared corpus smoke verifies complete branch/content reconstruction across reopen.
+
+Focused tests cover Archive clocks/history, fragments/content, packed-vector round trip/dedupe/corruption, and Archive-Vector mapping/reference/corruption rules. The prepared corpus smoke verifies complete Archive reconstruction across reopen.
 
 ## Related docs
 
@@ -187,8 +181,9 @@ Focused tests cover layered clocks, conversation-local ancestry/branch history, 
 - [Rust API](api.md)
 - [Architectural invariants](invariants.md)
 - [Versioning and rollback plan](version-history-plan.md)
-- [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
 - [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md)
+- [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
+
 ## Notes
 
-Whole-CVA restore across several future databases remains a separate design problem. The clocks implemented here deliberately avoid solving it with an every-write global state manifest.
+Whole-CVA restore across several future semantic databases remains a separate design problem. No every-write global state manifest is introduced here.

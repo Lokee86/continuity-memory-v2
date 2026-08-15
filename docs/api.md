@@ -8,7 +8,7 @@ This document owns the current public Rust library surface exposed by `continuit
 
 ## Overview
 
-The public API exposes `Cva` as the file/composition owner, the physical `Container`, Archive state/models, packed-vector types, dual Archive version metadata, chunk references, and errors. It remains development-stage.
+The public API exposes `Cva` as the file/composition owner, the physical `Container`, Archive state/models, packed-vector backing objects, Archive-Vector row bindings, dual Archive version metadata, chunk references, and errors. It remains development-stage.
 
 ## Exact contract
 
@@ -39,7 +39,7 @@ ArchiveRecordVersion {
 
 ### Cva
 
-`Cva::create(path)` creates one CVA, initializes the concrete Archive and packed-vector format markers, and owns the single Container handle. `Cva::open(path)` performs one streaming physical scan and rebuilds both current concrete stores.
+`Cva::create(path)` creates one CVA, initializes the Archive, packed-vector, and Archive-Vector format markers, and owns the single Container handle. `Cva::open(path)` performs one streaming physical scan and rebuilds all current concrete stores.
 
 Archive mutation/read operations are exposed through `Cva`: `append_node`, `append_branch`, `branch_turns`, `branch_at`, fragment materialization/read operations, `stats`, Archive-version inspection, and `sync`. `archive()` returns read-only access to the Archive semantic state.
 
@@ -98,6 +98,24 @@ PackedVectorError
 
 Raw packed-vector objects have no embedding profile or row meaning and do not advance global/Archive semantic clocks.
 
+### Archive Vectors
+
+Public types:
+
+```text
+ArchiveVectorId([u8; 32])
+ArchiveVectorSet { id, packed_vector_id, fragment_ids }
+ArchiveVectorInfo { id, packed_vector_id, rows }
+ArchiveVectorStats { objects, rows }
+ArchiveVectorError
+```
+
+`Cva::put_archive_vectors(packed_vector_id, fragment_ids)` creates or reuses an immutable row binding. Mapping order is exact: packed row `N` corresponds to `fragment_ids[N]`. The referenced packed matrix must exist, row counts must match exactly, every `FragmentId` must exist in Archive, and one set cannot map the same fragment twice.
+
+`Cva::archive_vectors(id)` reads the full binding. `archive_vector_infos()` and `archive_vector_stats()` inspect the derived object inventory.
+
+Archive-Vector sets contain no profile, model, metric, normalization, or Archive-watermark metadata. They do not publish an active retrieval generation and do not advance semantic clocks.
+
 ## Defaults or precedence
 
 `FragmentConfig::default()` is eight turns with two-turn overlap.
@@ -106,7 +124,7 @@ Node identity is `(conversation_id, node_id)`. Branch/session identity is `(conv
 
 ## Diagnostics or failure behavior
 
-`ArchiveError` covers Archive semantic/reference failures. `PackedVectorError` covers packed-vector format/object failures. `CvaError` covers create/open/composition failures across Container, Archive, and packed-vector rebuild.
+`ArchiveError` covers Archive semantic/reference failures. `PackedVectorError` covers packed-vector format/object failures. `ArchiveVectorError` covers row-binding format/reference failures. `CvaError` covers create/open/composition failures across all current stores.
 
 Durability remains explicit through `Cva::sync()`.
 
@@ -133,4 +151,4 @@ To revive an old conversation point, create another branch identity at that old 
 
 ## Notes
 
-No compatibility promise has yet been made for Rust method signatures or the bootstrap persistence format. Embedding profiles, vector generations, Archive row bindings, and search APIs are the next vector-layer slices rather than responsibilities of `PackedVectors` itself.
+No compatibility promise has yet been made for Rust method signatures or the bootstrap persistence format. Embedding profiles, vector-generation publication, and search APIs remain above the implemented packed-vector and Archive-Vector backing layers.

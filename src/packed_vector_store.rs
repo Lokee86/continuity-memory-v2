@@ -81,6 +81,10 @@ impl PackedVectorStore {
         Ok(())
     }
 
+    pub(crate) fn info(&self, id: PackedVectorId) -> Option<PackedVectorInfo> {
+        self.objects.get(&id).map(|entry| entry.info)
+    }
+
     pub(crate) fn infos(&self) -> Vec<PackedVectorInfo> {
         let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();
         infos.sort_by_key(|info| info.id.0);

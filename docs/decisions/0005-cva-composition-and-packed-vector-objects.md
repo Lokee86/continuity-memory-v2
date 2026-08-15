@@ -29,7 +29,7 @@ Packed vectors are immutable content-addressed backing objects. Their identity i
 
 The packed row schema comes from Lodestone's dependency-light `lodestone-packed` crate. Dimensions are any non-zero `u32`; scalar representations include signed/unsigned 8/16/32/64-bit integers plus f16, bf16, f32, and f64. Rows have fixed width and are stored contiguously with no per-row framing.
 
-Raw packed-vector object creation does **not** allocate a CVA-global version ticket and does **not** advance the Archive clock. It is backing data, analogous to an Archive content object. The future embedding-profile/generation and Archive-Vector owners will define when a vector population becomes meaningful semantic state and what ordering it requires.
+Raw packed-vector object creation does **not** allocate a CVA-global version ticket and does **not** advance the Archive clock. It is backing data, analogous to an Archive content object. ADR 0006 subsequently defines Archive Vectors as another immutable backing layer; future vector-generation publication defines when a profiled vector population becomes meaningful active state and what ordering it requires.
 
 ## Consequences
 
@@ -78,3 +78,4 @@ Tests cover packed-vector round trip beside Archive data, content-addressed dedu
 - [Architectural invariants](../invariants.md)
 - [Roadmap](../roadmap.md)
 - [ADR 0001](0001-purpose-built-database-ownership.md)
+- [ADR 0006](0006-archive-vector-row-bindings.md)

@@ -32,7 +32,7 @@ Implemented for Archive:
 - continuation from an old node through a new local branch;
 - no Archive-wide parent-linked publication chain.
 
-The CVA also contains immutable packed-vector backing objects, but those objects are not yet a second mutable semantic timeline: raw matrix creation consumes no global or Archive semantic version. Not implemented: generic full historical `ArchiveView`, embedding-profile/Archive-Vector semantic generations, multi-database whole-CVA restore activation, retention/vacuum, and concurrent multi-writer publication.
+The CVA also contains immutable packed-vector matrices and Archive-Vector row bindings. Neither backing object creates a second mutable semantic timeline or consumes semantic version tickets. Not implemented: generic full historical `ArchiveView`, embedding profiles, vector-generation publication, multi-database whole-CVA restore activation, retention/vacuum, and concurrent multi-writer publication.
 
 ## Expected ownership or ownership boundary
 
@@ -101,12 +101,12 @@ It accelerates open/replay. It is disposable/rebuildable and is not a rollback r
 
 1. Compact Archive lookup representation keyed to an Archive watermark. **Implemented.**
 2. Add immutable packed-vector backing storage without inventing semantic publication. **Implemented.**
-3. Add embedding profiles, then Archive Vectors as the second mutable semantic store with its own local sequencing only if needed.
-4. Prove global ordering across Archive and the first vector semantic store without semantic coupling.
-5. Re-evaluate optional Archive checkpoint load + replay tail from larger cold-open measurements.
-6. Define read-only whole-CVA point materialization.
-7. Only then define crash-safe whole-CVA restore-and-continue timeline semantics.
-8. Define retention/vacuum reachability for old local branches/timelines.
+3. Add immutable Archive-Vector row bindings without embedding-profile or publication semantics. **Implemented.**
+4. Add embedding profiles and vector-generation publication; assign local sequencing only if that active semantic owner requires it.
+5. Prove global ordering across Archive and the first active vector semantic store without semantic coupling.
+6. Re-evaluate optional Archive checkpoint load + replay tail from larger cold-open measurements.
+7. Define read-only whole-CVA point materialization.
+8. Only then define crash-safe restore-and-continue plus retention/vacuum semantics.
 
 ## Acceptance criteria
 
@@ -121,7 +121,7 @@ It accelerates open/replay. It is disposable/rebuildable and is not a rollback r
 
 - Generic historical `ArchiveView` representation/API.
 - Concurrent reservation of physical append positions and global versions.
-- Whether Archive Vector semantic generations need a local counter analogous to Archive's; immutable packed-vector backing objects do not.
+- Whether active vector-generation publication needs a local counter analogous to Archive's; packed matrices and Archive-Vector bindings do not.
 - Whole-CVA restore-and-continue timeline identity after multiple stores exist.
 - Retention/pinning/vacuum policy for abandoned histories.
 - User-facing terminology for archive cuts, sessions, and timelines.
@@ -132,6 +132,7 @@ It accelerates open/replay. It is disposable/rebuildable and is not a rollback r
 - [Storage format](storage-format.md)
 - [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
 - [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md)
+- [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [Superseded ADR 0002](decisions/0002-branching-publication-history.md)
 - [Roadmap](roadmap.md)
 

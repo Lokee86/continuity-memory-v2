@@ -19,6 +19,7 @@ src/container*.rs               physical CVA substrate
 src/archive*.rs                 Archive records, compact lookup, validation, semantic operations
 src/fragment*.rs                durable fragment ranges and materialization
 src/packed_vector*.rs           immutable packed-vector objects/rebuild/index
+src/archive_vector*.rs          immutable packed-row to FragmentId bindings
 src/lib.rs                      public exports
 examples/archive_roundtrip.rs    prepared-corpus reopen smoke
 examples/archive_open_profile.rs standalone allocator/open-time benchmark
@@ -62,9 +63,9 @@ The benchmark is standalone and does not instrument the production `Cva::open` p
 
 ### Prepared-corpus current measurements — 2026-08-14
 
-The current prepared corpus contains 12 conversations and produces a `2,197,502`-byte CVA on the required Archive + packed-vector-marker format, with `1,875` semantic Archive records: `1,559` nodes, `35` current branches, `281` fragments, and `1,553` content objects. The fixture currently contains zero packed-vector matrix objects.
+The current prepared corpus contains 12 conversations and produces a `2,197,522`-byte CVA on the required Archive + packed-vector + Archive-Vector marker format, with `1,875` semantic Archive records: `1,559` nodes, `35` current branches, `281` fragments, and `1,553` content objects. The fixture currently contains zero packed-vector matrices and zero Archive-Vector sets.
 
-A release-mode 50-run warm-cache `Cva::open` benchmark measured `25.404 ms` median and `27.369 ms` p90. Allocator-tracked retained heap was `752,906` bytes and peak additional heap `884,585` bytes.
+A release-mode 50-run warm-cache `Cva::open` benchmark measured `25.229 ms` median and `28.549 ms` p90. Allocator-tracked retained heap was `752,907` bytes and peak additional heap `884,586` bytes.
 
 A current-format cold-cache sample has not yet been recorded. Larger archives must be measured with repeated cache eviction plus one open per sample before drawing conclusions about cold-open scaling or adding persistent Archive checkpoints.
 

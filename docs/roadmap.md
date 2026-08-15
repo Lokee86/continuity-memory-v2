@@ -23,23 +23,24 @@ Completed bootstrap slices:
 7. Append-only branch/session-head revisions with historical lookup.
 8. Old-conversation revival through conversation-local branching, not Archive rollback.
 9. Reopen validation and prepared-corpus round trip.
-10. Compact Archive-owned derived indexes without composite string keys; current prepared-corpus retained open heap is `752,906` bytes.
+10. Compact Archive-owned derived indexes without composite string keys; current prepared-corpus retained open heap is `752,907` bytes.
 11. Single-pass Container/Archive reopen reconstruction.
-12. Lodestone-derived generic packed-vector rows plus an immutable content-addressed packed-vector store inside the CVA; `Cva` now owns one Container and reopens Archive + packed vectors from the same physical scan.
+12. Lodestone-derived generic packed-vector rows plus an immutable content-addressed packed-vector store inside the CVA.
+13. Immutable Archive-Vector sets that bind packed rows to ordered Archive `FragmentId`s with exact cross-store validation in the same physical reopen scan.
 
 ## Expected ownership or ownership boundary
 
-`Cva` owns physical composition and the single Container handle. Archive owns Archive-local clocks, record visibility, node ancestry, branch/session revisions, and future Archive checkpoints. Packed-vector backing storage owns immutable matrix identity only and consumes no semantic clock. Embedding-profile/Archive-Vector, Memories, Graph, and other semantic owners receive concrete local sequencing only if their mutation semantics require it.
+`Cva` owns physical composition and the single Container handle. Archive owns Archive-local clocks and source-history semantics. Packed vectors own immutable numeric matrices; Archive Vectors own immutable row-to-fragment bindings. Neither backing layer consumes semantic clocks. Embedding-profile/generation, Memories, Graph, and later semantic owners receive local sequencing only if their mutation semantics require it.
 
 ## Planned behavior
 
 Near-term priorities:
 
-1. Implement durable embedding profiles over the generic packed-vector representation.
-2. Implement Archive Vectors: semantic generations that bind packed-vector rows to Archive fragment identities and establish the required profile/source Archive identity.
+1. Implement durable embedding profiles as embedding-space identity, independent of Archive row bindings.
+2. Implement vector-generation publication that associates one profile with one Archive-Vector set plus coverage/activation metadata.
 3. Recover simple lexical + exact similarity retrieval before considering specialized indexes.
 4. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression applied at pack level rather than as a prerequisite per-record feature; shared branch ancestry must remain stored once.
-5. Measure pack size/compression tradeoffs plus repeated cold-open scaling on substantially larger Archives; add persistent Archive checkpointing only if those measurements justify it, and keep any checkpoint derived state keyed by an Archive watermark.
+5. Measure pack size/compression tradeoffs plus repeated cold-open scaling on substantially larger Archives; add persistent Archive checkpointing only if those measurements justify it.
 6. Add Memories, Memory Vectors, then Graph as separate owners.
 7. Define rare whole-CVA rollback/timeline activation across those stores without adding an every-write global state manifest.
 8. Build the shared long-lived Continuity runtime and reconnect Insomnia/Dream, then Ego.
@@ -71,7 +72,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Archive checkpoint representation, cadence, and retention.
 - Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
 - Actual concurrent file append/version reservation mechanics.
-- Embedding-profile and Archive-Vector generation publication semantics, including whether that first true vector semantic owner needs a dense local watermark.
+- Embedding-profile and vector-generation publication semantics, including whether the first active vector-generation owner needs a dense local watermark.
 - Whole-CVA restore/timeline representation after at least two mutable semantic domains exist.
 - Retention/vacuum semantics for abandoned conversation/session branches.
 

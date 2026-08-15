@@ -1,18 +1,19 @@
 use crate::archive_rebuild::ArchiveOpenState;
+use crate::archive_vector_rebuild::ArchiveVectorOpenState;
+use crate::archive_vector_store::ArchiveVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, CvaError,
-    Fragment, FragmentConfig, FragmentId, Node, PackedVectorError, PackedVectorId,
-    PackedVectorInfo, PackedVectorStats, ResolvedTurn,
+    Fragment, FragmentConfig, FragmentId, Node, ResolvedTurn,
 };
-use lodestone_packed::PackedVectors;
 use std::path::Path;
 
 pub struct Cva {
     pub(crate) container: Container,
     pub(crate) archive: Archive,
     pub(crate) packed_vectors: PackedVectorStore,
+    pub(crate) archive_vectors: ArchiveVectorStore,
 }
 
 impl Cva {
@@ -20,32 +21,43 @@ impl Cva {
         let mut container = Container::create(path)?;
         let archive = Archive::empty();
         let packed_vectors = PackedVectorStore::default();
+        let archive_vectors = ArchiveVectorStore::default();
         archive.initialize_history_format(&mut container)?;
         packed_vectors.initialize(&mut container)?;
+        archive_vectors.initialize(&mut container)?;
         container.sync()?;
         Ok(Self {
             container,
             archive,
             packed_vectors,
+            archive_vectors,
         })
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
         let mut archive_state = ArchiveOpenState::new();
         let mut packed_state = PackedVectorOpenState::new();
+        let mut archive_vector_state = ArchiveVectorOpenState::new();
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state
                 .ingest(chunk, payload, latest_global)
                 .map_err(CvaError::from)?;
-            packed_state.ingest(chunk, payload).map_err(CvaError::from)
+            packed_state
+                .ingest(chunk, payload)
+                .map_err(CvaError::from)?;
+            archive_vector_state
+                .ingest(chunk, payload)
+                .map_err(CvaError::from)
         })?;
         let archive = archive_state.finish()?;
         archive.validate_references()?;
         let packed_vectors = packed_state.finish()?;
+        let archive_vectors = archive_vector_state.finish(&archive, &packed_vectors)?;
         Ok(Self {
             container,
             archive,
             packed_vectors,
+            archive_vectors,
         })
     }
 
@@ -158,28 +170,6 @@ impl Cva {
 
     pub fn fragments(&self) -> Vec<Fragment> {
         self.archive.fragments()
-    }
-
-    pub fn put_packed_vectors(
-        &mut self,
-        packed: PackedVectors,
-    ) -> Result<PackedVectorId, PackedVectorError> {
-        self.packed_vectors.put(&mut self.container, packed)
-    }
-
-    pub fn packed_vectors(
-        &mut self,
-        id: PackedVectorId,
-    ) -> Result<PackedVectors, PackedVectorError> {
-        self.packed_vectors.get(&mut self.container, id)
-    }
-
-    pub fn packed_vector_infos(&self) -> Vec<PackedVectorInfo> {
-        self.packed_vectors.infos()
-    }
-
-    pub fn packed_vector_stats(&self) -> PackedVectorStats {
-        self.packed_vectors.stats()
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

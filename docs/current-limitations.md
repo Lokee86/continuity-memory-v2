@@ -8,17 +8,17 @@ This document owns known incomplete, transitional, or practically limiting behav
 
 ## Overview
 
-Archive now has layered global/Archive ordering and conversation-local branch ancestry, and the CVA also contains an immutable packed-vector backing store. Embedding semantics and retrieval remain incomplete.
+Archive now has layered global/Archive ordering and conversation-local branch ancestry; the CVA also contains immutable packed-vector matrices and Archive-Vector row bindings. Embedding-profile/generation semantics and retrieval remain incomplete.
 
 ## Storage limits
 
-- Archive plus immutable content-addressed packed-vector backing objects are implemented; embedding profiles, vector generations, row-to-domain bindings, Memories, and Graph are not.
+- Archive, immutable packed-vector backing objects, and Archive-Vector row-to-fragment bindings are implemented; embedding profiles, vector generations, Memories, and Graph are not.
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption; packed-vector objects do verify their own SHA-256 content identity.
 - No object packing, compaction, vacuum, reachability, or reclamation exists.
 - No persistent snapshot/checkpoint acceleration exists.
 - No concurrent-writer/locking model exists beyond one `Container` file handle.
 - Format migration is not implemented.
-- Whole-CVA rollback across multiple semantic databases is not implemented. Raw packed-vector objects are backing data and do not yet create a second semantic timeline.
+- Whole-CVA rollback across multiple semantic databases is not implemented. Packed matrices and Archive-Vector sets are backing data and do not yet create a second semantic timeline.
 - A general full historical `ArchiveView` API is not yet exposed, although each Archive cut is durably identified by its Archive version.
 
 ## Version/history limits
@@ -36,11 +36,11 @@ Composite `HashMap<String, ...>` lookup keys have been removed. Nodes, current b
 
 Remaining Archive record strings are still individually allocated; conversation/role/string interning has not been attempted.
 
-Reopen uses one streaming physical pass: Container validates chunk framing/global tickets while `Cva` feeds the same payloads to Archive and packed-vector rebuild. On the current `2,197,502`-byte prepared corpus (zero packed matrices), a release-mode 50-run warm benchmark measured `25.404 ms` median / `27.369 ms` p90 with `752,906` retained and `884,585` peak additional allocator-tracked bytes. A current-format cold sample has not yet been recorded. Packed-vector matrix bytes are not retained in the reopen index, but the scanner still materializes each physical chunk transiently; a very large single vector object can therefore create a large peak allocation.
+Reopen uses one streaming physical pass: Container validates chunk framing/global tickets while `Cva` feeds the same payloads to Archive, packed-vector, and Archive-Vector rebuild. Current measurements are recorded in `development.md`. Packed-vector matrix bytes and Archive-Vector mappings are not retained in steady-state reopen indexes, but the scanner still materializes each physical chunk transiently; a very large single object can therefore create a large peak allocation.
 
 ## Retrieval limits
 
-Fragments and generic packed vector matrices exist, but embedding profiles, semantic vector generations, Archive-fragment row mappings, lexical search, exact similarity search, hybrid ranking, and retrieval control are not implemented here yet.
+Fragments, generic packed matrices, and row-to-Archive-fragment bindings exist. Embedding profiles, semantic vector generations, lexical search, exact similarity search, hybrid ranking, and retrieval control are not implemented here yet.
 
 ## Product/runtime limits
 
