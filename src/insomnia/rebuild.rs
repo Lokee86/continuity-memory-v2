@@ -1,15 +1,15 @@
-use crate::insomnia_codec::{InsomniaRecord, decode_format, decode_record};
+use super::codec::{InsomniaRecord, decode_format, decode_record};
 use crate::{ChunkRef, InsomniaError};
 
 pub(crate) struct InsomniaOpenState {
-    store: crate::insomnia_store::InsomniaStore,
+    store: super::store::InsomniaStore,
     format_seen: bool,
 }
 
 impl InsomniaOpenState {
     pub(crate) fn new() -> Self {
         Self {
-            store: crate::insomnia_store::InsomniaStore::empty(),
+            store: super::store::InsomniaStore::empty(),
             format_seen: false,
         }
     }
@@ -31,7 +31,7 @@ impl InsomniaOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(self) -> Result<crate::insomnia_store::InsomniaStore, InsomniaError> {
+    pub(crate) fn finish(self) -> Result<super::store::InsomniaStore, InsomniaError> {
         if !self.format_seen {
             return Err(InsomniaError::MissingFormat);
         }

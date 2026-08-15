@@ -1,6 +1,6 @@
 use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::insomnia_store::InsomniaStore;
+use crate::insomnia::store::InsomniaStore;
 use crate::memory_store::MemoryStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_store::VectorGenerationStore;
@@ -160,6 +160,10 @@ impl Cva {
 
     pub fn episode(&self, id: EpisodeId) -> Option<&Episode> {
         self.archive.episode(id)
+    }
+
+    pub fn episode_turns(&mut self, id: EpisodeId) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.archive.episode_turns(&mut self.container, id)
     }
 
     pub fn publish_memory(

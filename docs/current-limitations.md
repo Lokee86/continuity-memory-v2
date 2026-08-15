@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 
 ## Overview
-Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding transport, Archive, deterministic Episodes, authoritative Memory revisions, durable Insomnia queue/lease/retry state, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Insomnia model extraction, Memory Vectors, General/Codex provider transport, later Graph/Dream/Ego layers, and production storage hardening remain incomplete.
+Purpose-built local configuration, encrypted credential persistence, model-switchboard routing/auth attachment, direct OpenAI-ready embedding and General-model transport, Archive, deterministic Episodes, authoritative Memory revisions, durable Insomnia queue/lease/retry state, initial structured Insomnia extraction/Memory publication, packed matrices, Archive row bindings, compatibility profiles, vector-generation publication, exact semantic retrieval, and the original default lexical/hybrid retrieval policy are implemented. Bounded Insomnia evidence expansion, grouped attempt publication, Memory Vectors, Codex/provider-native transport, later Graph/Dream/Ego layers, and production storage hardening remain incomplete.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -26,7 +26,7 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 - Archive branch/session retention and generation retention/vacuum policies are undefined.
 
 ## Compatibility-profile and endpoint limits
-- Direct `openai-ready` embedding HTTP execution is implemented. Provider-native/local-runtime adapters and General-model HTTP execution are not implemented yet.
+- Direct `openai-ready` embedding and General-model HTTP execution are implemented. Provider-native/local-runtime adapters and Codex General transport are not implemented yet.
 - Compatibility policy v2 uses the fixed probe suite and requires cosine `>= 0.9998` for every corresponding probe. On 2026-08-15, eight repeated same-route comparisons of `qwen/qwen3-embedding-8b` through OpenRouter produced minimum cosine values from `0.99988147` to `0.99993311`; policy v1's `0.99999` threshold rejected all eight. Broader routed/local endpoint calibration is still incomplete.
 - Provider, model, route, and revision are intentionally not compatibility-profile fields. Separate optional provenance metadata has not been designed yet.
 - Compatibility profiles currently require dimensions and declared normalization to match exactly. More nuanced compatibility rules, if real endpoints demonstrate a need, remain measurement-driven future work.
@@ -53,7 +53,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - The default operating-system config location is not selected yet; callers currently provide the config path.
 - Fragment, retrieval, `models.general`, `models.embedding`, and encrypted `credential.<id>` objects are implemented.
 - Model routes reference credentials by ID; the switchboard validates auth kind and can attach bearer/auth account headers.
-- Direct `openai-ready` embedding HTTP transport is implemented; General-model HTTP transport is not implemented yet.
+- Direct `openai-ready` embedding and General-model HTTP transport are implemented.
 - `openai-codex` device-code acquisition and OAuth token refresh are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.
 - A 256-bit master key can be generated/reloaded, but it is temporarily stored as plaintext `continuity.master-key.json` beside the config.
 - Windows Credential Manager integration is not implemented yet.
@@ -67,7 +67,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 
 ## Product/runtime limits
 - Deterministic Archive Episodes, authoritative Memory revision storage, and durable Insomnia queue/lease/retry/attempt state are implemented.
-- Insomnia does not yet invoke the General model, validate/extract candidates, perform bounded evidence reads, or publish a full episode result as one grouped correctness boundary.
+- Insomnia can invoke a General endpoint, validate structured candidates against authoritative Episode user turns, preserve the explicit-retention contract, and publish idempotent Memory revisions. Bounded archive-evidence reads and one grouped correctness boundary across Memory revisions plus processing outcome are not implemented yet.
 - `create_memory` exists as a library-level tail-finalization + immediate-queue seam; it is not yet exposed through a shared live-model runtime/tool adapter.
 - Automatic 15-minute inactivity scanning is represented by durable timestamp-derived policy methods but no long-lived runtime currently wakes and applies the policy.
 - Memory Vectors, Graph, the shared long-lived runtime, Dream, Ego, and production importers remain unimplemented.

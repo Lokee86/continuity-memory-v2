@@ -1,5 +1,5 @@
 use crate::archive_history_codec::encode_archive_format;
-use crate::insomnia_codec::encode_format as encode_insomnia_format;
+use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
 use crate::packed_vector_codec::encode_format as encode_packed_format;
 use crate::{

@@ -39,7 +39,6 @@ mod cva_archive_vectors;
 mod cva_compatibility_profiles;
 mod cva_error;
 mod cva_global_validation;
-mod cva_insomnia;
 mod cva_lifecycle;
 mod cva_packed_vectors;
 mod cva_vector_generations;
@@ -53,11 +52,8 @@ mod episode_store;
 mod fragment_model;
 mod fragment_store;
 mod fragmenter;
-mod insomnia_codec;
-mod insomnia_error;
-mod insomnia_model;
-mod insomnia_rebuild;
-mod insomnia_store;
+mod general_endpoint;
+mod insomnia;
 mod lexical_search;
 mod master_key;
 mod master_key_entropy;
@@ -71,6 +67,7 @@ mod model_switchboard;
 mod model_switchboard_codec;
 mod openai_ready_embedding;
 mod openai_ready_embedding_response;
+mod openai_ready_general;
 mod packed_vector_codec;
 mod packed_vector_error;
 mod packed_vector_model;
@@ -119,10 +116,13 @@ pub use episode_model::{
 };
 pub use episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
-pub use insomnia_error::InsomniaError;
-pub use insomnia_model::{
-    EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
-    InsomniaWork, InsomniaWorkState,
+pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
+pub use insomnia::{
+    EpisodeSchedulingResult, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_SYSTEM_PROMPT,
+    InsomniaAttempt, InsomniaCandidate, InsomniaError, InsomniaExtraction, InsomniaExtractionError,
+    InsomniaExtractor, InsomniaLeaseToken, InsomniaPriority, InsomniaProcessError,
+    InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork, InsomniaWorkState,
+    MAX_INSOMNIA_CANDIDATES, insomnia_schema,
 };
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
@@ -141,6 +141,7 @@ pub use openai_ready_embedding::{
     DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE, DEFAULT_REMOTE_EMBEDDING_CONCURRENCY,
     OpenAiReadyEmbeddingEndpoint,
 };
+pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use search_error::SearchError;
@@ -173,8 +174,6 @@ mod episode_tests;
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
-#[cfg(test)]
-mod insomnia_queue_tests;
 #[cfg(test)]
 mod master_key_tests;
 #[cfg(test)]

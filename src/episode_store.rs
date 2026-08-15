@@ -42,6 +42,32 @@ impl Archive {
         self.episodes.get(id)
     }
 
+    pub(crate) fn episode_turns(
+        &self,
+        container: &mut Container,
+        id: EpisodeId,
+    ) -> Result<Vec<crate::ResolvedTurn>, ArchiveError> {
+        let episode = self
+            .episodes
+            .get(id)
+            .ok_or(ArchiveError::InvalidEpisodeRange)?;
+        let nodes = self.branch_nodes(&episode.conversation_id, &episode.end_node_id)?;
+        let start = nodes
+            .iter()
+            .position(|node| node.id == episode.start_node_id)
+            .ok_or(ArchiveError::InvalidEpisodeRange)?;
+        let mut turns = Vec::with_capacity(nodes.len() - start);
+        for node in &nodes[start..] {
+            turns.push(crate::ResolvedTurn {
+                node_id: node.id.clone(),
+                role: node.role.clone(),
+                timestamp_ns: node.timestamp_ns,
+                content: self.content(container, node.content_id)?,
+            });
+        }
+        Ok(turns)
+    }
+
     pub(crate) fn episode_contains_node(
         &self,
         episode_id: EpisodeId,
