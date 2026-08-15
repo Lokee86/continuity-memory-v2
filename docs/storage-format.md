@@ -168,4 +168,4 @@ Each semantic Archive mutation currently adds 72 bytes of ordering metadata/fram
 
 ## Notes
 
-The CVA and Archive formats remain development formats. Compaction, retention, migration, authentication, encryption, and compression are not yet implemented.
+The CVA and Archive formats remain development formats. Compaction, retention, migration, authentication, encryption, packing, and compression are not yet implemented. The accepted future direction is bounded ancestry-aware packs with pack-level compression; see [ADR 0004](decisions/0004-bounded-ancestry-aware-packs.md).

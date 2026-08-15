@@ -36,8 +36,8 @@ Near-term priorities:
 
 1. Implement Archive Vectors as the second concrete database and validate whether the dual-clock mechanic is genuinely reusable.
 2. Recover simple lexical + exact-cosine retrieval before considering specialized indexes.
-3. Add compression/packing from measured Archive access patterns.
-4. Measure repeated cold-open scaling on substantially larger Archives; add persistent Archive checkpointing only if those measurements justify it, and keep any checkpoint derived state keyed by an Archive watermark.
+3. Add bounded ancestry-aware Archive packing from measured retrieval/access patterns, with compression applied at pack level rather than as a prerequisite per-record feature; shared branch ancestry must remain stored once.
+4. Measure pack size/compression tradeoffs plus repeated cold-open scaling on substantially larger Archives; add persistent Archive checkpointing only if those measurements justify it, and keep any checkpoint derived state keyed by an Archive watermark.
 5. Add Memories, Memory Vectors, then Graph as separate owners.
 6. Define rare whole-CVA rollback/timeline activation across those stores without adding an every-write global state manifest.
 7. Build the shared long-lived Continuity runtime and reconnect Insomnia/Dream, then Ego.
@@ -67,7 +67,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 ## Open decisions
 
 - Archive checkpoint representation, cadence, and retention.
-- Compression/pack granularity.
+- Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
 - Actual concurrent file append/version reservation mechanics.
 - Whole-CVA restore/timeline representation after at least two mutable domains exist.
 - Retention/vacuum semantics for abandoned conversation/session branches.
