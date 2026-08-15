@@ -9,6 +9,7 @@ mod model;
 mod processor;
 pub(crate) mod rebuild;
 pub(crate) mod store;
+mod worker;
 
 pub use contract::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_SYSTEM_PROMPT, MAX_INSOMNIA_CANDIDATES,
@@ -27,6 +28,11 @@ pub use model::{
     InsomniaWork, InsomniaWorkState,
 };
 pub use processor::{InsomniaProcessError, InsomniaProcessResult};
+pub use worker::{
+    DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
+    DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_WORKERS, InsomniaDrainResult,
+    InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_WORKERS,
+};
 
 #[cfg(test)]
 mod evidence_flow_tests;
@@ -40,3 +46,5 @@ mod queue_recovery_tests;
 mod queue_tests;
 #[cfg(test)]
 mod test_support;
+#[cfg(test)]
+mod worker_tests;

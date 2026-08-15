@@ -68,11 +68,18 @@ Public types are `CredentialId`, `Credential`, `CredentialsConfig`, `CredentialE
 Credential objects are persisted as AES-256-GCM encrypted `credential.<id>` config objects. Wrong master keys and modified ciphertext are rejected during `ContinuityConfig::open`.
 
 ### Model switchboard
-Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, `ModelRequestAuth`, and `ModelSwitchboard`.
+Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Insomnia, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, `ModelRequestAuth`, and `ModelSwitchboard`.
 
-Each route includes a `CredentialId`. `ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` currently supports General only, uses provider-owned routing, and requires ChatGPT OAuth material; `OpenAiReady` supports General and Embedding, requires explicit HTTP(S) URLs, and requires API-key material. Embedding routes also require non-zero dimensions and explicit normalization.
+Each route includes a `CredentialId`. `ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` supports General/Insomnia routing, uses provider-owned routing, and requires ChatGPT OAuth material; its provider-native General transport is not implemented yet. `OpenAiReady` supports General/Insomnia/Embedding, requires explicit HTTP(S) URLs, and requires API-key material. Embedding routes also require non-zero dimensions and explicit normalization. `models.insomnia` is optional and resolves to the General route/credential when absent.
 
-`ModelSwitchboard::new(config, credentials)` validates both route structure and credential availability/auth kind. `general_auth()` and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. Direct OpenAI-ready embedding transport is implemented; General-model HTTP transport and Codex device-code acquisition/token refresh remain future work.
+`ModelSwitchboard::new(config, credentials)` validates route structure and credential availability/auth kind. `general_auth()`, `insomnia_auth()`, and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. Direct OpenAI-ready embedding and strict JSON-schema General-model HTTP transport are implemented; Codex device-code acquisition/token refresh and provider-native General transport remain future work.
+
+### Insomnia extraction and backlog worker
+Public Insomnia surface includes `InsomniaExtractor`, `InsomniaWorkerConfig`, `InsomniaDrainResult`, `InsomniaWorkerError`, queue/work/attempt models, and the extraction contract constants. `OpenAiReadyGeneralEndpoint::from_insomnia_switchboard` constructs the effective dedicated-Insomnia-or-General-fallback endpoint.
+
+`Cva::finalize_canonical_imports_and_queue(EpisodeConfig, now_ns)` materializes uncovered deterministic import Episodes for canonical Archive branches and idempotently ensures all import-origin Episodes have Insomnia work. `Cva::drain_insomnia_backlog(extractor, config)` runs a finite concurrent drain with 1–64 workers (default 16). Claims, evidence reads, and authoritative Memory/attempt publication acquire the shared CVA owner; model calls execute outside that lock and therefore overlap across Episodes. Retryable extraction failures are requeued until `max_attempts`; invalid endpoint configuration is terminal. The result reports attempts, completed/terminal episodes, Memory outcomes, evidence volume, and observed peak active worker count.
+
+This worker is a finite bring-up/runtime primitive, not the future persistent shared Continuity runtime. The repo-local CLI composes canonical-import registration, backlog drain, and missing Memory-Vector embedding for whole-file testing.
 
 ### Embedding endpoint abstraction
 Public types:
@@ -197,4 +204,4 @@ G102/A701  Archive mutation
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. OpenAI-ready embedding transport is implemented; General-model provider transport, Codex device-code acquisition/refresh, and the long-lived runtime remain next.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. OpenAI-ready embedding and General-model transport plus the finite Insomnia backlog worker are implemented; Codex provider-native transport/device-code refresh and the shared long-lived runtime remain next.

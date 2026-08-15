@@ -38,6 +38,10 @@ pub enum Command {
         #[command(subcommand)]
         command: VectorsCommand,
     },
+    Insomnia {
+        #[command(subcommand)]
+        command: InsomniaCommand,
+    },
     Dev {
         #[command(subcommand)]
         command: DevCommand,
@@ -106,6 +110,23 @@ pub enum VectorsCommand {
         batch_size: usize,
         #[arg(long, default_value_t = 16)]
         concurrency: usize,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum InsomniaCommand {
+    Run {
+        cva: PathBuf,
+        #[arg(long, default_value_t = continuity_memory::DEFAULT_INSOMNIA_WORKERS)]
+        workers: usize,
+        #[arg(long, default_value = "private")]
+        scope: String,
+        #[arg(long, default_value_t = 16)]
+        embedding_batch_size: usize,
+        #[arg(long, default_value_t = 16)]
+        embedding_concurrency: usize,
+        #[arg(long)]
+        existing_queue_only: bool,
     },
 }
 

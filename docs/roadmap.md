@@ -43,6 +43,7 @@ Completed bootstrap slices:
 27. An `insomnia` Rust module with exact Episode input reads, strict JSON-schema General-model extraction, candidate/user-authority validation, explicit-retention semantics, deterministic candidate identity, and idempotent Memory publication.
 28. Immutable Memory Vectors over shared packed matrices, keyed by `(CompatibilityProfileId, MemoryBodyId)`, with missing-only embedding, reopen validation, and enforced immutable Memory semantic bodies across metadata revisions.
 29. One bounded read-only Insomnia Archive-evidence round with exact-turn, maximum-64-node ancestry-range, and lexical-search reads; four-request and 64-turn/128-KiB global bounds; second-round rejection; current-Episode-only user authority; and evidence-bound external assistant provenance.
+30. A configurable one-shot Insomnia backlog worker pool with 1–64 workers (default 16), atomic distinct-Episode claims, model inference outside the serialized CVA mutation boundary, bounded evidence reads between model rounds, retry/terminal handling, whole-backlog drain semantics, canonical-import registration, and a repo-local `insomnia run` bring-up command that fills missing Memory Vectors after extraction.
 
 ## Expected ownership or ownership boundary
 
@@ -52,11 +53,12 @@ Completed bootstrap slices:
 
 Near-term priorities:
 
-1. Finish Insomnia processing around the implemented extraction core: add the grouped Memory/outcome publication boundary, retry classification, and the whole-file worker loop over the operational queue; have that loop fill missing Memory Vectors as a separate asynchronous/derived step.
-2. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, worker-pool orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
-3. Extend provider transport beyond the implemented `openai-ready` embedding/General paths: add `openai-codex` ChatGPT device-code acquisition/token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
-4. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.
-5. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
+1. Run the prepared whole-file Insomnia corpus through the live configured routes, inspect extraction quality/failures/evidence use, and remeasure worker concurrency at 1/2/4/8/16/32; the current default of 16 carries forward the previous implementation's measured sweet spot but has not yet been retuned for the v2 extraction workload.
+2. Add the grouped Memory/outcome publication boundary; mutation-ID replay already converges correctly after an interrupted split publication, but one physical correctness boundary is still required before production hardening.
+3. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, persistent/background worker orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
+4. Extend provider transport beyond the implemented `openai-ready` embedding/General paths: add `openai-codex` ChatGPT device-code acquisition/token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
+5. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.
+6. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
 
 ## Implementation sequence
 

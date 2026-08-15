@@ -1,4 +1,4 @@
-use crate::args::{Cli, Command, CvaCommand, VectorsCommand};
+use crate::args::{Cli, Command, CvaCommand, InsomniaCommand, VectorsCommand};
 use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
 use clap::Parser;
 
@@ -120,6 +120,31 @@ fn live_vector_build_uses_measured_defaults() {
             command: VectorsCommand::Build {
                 batch_size: 16,
                 concurrency: 16,
+                ..
+            }
+        }
+    ));
+}
+
+#[test]
+fn insomnia_run_exposes_worker_concurrency() {
+    let cli = Cli::try_parse_from([
+        "continuity",
+        "insomnia",
+        "run",
+        "sample.cva",
+        "--workers",
+        "8",
+        "--embedding-concurrency",
+        "4",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Insomnia {
+            command: InsomniaCommand::Run {
+                workers: 8,
+                embedding_concurrency: 4,
                 ..
             }
         }

@@ -106,6 +106,40 @@ impl Cva {
         self.queue_episode_result(episodes, InsomniaPriority::Import, now_ns)
     }
 
+    pub fn finalize_canonical_imports_and_queue(
+        &mut self,
+        config: EpisodeConfig,
+        now_ns: i64,
+    ) -> Result<Vec<EpisodeSchedulingResult>, InsomniaError> {
+        let mut branches: Vec<_> = self
+            .branches()
+            .into_iter()
+            .filter(|branch| branch.canonical)
+            .collect();
+        branches.sort_by(|left, right| {
+            left.conversation_id
+                .cmp(&right.conversation_id)
+                .then_with(|| left.id.cmp(&right.id))
+        });
+        let mut results = Vec::with_capacity(branches.len());
+        for branch in branches {
+            results.push(self.finalize_import_path_and_queue(
+                &branch.conversation_id,
+                &branch.leaf_node_id,
+                config,
+                now_ns,
+            )?);
+        }
+        for episode in self
+            .episodes()
+            .into_iter()
+            .filter(|episode| episode.origin == EpisodeOrigin::Import)
+        {
+            self.queue_insomnia_episode(episode.id, InsomniaPriority::Import, now_ns)?;
+        }
+        Ok(results)
+    }
+
     pub fn claim_insomnia_episode(
         &mut self,
         worker_id: &str,

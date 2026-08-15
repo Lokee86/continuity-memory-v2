@@ -7,6 +7,7 @@ mod config_cmd;
 mod cva_cmd;
 mod dev_cmd;
 mod import_cmd;
+mod insomnia_cmd;
 mod util;
 mod vectors_cmd;
 
@@ -29,6 +30,7 @@ fn run() -> Result<()> {
         Command::Archive { command } => archive_cmd::run(command),
         Command::Config { command } => config_cmd::run(&cli.config, command),
         Command::Vectors { command } => vectors_cmd::run(&cli.config, command),
+        Command::Insomnia { command } => insomnia_cmd::run(&cli.config, command),
         Command::Dev { command } => dev_cmd::run(command),
     }
 }

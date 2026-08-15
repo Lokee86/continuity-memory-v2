@@ -1,8 +1,8 @@
 use super::candidate::hex;
 use crate::{
     Cva, GeneralEndpoint, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, InsomniaCandidate,
-    InsomniaExtractionError, InsomniaExtractor, InsomniaRejection, InsomniaWork, InsomniaWorkState,
-    Memory, MemoryDraft, MemoryError,
+    InsomniaExtraction, InsomniaExtractionError, InsomniaExtractor, InsomniaRejection,
+    InsomniaWork, InsomniaWorkState, Memory, MemoryDraft, MemoryError,
 };
 use std::fmt;
 
@@ -73,6 +73,24 @@ impl Cva {
         started_at_ns: i64,
         completed_at_ns: i64,
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
+        let (episode, turns) = self.claimed_episode_input(claim, scope)?;
+        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        self.apply_claimed_insomnia_extraction(
+            claim,
+            &episode,
+            &turns,
+            extraction,
+            scope,
+            started_at_ns,
+            completed_at_ns,
+        )
+    }
+
+    pub(crate) fn claimed_episode_input(
+        &mut self,
+        claim: &InsomniaWork,
+        scope: &str,
+    ) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
         if claim.state != InsomniaWorkState::Processing
             || claim.lease_token.is_none()
             || scope.trim().is_empty()
@@ -84,7 +102,27 @@ impl Cva {
             .cloned()
             .ok_or(InsomniaProcessError::MissingEpisode)?;
         let turns = self.episode_turns(claim.episode_id)?;
-        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        Ok((episode, turns))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn apply_claimed_insomnia_extraction(
+        &mut self,
+        claim: &InsomniaWork,
+        episode: &crate::Episode,
+        turns: &[crate::ResolvedTurn],
+        extraction: InsomniaExtraction,
+        scope: &str,
+        started_at_ns: i64,
+        completed_at_ns: i64,
+    ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
+        if claim.state != InsomniaWorkState::Processing
+            || claim.lease_token.is_none()
+            || claim.episode_id != episode.id
+            || scope.trim().is_empty()
+        {
+            return Err(InsomniaProcessError::InvalidClaim);
+        }
         let mut result = InsomniaProcessResult {
             created: Vec::new(),
             existing: Vec::new(),
@@ -94,7 +132,7 @@ impl Cva {
             if let Err(reason) = self.validate_content_source(
                 &candidate,
                 &episode.conversation_id,
-                &turns,
+                turns,
                 &extraction.evidence_turns,
             ) {
                 result.rejected.push(InsomniaRejection {
