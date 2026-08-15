@@ -10,6 +10,7 @@ pub enum ModelProvider {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ModelCapability {
     General,
+    Insomnia,
     Embedding,
 }
 
@@ -29,7 +30,7 @@ impl ModelProvider {
 
     pub fn supports(self, capability: ModelCapability) -> bool {
         match (self, capability) {
-            (_, ModelCapability::General) => true,
+            (_, ModelCapability::General | ModelCapability::Insomnia) => true,
             (Self::OpenAiReady, ModelCapability::Embedding) => true,
             (Self::OpenAiCodex, ModelCapability::Embedding) => false,
         }
@@ -72,6 +73,7 @@ pub struct EmbeddingModelEndpoint {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ModelSwitchboardConfig {
     pub general: Option<GeneralModelEndpoint>,
+    pub insomnia: Option<GeneralModelEndpoint>,
     pub embedding: Option<EmbeddingModelEndpoint>,
 }
 
@@ -98,12 +100,29 @@ impl ModelSwitchboard {
         self.config.general.as_ref()
     }
 
+    pub fn insomnia(&self) -> Option<&GeneralModelEndpoint> {
+        self.config
+            .insomnia
+            .as_ref()
+            .or(self.config.general.as_ref())
+    }
+
     pub fn embedding(&self) -> Option<&EmbeddingModelEndpoint> {
         self.config.embedding.as_ref()
     }
 
     pub fn general_auth(&self) -> Option<ModelRequestAuth> {
         self.config.general.as_ref().map(|endpoint| {
+            resolve_auth(
+                endpoint.provider,
+                &endpoint.credential_id,
+                &self.credentials,
+            )
+        })
+    }
+
+    pub fn insomnia_auth(&self) -> Option<ModelRequestAuth> {
+        self.insomnia().map(|endpoint| {
             resolve_auth(
                 endpoint.provider,
                 &endpoint.credential_id,
@@ -129,6 +148,9 @@ impl ModelSwitchboard {
 
 pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<(), ConfigError> {
     if let Some(endpoint) = &config.general {
+        validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
+    }
+    if let Some(endpoint) = &config.insomnia {
         validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())?;
     }
     if let Some(endpoint) = &config.embedding {

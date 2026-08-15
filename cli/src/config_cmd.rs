@@ -30,6 +30,7 @@ fn show(path: &Path) -> Result<()> {
         config.retrieval.semantic_weight
     );
     show_general(config.models.general.as_ref());
+    show_insomnia(config.models.insomnia.as_ref());
     show_embedding(config.models.embedding.as_ref());
     println!("credentials:");
     for id in config.credentials.ids() {
@@ -109,6 +110,21 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
             validate_runtime(&config)?;
         }
         ModelCommand::ClearGeneral => config.models.general = None,
+        ModelCommand::SetInsomnia {
+            provider: p,
+            model,
+            credential,
+            url,
+        } => {
+            config.models.insomnia = Some(GeneralModelEndpoint {
+                provider: provider(p),
+                model,
+                url,
+                credential_id: credential_id(credential)?,
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearInsomnia => config.models.insomnia = None,
         ModelCommand::SetEmbedding {
             provider: p,
             model,
@@ -157,6 +173,19 @@ fn show_general(value: Option<&GeneralModelEndpoint>) {
             endpoint.credential_id.as_str()
         ),
         None => println!("general: <unset>"),
+    }
+}
+
+fn show_insomnia(value: Option<&GeneralModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!(
+            "insomnia: provider={:?} model={} url={} credential={}",
+            endpoint.provider,
+            endpoint.model,
+            endpoint.url.as_deref().unwrap_or("<provider-owned>"),
+            endpoint.credential_id.as_str()
+        ),
+        None => println!("insomnia: <unset; falls back to general>"),
     }
 }
 

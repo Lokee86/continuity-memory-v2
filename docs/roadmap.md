@@ -32,7 +32,7 @@ Completed bootstrap slices:
 16. Exact semantic retrieval through compatibility verification, Query-mode embedding, current-generation resolution, exact cosine scan, and row-to-FragmentId mapping.
 17. Original default lexical/hybrid retrieval with 30-candidate fusion, `0.45/0.55` channel weighting, overlap diversification, and 10 final results.
 18. Purpose-built replaceable local configuration container with fragment/retrieval objects, deterministic framing, unknown-object preservation, and atomic whole-file replacement.
-19. Expandable model-switchboard routing with `General`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, and persisted `models.general` / `models.embedding` objects.
+19. Expandable model-switchboard routing with `General`/`Insomnia`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, persisted `models.general` / optional `models.insomnia` / `models.embedding` objects, and Insomnia-to-General fallback.
 20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
 21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
 22. Detachable repo-local CLI package exposing CVA/config/auth/archive/vector inspection plus simulated vector/retrieval bring-up through public library APIs only.

@@ -7,8 +7,8 @@ use crate::config_object::{
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
-    EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, MODEL_OBJECT_SCHEMA_V2, decode_embedding,
-    decode_general, encode_embedding, encode_general,
+    EMBEDDING_MODEL_KEY, GENERAL_MODEL_KEY, INSOMNIA_MODEL_KEY, MODEL_OBJECT_SCHEMA_V2,
+    decode_embedding, decode_general, encode_embedding, encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
@@ -55,11 +55,19 @@ impl ContinuityConfig {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
         };
+        let insomnia = match objects.remove(INSOMNIA_MODEL_KEY) {
+            Some(object) => Some(decode_known_general(object)?),
+            None => None,
+        };
         let embedding = match objects.remove(EMBEDDING_MODEL_KEY) {
             Some(object) => Some(decode_known_embedding(object)?),
             None => None,
         };
-        let models = ModelSwitchboardConfig { general, embedding };
+        let models = ModelSwitchboardConfig {
+            general,
+            insomnia,
+            embedding,
+        };
         validate_switchboard(&models)?;
         let credentials = load_credentials(&path, &mut objects)?;
         Ok(Self {
@@ -104,6 +112,12 @@ impl ContinuityConfig {
         if let Some(endpoint) = &self.models.general {
             objects.insert(
                 GENERAL_MODEL_KEY.to_owned(),
+                model_object(encode_general(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.insomnia {
+            objects.insert(
+                INSOMNIA_MODEL_KEY.to_owned(),
                 model_object(encode_general(endpoint)?),
             );
         }

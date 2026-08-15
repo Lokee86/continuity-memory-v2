@@ -48,6 +48,17 @@ pub enum ModelCommand {
         url: Option<String>,
     },
     ClearGeneral,
+    SetInsomnia {
+        #[arg(long, value_enum)]
+        provider: ProviderArg,
+        #[arg(long)]
+        model: String,
+        #[arg(long)]
+        credential: String,
+        #[arg(long)]
+        url: Option<String>,
+    },
+    ClearInsomnia,
     SetEmbedding {
         #[arg(long, value_enum, default_value = "openai-ready")]
         provider: ProviderArg,

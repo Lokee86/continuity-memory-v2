@@ -23,6 +23,35 @@ impl OpenAiReadyGeneralEndpoint {
             .ok_or(GeneralEndpointError::InvalidConfiguration(
                 "general route is not configured",
             ))?;
+        let auth = switchboard
+            .general_auth()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "general auth is missing",
+            ))?;
+        Self::from_route(route, auth)
+    }
+
+    pub fn from_insomnia_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route = switchboard
+            .insomnia()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "insomnia and general routes are not configured",
+            ))?;
+        let auth =
+            switchboard
+                .insomnia_auth()
+                .ok_or(GeneralEndpointError::InvalidConfiguration(
+                    "insomnia auth is missing",
+                ))?;
+        Self::from_route(route, auth)
+    }
+
+    fn from_route(
+        route: &crate::GeneralModelEndpoint,
+        auth: ModelRequestAuth,
+    ) -> Result<Self, GeneralEndpointError> {
         if route.provider != ModelProvider::OpenAiReady {
             return Err(GeneralEndpointError::InvalidConfiguration(
                 "general route is not OpenAI-ready",
@@ -33,11 +62,6 @@ impl OpenAiReadyGeneralEndpoint {
             .clone()
             .ok_or(GeneralEndpointError::InvalidConfiguration(
                 "general URL is missing",
-            ))?;
-        let auth = switchboard
-            .general_auth()
-            .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "general auth is missing",
             ))?;
         let client = Client::builder()
             .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))

@@ -103,6 +103,12 @@ string    credential ID
 
 The general endpoint currently accepts `openai-codex` or `openai-ready`. `openai-codex` uses provider-owned routing and therefore stores no URL. `openai-ready` requires an explicit `http://` or `https://` endpoint URL. The credential ID names a separate encrypted `credential.<id>` object.
 
+### `models.insomnia`
+
+Schema `2`, flags `0`, with the same payload shape as `models.general`.
+
+This route is optional. When configured, Insomnia uses it for extraction. When absent, `ModelSwitchboard::insomnia()` and `insomnia_auth()` fall back to the configured `models.general` route and credential. This keeps General as the default model path while allowing Insomnia to be independently routed when desired.
+
 ### `models.embedding`
 
 Schema `2`, flags `0`:
@@ -162,7 +168,7 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
-- General/embedding routes, encrypted credentials, credential references, request-auth attachment, and direct `openai-ready` embedding HTTP execution are implemented; General-model HTTP transport is not wired yet.
+- General/Insomnia/embedding routes, encrypted credentials, credential references, request-auth attachment, and direct `openai-ready` embedding/General HTTP execution are implemented. Insomnia falls back to General when its dedicated route is unset.
 - `openai-codex` device-code acquisition and token refresh are not implemented yet; ChatGPT OAuth material can already be stored and attached once supplied.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.

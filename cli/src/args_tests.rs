@@ -1,5 +1,5 @@
 use crate::args::{Cli, Command, CvaCommand, VectorsCommand};
-use crate::config_args::{ConfigCommand, CredentialCommand};
+use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
 use clap::Parser;
 
 #[test]
@@ -46,6 +46,33 @@ fn api_key_command_rejects_direct_secret_option() {
         "do-not-accept",
     ]);
     assert!(result.is_err());
+}
+
+#[test]
+fn insomnia_model_route_is_configurable() {
+    let cli = Cli::try_parse_from([
+        "continuity",
+        "config",
+        "model",
+        "set-insomnia",
+        "--provider",
+        "openai-ready",
+        "--model",
+        "memory-model",
+        "--credential",
+        "insomnia",
+        "--url",
+        "https://example.test/v1/chat/completions",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Config {
+            command: ConfigCommand::Model {
+                command: ModelCommand::SetInsomnia { .. }
+            }
+        }
+    ));
 }
 
 #[test]

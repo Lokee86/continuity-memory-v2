@@ -33,6 +33,7 @@ ContinuityConfig
     ├── archive.fragments
     ├── retrieval.default
     ├── models.general
+    ├── models.insomnia (optional; falls back to general)
     ├── models.embedding
     └── credential.<id> (AES-256-GCM)
 ```
@@ -43,7 +44,7 @@ ContinuityConfig
 ### Repo-local CLI
 `cli/` is a separate, non-installed Cargo package that depends only on the public library API. It owns argument parsing, secret prompting, and human-readable command composition; it owns no CVA/config/auth/retrieval semantics and can be removed or detached without changing the core package.
 ### Model switchboard
-`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The initial capabilities are `General` and `Embedding`; the initial providers are `OpenAiCodex` and `OpenAiReady`. Each configured route carries a stable `CredentialId`. `OpenAiCodex` currently supports only General and uses provider-owned routing; `OpenAiReady` supports General and Embedding and requires an explicit HTTP(S) endpoint URL.
+`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The current capabilities are `General`, `Insomnia`, and `Embedding`; the providers are `OpenAiCodex` and `OpenAiReady`. Insomnia may have its own route and otherwise resolves to General. Each configured route carries a stable `CredentialId`. `OpenAiCodex` supports General/Insomnia routing and uses provider-owned routing; `OpenAiReady` supports General/Insomnia/Embedding and requires an explicit HTTP(S) endpoint URL.
 
 `CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. The switchboard can then produce request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. `OpenAiReadyEmbeddingEndpoint` consumes the validated embedding route/auth, performs direct OpenAI-compatible HTTP embedding requests, preserves input order across concurrent batches, and normalizes output according to the declared route contract. `OpenAiReadyGeneralEndpoint` consumes the General route/auth and performs strict JSON-schema chat completions for subsystems such as Insomnia. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
 ### Master key

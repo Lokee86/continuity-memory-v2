@@ -51,7 +51,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 ## Local configuration limits
 - Purpose-built `continuity.cfg` persistence is implemented with replaceable logical objects and atomic whole-file replacement.
 - The default operating-system config location is not selected yet; callers currently provide the config path.
-- Fragment, retrieval, `models.general`, `models.embedding`, and encrypted `credential.<id>` objects are implemented.
+- Fragment, retrieval, `models.general`, optional `models.insomnia`, `models.embedding`, and encrypted `credential.<id>` objects are implemented. Insomnia resolves to `models.general` when its dedicated route is absent.
 - Model routes reference credentials by ID; the switchboard validates auth kind and can attach bearer/auth account headers.
 - Direct `openai-ready` embedding and General-model HTTP transport are implemented.
 - `openai-codex` device-code acquisition and OAuth token refresh are not implemented yet; stored ChatGPT OAuth tokens can already be attached to requests.

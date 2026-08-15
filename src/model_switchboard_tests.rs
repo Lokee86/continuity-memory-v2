@@ -33,7 +33,9 @@ fn provider_auth_and_capabilities_are_explicit() {
         ModelAuthKind::ApiKey
     );
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::General));
+    assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Insomnia));
     assert!(!ModelProvider::OpenAiCodex.supports(ModelCapability::Embedding));
+    assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Insomnia));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Embedding));
 }
 
@@ -54,6 +56,11 @@ fn routes_and_credentials_round_trip_and_attach_auth_headers() {
     switchboard.general_auth().unwrap().apply_to(&mut general);
     assert_eq!(general["Authorization"], "Bearer codex-access");
     assert_eq!(general["ChatGPT-Account-ID"], "account-123");
+
+    let mut insomnia = BTreeMap::new();
+    switchboard.insomnia_auth().unwrap().apply_to(&mut insomnia);
+    assert_eq!(insomnia["Authorization"], "Bearer ready-key");
+    assert!(!insomnia.contains_key("ChatGPT-Account-ID"));
 
     let mut embedding = BTreeMap::new();
     switchboard
@@ -84,6 +91,7 @@ fn clearing_model_routes_removes_them_from_current_config() {
 fn invalid_provider_routes_are_rejected() {
     let codex_embedding = ModelSwitchboardConfig {
         general: None,
+        insomnia: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiCodex,
             model: "codex".into(),
@@ -102,9 +110,23 @@ fn invalid_provider_routes_are_rejected() {
             url: None,
             credential_id: id("ready"),
         }),
+        insomnia: None,
         embedding: None,
     };
     assert!(ModelSwitchboard::new(missing_url, CredentialsConfig::default()).is_err());
+}
+
+#[test]
+fn insomnia_route_falls_back_to_general_when_unset() {
+    let mut models = configured_models();
+    models.insomnia = None;
+    let switchboard = ModelSwitchboard::new(models, configured_credentials()).unwrap();
+    assert_eq!(switchboard.insomnia(), switchboard.general());
+
+    let mut auth = BTreeMap::new();
+    switchboard.insomnia_auth().unwrap().apply_to(&mut auth);
+    assert_eq!(auth["Authorization"], "Bearer codex-access");
+    assert_eq!(auth["ChatGPT-Account-ID"], "account-123");
 }
 
 #[test]
@@ -125,6 +147,12 @@ fn configured_models() -> ModelSwitchboardConfig {
             model: "gpt-codex".into(),
             url: None,
             credential_id: id("codex"),
+        }),
+        insomnia: Some(GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: "insomnia-model".into(),
+            url: Some("https://example.test/v1/chat/completions".into()),
+            credential_id: id("ready"),
         }),
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,
