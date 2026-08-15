@@ -14,6 +14,7 @@ Coverage remains intentionally small while the rebuild is early.
 
 | Implementation | Responsibility | Canonical owners |
 | --- | --- | --- |
+| `src/cva.rs`, `src/cva_error.rs` | Single-Container CVA composition, concrete-store scan dispatch, public lifecycle/API | [Architecture](architecture.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |
 | `src/container.rs` | CVA header/chunks/read/append/sync | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md) |
 | `src/container_scan.rs` | Single-pass physical payload scan and global-ticket observation | [Architecture](architecture.md), [Storage format](storage-format.md), [Development](development.md) |
 | `src/container_version.rs` | CVA-global monotonic version tickets | [Architecture](architecture.md), [Storage format](storage-format.md) |
@@ -31,6 +32,7 @@ Coverage remains intentionally small while the rebuild is early.
 | `src/archive_tests.rs` | Archive dedupe/idempotency | [Behavioral contracts](behavioral-contracts.md) |
 | `src/fragment_*` | Fragment identity/materialization/storage/tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Behavioral contracts](behavioral-contracts.md) |
 | `src/history_tests.rs` | Dual clocks, independent conversations, branch revisions/revival | [Behavioral contracts](behavioral-contracts.md), [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md) |
+| `src/packed_vector_*` | Packed-vector format, content identity, derived lookup, reopen, tests | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) |
 | `src/lib.rs` | Public crate exports | [Rust API](api.md) |
 | `examples/archive_roundtrip.rs` | Prepared-corpus reopen smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
 | `examples/archive_open_profile.rs` | Standalone open-time/allocator benchmark | [Development](development.md) |

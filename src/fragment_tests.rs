@@ -1,4 +1,4 @@
-use crate::{Archive, Branch, FragmentConfig};
+use crate::{Branch, Cva, FragmentConfig};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,7 +13,7 @@ fn test_path(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-fn append_chain(archive: &mut Archive, conversation: &str, from: usize, to: usize) {
+fn append_chain(archive: &mut Cva, conversation: &str, from: usize, to: usize) {
     for index in from..to {
         let parent = (index > 0).then(|| format!("n{}", index - 1));
         archive
@@ -32,7 +32,7 @@ fn append_chain(archive: &mut Archive, conversation: &str, from: usize, to: usiz
 #[test]
 fn live_fragmenting_is_append_only() {
     let path = test_path("append.cva");
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     append_chain(&mut archive, "c1", 0, 8);
     let config = FragmentConfig::default();
     let first = archive
@@ -60,7 +60,7 @@ fn live_fragmenting_is_append_only() {
 #[test]
 fn closed_tail_is_materialized_without_copying_text() {
     let path = test_path("tail.cva");
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     append_chain(&mut archive, "c1", 0, 10);
     let created = archive
         .materialize_path_fragments("c1", "n9", FragmentConfig::default(), true)
@@ -77,7 +77,7 @@ fn closed_tail_is_materialized_without_copying_text() {
     archive.sync().unwrap();
     drop(archive);
 
-    let mut reopened = Archive::open(&path).unwrap();
+    let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.stats().fragments, 2);
     assert!(reopened.fragment_text(tail_id).unwrap().contains("turn 9"));
 }
@@ -85,7 +85,7 @@ fn closed_tail_is_materialized_without_copying_text() {
 #[test]
 fn branches_reuse_shared_prefix_fragments() {
     let path = test_path("branches.cva");
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     append_chain(&mut archive, "c1", 0, 10);
     archive
         .append_node(

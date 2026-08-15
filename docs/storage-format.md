@@ -1,14 +1,14 @@
-# CVA and Archive Storage Format
+# CVA, Archive, and Packed-Vector Storage Format
 
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document is the exact reference owner for the persistent file and Archive record format currently implemented by this repository.
+This document is the exact reference owner for the persistent CVA, Archive, and packed-vector record formats currently implemented by this repository.
 
 ## Overview
 
-CVA format `1.0` is a development append format. A fixed 16-byte header is followed by opaque length-prefixed chunks. Container-global version tickets and Archive-local record-version metadata provide two ordering levels without an Archive-wide semantic parent chain.
+CVA format `1.0` is a development append format. A fixed 16-byte header is followed by opaque length-prefixed chunks. `Cva::open` performs one physical scan and rebuilds Archive plus the immutable packed-vector backing store. Container-global version tickets and Archive-local record-version metadata apply to semantic Archive mutations; raw packed-vector objects do not consume those clocks.
 
 ## Exact contract
 
@@ -48,7 +48,7 @@ Tickets begin at `1` and are physically consecutive. They order durable mutation
 u32       marker payload schema version = 1
 ```
 
-Exactly one marker is required by `Archive::open`. The `CVAAFMT2` magic intentionally rejects the earlier development prototype that used Archive-wide publication ancestry.
+Exactly one marker is required by `Cva::open`. The `CVAAFMT2` magic intentionally rejects the earlier development prototype that used Archive-wide publication ancestry.
 
 ### Archive content record
 
@@ -115,6 +115,32 @@ Archive versions start at `1` and must be contiguous. Global versions must incre
 
 The metadata contains no parent publication or Archive-head pointer. Its `record` reference must point backward to an already written semantic node, branch, or fragment payload; forward references are invalid.
 
+### Packed-vector format marker
+
+```text
+8 bytes   magic = "CVAPVFM1"
+u32       marker payload schema version = 1
+```
+
+Exactly one marker is required by `Cva::open`. Archive-only development CVAs created before this store existed are rejected rather than migrated in place.
+
+### Packed-vector object
+
+```text
+8 bytes   magic = "CVAPVEC1"
+32 bytes  packed-vector ID
+u32       dimensions
+u8        scalar tag
+3 bytes   reserved = 0
+u64       row count
+u64       matrix byte length
+N bytes   contiguous matrix rows
+```
+
+Rows contain no per-row framing. `row_bytes = dimensions * scalar_width`, and `matrix_byte_length` must equal `row_count * row_bytes`. Multi-byte scalar values use little-endian representation in the CVA. Current scalar tags are `1=i8`, `2=u8`, `3=i16`, `4=u16`, `5=i32`, `6=u32`, `7=i64`, `8=u64`, `9=f16`, `10=bf16`, `11=f32`, and `12=f64`.
+
+The packed-vector ID is SHA-256 over `"CVA-PACKED-VECTOR-V1\0"`, little-endian dimensions, the scalar tag, and the exact matrix bytes. Equal schema+matrix data therefore deduplicates. Matrix objects are immutable backing data: writing one does not allocate a global version ticket and does not advance the Archive clock.
+
 ### Strings
 
 ```text
@@ -140,7 +166,7 @@ Default fragments use eight turns, two-turn overlap, and six-turn stride. Live p
 
 Container open rejects invalid/truncated header or chunk framing and malformed/non-consecutive global version tickets.
 
-Archive open rejects a missing/duplicate Archive marker, malformed recognized records, corrupt content IDs, non-contiguous Archive versions, non-increasing/out-of-range global versions in Archive metadata, invalid semantic `ChunkRef`s/types, node conflicts/cycles, missing references, and invalid fragments.
+`Cva::open` rejects missing/duplicate Archive or packed-vector format markers. Archive rebuild rejects malformed recognized records, corrupt content IDs, non-contiguous Archive versions, non-increasing/out-of-range global versions in Archive metadata, invalid semantic `ChunkRef`s/types, node conflicts/cycles, missing references, and invalid fragments. Packed-vector rebuild rejects malformed schemas/shapes, invalid reserved bytes, and matrix bytes whose recomputed content identity does not match the stored ID.
 
 Unversioned node/branch/fragment payloads are physically tolerated but are not semantic Archive state; the single-pass reopen path keeps them pending and discards any that never receive valid metadata, making interrupted pre-metadata writes inert on reopen.
 
@@ -168,4 +194,4 @@ Each semantic Archive mutation currently adds 72 bytes of ordering metadata/fram
 
 ## Notes
 
-The CVA and Archive formats remain development formats. Compaction, retention, migration, authentication, encryption, packing, and compression are not yet implemented. The accepted future direction is bounded ancestry-aware packs with pack-level compression; see [ADR 0004](decisions/0004-bounded-ancestry-aware-packs.md).
+The CVA, Archive, and packed-vector formats remain development formats. Embedding profiles, vector generations, row-to-domain mappings, similarity search, compaction, retention, migration, authentication, encryption, Archive packing, and compression are not yet implemented. The accepted Archive packing direction is bounded ancestry-aware packs with pack-level compression; see [ADR 0004](decisions/0004-bounded-ancestry-aware-packs.md). Packed-vector ownership is recorded in [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md).

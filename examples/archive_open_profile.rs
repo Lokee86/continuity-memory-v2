@@ -1,4 +1,4 @@
-use continuity_memory::Archive;
+use continuity_memory::Cva;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let before = CURRENT.load(Ordering::Relaxed);
         PEAK.store(before, Ordering::Relaxed);
         let start = Instant::now();
-        let archive = Archive::open(&args[1])?;
+        let archive = Cva::open(&args[1])?;
         let elapsed = start.elapsed();
         let after = CURRENT.load(Ordering::Relaxed);
         let peak = PEAK.load(Ordering::Relaxed);

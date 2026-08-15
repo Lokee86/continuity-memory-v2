@@ -1,11 +1,13 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::{encode_archive_format, encode_record_version};
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, ChunkRef};
+use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, ChunkRef, Container};
 
 impl Archive {
-    pub(crate) fn initialize_history_format(&mut self) -> Result<(), ArchiveError> {
-        self.container.append(&encode_archive_format())?;
-        self.container.sync()?;
+    pub(crate) fn initialize_history_format(
+        &self,
+        container: &mut Container,
+    ) -> Result<(), ArchiveError> {
+        container.append(&encode_archive_format())?;
         Ok(())
     }
 
@@ -22,19 +24,19 @@ impl Archive {
         self.record_versions.get(index)
     }
 
-    pub fn branch_at(
-        &mut self,
+    pub(crate) fn branch_at(
+        &self,
+        container: &mut Container,
         conversation_id: &str,
         branch_id: &str,
         archive_version: u64,
     ) -> Result<Option<Branch>, ArchiveError> {
         let mut found = None;
-        for version in self.record_versions.clone() {
+        for version in &self.record_versions {
             if version.archive_version > archive_version {
                 break;
             }
-            if let ArchiveRecord::Branch(branch) =
-                decode_record(&self.container.read(version.record)?)?
+            if let ArchiveRecord::Branch(branch) = decode_record(&container.read(version.record)?)?
                 && branch.conversation_id == conversation_id
                 && branch.id == branch_id
             {
@@ -46,19 +48,20 @@ impl Archive {
 
     pub(crate) fn publish_record(
         &mut self,
+        container: &mut Container,
         record: ChunkRef,
     ) -> Result<ArchiveRecordVersion, ArchiveError> {
         let archive_version = self.next_archive_version;
         let next_archive_version = archive_version
             .checked_add(1)
             .ok_or(ArchiveError::ArchiveVersionExhausted)?;
-        let global_version = self.container.allocate_version()?;
+        let global_version = container.allocate_version()?;
         let version = ArchiveRecordVersion {
             global_version,
             archive_version,
             record,
         };
-        self.container.append(&encode_record_version(version))?;
+        container.append(&encode_record_version(version))?;
         self.record_versions.push(version);
         self.next_archive_version = next_archive_version;
         Ok(version)

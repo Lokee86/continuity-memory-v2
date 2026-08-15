@@ -1,10 +1,14 @@
 use crate::archive_codec::encode_fragment;
-use crate::{Archive, ArchiveError, Fragment, FragmentId, Node, ResolvedTurn};
+use crate::{Archive, ArchiveError, Container, Fragment, FragmentId, Node, ResolvedTurn};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
 impl Archive {
-    pub(crate) fn put_fragment(&mut self, fragment: Fragment) -> Result<bool, ArchiveError> {
+    pub(crate) fn put_fragment(
+        &mut self,
+        container: &mut Container,
+        fragment: Fragment,
+    ) -> Result<bool, ArchiveError> {
         self.validate_fragment(&fragment)?;
         if let Some(existing) = self.fragments.get(fragment.id) {
             return if existing == &fragment {
@@ -13,8 +17,8 @@ impl Archive {
                 Err(ArchiveError::ConflictingFragment)
             };
         }
-        let record = self.container.append(&encode_fragment(&fragment)?)?;
-        self.publish_record(record)?;
+        let record = container.append(&encode_fragment(&fragment)?)?;
+        self.publish_record(container, record)?;
         self.fragments.insert(fragment)?;
         Ok(true)
     }
@@ -70,7 +74,11 @@ impl Archive {
         Ok(())
     }
 
-    pub fn fragment_turns(&mut self, id: FragmentId) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+    pub(crate) fn fragment_turns(
+        &self,
+        container: &mut Container,
+        id: FragmentId,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
         let fragment = self
             .fragments
             .get(id)
@@ -80,7 +88,7 @@ impl Archive {
         nodes
             .into_iter()
             .map(|node| {
-                let content = self.content(node.content_id)?;
+                let content = self.content(container, node.content_id)?;
                 Ok(ResolvedTurn {
                     node_id: node.id,
                     role: node.role,
@@ -91,8 +99,12 @@ impl Archive {
             .collect()
     }
 
-    pub fn fragment_text(&mut self, id: FragmentId) -> Result<String, ArchiveError> {
-        let turns = self.fragment_turns(id)?;
+    pub(crate) fn fragment_text(
+        &self,
+        container: &mut Container,
+        id: FragmentId,
+    ) -> Result<String, ArchiveError> {
+        let turns = self.fragment_turns(container, id)?;
         Ok(turns
             .into_iter()
             .map(|turn| format!("{}: {}", turn.role, turn.content))

@@ -1,9 +1,10 @@
 use crate::fragment_store::fragment_id;
-use crate::{Archive, ArchiveError, Fragment, FragmentConfig};
+use crate::{Archive, ArchiveError, Container, Fragment, FragmentConfig};
 
 impl Archive {
-    pub fn materialize_branch_fragments(
+    pub(crate) fn materialize_branch_fragments(
         &mut self,
+        container: &mut Container,
         conversation_id: &str,
         branch_id: &str,
         config: FragmentConfig,
@@ -14,11 +15,18 @@ impl Archive {
             .get(conversation_id, branch_id)
             .ok_or(ArchiveError::MissingBranch)?
             .clone();
-        self.materialize_path_fragments(conversation_id, &branch.leaf_node_id, config, close_tail)
+        self.materialize_path_fragments(
+            container,
+            conversation_id,
+            &branch.leaf_node_id,
+            config,
+            close_tail,
+        )
     }
 
-    pub fn materialize_path_fragments(
+    pub(crate) fn materialize_path_fragments(
         &mut self,
+        container: &mut Container,
         conversation_id: &str,
         leaf_node_id: &str,
         config: FragmentConfig,
@@ -31,18 +39,19 @@ impl Archive {
             let stride = config.turns - config.overlap;
             for start in (0..=nodes.len() - config.turns).step_by(stride) {
                 let end = start + config.turns - 1;
-                self.materialize_window(&nodes, start, end, &mut created)?;
+                self.materialize_window(container, &nodes, start, end, &mut created)?;
             }
         }
         if close_tail && !nodes.is_empty() {
             let start = nodes.len().saturating_sub(config.turns);
-            self.materialize_window(&nodes, start, nodes.len() - 1, &mut created)?;
+            self.materialize_window(container, &nodes, start, nodes.len() - 1, &mut created)?;
         }
         Ok(created)
     }
 
     fn materialize_window(
         &mut self,
+        container: &mut Container,
         nodes: &[crate::Node],
         start: usize,
         end: usize,
@@ -56,7 +65,7 @@ impl Archive {
             start_node_id: first.id.clone(),
             end_node_id: last.id.clone(),
         };
-        if self.put_fragment(fragment.clone())? {
+        if self.put_fragment(container, fragment.clone())? {
             created.push(fragment);
         }
         Ok(())

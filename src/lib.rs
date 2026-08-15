@@ -13,16 +13,28 @@ mod archive_store;
 pub mod container;
 mod container_error;
 mod container_version;
+pub mod cva;
+mod cva_error;
 mod fragment_model;
 mod fragment_store;
 mod fragmenter;
+mod packed_vector_codec;
+mod packed_vector_error;
+mod packed_vector_model;
+mod packed_vector_rebuild;
+mod packed_vector_store;
 
 pub use archive::Archive;
 pub use archive_error::ArchiveError;
 pub use archive_history_model::ArchiveRecordVersion;
 pub use archive_model::{ArchiveStats, Branch, ContentId, Node, ResolvedTurn};
 pub use container::{ChunkRef, Container, ContainerError, FormatVersion};
+pub use cva::Cva;
+pub use cva_error::CvaError;
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
+pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
+pub use packed_vector_error::PackedVectorError;
+pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 
 #[cfg(test)]
 mod archive_tests;
@@ -32,3 +44,5 @@ mod container_tests;
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod packed_vector_tests;

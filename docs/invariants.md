@@ -37,6 +37,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 23. **Checkpointing and historical semantics are distinct.** Checkpoints accelerate reconstruction; clocks/revisions define historical ordering.
 24. **Persistent ordering uses exact integers.** No floating-point version identity.
 25. **Unversioned semantic payloads are inert.** Reopen may observe incomplete node/branch/fragment payloads physically, but they cannot enter Archive state without valid `ArchiveRecordVersion` metadata.
+26. **CVA composition has one physical owner.** `Cva` owns the single Container handle; concrete databases do not open competing handles or independently rescan the file during CVA reopen.
+27. **Shared scan does not imply shared semantics.** Archive and packed-vector rebuild logic consume the same physical payload stream but classify and validate their own records explicitly.
+28. **Packed-vector matrices are immutable backing objects.** Identity includes schema plus exact matrix bytes; equal objects deduplicate and raw matrix creation consumes no semantic version ticket.
+29. **Packed-vector rows have no domain meaning by storage alone.** Embedding profiles/generations and Archive/Memory vector owners define model identity, row mappings, metrics, and semantic activation.
 
 ## Safety boundaries
 

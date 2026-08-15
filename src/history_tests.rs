@@ -1,4 +1,4 @@
-use crate::{Archive, ArchiveError, Branch, Container};
+use crate::{ArchiveError, Branch, Container, Cva, CvaError};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,7 +13,7 @@ fn test_path(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-fn append(archive: &mut Archive, conversation: &str, id: &str, parent: Option<&str>) {
+fn append(archive: &mut Cva, conversation: &str, id: &str, parent: Option<&str>) {
     archive
         .append_node(
             id.into(),
@@ -35,6 +35,20 @@ fn branch(conversation: &str, id: &str, leaf: &str) -> Branch {
     }
 }
 
+fn parent<'a>(cva: &'a Cva, conversation: &str, id: &str) -> Option<&'a str> {
+    cva.archive
+        .nodes
+        .get(conversation, id)
+        .unwrap()
+        .parent_id
+        .as_deref()
+}
+
+fn current_leaf<'a>(cva: &'a Cva, conversation: &str, branch_id: &str) -> &'a str {
+    let branch = cva.archive.branches.get(conversation, branch_id).unwrap();
+    branch.leaf_node_id.as_str()
+}
+
 #[test]
 fn archive_rejects_container_without_archive_format_marker() {
     let path = test_path("unmarked.cva");
@@ -42,15 +56,15 @@ fn archive_rejects_container_without_archive_format_marker() {
     container.sync().unwrap();
     drop(container);
     assert!(matches!(
-        Archive::open(path),
-        Err(ArchiveError::MissingArchiveFormat)
+        Cva::open(path),
+        Err(CvaError::Archive(ArchiveError::MissingArchiveFormat))
     ));
 }
 
 #[test]
 fn unrelated_conversations_share_clocks_not_ancestry() {
     let path = test_path("concurrent.cva");
-    let mut archive = Archive::create(path).unwrap();
+    let mut archive = Cva::create(path).unwrap();
     append(&mut archive, "a", "a1", None);
     append(&mut archive, "b", "b1", None);
     append(&mut archive, "a", "a2", Some("a1"));
@@ -65,20 +79,14 @@ fn unrelated_conversations_share_clocks_not_ancestry() {
             .collect::<Vec<_>>(),
         [1, 2, 3, 4]
     );
-    assert_eq!(
-        archive.nodes.get("a", "a2").unwrap().parent_id.as_deref(),
-        Some("a1")
-    );
-    assert_eq!(
-        archive.nodes.get("b", "b2").unwrap().parent_id.as_deref(),
-        Some("b1")
-    );
+    assert_eq!(parent(&archive, "a", "a2"), Some("a1"));
+    assert_eq!(parent(&archive, "b", "b2"), Some("b1"));
 }
 
 #[test]
 fn global_and_archive_clocks_are_independent() {
     let path = test_path("clocks.cva");
-    let mut archive = Archive::create(path).unwrap();
+    let mut archive = Cva::create(path).unwrap();
     append(&mut archive, "a", "a1", None);
     let unrelated_global = archive.container.allocate_version().unwrap();
     append(&mut archive, "a", "a2", Some("a1"));
@@ -93,7 +101,7 @@ fn global_and_archive_clocks_are_independent() {
 #[test]
 fn archive_versions_survive_reopen() {
     let path = test_path("reopen.cva");
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     append(&mut archive, "a", "a1", None);
     append(&mut archive, "b", "b1", None);
     archive.append_branch(branch("a", "main", "a1")).unwrap();
@@ -101,7 +109,7 @@ fn archive_versions_survive_reopen() {
     archive.sync().unwrap();
     drop(archive);
 
-    let reopened = Archive::open(path).unwrap();
+    let reopened = Cva::open(path).unwrap();
     assert_eq!(reopened.archive_version(), latest);
     assert_eq!(reopened.record_versions().len(), latest as usize);
 }
@@ -109,7 +117,7 @@ fn archive_versions_survive_reopen() {
 #[test]
 fn branch_heads_are_append_only_revisions() {
     let path = test_path("heads.cva");
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     append(&mut archive, "a", "a1", None);
     append(&mut archive, "a", "a2", Some("a1"));
     archive.append_branch(branch("a", "main", "a1")).unwrap();
@@ -124,18 +132,12 @@ fn branch_heads_are_append_only_revisions() {
             .leaf_node_id,
         "a1"
     );
-    assert_eq!(
-        archive.branches.get("a", "main").unwrap().leaf_node_id,
-        "a2"
-    );
+    assert_eq!(current_leaf(&archive, "a", "main"), "a2");
     archive.sync().unwrap();
     drop(archive);
 
-    let mut reopened = Archive::open(path).unwrap();
-    assert_eq!(
-        reopened.branches.get("a", "main").unwrap().leaf_node_id,
-        "a2"
-    );
+    let mut reopened = Cva::open(path).unwrap();
+    assert_eq!(current_leaf(&reopened, "a", "main"), "a2");
     assert_eq!(
         reopened
             .branch_at("a", "main", first_head)
@@ -149,7 +151,7 @@ fn branch_heads_are_append_only_revisions() {
 #[test]
 fn existing_branch_head_cannot_jump_backwards() {
     let path = test_path("rewind-head.cva");
-    let mut archive = Archive::create(path).unwrap();
+    let mut archive = Cva::create(path).unwrap();
     append(&mut archive, "a", "a1", None);
     append(&mut archive, "a", "a2", Some("a1"));
     archive.append_branch(branch("a", "main", "a2")).unwrap();
@@ -163,7 +165,7 @@ fn existing_branch_head_cannot_jump_backwards() {
 #[test]
 fn old_conversation_point_can_start_a_new_local_branch() {
     let path = test_path("revive.cva");
-    let mut archive = Archive::create(path).unwrap();
+    let mut archive = Cva::create(path).unwrap();
     append(&mut archive, "a", "a1", None);
     append(&mut archive, "a", "a2", Some("a1"));
     append(&mut archive, "a", "a3", Some("a2"));

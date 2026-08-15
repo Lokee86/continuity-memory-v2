@@ -3,7 +3,7 @@ use crate::archive_history_codec::{decode_archive_format, decode_record_version}
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::hash_content;
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, ChunkRef, Container};
+use crate::{Archive, ArchiveError, ArchiveRecordVersion, ChunkRef};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct ArchiveOpenState {
@@ -67,12 +67,11 @@ impl ArchiveOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(self, container: Container) -> Result<Archive, ArchiveError> {
+    pub(crate) fn finish(self) -> Result<Archive, ArchiveError> {
         if !self.format_seen {
             return Err(ArchiveError::MissingArchiveFormat);
         }
         Ok(Archive {
-            container,
             contents: self.contents,
             nodes: self.nodes,
             branches: self.branches,

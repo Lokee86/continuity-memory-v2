@@ -8,17 +8,17 @@ This document owns known incomplete, transitional, or practically limiting behav
 
 ## Overview
 
-Archive now has layered global/Archive ordering and conversation-local branch ancestry, but the repository remains bootstrap storage code.
+Archive now has layered global/Archive ordering and conversation-local branch ancestry, and the CVA also contains an immutable packed-vector backing store. Embedding semantics and retrieval remain incomplete.
 
 ## Storage limits
 
-- Only Archive is implemented.
-- Chunks are uncompressed and lack checksum/authentication/encryption.
+- Archive plus immutable content-addressed packed-vector backing objects are implemented; embedding profiles, vector generations, row-to-domain bindings, Memories, and Graph are not.
+- Chunks are uncompressed and lack container-level checksum/authentication/encryption; packed-vector objects do verify their own SHA-256 content identity.
 - No object packing, compaction, vacuum, reachability, or reclamation exists.
 - No persistent snapshot/checkpoint acceleration exists.
 - No concurrent-writer/locking model exists beyond one `Container` file handle.
 - Format migration is not implemented.
-- Whole-CVA rollback across multiple databases is not implemented.
+- Whole-CVA rollback across multiple semantic databases is not implemented. Raw packed-vector objects are backing data and do not yet create a second semantic timeline.
 - A general full historical `ArchiveView` API is not yet exposed, although each Archive cut is durably identified by its Archive version.
 
 ## Version/history limits
@@ -34,13 +34,13 @@ Archive now has layered global/Archive ordering and conversation-local branch an
 
 Composite `HashMap<String, ...>` lookup keys have been removed. Nodes, current branch heads, and fragments now use dense record vectors plus compact open-addressed hash-to-index slots; exact keys are checked against the record itself. `ContentId -> ChunkRef` remains a direct fixed-width hash table because measurement showed that representation is smaller than an indirect record-plus-index layout for this key/value pair.
 
-On the prepared 12-conversation, `2,197,482`-byte corpus, allocator-tracked retained open heap is `752,897` bytes and peak additional heap `884,576` bytes. Remaining record strings are still individually allocated; conversation/role/string interning has not been attempted.
+Remaining Archive record strings are still individually allocated; conversation/role/string interning has not been attempted.
 
-Reopen uses one streaming physical pass: Container validates chunk framing and global version tickets while Archive consumes the same payloads to reconstruct versioned state. A release-mode 50-run warm-cache benchmark measured `26.102 ms` median / `26.917 ms` p90, while one manually cache-evicted single open measured `26.303 ms`. The corpus is too small and the cold sample count too low to characterize storage scaling; persistent checkpointing is deferred until larger-Archive cold-open measurements justify the added machinery.
+Reopen uses one streaming physical pass: Container validates chunk framing/global tickets while `Cva` feeds the same payloads to Archive and packed-vector rebuild. On the current `2,197,502`-byte prepared corpus (zero packed matrices), a release-mode 50-run warm benchmark measured `25.404 ms` median / `27.369 ms` p90 with `752,906` retained and `884,585` peak additional allocator-tracked bytes. A current-format cold sample has not yet been recorded. Packed-vector matrix bytes are not retained in the reopen index, but the scanner still materializes each physical chunk transiently; a very large single vector object can therefore create a large peak allocation.
 
 ## Retrieval limits
 
-Fragments exist, but lexical search, embeddings, vector databases, hybrid ranking, and retrieval control are not implemented here yet.
+Fragments and generic packed vector matrices exist, but embedding profiles, semantic vector generations, Archive-fragment row mappings, lexical search, exact similarity search, hybrid ranking, and retrieval control are not implemented here yet.
 
 ## Product/runtime limits
 

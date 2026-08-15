@@ -1,15 +1,12 @@
 use crate::archive_codec::{encode_branch, encode_node};
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
-use crate::archive_rebuild::ArchiveOpenState;
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::{hash_content, validate_text};
 use crate::{
     ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, Node, ResolvedTurn,
 };
-use std::path::Path;
 
 pub struct Archive {
-    pub(crate) container: Container,
     pub(crate) contents: ContentIndex,
     pub(crate) nodes: NodeIndex,
     pub(crate) branches: BranchIndex,
@@ -19,24 +16,9 @@ pub struct Archive {
 }
 
 impl Archive {
-    pub fn create(path: impl AsRef<Path>) -> Result<Self, ArchiveError> {
-        let mut archive = Self::empty(Container::create(path)?);
-        archive.initialize_history_format()?;
-        Ok(archive)
-    }
-
-    pub fn open(path: impl AsRef<Path>) -> Result<Self, ArchiveError> {
-        let mut state = ArchiveOpenState::new();
-        let container = Container::open_scanned(path, |chunk, payload, latest_global| {
-            state.ingest(chunk, payload, latest_global)
-        })?;
-        let archive = state.finish(container)?;
-        archive.validate_references()?;
-        Ok(archive)
-    }
-
-    pub fn append_node(
+    pub(crate) fn append_node(
         &mut self,
+        container: &mut Container,
         id: String,
         conversation_id: String,
         parent_id: Option<String>,
@@ -66,14 +48,18 @@ impl Archive {
             };
         }
 
-        self.put_content(content_id, content)?;
-        let record = self.container.append(&encode_node(&node)?)?;
-        self.publish_record(record)?;
+        self.put_content(container, content_id, content)?;
+        let record = container.append(&encode_node(&node)?)?;
+        self.publish_record(container, record)?;
         self.nodes.insert(node.clone())?;
         Ok(node)
     }
 
-    pub fn append_branch(&mut self, branch: Branch) -> Result<(), ArchiveError> {
+    pub(crate) fn append_branch(
+        &mut self,
+        container: &mut Container,
+        branch: Branch,
+    ) -> Result<(), ArchiveError> {
         validate_text(&branch.id, "branch id")?;
         validate_text(&branch.conversation_id, "conversation id")?;
         self.require_node(
@@ -90,14 +76,15 @@ impl Archive {
                 return Err(ArchiveError::InvalidBranchRevision);
             }
         }
-        let record = self.container.append(&encode_branch(&branch)?)?;
-        self.publish_record(record)?;
+        let record = container.append(&encode_branch(&branch)?)?;
+        self.publish_record(container, record)?;
         self.branches.put(branch);
         Ok(())
     }
 
-    pub fn branch_turns(
-        &mut self,
+    pub(crate) fn branch_turns(
+        &self,
+        container: &mut Container,
         conversation_id: &str,
         branch_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
@@ -110,7 +97,7 @@ impl Archive {
         nodes
             .into_iter()
             .map(|node| {
-                let content = self.content(node.content_id)?;
+                let content = self.content(container, node.content_id)?;
                 Ok(ResolvedTurn {
                     node_id: node.id,
                     role: node.role,
@@ -128,9 +115,5 @@ impl Archive {
             branches: self.branches.len(),
             fragments: self.fragments.len(),
         }
-    }
-
-    pub fn sync(&self) -> Result<(), ArchiveError> {
-        Ok(self.container.sync()?)
     }
 }

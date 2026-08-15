@@ -1,4 +1,4 @@
-use continuity_memory::{Archive, Branch, FragmentConfig};
+use continuity_memory::{Branch, Cva, FragmentConfig};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         fs::remove_file(&output)?;
     }
 
-    let mut archive = Archive::create(&output)?;
+    let mut archive = Cva::create(&output)?;
     let mut expected_paths: Vec<(String, String, Vec<String>)> = Vec::new();
     let mut expected_content = HashMap::new();
     for line in BufReader::new(File::open(input)?).lines() {
@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let before = archive.stats();
     drop(archive);
 
-    let mut reopened = Archive::open(&output)?;
+    let mut reopened = Cva::open(&output)?;
     if reopened.stats() != before {
         return Err("archive stats changed after reopen".into());
     }

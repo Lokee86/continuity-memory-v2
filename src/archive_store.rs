@@ -1,12 +1,11 @@
 use crate::archive_codec::{ArchiveRecord, decode_record, encode_content};
-use crate::{Archive, ArchiveError, ContentId, Node};
+use crate::{Archive, ArchiveError, Container, ContentId, Node};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
 impl Archive {
-    pub(crate) fn empty(container: crate::Container) -> Self {
+    pub(crate) fn empty() -> Self {
         Self {
-            container,
             contents: Default::default(),
             nodes: Default::default(),
             branches: Default::default(),
@@ -16,23 +15,30 @@ impl Archive {
         }
     }
 
-    pub(crate) fn put_content(&mut self, id: ContentId, content: &str) -> Result<(), ArchiveError> {
+    pub(crate) fn put_content(
+        &mut self,
+        container: &mut Container,
+        id: ContentId,
+        content: &str,
+    ) -> Result<(), ArchiveError> {
         if self.contents.contains(id) {
-            if self.content(id)? != content {
+            if self.content(container, id)? != content {
                 return Err(ArchiveError::HashCollision);
             }
             return Ok(());
         }
-        let chunk = self
-            .container
-            .append(&encode_content(id, content.as_bytes())?)?;
+        let chunk = container.append(&encode_content(id, content.as_bytes())?)?;
         self.contents.insert(id, chunk);
         Ok(())
     }
 
-    pub(crate) fn content(&mut self, id: ContentId) -> Result<String, ArchiveError> {
+    pub(crate) fn content(
+        &self,
+        container: &mut Container,
+        id: ContentId,
+    ) -> Result<String, ArchiveError> {
         let chunk = self.contents.get(id).ok_or(ArchiveError::MissingContent)?;
-        match decode_record(&self.container.read(chunk)?)? {
+        match decode_record(&container.read(chunk)?)? {
             ArchiveRecord::Content(found, bytes) if found == id => {
                 String::from_utf8(bytes).map_err(|_| ArchiveError::InvalidUtf8)
             }

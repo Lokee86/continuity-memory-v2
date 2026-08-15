@@ -14,9 +14,11 @@ The repository is a single Rust library crate. Current work should preserve expl
 
 ```text
 Cargo.toml / Cargo.lock          crate definition and locked dependencies
+src/cva*.rs                     single-Container composition and public CVA lifecycle
 src/container*.rs               physical CVA substrate
-src/archive*.rs                 Archive records, compact lookup, validation, public operations
+src/archive*.rs                 Archive records, compact lookup, validation, semantic operations
 src/fragment*.rs                durable fragment ranges and materialization
+src/packed_vector*.rs           immutable packed-vector objects/rebuild/index
 src/lib.rs                      public exports
 examples/archive_roundtrip.rs    prepared-corpus reopen smoke
 examples/archive_open_profile.rs standalone allocator/open-time benchmark
@@ -56,17 +58,15 @@ Prepared-Archive open benchmark:
 cargo run --release --example archive_open_profile -- <archive.cva> [runs]
 ```
 
-The benchmark is standalone and does not instrument the production `Archive::open` path. It reports median/p90 open time plus allocator-tracked retained and peak bytes.
+The benchmark is standalone and does not instrument the production `Cva::open` path. It reports median/p90 open time plus allocator-tracked retained and peak bytes.
 
 ### Prepared-corpus current measurements — 2026-08-14
 
-The current prepared corpus contains 12 conversations and produces a `2,197,482`-byte CVA with `7,179` physical chunks and `1,875` semantic Archive records: `1,559` nodes, `35` current branches, `281` fragments, and `1,553` content objects.
+The current prepared corpus contains 12 conversations and produces a `2,197,502`-byte CVA on the required Archive + packed-vector-marker format, with `1,875` semantic Archive records: `1,559` nodes, `35` current branches, `281` fragments, and `1,553` content objects. The fixture currently contains zero packed-vector matrix objects.
 
-With production profiling hooks removed, a release-mode 50-run warm-cache benchmark measured `26.102 ms` median and `26.917 ms` p90. Allocator-tracked retained heap was `752,897` bytes and peak additional heap `884,576` bytes.
+A release-mode 50-run warm-cache `Cva::open` benchmark measured `25.404 ms` median and `27.369 ms` p90. Allocator-tracked retained heap was `752,906` bytes and peak additional heap `884,585` bytes.
 
-One manually verified cold-cache run was taken immediately after using RAMMap **Empty Standby List**, refreshing the RAMMap snapshot, and opening the CVA exactly once. That run measured `26.303 ms`. At this `2.2 MB` corpus size, no meaningful cold-cache penalty is visible relative to the warm-cache benchmark. This is one cold sample, not a scaling result.
-
-Larger archives must be measured with repeated cache eviction plus one open per sample before drawing conclusions about cold-open scaling or adding persistent Archive checkpoints.
+A current-format cold-cache sample has not yet been recorded. Larger archives must be measured with repeated cache eviction plus one open per sample before drawing conclusions about cold-open scaling or adding persistent Archive checkpoints.
 
 ## Failure modes
 

@@ -8,7 +8,7 @@ This document owns the current public Rust library surface exposed by `continuit
 
 ## Overview
 
-The public API exposes the physical `Container`, Archive, Archive/fragment models, dual version metadata, chunk references, and errors. It remains development-stage.
+The public API exposes `Cva` as the file/composition owner, the physical `Container`, Archive state/models, packed-vector types, dual Archive version metadata, chunk references, and errors. It remains development-stage.
 
 ## Exact contract
 
@@ -37,6 +37,12 @@ ArchiveRecordVersion {
 
 `global_version` orders the mutation in the CVA. `archive_version` is the contiguous Archive-local watermark. Neither field is a semantic parent pointer.
 
+### Cva
+
+`Cva::create(path)` creates one CVA, initializes the concrete Archive and packed-vector format markers, and owns the single Container handle. `Cva::open(path)` performs one streaming physical scan and rebuilds both current concrete stores.
+
+Archive mutation/read operations are exposed through `Cva`: `append_node`, `append_branch`, `branch_turns`, `branch_at`, fragment materialization/read operations, `stats`, Archive-version inspection, and `sync`. `archive()` returns read-only access to the Archive semantic state.
+
 ### Archive
 
 Public models:
@@ -53,15 +59,13 @@ FragmentConfig
 ArchiveRecordVersion
 ```
 
-Core operations:
+Core Archive operations through `Cva`:
 
-- `Archive::create(path)` creates a new Archive and writes its format marker.
-- `Archive::open(path)` performs one streaming physical scan that validates Container framing/global tickets while rebuilding only versioned Archive state, then validates references.
 - `append_node(...)` appends an immutable conversation node and its dual-version metadata.
 - `append_branch(branch)` appends a branch/session-head revision when that logical branch changed; an identical current revision is idempotent. An existing branch head may advance only to a descendant node; reviving an older point requires a new branch identity.
 - `branch_turns(...)` resolves the current branch leaf through node parent links.
-- `stats()` reports current derived counts.
-- `sync()` flushes the container.
+- `stats()` reports current derived Archive counts.
+- `sync()` flushes the CVA container.
 
 Version/history operations:
 
@@ -74,6 +78,26 @@ The current API tracks every whole-Archive cut but does not yet expose a general
 
 Fragment operations remain `materialize_path_fragments`, `materialize_branch_fragments`, `fragment_turns`, `fragment_text`, and deterministic `fragments()` enumeration.
 
+### Packed vectors
+
+Public types:
+
+```text
+ScalarType
+VectorSchema { dimensions, scalar }
+PackedVectors
+PackedVectorId([u8; 32])
+PackedVectorInfo { id, schema, count, byte_len }
+PackedVectorStats { objects, rows, matrix_bytes }
+PackedVectorError
+```
+
+`ScalarType` currently covers signed/unsigned 8/16/32/64-bit integers plus f16, bf16, f32, and f64. `VectorSchema` accepts any non-zero `u32` dimension count. `PackedVectors` is a contiguous fixed-row byte matrix supplied by Lodestone's lightweight `lodestone-packed` crate.
+
+`Cva::put_packed_vectors(packed)` content-addresses and deduplicates an immutable matrix inside the CVA and returns its `PackedVectorId`. `Cva::packed_vectors(id)` reads and validates the matrix. `packed_vector_infos()` and `packed_vector_stats()` inspect the derived object inventory.
+
+Raw packed-vector objects have no embedding profile or row meaning and do not advance global/Archive semantic clocks.
+
 ## Defaults or precedence
 
 `FragmentConfig::default()` is eight turns with two-turn overlap.
@@ -82,9 +106,9 @@ Node identity is `(conversation_id, node_id)`. Branch/session identity is `(conv
 
 ## Diagnostics or failure behavior
 
-`ArchiveError` covers semantic reference failures, immutable-record conflicts, malformed content/fragments, missing or conflicting Archive format markers, invalid Archive record-version sequences, version exhaustion, and underlying container errors.
+`ArchiveError` covers Archive semantic/reference failures. `PackedVectorError` covers packed-vector format/object failures. `CvaError` covers create/open/composition failures across Container, Archive, and packed-vector rebuild.
 
-Durability remains explicit through `sync()`.
+Durability remains explicit through `Cva::sync()`.
 
 ## Examples
 
@@ -109,4 +133,4 @@ To revive an old conversation point, create another branch identity at that old 
 
 ## Notes
 
-No compatibility promise has yet been made for Rust method signatures or the bootstrap persistence format.
+No compatibility promise has yet been made for Rust method signatures or the bootstrap persistence format. Embedding profiles, vector generations, Archive row bindings, and search APIs are the next vector-layer slices rather than responsibilities of `PackedVectors` itself.

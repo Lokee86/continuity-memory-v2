@@ -29,6 +29,10 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Identical node append is idempotent | `archive_tests::identical_node_append_is_idempotent` |
 | Unversioned semantic payloads remain inert on reopen | `archive_tests::unversioned_semantic_record_is_inert_on_reopen` |
 | Fragment windows/tails remain append-only and branch-neutral | `fragment_tests::*` |
+| Packed-vector matrices round-trip beside Archive data in one CVA | `packed_vector_tests::packed_vectors_round_trip_inside_same_cva_as_archive` |
+| Equal packed matrices deduplicate by schema+bytes | `packed_vector_tests::identical_packed_matrix_is_content_addressed_once` |
+| Raw packed-vector backing objects consume no semantic clock | `packed_vector_tests::raw_packed_vectors_do_not_advance_semantic_clocks` |
+| Packed representation handles 512×int8 through 4096×float64 without special-case layouts | `packed_vector_tests::supports_large_float64_rows_without_special_cases`, Lodestone packed tests |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
 
 ## Future contracts

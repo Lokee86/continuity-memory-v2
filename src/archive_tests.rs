@@ -1,5 +1,5 @@
 use crate::archive_codec::encode_node;
-use crate::{Archive, Branch, Node};
+use crate::{Branch, Cva, Node};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -17,7 +17,7 @@ fn test_path() -> PathBuf {
 #[test]
 fn shared_branch_prefix_and_content_are_stored_once() {
     let path = test_path();
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     archive
         .append_node(
             "n1".into(),
@@ -80,7 +80,7 @@ fn shared_branch_prefix_and_content_are_stored_once() {
     archive.sync().unwrap();
     drop(archive);
 
-    let mut reopened = Archive::open(&path).unwrap();
+    let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.stats().content_objects, 3);
     let a = reopened.branch_turns("c1", "a").unwrap();
     let b = reopened.branch_turns("c1", "b").unwrap();
@@ -99,7 +99,7 @@ fn shared_branch_prefix_and_content_are_stored_once() {
 #[test]
 fn identical_node_append_is_idempotent() {
     let path = test_path();
-    let mut archive = Archive::create(path).unwrap();
+    let mut archive = Cva::create(path).unwrap();
     archive
         .append_node("n1".into(), "c1".into(), None, "user".into(), 1, "hello")
         .unwrap();
@@ -113,7 +113,7 @@ fn identical_node_append_is_idempotent() {
 #[test]
 fn unversioned_semantic_record_is_inert_on_reopen() {
     let path = test_path();
-    let mut archive = Archive::create(&path).unwrap();
+    let mut archive = Cva::create(&path).unwrap();
     let first = archive
         .append_node("n1".into(), "c1".into(), None, "user".into(), 1, "hello")
         .unwrap();
@@ -132,7 +132,7 @@ fn unversioned_semantic_record_is_inert_on_reopen() {
     archive.sync().unwrap();
     drop(archive);
 
-    let reopened = Archive::open(path).unwrap();
+    let reopened = Cva::open(path).unwrap();
     assert_eq!(reopened.stats().nodes, 1);
-    assert!(reopened.nodes.get("c1", "orphan").is_none());
+    assert!(reopened.archive.nodes.get("c1", "orphan").is_none());
 }
