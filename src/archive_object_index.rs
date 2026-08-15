@@ -33,6 +33,7 @@ impl ContentIndex {
 #[derive(Default)]
 pub(crate) struct FragmentIndex {
     records: Vec<Fragment>,
+    archive_versions: Vec<u64>,
     lookup: DenseLookup,
 }
 
@@ -42,13 +43,18 @@ impl FragmentIndex {
     }
 
     pub(crate) fn get(&self, id: FragmentId) -> Option<&Fragment> {
-        let hash = self.lookup.hash(&id);
-        self.lookup
-            .find(hash, |index| self.records[index].id == id)
-            .map(|index| &self.records[index])
+        self.index(id).map(|index| &self.records[index])
     }
 
-    pub(crate) fn insert(&mut self, fragment: Fragment) -> Result<bool, ArchiveError> {
+    pub(crate) fn archive_version(&self, id: FragmentId) -> Option<u64> {
+        self.index(id).map(|index| self.archive_versions[index])
+    }
+
+    pub(crate) fn insert(
+        &mut self,
+        fragment: Fragment,
+        archive_version: u64,
+    ) -> Result<bool, ArchiveError> {
         if let Some(existing) = self.get(fragment.id) {
             return if existing == &fragment {
                 Ok(false)
@@ -59,6 +65,7 @@ impl FragmentIndex {
         let hash = self.lookup.hash(&fragment.id);
         let index = self.records.len();
         self.records.push(fragment);
+        self.archive_versions.push(archive_version);
         let records = &self.records;
         self.lookup.insert(hash, index, |state, found| {
             state.hash_one(&records[found].id)
@@ -68,5 +75,10 @@ impl FragmentIndex {
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Fragment> {
         self.records.iter()
+    }
+
+    fn index(&self, id: FragmentId) -> Option<usize> {
+        let hash = self.lookup.hash(&id);
+        self.lookup.find(hash, |index| self.records[index].id == id)
     }
 }

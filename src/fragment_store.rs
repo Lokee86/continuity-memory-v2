@@ -18,8 +18,8 @@ impl Archive {
             };
         }
         let record = container.append(&encode_fragment(&fragment)?)?;
-        self.publish_record(container, record)?;
-        self.fragments.insert(fragment)?;
+        let version = self.publish_record(container, record)?;
+        self.fragments.insert(fragment, version.archive_version)?;
         Ok(true)
     }
 

@@ -29,7 +29,7 @@ Packed vectors are immutable content-addressed backing objects. Their identity i
 
 The packed row schema comes from Lodestone's dependency-light `lodestone-packed` crate. Dimensions are any non-zero `u32`; scalar representations include signed/unsigned 8/16/32/64-bit integers plus f16, bf16, f32, and f64. Rows have fixed width and are stored contiguously with no per-row framing.
 
-Raw packed-vector object creation does **not** allocate a CVA-global version ticket and does **not** advance the Archive clock. It is backing data, analogous to an Archive content object. ADR 0006 subsequently defines Archive Vectors as another immutable backing layer; future vector-generation publication defines when a profiled vector population becomes meaningful active state and what ordering it requires.
+Raw packed-vector object creation does **not** allocate a CVA-global version ticket and does **not** advance the Archive clock. It is backing data, analogous to an Archive content object. ADR 0006 subsequently defines Archive Vectors as another immutable backing layer; ADR 0007 defines VectorGeneration publication as the semantic activation/order layer for a profiled vector population.
 
 ## Consequences
 
@@ -69,7 +69,7 @@ Tests cover packed-vector round trip beside Archive data, content-addressed dedu
 ## Risks and debt
 
 - The current Container scan materializes each physical chunk in memory, so a very large single vector object can create a large transient allocation during reopen. Segmentation or selective/streaming scan behavior should be measured before very large vector populations.
-- Exact similarity search and row-to-domain identity are intentionally not implemented in this slice.
+- Exact similarity search is intentionally not implemented in this slice. Row-to-domain identity was subsequently implemented by ADR 0006.
 
 ## References
 
@@ -79,3 +79,4 @@ Tests cover packed-vector round trip beside Archive data, content-addressed dedu
 - [Roadmap](../roadmap.md)
 - [ADR 0001](0001-purpose-built-database-ownership.md)
 - [ADR 0006](0006-archive-vector-row-bindings.md)
+- [ADR 0007](0007-embedding-profiles-and-vector-generations.md)

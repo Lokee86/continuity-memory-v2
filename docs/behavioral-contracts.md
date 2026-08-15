@@ -39,7 +39,20 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Archive Vector mappings require real unique fragments | `archive_vector_tests::binding_requires_real_unique_fragments` |
 | Archive Vector backing objects consume no semantic clock | `archive_vector_tests::archive_vector_objects_do_not_advance_semantic_clocks` |
 | Corrupt Archive Vector mappings are rejected on reopen | `archive_vector_tests::corrupt_archive_vector_mapping_is_rejected_on_reopen` |
+| Embedding Profiles round-trip and consume no semantic clock | `embedding_profile_tests::profile_round_trips_and_is_clock_neutral` |
+| Identical endpoint behavior deduplicates to one profile | `embedding_profile_tests::identical_endpoint_deduplicates_profile` |
+| Same advertised model with different behavior creates distinct profiles | `embedding_profile_tests::behavior_fingerprint_distinguishes_same_advertised_model` |
+| Endpoint verification detects behavior changes | `embedding_profile_tests::endpoint_verification_rejects_behavior_change` |
+| Simulated endpoint builds/reopens an active vector generation | `vector_generation_tests::simulated_endpoint_builds_and_reopens_active_generation` |
+| Rebuilding unchanged profile/Archive population is idempotent | `vector_generation_tests::repeated_build_is_idempotent` |
+| Newer Archive cuts supersede only that profile's current generation | `vector_generation_tests::newer_archive_cut_supersedes_profile_generation` |
+| Different profiles retain independent current generations | `vector_generation_tests::profiles_keep_independent_active_generations` |
+| Profile/packed dimensions must match | `vector_generation_validation_tests::publication_rejects_profile_matrix_dimension_mismatch` |
+| Generation source cut must cover every mapped fragment | `vector_generation_validation_tests::publication_rejects_source_before_mapped_fragments` |
+| One global version cannot be claimed by both Archive and Vector Generations | `vector_generation_validation_tests::reopen_rejects_global_version_claimed_by_archive_and_vectors` |
+| Unversioned generation payloads are inert | `vector_generation_validation_tests::unversioned_generation_payload_is_inert_on_reopen` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
+| Prepared corpus supports two independent simulated profiles/generations over all fragments | `examples/vector_generation_smoke.rs` |
 
 ## Future contracts
 
