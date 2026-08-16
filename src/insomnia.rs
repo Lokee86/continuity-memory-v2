@@ -5,6 +5,7 @@ mod candidate_shape;
 mod candidate_source;
 mod candidate_text;
 pub(crate) mod codec;
+pub(crate) mod completion;
 mod contract;
 mod cva;
 mod error;
@@ -52,6 +53,8 @@ pub use worker::{
 mod candidate_policy_tests;
 #[cfg(test)]
 mod candidate_receipt_policy_tests;
+#[cfg(test)]
+mod completion_tests;
 #[cfg(test)]
 mod evidence_flow_tests;
 #[cfg(test)]

@@ -154,6 +154,44 @@ impl InsomniaStore {
         self.attempts.push(attempt);
     }
 
+    pub(crate) fn apply_completion(
+        &mut self,
+        completion: &super::completion::InsomniaCompletion,
+    ) -> Result<(), InsomniaError> {
+        let mut work = self
+            .work
+            .get(&completion.episode_id)
+            .cloned()
+            .ok_or(InsomniaError::MissingWork)?;
+        if completion.attempt == 0 || completion.attempt < work.attempt_count {
+            return Err(InsomniaError::InvalidTransition);
+        }
+        let old = work.clone();
+        work.state = InsomniaWorkState::Complete;
+        work.attempt_count = completion.attempt;
+        clear_lease(&mut work);
+        work.retry_after_ns = None;
+        work.last_error = None;
+        work.updated_at_ns = completion.completed_at_ns;
+        self.scheduler.replace(&old, &work);
+        self.insert_work(work);
+        self.attempts
+            .retain(|attempt| attempt.episode_id != completion.episode_id);
+        self.attempts.push(InsomniaAttempt {
+            episode_id: completion.episode_id,
+            attempt: completion.attempt,
+            state: InsomniaWorkState::Complete,
+            started_at_ns: completion.started_at_ns,
+            completed_at_ns: completion.completed_at_ns,
+            extractor_model: completion.extractor_model.clone(),
+            extractor_version: completion.extractor_version.clone(),
+            memory_ids: completion.memory_ids.clone(),
+            rejected_count: completion.rejected_count,
+            error: None,
+        });
+        Ok(())
+    }
+
     pub(crate) fn validate(
         &self,
         archive: &Archive,

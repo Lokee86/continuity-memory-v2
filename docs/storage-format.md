@@ -175,6 +175,52 @@ u64       generation payload length
 ```
 `VectorGenerationId` is SHA-256 over `"CVA-VECTOR-GENERATION-V2\0"`, compatibility-profile ID, Archive-Vector ID, and source Archive version. Vector versions begin at `1` and are contiguous inside `VectorGenerationStore`. An unversioned generation payload is inert.
 The latest published generation for each compatibility profile is current. Source Archive version may not regress for that profile, exceed current Archive state, or predate any fragment in the referenced Archive-Vector set. Current generation publication requires the referenced packed matrix to use `f32`; packed storage remains generic, but alternate searchable scalar representations are not semantic generation formats until their interpretation is defined.
+### Insomnia operational records
+Format marker:
+```text
+8 bytes   "CVAINSF1"
+```
+Current work state:
+```text
+8 bytes   "CVAINSW1"
+32 bytes  EpisodeId
+u8        priority
+u8        work state
+u32       attempt count
+i64       updated_at_ns
+optional string lease owner
+optional 32-byte lease token
+optional i64 lease expiry
+optional i64 retry-after
+optional string last error
+```
+Work records are current operational coordination. Multiple physical revisions may exist, but reopen keeps only the latest logical state for each Episode.
+
+Successful Episode completion:
+```text
+8 bytes   "CVAINSC1"
+32 bytes  EpisodeId
+u32       attempt number
+i64       started_at_ns
+i64       completed_at_ns
+u32       rejected candidate count
+string    extractor model
+string    extractor contract/version
+u32       resulting MemoryId count
+N×32      resulting MemoryIds
+u32       newly published Memory-record count
+repeated newly published records:
+    u64   global version
+    u64   memory version
+    u32   encoded Memory-record length
+    N     complete "CVAMEMR2" record payload
+```
+`CVAINSC1` is the visibility boundary for an Insomnia success. Content-addressed Memory bodies and global-version tickets may be appended before it, but nested Memory records are not reconstructed as current Memories until this complete chunk is present. The same chunk reconstructs the compact successful Insomnia receipt. Zero new Memory records is valid.
+
+The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable and terminal failures persist only through `CVAINSW1`; a later success logically replaces prior attempt history with the one compact `CVAINSC1` receipt.
+
+Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
+
 ### Strings
 ```text
 u32 byte_length
@@ -184,7 +230,7 @@ N bytes UTF-8
 Archive and Vector Generations have independent local watermarks. Global ordering may interleave them; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
 `Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Earlier development formats are rejected rather than migrated.
-Container validates framing/global tickets. Concrete stores validate their own records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by both Archive and Vector Generations.
+Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 ## Related docs

@@ -1,3 +1,4 @@
+use super::completion::{InsomniaCompletion, encode_completion};
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeId, EpisodeOrigin, EpisodePolicy,
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaError, InsomniaLeaseToken, InsomniaPriority,
@@ -189,17 +190,29 @@ impl Cva {
         {
             return Err(InsomniaError::InvalidTransition);
         }
-        self.insomnia.complete(
-            &mut self.container,
+        let claim = self
+            .insomnia
+            .active_claim(episode_id, token, completed_at_ns)?;
+        let completion = InsomniaCompletion {
             episode_id,
-            token,
+            attempt: claim.attempt_count,
             started_at_ns,
             completed_at_ns,
             extractor_model,
             extractor_version,
-            memory_ids,
             rejected_count,
-        )
+            memory_ids,
+            records: Vec::new(),
+        };
+        let payload = encode_completion(&completion)
+            .map_err(|_| InsomniaError::InvalidField("completion record"))?;
+        self.container.append(&payload)?;
+        self.container.sync()?;
+        self.insomnia.apply_completion(&completion)?;
+        self.insomnia
+            .work(episode_id)
+            .cloned()
+            .ok_or(InsomniaError::MissingWork)
     }
 
     pub fn fail_insomnia_episode(

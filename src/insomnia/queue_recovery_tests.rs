@@ -83,6 +83,7 @@ fn retry_delay_is_durable_and_respected() {
     drop(cva);
 
     let mut reopened = Cva::open(&path).unwrap();
+    assert!(reopened.insomnia_attempts(episode.id).is_empty());
     assert!(
         reopened
             .claim_insomnia_episode("w2", 49, 100)

@@ -39,7 +39,7 @@ Explicit imperative retention language such as “remember this” remains part 
 
 Memories are a separate mutable semantic owner with stable memory IDs, immutable revisions, expected-revision conflict checks, mutation-ID replay protection, exact Archive/Episode provenance, a dense `memory_version`, and CVA-global ordering only at publication. Memory authority is independent of embedding availability.
 
-Insomnia queue/lease/retry state is operational state, not a semantic Memories timeline. Queue registration is idempotent by episode. Active claims use lease tokens; stale tokens cannot finalize reclaimed work. Retry/terminal outcomes and attempt history remain inspectable. Interrupted processing becomes reclaimable on reopen.
+Insomnia queue/lease/retry state is operational state, not a semantic Memories timeline. Queue registration is idempotent by episode. Active claims use lease tokens; stale tokens cannot finalize reclaimed work. Interrupted processing becomes reclaimable on reopen. Retry and terminal state remains only as current operational work state while unresolved; routine failures do not append a durable attempt log. Successful processing publishes all new Memory records and one compact completion receipt in a single completion chunk, and logically collapses any prior attempt history for that Episode.
 
 ## Consequences
 

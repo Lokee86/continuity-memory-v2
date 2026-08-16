@@ -15,7 +15,7 @@ Cva
 ├── Memories
 │   └── memory_version: u64 + immutable revisions
 ├── InsomniaOperational
-│   └── queue / priority / leases / retries / attempts
+│   └── queue / priority / leases / retries / compact completion receipt
 ├── PackedVectorStore
 │   └── immutable numeric matrices
 ├── MemoryVectorStore
@@ -63,7 +63,7 @@ Episodes are contiguous ancestry ranges made from whole user-led response cycles
 Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. A Memory's `MemoryBodyId` is immutable across revisions: metadata/classification/lifecycle may change, but semantic title/content cannot mutate in place. Semantic corrections create another Memory rather than rewriting an existing body. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Insomnia persists assistant-authored **authority provenance** in the existing `content_source_*` record fields only when the user adopts/retains that assistant proposition; separate `grounding_source_*` fields identify context used only to resolve a referent in a user-owned proposition. Grounding never supplies semantic authority. Memory authority does not depend on vector availability.
 
 ### Insomnia operational state
-Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Retry and terminal outcomes plus immutable attempt history are retained. Processing claims are reclaimable after reopen. This owner consumes no semantic version clock.
+Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Pending/retry/terminal state is durable only while operationally relevant, and processing claims are reclaimable after reopen. Successful processing atomically publishes all newly created Memory records together with one compact Episode-completion receipt; prior failed-attempt history is not retained as active history after success. This owner consumes no semantic version clock.
 
 `create_memory` is not a Memory write API. It finalizes the current uncovered live Episode tail and queues it at immediate-live priority; Insomnia remains the only authority that can turn source material into working-memory revisions.
 

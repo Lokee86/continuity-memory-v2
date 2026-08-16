@@ -44,27 +44,6 @@ pub(crate) fn encode_work(work: &InsomniaWork) -> Result<Vec<u8>, InsomniaError>
     Ok(out)
 }
 
-pub(crate) fn encode_attempt(attempt: &InsomniaAttempt) -> Result<Vec<u8>, InsomniaError> {
-    let mut out = Vec::with_capacity(192 + attempt.memory_ids.len() * 32);
-    out.extend_from_slice(&ATTEMPT_MAGIC);
-    out.extend_from_slice(&attempt.episode_id.0);
-    out.extend_from_slice(&attempt.attempt.to_le_bytes());
-    out.push(attempt.state.tag());
-    out.extend_from_slice(&attempt.started_at_ns.to_le_bytes());
-    out.extend_from_slice(&attempt.completed_at_ns.to_le_bytes());
-    out.extend_from_slice(&attempt.rejected_count.to_le_bytes());
-    write_string(&mut out, &attempt.extractor_model)?;
-    write_string(&mut out, &attempt.extractor_version)?;
-    let count = u32::try_from(attempt.memory_ids.len())
-        .map_err(|_| InsomniaError::InvalidField("memory ids"))?;
-    out.extend_from_slice(&count.to_le_bytes());
-    for id in &attempt.memory_ids {
-        out.extend_from_slice(&id.0);
-    }
-    write_optional_string(&mut out, attempt.error.as_deref())?;
-    Ok(out)
-}
-
 pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<InsomniaRecord>, InsomniaError> {
     if bytes.len() < 8 {
         return Ok(None);

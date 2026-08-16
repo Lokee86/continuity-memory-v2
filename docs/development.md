@@ -300,6 +300,16 @@ The selected cases cover the failure modes that have actually driven Insomnia ch
 
 For a two-pass extractor this reduces the nominal no-evidence model-call floor from `66 * 2 = 132` calls to `11 * 2 = 22`, about an `83%` reduction. Use the 11-Episode fixture for routine prompt/contract/model tuning. Use full gold v3 / the 66-Episode fixture only for milestone confirmation after the small corpus is stable, not for every iteration.
 
+### Atomic self-cleaning Insomnia completion — 2026-08-16
+
+Successful Episode processing no longer publishes Memory revisions one at a time followed by a separate attempt/work update. The processor first validates extraction, stages any new content-addressed Memory bodies plus their CVA-global version tickets, and then writes one `CVAINSC1` completion chunk containing every newly visible Memory record together with the compact successful Episode receipt. The same chunk is consumed by both Memory and Insomnia rebuild state. Until that chunk is fully present, staged bodies/tickets are inert and no new Memory is current.
+
+Container reopen now treats an incomplete final length-prefixed chunk as an interrupted append: it truncates the file back to the start of that trailing chunk and continues from the last complete boundary. A deterministic synthetic-endpoint fault test processes an Episode, truncates the CVA halfway through its completion chunk, reopens it, verifies zero new Memories and a reclaimed Pending Episode, then retries and verifies exactly one clean final publication. Zero-Memory, multi-Memory, reopen, and retry-before-success cases are also covered.
+
+Operational retention is deliberately narrow. Retryable failures and terminal failures persist only current `InsomniaWork` state; they no longer append a separate durable attempt-history record. On successful processing, any prior logical attempt history for that Episode is collapsed to one final completion receipt containing the producing model/contract, timestamps, Memory IDs, and rejected count. Detailed extraction responses, evidence bundles, disposition/synthesis intermediates, and retry traces are not made durable by this path.
+
+This is **logical operational vacuum**, not general physical CVA compaction. Earlier superseded Work chunks and orphaned staging bodies/version tickets can remain as unreachable append-only bytes until the general CVA packing/vacuum layer exists. Rewriting the whole CVA on every Episode completion would be substantially more pathological than retaining bounded unreachable chunks, so physical reclamation remains a separate storage concern.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.

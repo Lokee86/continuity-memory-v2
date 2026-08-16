@@ -1,7 +1,7 @@
 use super::source_validation::validate_candidate_sources;
 use super::{InsomniaProcessError, InsomniaProcessResult};
-use crate::cva_memory_publish::publish_memory_parts;
 use crate::insomnia::candidate::hex;
+use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
 use crate::insomnia::store::InsomniaStore;
 use crate::memory_store::MemoryStore;
 use crate::{
@@ -72,53 +72,45 @@ pub(crate) fn prepare_application(
     })
 }
 
-pub(crate) fn publish_draft(
-    archive: &Archive,
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn commit_application(
     container: &mut Container,
     memories: &mut MemoryStore,
-    draft: MemoryDraft,
-    result: &mut InsomniaProcessResult,
-) -> Result<(), InsomniaProcessError> {
-    let (memory, created) = publish_memory_parts(archive, memories, container, None, 0, draft)?;
-    if created {
-        result.created.push(memory);
-    } else {
-        result.existing.push(memory);
-    }
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn finish_application(
-    container: &mut Container,
-    memories: &MemoryStore,
     insomnia: &mut InsomniaStore,
     claim: &InsomniaWork,
+    prepared: PreparedApplication,
     started_at_ns: i64,
     completed_at_ns: i64,
-    model: String,
-    contract_version: String,
-    result: &InsomniaProcessResult,
-) -> Result<(), InsomniaProcessError> {
-    let memory_ids: Vec<_> = result
-        .created
-        .iter()
-        .chain(&result.existing)
-        .map(|memory| memory.id)
-        .collect();
-    if memory_ids.iter().any(|id| !memories.contains_memory(*id)) {
-        return Err(crate::InsomniaError::InvalidTransition.into());
-    }
-    insomnia.complete(
-        container,
-        claim.episode_id,
-        claim.lease_token.unwrap(),
+) -> Result<InsomniaProcessResult, InsomniaProcessError> {
+    let token = claim
+        .lease_token
+        .ok_or(InsomniaProcessError::InvalidClaim)?;
+    insomnia.active_claim(claim.episode_id, token, completed_at_ns)?;
+    let batch = memories.stage_grouped_insomnia(container, prepared.drafts)?;
+    let mut memory_ids: Vec<_> = batch.records.iter().map(|record| record.id).collect();
+    memory_ids.extend(batch.existing.iter().map(|memory| memory.id));
+    let completion = InsomniaCompletion {
+        episode_id: claim.episode_id,
+        attempt: claim.attempt_count,
         started_at_ns,
         completed_at_ns,
-        model,
-        contract_version,
+        extractor_model: prepared.model,
+        extractor_version: prepared.contract_version,
+        rejected_count: prepared.rejected.len() as u32,
         memory_ids,
-        result.rejected.len() as u32,
-    )?;
-    Ok(())
+        records: batch.records,
+    };
+    let payload = encode_completion(&completion)
+        .map_err(|_| crate::InsomniaError::InvalidField("completion record"))?;
+    container
+        .append(&payload)
+        .map_err(crate::InsomniaError::from)?;
+    container.sync().map_err(crate::InsomniaError::from)?;
+    let created = memories.apply_grouped_records(container, &completion.records)?;
+    insomnia.apply_completion(&completion)?;
+    Ok(InsomniaProcessResult {
+        created,
+        existing: batch.existing,
+        rejected: prepared.rejected,
+    })
 }

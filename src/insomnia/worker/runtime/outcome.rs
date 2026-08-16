@@ -1,8 +1,5 @@
 use super::{DrainCounters, DrainShared, now_ns};
-use crate::insomnia::processor::{
-    InsomniaProcessResult, PreparedApplication, finish_application, prepare_application,
-    publish_draft,
-};
+use crate::insomnia::processor::{commit_application, prepare_application};
 use crate::{GeneralEndpointError, InsomniaError, InsomniaExtractionError, InsomniaWork};
 use std::sync::atomic::Ordering;
 
@@ -38,12 +35,7 @@ pub(super) fn apply_success(
             config.lease_duration_ns,
         )?;
     }
-    let PreparedApplication {
-        drafts,
-        rejected,
-        model,
-        contract_version,
-    } = {
+    let prepared = {
         let mut container = shared
             .container
             .lock()
@@ -58,12 +50,7 @@ pub(super) fn apply_success(
             completed_at_ns,
         )?
     };
-    let mut result = InsomniaProcessResult {
-        created: Vec::new(),
-        existing: Vec::new(),
-        rejected,
-    };
-    for draft in drafts {
+    let result = {
         let mut container = shared
             .container
             .lock()
@@ -72,39 +59,20 @@ pub(super) fn apply_success(
             .memories
             .lock()
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
-        publish_draft(
-            shared.archive,
-            &mut container,
-            &mut memories,
-            draft,
-            &mut result,
-        )?;
-    }
-    {
-        let mut container = shared
-            .container
-            .lock()
-            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
-        let memories = shared
-            .memories
-            .lock()
-            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
         let mut insomnia = shared
             .insomnia
             .lock()
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
-        finish_application(
+        commit_application(
             &mut container,
-            &memories,
+            &mut memories,
             &mut insomnia,
             claim,
+            prepared,
             started_at_ns,
             completed_at_ns,
-            model,
-            contract_version,
-            &result,
-        )?;
-    }
+        )?
+    };
     counters.completed.fetch_add(1, Ordering::Relaxed);
     counters
         .created
