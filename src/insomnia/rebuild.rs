@@ -15,6 +15,12 @@ impl InsomniaOpenState {
     }
 
     pub(crate) fn ingest(&mut self, _chunk: ChunkRef, payload: &[u8]) -> Result<(), InsomniaError> {
+        if let Some(completion) =
+            super::completion::decode_completion(payload).map_err(InsomniaError::CorruptRecord)?
+        {
+            self.store.apply_completion(&completion)?;
+            return Ok(());
+        }
         if decode_format(payload)? {
             if self.format_seen {
                 return Err(InsomniaError::ConflictingFormat);

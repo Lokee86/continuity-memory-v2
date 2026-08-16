@@ -49,7 +49,8 @@ impl Container {
             .map_err(ContainerError::Io)?;
         while offset < file_len {
             if file_len - offset < CHUNK_HEADER_LEN {
-                return Err(E::from(ContainerError::TruncatedChunk(offset)));
+                self.recover_truncated_tail(offset).map_err(E::from)?;
+                break;
             }
             let len = read_u64(&mut self.file, offset).map_err(E::from)?;
             let end = offset
@@ -57,7 +58,8 @@ impl Container {
                 .and_then(|value| value.checked_add(len))
                 .ok_or_else(|| E::from(ContainerError::ChunkTooLarge))?;
             if end > file_len {
-                return Err(E::from(ContainerError::TruncatedChunk(offset)));
+                self.recover_truncated_tail(offset).map_err(E::from)?;
+                break;
             }
             let payload_len =
                 usize::try_from(len).map_err(|_| E::from(ContainerError::ChunkTooLarge))?;
@@ -70,6 +72,13 @@ impl Container {
             visitor(chunk, &payload, self.latest_version())?;
             offset = end;
         }
+        Ok(())
+    }
+
+    fn recover_truncated_tail(&mut self, offset: u64) -> Result<(), ContainerError> {
+        self.file.set_len(offset)?;
+        self.file.seek(SeekFrom::Start(offset))?;
+        self.file.sync_all()?;
         Ok(())
     }
 }

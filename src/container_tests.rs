@@ -51,7 +51,7 @@ fn reject_truncated_header() {
 }
 
 #[test]
-fn reject_truncated_chunk() {
+fn recover_truncated_trailing_chunk() {
     let path = test_path("truncated-chunk.cva");
     let mut container = Container::create(&path).unwrap();
     container.append(b"complete").unwrap();
@@ -60,10 +60,10 @@ fn reject_truncated_chunk() {
     let mut bytes = fs::read(&path).unwrap();
     bytes.pop();
     fs::write(&path, bytes).unwrap();
-    assert!(matches!(
-        Container::open(path),
-        Err(ContainerError::TruncatedChunk(_))
-    ));
+
+    let mut reopened = Container::open(&path).unwrap();
+    assert!(reopened.chunks().unwrap().is_empty());
+    assert_eq!(fs::metadata(path).unwrap().len(), 16);
 }
 
 #[test]

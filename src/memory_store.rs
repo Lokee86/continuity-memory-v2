@@ -7,6 +7,8 @@ use crate::{
 };
 use std::collections::HashMap;
 
+mod grouped_publish;
+
 pub(crate) struct MemoryStore {
     bodies: HashMap<MemoryBodyId, ChunkRef>,
     records: Vec<MemoryRecord>,

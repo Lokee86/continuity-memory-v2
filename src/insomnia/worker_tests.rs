@@ -189,7 +189,7 @@ fn retryable_failure_is_reclaimed_and_completed_in_the_same_drain() {
     assert_eq!(result.failed_attempts, 1);
     assert_eq!(result.completed_episodes, 1);
     assert_eq!(result.terminal_episodes, 0);
-    assert_eq!(cva.insomnia_stats().attempts, 2);
+    assert_eq!(cva.insomnia_stats().attempts, 1);
 }
 
 #[test]

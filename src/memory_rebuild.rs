@@ -24,6 +24,20 @@ impl MemoryOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), MemoryError> {
+        if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
+            .map_err(MemoryError::CorruptRecord)?
+        {
+            for record in completion.records {
+                if record.global_version == 0 || record.global_version > latest_global_version {
+                    return Err(MemoryError::InvalidVersion);
+                }
+                if record.memory_version != self.store.memory_version() + 1 {
+                    return Err(MemoryError::InvalidVersion);
+                }
+                self.store.insert_rebuilt(record)?;
+            }
+            return Ok(());
+        }
         if decode_format(payload)? {
             if self.format_seen {
                 return Err(MemoryError::ConflictingFormat);

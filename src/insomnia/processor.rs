@@ -9,9 +9,7 @@ use std::fmt;
 mod application;
 mod source_validation;
 
-pub(crate) use application::{
-    PreparedApplication, finish_application, prepare_application, publish_draft,
-};
+pub(crate) use application::{PreparedApplication, commit_application, prepare_application};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaProcessResult {
@@ -193,25 +191,16 @@ fn apply_prepared(
     started_at_ns: i64,
     completed_at_ns: i64,
 ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
-    let mut result = InsomniaProcessResult {
-        created: Vec::new(),
-        existing: Vec::new(),
-        rejected: prepared.rejected,
-    };
-    for draft in prepared.drafts {
-        publish_draft(archive, container, memories, draft, &mut result)?;
-    }
-    finish_application(
+    let _ = archive;
+    commit_application(
         container,
         memories,
         insomnia,
         claim,
+        prepared,
         started_at_ns,
         completed_at_ns,
-        prepared.model,
-        &result,
-    )?;
-    Ok(result)
+    )
 }
 
 fn validate_claim(claim: &InsomniaWork, scope: &str) -> Result<(), InsomniaProcessError> {
