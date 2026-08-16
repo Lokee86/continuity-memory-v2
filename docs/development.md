@@ -238,6 +238,22 @@ A direct Episode-boundary inspection confirmed that the required grounding mater
 
 The experimental reviewer code and calibration-only CLI hooks were removed after measurement. The next quality experiment should separate **per-user-turn retain/omit source selection** from Memory synthesis so every potential authority turn receives an explicit disposition before consolidation. Broader retrieval, including vectors, remains a fallback for future cases that actually lack sufficient Episode-local grounding.
 
+### Sol-low semantic-review follow-up — 2026-08-16
+
+The same v2-7 66-Episode / 48-worker fixture and second-pass reviewer contract were then retested with `gpt-5.6-sol` at low reasoning in a detached disposable worktree. Three fresh Sol controls were compared with three fresh Sol runs using the reviewer; the main runtime and configured Luna route were not changed.
+
+```text
+mode       Memories/run        avg Memories   retain-source recall   omit-source clean   avg mechanical selection   source Jaccard
+control    154 / 148 / 158        153.3             85.4%                62.5%                  80.8%               0.695
+review     122 / 121 / 126        123.0             71.9%                87.5%                  75.0%               0.638
+```
+
+Sol materially changed the first-pass extraction result. Compared with the earlier Luna-low v2-7 controls, Sol controls raised retain-source recall from `65.6%` to `85.4%` and average mechanical selection from `68.3%` to `80.8%`, while producing substantially more raw Memories. A direct body audit of the first Sol pair also recovered several targets that were stable Luna misses: future ship variants, the narrow custom-room-code current fact, deleted-assets grounding, and calibrated prompt sizing. Sol still consistently missed player-color identity, the narrow collision-authority target, and the mixed Prompt-72 state in the observed runs.
+
+The blanket reviewer still did not justify itself. It removed the Godot-first false decision and Prompt-41 receipt in all three review runs and improved omit cleanliness from `62.5%` to `87.5%`, but it reduced retain recall by 13.5 points, lowered average mechanical selection by 5.8 points, and made source selection less repeatable. It also still admitted phase-renumbering in two runs and one finish-job request in one run. The three Sol controls took `50.846`, `71.347`, and `63.431` seconds end to end; review runs took `73.842`, `88.115`, and `66.900` seconds, about 23% slower on average.
+
+The useful conclusion is therefore **model choice before architectural expansion**. Sol-low is now the stronger extractor candidate and should receive a full strict semantic-target review before replacing Luna-low as the configured default. If a second pass is retained at all, the next experiment should gate semantic review only to structurally ambiguous/high-risk authority candidates rather than reviewing every Memory. This may preserve Sol's high recall while filtering question/request/receipt false positives. No result here establishes a need for vector retrieval.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
