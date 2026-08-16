@@ -199,13 +199,25 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
 }
 
 #[test]
-fn explicit_retention_rule_remains_in_extractor_contract() {
-    assert!(
-        INSOMNIA_SYSTEM_PROMPT.contains("Explicit imperative retention is a strong requirement")
-    );
-    assert!(INSOMNIA_SYSTEM_PROMPT.contains("remember this"));
+fn legacy_extraction_policy_remains_in_extractor_contract() {
+    for clause in [
+        "Do not retain advice, recommendations, examples, explanations, generated copy",
+        "Optimize for durable information density, not sentence-level atomicity",
+        "Project implementation details, reusable commands and paths, procedures, sequencing, current state, diagnoses, and unresolved next actions may be durable",
+        "Never emit a standalone memory whose durable content is only that a prompt, phase, step, migration batch, test run, commit, push, merge, file move, verification, or cleanup completed",
+        "Do not target a fixed candidate count",
+        "Use the shortest contiguous quote that establishes user authority for the complete candidate; never paraphrase it",
+        "An imperative request such as \"Remember that.\" or \"Remember this.\" MUST produce a candidate",
+        "Do not extract vague standalone references",
+        "Return candidates in source-turn order",
+    ] {
+        assert!(
+            INSOMNIA_SYSTEM_PROMPT.contains(clause),
+            "missing legacy extraction-contract clause: {clause}"
+        );
+    }
     assert!(INSOMNIA_SYSTEM_PROMPT.contains("Do you remember that?"));
-    assert!(INSOMNIA_SYSTEM_PROMPT.contains("MUST NOT be treated as retention instructions"));
+    assert!(INSOMNIA_SYSTEM_PROMPT.contains("MUST NOT be treated as adoption"));
 }
 
 #[test]
