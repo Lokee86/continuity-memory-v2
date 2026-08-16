@@ -218,6 +218,26 @@ Contract `v2-7` implements that correction. Candidate structured output now has 
 
 The negative cases reinforce the same rule. Related history exists for several rejected questions/requests, but retrieval must not convert `so... fix it?`, the local-spawner question, or the Godot-first question into durable decisions. Likewise, account-wide collision and custom-room-code context can contain broader/later project state; similarity alone must never make that state authoritative for the current turn.
 
+### Candidate-level semantic-review experiment — 2026-08-16
+
+A disposable second-pass semantic reviewer was implemented and live-tested, then removed rather than retained in the runtime. The reviewer received only each extracted candidate plus its authoritative user turn and permitted authority/grounding source. An initial `supported` / `narrow` / `unsupported` contract over-narrowed 57 of 113 reviewed candidates, so a second contract separated `authority_valid`, `durable`, and `full` / `partial` / `none` semantic support and prohibited stylistic compression.
+
+The second contract was compared over three fresh Luna-low / 48-worker runs against three fresh v2-7 controls on the same current-format 66-Episode fixture:
+
+```text
+mode       Memories/run       avg Memories   retain-source recall   omit-source clean   avg mechanical selection
+control    103 / 97 / 97         99.0             65.6%                79.2%                  68.3%
+review     86 / 74 / 79          79.7             57.3%                87.5%                  63.3%
+```
+
+The reviewer improved precision on the tracked omit cases: the Godot-first interrogative false decision disappeared in all review runs and the Prompt-41 receipt false positive seen in one control run also disappeared. However, `phase-renumbering` remained a false positive in all three control and all three review runs. More importantly, the blanket review removed too much useful state: retain-source recall fell by 8.3 points and average mechanical gold selection fell by 5.0 points.
+
+The provenance breakdown rules out using the same reviewer only because contextual provenance exists. Gold cases requiring assistant authority were selected at 81.0% in both control and review runs. Grounding-required cases fell from 33.3% to 25.0%, and ordinary retained cases fell from 66.7% to 55.6%. A candidate-only reviewer also cannot recover a durable source turn the extractor never selected.
+
+A direct Episode-boundary inspection confirmed that the required grounding material for all four gold-v2 grounding cases is already present inside the same authoritative Episode: creatureServer, BrowserOS, ShipStats, and deleted assets do not require broader ancestry or vector retrieval to resolve their tracked referents. The remaining measured problem is therefore **initial semantic source selection inside an already-sufficient Episode**, followed by faithful synthesis from selected authority—not missing retrieval context.
+
+The experimental reviewer code and calibration-only CLI hooks were removed after measurement. The next quality experiment should separate **per-user-turn retain/omit source selection** from Memory synthesis so every potential authority turn receives an explicit disposition before consolidation. Broader retrieval, including vectors, remains a fallback for future cases that actually lack sufficient Episode-local grounding.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
