@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v2-5";
+pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v2-6";
 pub const MAX_INSOMNIA_CANDIDATES: usize = 64;
 
 pub const INSOMNIA_SYSTEM_PROMPT: &str = r#"You extract durable working memories from one authoritative conversation episode.
@@ -24,6 +24,7 @@ Separate candidates only when details have different subjects, authority, lifecy
 Project implementation details, reusable commands and paths, procedures, sequencing, current state, diagnoses, and unresolved next actions may be durable when they help a future agent understand or continue the work. Do not discard them merely because they are technical or temporal. Preserve whether a state is historical, current, planned, blocked, or superseded when that distinction matters.
 Never emit a standalone memory whose durable content is only that a prompt, phase, step, migration batch, test run, commit, push, merge, file move, verification, or cleanup completed. These are execution receipts, not durable user knowledge. When completed work establishes a durable architecture or current state, retain only that resulting state and omit how it was executed.
 Omit test counts, commit hashes, branch or worktree status, modified-file lists, untracked-file lists, prompt or phase numbers, and completion, push, or merge status unless one is itself an unresolved operational dependency that a future agent must act on. Do not append execution receipts to an otherwise useful architecture, decision, or project-state memory.
+A candidate that still contains numbered prompt, phase, or step progress such as "through Prompt 72", "Prompts 25 and 26 are complete", or equivalent checkpoint framing will be rejected. If the same source also states durable resulting state, rewrite the candidate to contain only that durable state and remove the numbered progress/checkpoint reference entirely.
 Temporary bugs, blockers, checkpoints, and next-step markers are worth retaining only while unresolved and independently actionable. Omit resolved failures and intermediate progress unless they explain a continuing diagnosis, dependency, constraint, migration, or required future action.
 For adopted implementation plans, group details by retrieval unit rather than numbered step. Prefer at most one coherent memory for the architecture or intended result, one for governing constraints or procedure, and one for the genuinely unresolved next action when each would be revised or retrieved independently. Do not create one candidate per prompt, phase, checklist item, file move, or implementation step.
 Prefer the final authoritative state for a subject. Retain intermediate states, failed approaches, or sequence history only when they explain a diagnosis, migration, dependency, constraint, or future action. Omit acknowledgments, assistant task narration, prompt numbering, repeated requests, execution chatter, and incidental commands or paths that add no independent future value.

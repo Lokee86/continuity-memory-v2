@@ -1,4 +1,4 @@
-use super::candidate_receipt_policy::is_pure_execution_receipt;
+use super::candidate_receipt_policy::violates_execution_receipt_policy;
 use super::candidate_text::{informative_tokens, normalize};
 
 pub(super) fn validate_semantic_authority(
@@ -29,8 +29,8 @@ pub(super) fn validate_semantic_authority(
     if looks_like_unsupported_question(source_quote, category) {
         return Some("interrogative authority does not assert the extracted proposition".into());
     }
-    if is_pure_execution_receipt(title, content) {
-        return Some("candidate is an execution receipt rather than durable state".into());
+    if violates_execution_receipt_policy(title, content) {
+        return Some("candidate contains execution receipt/progress framing".into());
     }
     None
 }

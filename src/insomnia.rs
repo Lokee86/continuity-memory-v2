@@ -40,11 +40,15 @@ pub use worker::{
 #[cfg(test)]
 mod candidate_policy_tests;
 #[cfg(test)]
+mod candidate_receipt_policy_tests;
+#[cfg(test)]
 mod evidence_flow_tests;
 #[cfg(test)]
 mod evidence_tests;
 #[cfg(test)]
 mod extraction_tests;
+#[cfg(test)]
+mod gold_tests;
 #[cfg(test)]
 mod queue_recovery_tests;
 #[cfg(test)]

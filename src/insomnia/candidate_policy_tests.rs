@@ -145,29 +145,3 @@ fn unsupported_questions_are_rejected_but_asserted_tag_question_is_kept() {
         .is_some()
     );
 }
-
-#[test]
-fn pure_receipts_are_rejected_but_resulting_state_is_kept() {
-    assert!(
-        validate_semantic_authority(
-            "direct",
-            "fact",
-            "Multiplayer prompt progress",
-            "completed through 41",
-            "The multiplayer lifecycle prompt sequence is completed through Prompt 41.",
-            false,
-        )
-        .is_some()
-    );
-    assert!(
-        validate_semantic_authority(
-            "direct",
-            "fact",
-            "Room type ownership",
-            "COMPLETED PROMPT 31: networking now references rooms.Room directly",
-            "Networking now references rooms.Room directly.",
-            false,
-        )
-        .is_none()
-    );
-}

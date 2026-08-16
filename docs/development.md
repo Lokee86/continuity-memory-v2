@@ -174,7 +174,23 @@ The `v2-2` sweep produced 133–157 created Memories and 9–30 rejected candida
 
 Five fresh 48-worker runs under restored contract `v2-3` produced 111, 108, 124, 122, and 116 Memories respectively, with 8–16 rejected candidates, zero retries, zero terminal failures, and zero historical-evidence turns in every run. Audit of the stored Memory bodies found that consolidation and phrasing were generally strong when the same source was selected, but source-selection overlap remained only about 0.60–0.67 pairwise. The audit also exposed cases where vague/question turns were treated as authority without explicit assistant-content provenance, plus residual execution/progress memories and unstable category/type labels.
 
-Extractor contract `v2-4` added a required structured `authority_kind` field with `direct`, `correction`, `adoption`, and `retention` values. Contract `v2-5` now enforces the first deterministic authority-policy layer: direct authority cannot carry assistant content provenance, adoption requires it, bare/callback retention and low-information deictic authority cannot support detailed memories without provenance, unsupported interrogative authority is rejected while explicit asserted tag-questions remain admissible, and pure prompt/phase/test/commit-style execution receipts are rejected when they contain no durable resulting-state signal. These checks are deliberately narrow and do not claim general semantic entailment.
+Extractor contract `v2-4` added a required structured `authority_kind` field with `direct`, `correction`, `adoption`, and `retention` values. Contract `v2-5` added the first deterministic authority-policy layer: direct authority cannot carry assistant content provenance, adoption requires it, bare/callback retention and low-information deictic authority cannot support detailed memories without provenance, unsupported interrogative authority is rejected while explicit asserted tag-questions remain admissible, and obvious prompt/phase/test/commit-style execution receipts are rejected. Contract `v2-6` additionally rejects any candidate that still carries numbered prompt/phase/step progress or checkpoint framing, even when the candidate also contains useful project state; the extractor must emit the durable state without the numbered progress reference. These checks remain deliberately narrow and do not claim general semantic entailment.
+
+### Insomnia semantic gold set — 2026-08-15
+
+`corpus/insomnia-gold-v1.json` records 40 source-anchored judgments from the prepared 66-Episode corpus: 32 cases should produce a durable Memory and 8 should not. Retained cases specify the smallest supported semantic target, expected authority kind, whether assistant content provenance is required or forbidden, acceptable category/type values, receipt handling, and explicit forbidden elaborations where the source is easy to over-read. The set intentionally includes clean direct facts/preferences, assistant adoptions, retention callbacks, mixed receipt-plus-state turns, interrogative non-decisions, and known semantic-provenance failures. It is a human/model judgment set derived from the authoritative corpus, not from current Insomnia output.
+
+`tools/evaluate_insomnia_gold.py` provides a repeatable mechanical scorer for selection, provenance presence, acceptable metadata, explicit forbidden-content checks, and receipt cleanup across stored Memory dumps. Semantic equivalence to each case's `semantic_target` is intentionally left for human/model judgment rather than reduced to lexical overlap.
+
+Retrospective scoring of the existing five-run audits gives:
+
+```text
+contract   selection   provenance   metadata   content/receipt guards
+v2-3         64.5%       95.5%       82.1%             92.9%
+v2-5         67.0%       98.0%       92.2%             96.1%
+```
+
+The `v2-5` per-run selection scores were 57.5%, 70.0%, 67.5%, 62.5%, and 77.5%. Selection remains the dominant measured failure mode. The high provenance percentage is conditional on a gold-retain source actually being selected; it does not mean semantic support is generally validated. In particular, the gold set marks deictic adoption such as `ok, so we do want to add it now` as requiring assistant provenance, and it distinguishes supportable narrow propositions from unsupported elaboration. Contract `v2-6` has deterministic regression coverage for the Prompt-72 and plural `Prompts 25 and 26 are complete` escapes; no live `v2-6` multi-run model comparison has yet been recorded.
 
 ### Benchmark baseline — 2026-08-15
 

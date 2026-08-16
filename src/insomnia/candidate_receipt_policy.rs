@@ -1,11 +1,18 @@
 use super::candidate_text::normalize;
 
-pub(super) fn is_pure_execution_receipt(title: &str, content: &str) -> bool {
+pub(super) fn violates_execution_receipt_policy(title: &str, content: &str) -> bool {
     let combined = format!(" {} {} ", normalize(title), normalize(content));
+    if has_numbered_progress(&combined) {
+        return true;
+    }
+
     let has_transient_unit = [
         " prompt ",
+        " prompts ",
         " phase ",
+        " phases ",
         " step ",
+        " steps ",
         " test run ",
         " tests ",
         " commit ",
@@ -35,6 +42,41 @@ pub(super) fn is_pure_execution_receipt(title: &str, content: &str) -> bool {
     .iter()
     .any(|marker| combined.contains(marker));
     has_transient_unit && has_completion && !has_durable_state_signal(content)
+}
+
+fn has_numbered_progress(combined: &str) -> bool {
+    let tokens: Vec<_> = combined.split_whitespace().collect();
+    let has_numbered_unit = tokens.iter().enumerate().any(|(index, token)| {
+        matches!(
+            *token,
+            "prompt" | "prompts" | "phase" | "phases" | "step" | "steps"
+        ) && tokens.iter().skip(index + 1).take(4).any(|candidate| {
+            candidate
+                .chars()
+                .next()
+                .is_some_and(|ch| ch.is_ascii_digit())
+        })
+    });
+    if !has_numbered_unit {
+        return false;
+    }
+
+    let padded = format!(" {combined} ");
+    [
+        " completed ",
+        " complete ",
+        " done ",
+        " finished ",
+        " passed ",
+        " reached ",
+        " checkpoint ",
+        " milestone ",
+        " progress ",
+        " through ",
+        " up to ",
+    ]
+    .iter()
+    .any(|marker| padded.contains(marker))
 }
 
 fn has_durable_state_signal(content: &str) -> bool {
