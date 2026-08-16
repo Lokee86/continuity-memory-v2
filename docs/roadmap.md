@@ -62,7 +62,7 @@ Near-term priorities:
 3. Add the grouped Memory/outcome publication boundary; mutation-ID replay already converges correctly after an interrupted split publication, but one physical correctness boundary is still required before production hardening.
 4. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, persistent/background worker orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool.
 5. Extend provider transport beyond the implemented `openai-ready` embedding/General paths and implemented `openai-codex` device-code + General/Insomnia execution: add OAuth token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
-6. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path.
+6. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path. **Dream rebuild constraint:** processing direction must not determine semantic edge direction. Candidate evaluation should treat the selected/source Memory only as the scheduling trigger, evaluate the Memory pair, and return the correct relationship orientation independently (for example, processing B against A must still be able to persist `A --factual--> B` when A supplies the fact used by B). Do not preserve the native Go coupling where Dream can emit only `SOURCE -> CANDIDATE`. This also requires redesigning the old source-owned replacement/retraction rule so an edge discovered from the opposite evaluation direction cannot later be retracted merely because it is not reproduced by the endpoint Memory's own pass.
 7. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
 
 ## Implementation sequence
@@ -98,6 +98,7 @@ A storage slice is complete only when ownership, persistent format, failure/reco
 - Whole-CVA historical materialization and restore/timeline representation now that Archive, Memories, and Vector Generations are concrete mutable semantic domains.
 - Atomic grouped publication boundary for one completed Insomnia extraction attempt across zero-or-more Memory revisions and the durable processing outcome; mutation-ID replay already guarantees convergence, but the final grouped correctness boundary remains to be implemented.
 - Retention/vacuum semantics for abandoned conversation/session branches.
+- Dream pair-evaluation ownership: define how independently oriented edges are identified, attributed, reconsidered, and retracted once semantic edge direction is decoupled from the Memory that triggered processing. The rebuilt design must not require the semantically correct edge origin to be selected as the processing source before that edge can exist.
 
 ## Related docs
 
