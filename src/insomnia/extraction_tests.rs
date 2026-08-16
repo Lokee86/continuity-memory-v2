@@ -70,6 +70,7 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
         "test-model",
         vec![json!({
             "candidates": [{
+                "authority_kind": "direct",
                 "category": "decision",
                 "type": "project",
                 "title": "Insomnia owns working-memory generation",
@@ -122,6 +123,7 @@ fn assistant_cannot_become_user_authority() {
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
         vec![json!({"candidates": [{
+            "authority_kind": "direct",
             "category": "decision",
             "type": "project",
             "title": "Bad authority",
@@ -172,6 +174,7 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
         vec![json!({"candidates": [{
+            "authority_kind": "retention",
             "category": "decision",
             "type": "project",
             "title": "Episode inactivity boundary",
@@ -218,6 +221,63 @@ fn legacy_extraction_policy_remains_in_extractor_contract() {
     }
     assert!(INSOMNIA_SYSTEM_PROMPT.contains("Do you remember that?"));
     assert!(INSOMNIA_SYSTEM_PROMPT.contains("MUST NOT be treated as adoption"));
+    assert!(INSOMNIA_SYSTEM_PROMPT.contains("authority_kind must be exactly one of"));
+    assert!(
+        INSOMNIA_SYSTEM_PROMPT
+            .contains("A question must never be converted into an asserted decision")
+    );
+    assert!(INSOMNIA_SYSTEM_PROMPT.contains("A vague or deictic user turn"));
+}
+
+#[test]
+fn authority_kind_is_required_and_preserved_by_structured_extraction() {
+    let schema = crate::insomnia_schema();
+    let candidate_schema = &schema["properties"]["candidates"]["items"];
+    assert_eq!(
+        candidate_schema["properties"]["authority_kind"]["enum"],
+        json!(["direct", "correction", "adoption", "retention"])
+    );
+    assert!(
+        candidate_schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "authority_kind")
+    );
+
+    let path = test_path("authority-kind.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append(
+        &mut cva,
+        "u0",
+        None,
+        "user",
+        10,
+        "I prefer concise answers.",
+    );
+    let episode = queue_episode(&mut cva, "u0");
+    let turns = cva.episode_turns(episode.id).unwrap();
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "test-model",
+        vec![json!({
+            "candidates": [{
+                "authority_kind": "direct",
+                "category": "preference",
+                "type": "communication",
+                "title": "Concise responses",
+                "content": "The user prefers concise answers.",
+                "source_node_id": "u0",
+                "source_quote": "I prefer concise answers.",
+                "content_source_conversation_id": "",
+                "content_source_node_id": "",
+                "content_source_quote": ""
+            }],
+            "evidence_requests": []
+        })],
+    ));
+    let extraction = extractor.extract(&episode, &turns).unwrap();
+    assert_eq!(extraction.candidates.len(), 1);
+    assert_eq!(extraction.candidates[0].authority_kind, "direct");
 }
 
 #[test]

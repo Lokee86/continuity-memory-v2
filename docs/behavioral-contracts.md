@@ -77,6 +77,7 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Same-conversation overlapping ranges are diversified | `search_tests::diversification_penalizes_overlapping_ranges_from_same_conversation` |
 | Duplicate ranges are removed and default output is capped at 10 | `search_tests::duplicate_ranges_are_removed_and_default_result_limit_is_ten` |
 | Prepared corpus round-trips branches/content/fragments | `examples/archive_roundtrip.rs` |
+| Insomnia structured extraction requires explicit candidate authority kind (`direct`/`correction`/`adoption`/`retention`) and preserves it through candidate parsing | `insomnia::extraction_tests::authority_kind_is_required_and_preserved_by_structured_extraction` |
 | Prepared corpus supports two independent simulated profiles/generations plus default hybrid retrieval | `examples/vector_generation_smoke.rs` |
 
 ## Future contracts

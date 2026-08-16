@@ -1,15 +1,19 @@
 use serde_json::{Value, json};
 
-pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v2-3";
+pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v2-4";
 pub const MAX_INSOMNIA_CANDIDATES: usize = 64;
 
 pub const INSOMNIA_SYSTEM_PROMPT: &str = r#"You extract durable working memories from one authoritative conversation episode.
 Return the structured extraction object. Always include both "candidates" and "evidence_requests" arrays; use an empty evidence_requests array when no evidence is needed.
 Evidence requests are read-only and may use exactly one of these forms: {"kind":"turn","conversation_id":"...","node_id":"...","start_node_id":"","end_node_id":"","query":"","limit":0}, {"kind":"conversation_range","conversation_id":"...","node_id":"","start_node_id":"...","end_node_id":"...","query":"","limit":0}, {"kind":"archive_search","conversation_id":"","node_id":"","start_node_id":"","end_node_id":"","query":"...","limit":3}, or the same archive_search form with an optional real conversation_id.
 Request evidence only when it is necessary to resolve an explicit callback or adoption. Use at most four narrow requests. Do not use archive search to discover unrelated memories.
-Each candidate must contain: category, type, title, content, source_node_id, source_quote, content_source_conversation_id, content_source_node_id, and content_source_quote. Do not return a key; Continuity derives it deterministically.
+Each candidate must contain: authority_kind, category, type, title, content, source_node_id, source_quote, content_source_conversation_id, content_source_node_id, and content_source_quote. Do not return a key; Continuity derives it deterministically.
+authority_kind must be exactly one of: direct, correction, adoption, retention.
+Use direct when the user turn itself states the durable proposition. Use correction when the user turn corrects or replaces an earlier claim. Use adoption when the user explicitly accepts, selects, confirms, or directs action on assistant-authored content. Use retention when the user explicitly asks to remember or retain a proposition.
 source_node_id and source_quote identify the user turn that states, adopts, confirms, corrects, selects, or instructs the system to retain the memory.
 When that user turn adopts assistant-authored content, also return content_source_conversation_id, content_source_node_id, and content_source_quote for the earlier assistant turn containing the adopted content. Use empty strings for all three fields for memories directly stated by the user.
+A question must never be converted into an asserted decision, preference, constraint, or fact merely because it implies one. If the user turn is genuinely interrogative and does not itself assert the proposition, return no candidate unless a separate explicit adoption, correction, or retention act supplies authority.
+A vague or deictic user turn such as "do that", "that works", "good rule", "change that", or similar language cannot independently support details absent from that turn. When it explicitly adopts assistant-authored content, use authority_kind adoption and provide the assistant content-source fields; when it explicitly asks to retain assistant-authored content, use authority_kind retention and provide those fields. Otherwise return no candidate.
 category must be exactly one of: fact, preference, decision, instruction, relationship, constraint, correction, commitment.
 type must be exactly one of: identity, education, employment, location, possession, health, finance, schedule, communication, project, process, product, relationship, other.
 Use process for habits, workflows, routines, and methods such as meal prep. Use other only when no listed type applies.
@@ -72,6 +76,7 @@ fn candidate_schema() -> Value {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+            "authority_kind": {"type": "string", "enum": ["direct", "correction", "adoption", "retention"]},
             "category": {"type": "string", "enum": ["fact", "preference", "decision", "instruction", "relationship", "constraint", "correction", "commitment"]},
             "type": {"type": "string", "enum": ["identity", "education", "employment", "location", "possession", "health", "finance", "schedule", "communication", "project", "process", "product", "relationship", "other"]},
             "title": {"type": "string"},
@@ -82,6 +87,6 @@ fn candidate_schema() -> Value {
             "content_source_node_id": {"type": "string"},
             "content_source_quote": {"type": "string"}
         },
-        "required": ["category", "type", "title", "content", "source_node_id", "source_quote", "content_source_conversation_id", "content_source_node_id", "content_source_quote"]
+        "required": ["authority_kind", "category", "type", "title", "content", "source_node_id", "source_quote", "content_source_conversation_id", "content_source_node_id", "content_source_quote"]
     })
 }

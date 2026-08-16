@@ -37,6 +37,7 @@ fn memory_extractor() -> InsomniaExtractor<SimulatedGeneralEndpoint> {
         "test-model",
         vec![json!({
             "candidates": [{
+                "authority_kind": "direct",
                 "category": "preference",
                 "type": "project",
                 "title": "Preferred editor",

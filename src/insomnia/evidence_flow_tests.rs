@@ -91,7 +91,7 @@ fn historical_archive_search_can_supply_adopted_assistant_content() {
                 "start_node_id": "", "end_node_id": "", "query": "deployment target Windows Linux", "limit": 1
             }]}),
             json!({"candidates": [{
-                "category": "fact", "type": "project", "title": "Deployment targets",
+                "authority_kind": "retention", "category": "fact", "type": "project", "title": "Deployment targets",
                 "content": "The deployment target is Windows and Linux.",
                 "source_node_id": "u0", "source_quote": "Remember the deployment target we discussed.",
                 "content_source_conversation_id": "old", "content_source_node_id": "old-a",
@@ -149,7 +149,7 @@ fn external_content_source_must_have_been_returned_as_evidence() {
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
         vec![json!({"candidates": [{
-            "category": "fact", "type": "project", "title": "Deployment targets",
+            "authority_kind": "retention", "category": "fact", "type": "project", "title": "Deployment targets",
             "content": "The deployment target is Windows and Linux.",
             "source_node_id": "u0", "source_quote": "Remember the deployment target we discussed.",
             "content_source_conversation_id": "old", "content_source_node_id": "old-a",

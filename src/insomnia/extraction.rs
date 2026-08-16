@@ -8,6 +8,7 @@ use std::fmt;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaCandidate {
     pub key: String,
+    pub authority_kind: String,
     pub category: String,
     pub memory_type: String,
     pub title: String,

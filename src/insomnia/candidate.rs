@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 #[derive(Clone)]
 pub(super) struct RawCandidate {
+    authority_kind: String,
     category: String,
     memory_type: String,
     title: String,
@@ -37,6 +38,7 @@ pub(super) fn parse_candidates(
 
 fn parse_candidate(value: &Value) -> Result<RawCandidate, InsomniaExtractionError> {
     Ok(RawCandidate {
+        authority_kind: required_string(value, "authority_kind")?,
         category: required_string(value, "category")?,
         memory_type: required_string(value, "type")?,
         title: required_string(value, "title")?,
@@ -64,6 +66,7 @@ pub(super) fn validate_candidates(
     turns: &[ResolvedTurn],
     raw: Vec<RawCandidate>,
 ) -> (Vec<InsomniaCandidate>, Vec<InsomniaRejection>) {
+    const AUTHORITY_KINDS: &[&str] = &["direct", "correction", "adoption", "retention"];
     const CATEGORIES: &[&str] = &[
         "fact",
         "preference",
@@ -94,13 +97,16 @@ pub(super) fn validate_candidates(
     let mut rejected = Vec::new();
     let mut seen = HashSet::new();
     for raw in raw {
+        let authority_kind = canonical_label(&raw.authority_kind);
         let category = canonical_label(&raw.category);
         let memory_type = canonical_label(&raw.memory_type);
         let source_node_id = raw.source_node_id.trim().to_owned();
         let source_quote = raw.source_quote.trim().to_owned();
         let source = turns.iter().find(|turn| turn.node_id == source_node_id);
         let mut reason = None;
-        if !CATEGORIES.contains(&category.as_str()) {
+        if !AUTHORITY_KINDS.contains(&authority_kind.as_str()) {
+            reason = Some("authority kind is not recognized".to_owned());
+        } else if !CATEGORIES.contains(&category.as_str()) {
             reason = Some("category is not recognized".to_owned());
         } else if !TYPES.contains(&memory_type.as_str()) {
             reason = Some("type is not recognized".to_owned());
@@ -144,6 +150,7 @@ pub(super) fn validate_candidates(
         }
         accepted.push(InsomniaCandidate {
             key,
+            authority_kind,
             category,
             memory_type,
             title: raw.title.trim().to_owned(),
