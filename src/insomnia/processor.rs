@@ -7,6 +7,7 @@ use crate::{
 use std::fmt;
 
 mod application;
+mod source_validation;
 
 pub(crate) use application::{
     PreparedApplication, finish_application, prepare_application, publish_draft,

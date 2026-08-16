@@ -44,9 +44,12 @@ fn memory_extractor() -> InsomniaExtractor<SimulatedGeneralEndpoint> {
                 "content": "The user prefers Helix for editing code.",
                 "source_node_id": "u0",
                 "source_quote": "I prefer Helix for editing code.",
-                "content_source_conversation_id": "",
-                "content_source_node_id": "",
-                "content_source_quote": ""
+                "authority_source_conversation_id": "",
+                "authority_source_node_id": "",
+                "authority_source_quote": "",
+                "grounding_source_conversation_id": "",
+                "grounding_source_node_id": "",
+                "grounding_source_quote": ""
             }],
             "evidence_requests": []
         })],

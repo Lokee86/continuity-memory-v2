@@ -84,6 +84,8 @@ impl MemoryStore {
             source_node_id: draft.source_node_id.clone(),
             content_source_conversation_id: draft.content_source_conversation_id.clone(),
             content_source_node_id: draft.content_source_node_id.clone(),
+            grounding_source_conversation_id: draft.grounding_source_conversation_id.clone(),
+            grounding_source_node_id: draft.grounding_source_node_id.clone(),
             source_episode_id: draft.source_episode_id,
             mutation_id: draft.mutation_id.clone(),
             created_at_ns: draft.created_at_ns,
@@ -235,6 +237,15 @@ impl MemoryStore {
                 (None, None) => {}
                 _ => return Err(MemoryError::InvalidProvenance),
             }
+            match (
+                record.grounding_source_conversation_id.as_deref(),
+                record.grounding_source_node_id.as_deref(),
+            ) {
+                (Some(conversation_id), Some(node_id))
+                    if archive.has_node(conversation_id, node_id) => {}
+                (None, None) => {}
+                _ => return Err(MemoryError::InvalidProvenance),
+            }
         }
         Ok(())
     }
@@ -317,6 +328,8 @@ impl MemoryStore {
             source_node_id: record.source_node_id.clone(),
             content_source_conversation_id: record.content_source_conversation_id.clone(),
             content_source_node_id: record.content_source_node_id.clone(),
+            grounding_source_conversation_id: record.grounding_source_conversation_id.clone(),
+            grounding_source_node_id: record.grounding_source_node_id.clone(),
             source_episode_id: record.source_episode_id,
             mutation_id: record.mutation_id.clone(),
             created_at_ns: record.created_at_ns,
@@ -395,6 +408,8 @@ fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
         && memory.source_node_id == draft.source_node_id
         && memory.content_source_conversation_id == draft.content_source_conversation_id
         && memory.content_source_node_id == draft.content_source_node_id
+        && memory.grounding_source_conversation_id == draft.grounding_source_conversation_id
+        && memory.grounding_source_node_id == draft.grounding_source_node_id
         && memory.source_episode_id == draft.source_episode_id
         && memory.mutation_id == draft.mutation_id
         && memory.created_at_ns == draft.created_at_ns

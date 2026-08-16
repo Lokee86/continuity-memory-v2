@@ -1,29 +1,37 @@
 use super::candidate_receipt_policy::violates_execution_receipt_policy;
 use super::candidate_text::{informative_tokens, normalize};
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn validate_semantic_authority(
     authority_kind: &str,
     category: &str,
     title: &str,
     source_quote: &str,
     content: &str,
-    has_content_source: bool,
+    has_authority_source: bool,
+    has_grounding_source: bool,
 ) -> Option<String> {
-    if authority_kind == "direct" && has_content_source {
-        return Some("direct authority must not use assistant content provenance".into());
+    if matches!(authority_kind, "direct" | "correction") && has_authority_source {
+        return Some(
+            "direct/correction authority must not use assistant authority provenance".into(),
+        );
     }
-    if authority_kind == "adoption" && !has_content_source {
-        return Some("adoption authority requires assistant content provenance".into());
+    if authority_kind == "adoption" && !has_authority_source {
+        return Some("adoption authority requires assistant authority provenance".into());
     }
     if authority_kind == "retention"
-        && retention_requires_content_source(source_quote)
-        && !has_content_source
+        && retention_requires_authority_source(source_quote)
+        && !has_authority_source
     {
-        return Some("retention callback requires assistant content provenance".into());
+        return Some("retention callback requires assistant authority provenance".into());
     }
-    if !has_content_source && vague_authority_cannot_support(source_quote, content) {
+    if !has_authority_source
+        && !has_grounding_source
+        && vague_authority_cannot_support(source_quote, content)
+    {
         return Some(
-            "vague authority turn cannot support detailed memory without content provenance".into(),
+            "vague authority turn cannot support detailed memory without authority or grounding provenance"
+                .into(),
         );
     }
     if looks_like_unsupported_question(source_quote, category) {
@@ -35,7 +43,7 @@ pub(super) fn validate_semantic_authority(
     None
 }
 
-fn retention_requires_content_source(source_quote: &str) -> bool {
+fn retention_requires_authority_source(source_quote: &str) -> bool {
     let normalized = normalize(source_quote);
     if matches!(
         normalized.as_str(),

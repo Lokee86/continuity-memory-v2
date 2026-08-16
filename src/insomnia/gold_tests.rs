@@ -4,13 +4,12 @@ use serde_json::Value;
 
 #[test]
 fn insomnia_gold_set_is_well_formed_and_balanced() {
-    let root: Value = serde_json::from_str(include_str!("../../corpus/insomnia-gold-v1.json"))
+    let root: Value = serde_json::from_str(include_str!("../../corpus/insomnia-gold-v2.json"))
         .expect("gold JSON must parse");
-    assert_eq!(root["version"], "insomnia-gold-v1");
+    assert_eq!(root["version"], "insomnia-gold-v2");
 
     let cases = root["cases"].as_array().expect("cases must be an array");
     assert_eq!(cases.len(), 40);
-
     let mut ids = HashSet::new();
     let mut sources = HashSet::new();
     let mut retain_count = 0;
@@ -26,12 +25,8 @@ fn insomnia_gold_set_is_well_formed_and_balanced() {
         let retain = case["retain"].as_bool().expect("retain must be boolean");
         let receipt = required_string(case, "receipt_policy");
         assert!(matches!(receipt, "none" | "omit" | "strip_progress"));
-        let source_policy = required_string(case, "content_source");
-        assert!(matches!(
-            source_policy,
-            "required" | "forbidden" | "not_applicable"
-        ));
-
+        let authority_source = source_policy(case, "authority_source");
+        let grounding_source = source_policy(case, "grounding_source");
         if retain {
             retain_count += 1;
             let authority = required_string(case, "authority_kind");
@@ -39,21 +34,43 @@ fn insomnia_gold_set_is_well_formed_and_balanced() {
                 authority,
                 "direct" | "correction" | "adoption" | "retention"
             ));
-            assert_ne!(source_policy, "not_applicable");
+            assert_ne!(authority_source, "not_applicable");
+            assert_ne!(grounding_source, "not_applicable");
             assert!(!required_array(case, "acceptable_categories").is_empty());
             assert!(!required_array(case, "acceptable_types").is_empty());
             assert!(!required_string(case, "semantic_target").is_empty());
         } else {
             assert!(case["authority_kind"].is_null());
-            assert_eq!(source_policy, "not_applicable");
-            assert!(required_array(case, "acceptable_categories").is_empty());
-            assert!(required_array(case, "acceptable_types").is_empty());
-            assert!(case["semantic_target"].is_null());
+            assert_eq!(authority_source, "not_applicable");
+            assert_eq!(grounding_source, "not_applicable");
         }
         required_array(case, "forbidden_content");
     }
     assert_eq!(retain_count, 32);
     assert_eq!(cases.len() - retain_count, 8);
+    assert_grounding_case(cases, "shipstats-now-grounded", "correction");
+    assert_grounding_case(cases, "deleted-assets-contextual-correction", "correction");
+    assert_grounding_case(cases, "creatureserver-mothballed", "direct");
+    assert_grounding_case(cases, "browseros-existing-mcp", "correction");
+}
+
+fn assert_grounding_case(cases: &[Value], id: &str, authority: &str) {
+    let case = cases
+        .iter()
+        .find(|case| case["id"] == id)
+        .unwrap_or_else(|| panic!("missing gold case {id}"));
+    assert_eq!(case["authority_kind"], authority);
+    assert_eq!(case["authority_source"], "forbidden");
+    assert_eq!(case["grounding_source"], "required");
+}
+
+fn source_policy<'a>(value: &'a Value, key: &str) -> &'a str {
+    let policy = required_string(value, key);
+    assert!(matches!(
+        policy,
+        "required" | "forbidden" | "not_applicable"
+    ));
+    policy
 }
 
 fn required_string<'a>(value: &'a Value, key: &str) -> &'a str {

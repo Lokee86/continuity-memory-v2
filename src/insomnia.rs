@@ -1,6 +1,8 @@
 mod candidate;
 mod candidate_policy;
 mod candidate_receipt_policy;
+mod candidate_shape;
+mod candidate_source;
 mod candidate_text;
 pub(crate) mod codec;
 mod contract;
@@ -49,6 +51,8 @@ mod evidence_tests;
 mod extraction_tests;
 #[cfg(test)]
 mod gold_tests;
+#[cfg(test)]
+mod grounding_tests;
 #[cfg(test)]
 mod queue_recovery_tests;
 #[cfg(test)]

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Score Insomnia memory dumps against the tracked human/model gold set.
+"""Score Insomnia memory dumps against the current tracked gold set.
 
-This intentionally scores selection, provenance, metadata, forbidden-content,
-and receipt cleanup. Semantic equivalence to semantic_target remains a human or
-model judgment rather than a string-match metric.
+Selection, authority provenance, grounding provenance, metadata, forbidden
+content, and receipt cleanup are mechanical. semantic_target equivalence remains
+a human/model judgment rather than a string-match metric.
 """
 
 import json
@@ -13,7 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-GOLD_PATH = ROOT / "corpus" / "insomnia-gold-v1.json"
+GOLD_PATH = ROOT / "corpus" / "insomnia-gold-v2.json"
 NUMBERED_PROGRESS = re.compile(
     r"\b(?:prompts?|phases?|steps?)\s+(?:\w+\s+){0,3}\d+[a-z]*\b.*"
     r"\b(?:complete|completed|done|finished|passed|reached|checkpoint|"
@@ -26,6 +26,10 @@ def load(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def policy_ok(policy, present):
+    return (policy == "required" and present) or (policy == "forbidden" and not present)
+
+
 def score_run(cases, memories):
     by_source = defaultdict(list)
     for memory in memories:
@@ -35,8 +39,8 @@ def score_run(cases, memories):
     failures = []
     for case in cases:
         rows = by_source.get(case["source_node_id"], [])
-        expected = case["retain"]
         selected = bool(rows)
+        expected = case["retain"]
         result["cases"] += 1
         result["selection_ok"] += selected == expected
         if selected != expected:
@@ -47,12 +51,12 @@ def score_run(cases, memories):
 
         for row in rows:
             result["retained_rows"] += 1
-            has_source = bool(row.get("content_source_node_id"))
-            policy = case["content_source"]
-            provenance_ok = (policy == "required" and has_source) or (
-                policy == "forbidden" and not has_source
+            result["authority_ok"] += policy_ok(
+                case["authority_source"], bool(row.get("content_source_node_id"))
             )
-            result["provenance_ok"] += provenance_ok
+            result["grounding_ok"] += policy_ok(
+                case["grounding_source"], bool(row.get("grounding_source_node_id"))
+            )
             result["metadata_ok"] += (
                 row.get("category") in case["acceptable_categories"]
                 and row.get("type") in case["acceptable_types"]
@@ -69,6 +73,16 @@ def pct(good, total):
     return "n/a" if not total else f"{100.0 * good / total:.1f}%"
 
 
+def print_score(name, result):
+    print(
+        f"{name}: selection={pct(result['selection_ok'], result['cases'])} "
+        f"authority={pct(result['authority_ok'], result['retained_rows'])} "
+        f"grounding={pct(result['grounding_ok'], result['retained_rows'])} "
+        f"metadata={pct(result['metadata_ok'], result['retained_rows'])} "
+        f"guards={pct(result['content_guard_ok'], result['retained_rows'])}"
+    )
+
+
 def main(paths):
     if not paths:
         raise SystemExit("usage: evaluate_insomnia_gold.py <memory-dump.json> [...]")
@@ -78,20 +92,10 @@ def main(paths):
         result, failures = score_run(cases, load(path))
         for key, value in result.items():
             aggregate[key] += value
-        print(
-            f"{Path(path).name}: selection={pct(result['selection_ok'], result['cases'])} "
-            f"provenance={pct(result['provenance_ok'], result['retained_rows'])} "
-            f"metadata={pct(result['metadata_ok'], result['retained_rows'])} "
-            f"guards={pct(result['content_guard_ok'], result['retained_rows'])}"
-        )
+        print_score(Path(path).name, result)
         if failures:
             print("  selection failures:", ", ".join(f"{i}:{why}" for i, why in failures))
-    print(
-        f"aggregate: selection={pct(aggregate['selection_ok'], aggregate['cases'])} "
-        f"provenance={pct(aggregate['provenance_ok'], aggregate['retained_rows'])} "
-        f"metadata={pct(aggregate['metadata_ok'], aggregate['retained_rows'])} "
-        f"guards={pct(aggregate['content_guard_ok'], aggregate['retained_rows'])}"
-    )
+    print_score("aggregate", aggregate)
     print("semantic_target equivalence is intentionally not auto-scored")
 
 

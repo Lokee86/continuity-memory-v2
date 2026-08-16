@@ -15,9 +15,12 @@ pub struct InsomniaCandidate {
     pub content: String,
     pub source_node_id: String,
     pub source_quote: String,
-    pub content_source_conversation_id: Option<String>,
-    pub content_source_node_id: Option<String>,
-    pub content_source_quote: Option<String>,
+    pub authority_source_conversation_id: Option<String>,
+    pub authority_source_node_id: Option<String>,
+    pub authority_source_quote: Option<String>,
+    pub grounding_source_conversation_id: Option<String>,
+    pub grounding_source_node_id: Option<String>,
+    pub grounding_source_quote: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -171,7 +174,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
                 "results": evidence_results,
                 "turns": evidence_payload_turns
             },
-            "instruction": "Return final candidates now. evidence_requests MUST be empty; no second evidence round is allowed. Archive evidence may clarify context or supply earlier assistant content adopted by a user authority turn in the authoritative episode, but archive evidence cannot supply user authority."
+            "instruction": "Return final candidates now. evidence_requests MUST be empty; no second evidence round is allowed. Archive evidence may clarify a referent through grounding_source fields or supply earlier assistant-authored content explicitly adopted/retained through authority_source fields, but archive evidence cannot supply user authority."
         }))
         .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
         let final_output = self.complete(&payload)?;

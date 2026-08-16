@@ -94,8 +94,11 @@ fn historical_archive_search_can_supply_adopted_assistant_content() {
                 "authority_kind": "retention", "category": "fact", "type": "project", "title": "Deployment targets",
                 "content": "The deployment target is Windows and Linux.",
                 "source_node_id": "u0", "source_quote": "Remember the deployment target we discussed.",
-                "content_source_conversation_id": "old", "content_source_node_id": "old-a",
-                "content_source_quote": "The deployment target is Windows and Linux."
+                "authority_source_conversation_id": "old", "authority_source_node_id": "old-a",
+                "authority_source_quote": "The deployment target is Windows and Linux.",
+                "grounding_source_conversation_id": "",
+                "grounding_source_node_id": "",
+                "grounding_source_quote": ""
             }], "evidence_requests": []}),
         ],
     ));
@@ -115,7 +118,7 @@ fn historical_archive_search_can_supply_adopted_assistant_content() {
 }
 
 #[test]
-fn external_content_source_must_have_been_returned_as_evidence() {
+fn external_authority_source_must_have_been_returned_as_evidence() {
     let path = test_path("unsupplied-content-source.cva");
     let mut cva = Cva::create(&path).unwrap();
     cva.append_node(
@@ -152,8 +155,11 @@ fn external_content_source_must_have_been_returned_as_evidence() {
             "authority_kind": "retention", "category": "fact", "type": "project", "title": "Deployment targets",
             "content": "The deployment target is Windows and Linux.",
             "source_node_id": "u0", "source_quote": "Remember the deployment target we discussed.",
-            "content_source_conversation_id": "old", "content_source_node_id": "old-a",
-            "content_source_quote": "The deployment target is Windows and Linux."
+            "authority_source_conversation_id": "old", "authority_source_node_id": "old-a",
+            "authority_source_quote": "The deployment target is Windows and Linux.",
+            "grounding_source_conversation_id": "",
+            "grounding_source_node_id": "",
+            "grounding_source_quote": ""
         }], "evidence_requests": []})],
     ));
     let result = cva

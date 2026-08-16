@@ -1,4 +1,6 @@
 use super::candidate_policy::validate_semantic_authority;
+use super::candidate_shape::validate_candidate_shape;
+use super::candidate_source::{RawSource, optional, parse_source, required_string, trim_source};
 use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{InsomniaCandidate, InsomniaExtractionError, InsomniaRejection};
 use crate::{EpisodeId, ResolvedTurn};
@@ -15,9 +17,8 @@ pub(super) struct RawCandidate {
     content: String,
     source_node_id: String,
     source_quote: String,
-    content_source_conversation_id: String,
-    content_source_node_id: String,
-    content_source_quote: String,
+    authority_source: RawSource,
+    grounding_source: RawSource,
 }
 
 pub(super) fn parse_candidates(
@@ -46,20 +47,9 @@ fn parse_candidate(value: &Value) -> Result<RawCandidate, InsomniaExtractionErro
         content: required_string(value, "content")?,
         source_node_id: required_string(value, "source_node_id")?,
         source_quote: required_string(value, "source_quote")?,
-        content_source_conversation_id: required_string(value, "content_source_conversation_id")?,
-        content_source_node_id: required_string(value, "content_source_node_id")?,
-        content_source_quote: required_string(value, "content_source_quote")?,
+        authority_source: parse_source(value, "authority_source")?,
+        grounding_source: parse_source(value, "grounding_source")?,
     })
-}
-
-fn required_string(value: &Value, field: &str) -> Result<String, InsomniaExtractionError> {
-    value
-        .get(field)
-        .and_then(Value::as_str)
-        .map(str::to_owned)
-        .ok_or_else(|| {
-            InsomniaExtractionError::InvalidOutput(format!("missing string field {field}"))
-        })
 }
 
 pub(super) fn validate_candidates(
@@ -67,33 +57,6 @@ pub(super) fn validate_candidates(
     turns: &[ResolvedTurn],
     raw: Vec<RawCandidate>,
 ) -> (Vec<InsomniaCandidate>, Vec<InsomniaRejection>) {
-    const AUTHORITY_KINDS: &[&str] = &["direct", "correction", "adoption", "retention"];
-    const CATEGORIES: &[&str] = &[
-        "fact",
-        "preference",
-        "decision",
-        "instruction",
-        "relationship",
-        "constraint",
-        "correction",
-        "commitment",
-    ];
-    const TYPES: &[&str] = &[
-        "identity",
-        "education",
-        "employment",
-        "location",
-        "possession",
-        "health",
-        "finance",
-        "schedule",
-        "communication",
-        "project",
-        "process",
-        "product",
-        "relationship",
-        "other",
-    ];
     let mut accepted = Vec::new();
     let mut rejected = Vec::new();
     let mut seen = HashSet::new();
@@ -104,33 +67,19 @@ pub(super) fn validate_candidates(
         let source_node_id = raw.source_node_id.trim().to_owned();
         let source_quote = raw.source_quote.trim().to_owned();
         let source = turns.iter().find(|turn| turn.node_id == source_node_id);
-        let mut reason = None;
-        if !AUTHORITY_KINDS.contains(&authority_kind.as_str()) {
-            reason = Some("authority kind is not recognized".to_owned());
-        } else if !CATEGORIES.contains(&category.as_str()) {
-            reason = Some("category is not recognized".to_owned());
-        } else if !TYPES.contains(&memory_type.as_str()) {
-            reason = Some("type is not recognized".to_owned());
-        } else if raw.title.trim().is_empty() || raw.content.trim().is_empty() {
-            reason = Some("title and content are required".to_owned());
-        } else if source.is_none() {
-            reason = Some("source node is outside the authoritative episode".to_owned());
-        } else if source.is_some_and(|turn| turn.role != "user") {
-            reason = Some("source node is not a user authority turn".to_owned());
-        } else if source_quote.is_empty()
-            || source.is_some_and(|turn| !turn.content.contains(&source_quote))
-        {
-            reason = Some("source quote is not verbatim from the authority turn".to_owned());
-        }
-        let content_conversation = raw.content_source_conversation_id.trim();
-        let content_node = raw.content_source_node_id.trim();
-        let content_quote = raw.content_source_quote.trim();
-        if reason.is_none()
-            && ((content_conversation.is_empty() != content_node.is_empty())
-                || (content_node.is_empty() != content_quote.is_empty()))
-        {
-            reason = Some("content-source fields must be all empty or all present".to_owned());
-        }
+        let authority_source = trim_source(&raw.authority_source);
+        let grounding_source = trim_source(&raw.grounding_source);
+        let mut reason = validate_candidate_shape(
+            &authority_kind,
+            &category,
+            &memory_type,
+            raw.title.trim(),
+            raw.content.trim(),
+            source,
+            &source_quote,
+            &authority_source,
+            &grounding_source,
+        );
         if reason.is_none() {
             reason = validate_semantic_authority(
                 &authority_kind,
@@ -138,16 +87,16 @@ pub(super) fn validate_candidates(
                 raw.title.trim(),
                 &source_quote,
                 raw.content.trim(),
-                !content_node.is_empty(),
+                !authority_source.node_id.is_empty(),
+                !grounding_source.node_id.is_empty(),
             );
         }
         let key = candidate_key(
             episode_id,
             &source_node_id,
             &source_quote,
-            content_conversation,
-            content_node,
-            content_quote,
+            &authority_source,
+            &grounding_source,
         );
         if reason.is_none() && !seen.insert(key.clone()) {
             reason = Some("duplicate candidate authority anchor".to_owned());
@@ -168,10 +117,12 @@ pub(super) fn validate_candidates(
             content: raw.content.trim().to_owned(),
             source_node_id,
             source_quote,
-            content_source_conversation_id: (!content_conversation.is_empty())
-                .then(|| content_conversation.to_owned()),
-            content_source_node_id: (!content_node.is_empty()).then(|| content_node.to_owned()),
-            content_source_quote: (!content_quote.is_empty()).then(|| content_quote.to_owned()),
+            authority_source_conversation_id: optional(&authority_source.conversation_id),
+            authority_source_node_id: optional(&authority_source.node_id),
+            authority_source_quote: optional(&authority_source.quote),
+            grounding_source_conversation_id: optional(&grounding_source.conversation_id),
+            grounding_source_node_id: optional(&grounding_source.node_id),
+            grounding_source_quote: optional(&grounding_source.quote),
         });
     }
     (accepted, rejected)
@@ -185,9 +136,8 @@ fn candidate_key(
     episode_id: EpisodeId,
     source_node_id: &str,
     source_quote: &str,
-    content_conversation_id: &str,
-    content_node_id: &str,
-    content_quote: &str,
+    authority_source: &RawSource,
+    grounding_source: &RawSource,
 ) -> String {
     let mut hash = Sha256::new();
     hash.update(b"continuity-insomnia-candidate\0");
@@ -195,9 +145,12 @@ fn candidate_key(
     for value in [
         source_node_id,
         source_quote,
-        content_conversation_id,
-        content_node_id,
-        content_quote,
+        &authority_source.conversation_id,
+        &authority_source.node_id,
+        &authority_source.quote,
+        &grounding_source.conversation_id,
+        &grounding_source.node_id,
+        &grounding_source.quote,
     ] {
         hash.update((value.len() as u64).to_le_bytes());
         hash.update(value.as_bytes());

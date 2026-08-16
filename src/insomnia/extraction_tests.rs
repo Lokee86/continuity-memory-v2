@@ -77,9 +77,12 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
                 "content": "Continuity uses Insomnia as the sole authoritative generator of working memory.",
                 "source_node_id": "u0",
                 "source_quote": "Continuity should keep all working-memory generation in Insomnia.",
-                "content_source_conversation_id": "",
-                "content_source_node_id": "",
-                "content_source_quote": ""
+                "authority_source_conversation_id": "",
+                "authority_source_node_id": "",
+                "authority_source_quote": "",
+                "grounding_source_conversation_id": "",
+                "grounding_source_node_id": "",
+                "grounding_source_quote": ""
             }]
         })],
     );
@@ -130,9 +133,12 @@ fn assistant_cannot_become_user_authority() {
             "content": "Use Insomnia.",
             "source_node_id": "a0",
             "source_quote": "Use Insomnia for all memory generation.",
-            "content_source_conversation_id": "",
-            "content_source_node_id": "",
-            "content_source_quote": ""
+            "authority_source_conversation_id": "",
+            "authority_source_node_id": "",
+            "authority_source_quote": "",
+            "grounding_source_conversation_id": "",
+            "grounding_source_node_id": "",
+            "grounding_source_quote": ""
         }]})],
     ));
     let result = cva
@@ -181,9 +187,12 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
             "content": "Episodes use a fifteen minute inactivity boundary.",
             "source_node_id": "u1",
             "source_quote": "Remember that.",
-            "content_source_conversation_id": "c1",
-            "content_source_node_id": "a0",
-            "content_source_quote": "Use a fifteen minute inactivity boundary."
+            "authority_source_conversation_id": "c1",
+            "authority_source_node_id": "a0",
+            "authority_source_quote": "Use a fifteen minute inactivity boundary.",
+            "grounding_source_conversation_id": "",
+            "grounding_source_node_id": "",
+            "grounding_source_quote": ""
         }]})],
     ));
     let result = cva
@@ -268,9 +277,12 @@ fn authority_kind_is_required_and_preserved_by_structured_extraction() {
                 "content": "The user prefers concise answers.",
                 "source_node_id": "u0",
                 "source_quote": "I prefer concise answers.",
-                "content_source_conversation_id": "",
-                "content_source_node_id": "",
-                "content_source_quote": ""
+                "authority_source_conversation_id": "",
+                "authority_source_node_id": "",
+                "authority_source_quote": "",
+                "grounding_source_conversation_id": "",
+                "grounding_source_node_id": "",
+                "grounding_source_quote": ""
             }],
             "evidence_requests": []
         })],
@@ -298,9 +310,12 @@ fn deterministic_authority_policy_rejects_missing_adoption_provenance() {
                 "content": "The server returns the updated Player state.",
                 "source_node_id": "u0",
                 "source_quote": "alright, that works",
-                "content_source_conversation_id": "",
-                "content_source_node_id": "",
-                "content_source_quote": ""
+                "authority_source_conversation_id": "",
+                "authority_source_node_id": "",
+                "authority_source_quote": "",
+                "grounding_source_conversation_id": "",
+                "grounding_source_node_id": "",
+                "grounding_source_quote": ""
             }],
             "evidence_requests": []
         })],
@@ -311,7 +326,7 @@ fn deterministic_authority_policy_rejects_missing_adoption_provenance() {
     assert!(
         extraction.rejected[0]
             .reason
-            .contains("requires assistant content provenance")
+            .contains("requires assistant authority provenance")
     );
 }
 

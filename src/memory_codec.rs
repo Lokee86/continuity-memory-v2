@@ -1,9 +1,9 @@
 use crate::memory_model::MemoryRecord;
 use crate::{ChunkRef, EpisodeId, MemoryBodyId, MemoryError, MemoryId};
 
-const FORMAT_MAGIC: [u8; 8] = *b"CVAMEMF1";
+const FORMAT_MAGIC: [u8; 8] = *b"CVAMEMF2";
 const BODY_MAGIC: [u8; 8] = *b"CVAMBDY1";
-const RECORD_MAGIC: [u8; 8] = *b"CVAMEMR1";
+const RECORD_MAGIC: [u8; 8] = *b"CVAMEMR2";
 const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 
 pub(crate) struct MemoryVersion {
@@ -73,6 +73,8 @@ pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryErro
     write_optional_string(&mut out, record.source_node_id.as_deref())?;
     write_optional_string(&mut out, record.content_source_conversation_id.as_deref())?;
     write_optional_string(&mut out, record.content_source_node_id.as_deref())?;
+    write_optional_string(&mut out, record.grounding_source_conversation_id.as_deref())?;
+    write_optional_string(&mut out, record.grounding_source_node_id.as_deref())?;
     write_string(&mut out, &record.mutation_id)?;
     Ok(out)
 }
@@ -105,6 +107,8 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     let source_node_id = read_optional_string(bytes, &mut cursor)?;
     let content_source_conversation_id = read_optional_string(bytes, &mut cursor)?;
     let content_source_node_id = read_optional_string(bytes, &mut cursor)?;
+    let grounding_source_conversation_id = read_optional_string(bytes, &mut cursor)?;
+    let grounding_source_node_id = read_optional_string(bytes, &mut cursor)?;
     let mutation_id = read_string(bytes, &mut cursor)?;
     if cursor != bytes.len() {
         return Err(MemoryError::CorruptRecord("memory record trailing bytes"));
@@ -123,6 +127,8 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
         source_node_id,
         content_source_conversation_id,
         content_source_node_id,
+        grounding_source_conversation_id,
+        grounding_source_node_id,
         source_episode_id,
         mutation_id,
         created_at_ns,

@@ -37,15 +37,22 @@ fn execution_receipts_require_progress_free_resulting_state() {
 }
 
 fn assert_rejected(title: &str, source: &str, content: &str) {
-    assert!(validate_semantic_authority("direct", "fact", title, source, content, false).is_some());
+    assert!(
+        validate_semantic_authority("direct", "fact", title, source, content, false, false)
+            .is_some()
+    );
 }
 
 fn assert_accepted(title: &str, source: &str, content: &str) {
-    assert!(validate_semantic_authority("direct", "fact", title, source, content, false).is_none());
+    assert!(
+        validate_semantic_authority("direct", "fact", title, source, content, false, false)
+            .is_none()
+    );
 }
 
 fn assert_accepted_category(category: &str, title: &str, source: &str, content: &str) {
     assert!(
-        validate_semantic_authority("direct", category, title, source, content, false).is_none()
+        validate_semantic_authority("direct", category, title, source, content, false, false)
+            .is_none()
     );
 }

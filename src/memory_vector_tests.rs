@@ -35,6 +35,8 @@ fn draft(mutation_id: &str, lifecycle: &str, title: &str, content: &str) -> Memo
         source_node_id: None,
         content_source_conversation_id: None,
         content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
         source_episode_id: None,
         mutation_id: mutation_id.into(),
         created_at_ns: 10,

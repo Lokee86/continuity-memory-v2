@@ -60,6 +60,8 @@ fn draft(episode: &crate::Episode, mutation_id: &str, content: &str) -> MemoryDr
         source_node_id: Some("u0".into()),
         content_source_conversation_id: None,
         content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
         source_episode_id: Some(episode.id),
         mutation_id: mutation_id.into(),
         created_at_ns: 30,

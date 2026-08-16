@@ -34,5 +34,13 @@ fn validate_memory_provenance(archive: &Archive, draft: &MemoryDraft) -> Result<
         (None, None) => {}
         _ => return Err(MemoryError::InvalidProvenance),
     }
+    match (
+        draft.grounding_source_conversation_id.as_deref(),
+        draft.grounding_source_node_id.as_deref(),
+    ) {
+        (Some(conversation_id), Some(node_id)) if archive.has_node(conversation_id, node_id) => {}
+        (None, None) => {}
+        _ => return Err(MemoryError::InvalidProvenance),
+    }
     Ok(())
 }
