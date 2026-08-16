@@ -190,7 +190,21 @@ v2-3         64.5%       95.5%       82.1%             92.9%
 v2-5         67.0%       98.0%       92.2%             96.1%
 ```
 
-The `v2-5` per-run selection scores were 57.5%, 70.0%, 67.5%, 62.5%, and 77.5%. Selection remains the dominant measured failure mode. The high provenance percentage is conditional on a gold-retain source actually being selected; it does not mean semantic support is generally validated. In particular, the gold set marks deictic adoption such as `ok, so we do want to add it now` as requiring assistant provenance, and it distinguishes supportable narrow propositions from unsupported elaboration. Contract `v2-6` has deterministic regression coverage for the Prompt-72 and plural `Prompts 25 and 26 are complete` escapes; no live `v2-6` multi-run model comparison has yet been recorded.
+The `v2-5` per-run selection scores were 57.5%, 70.0%, 67.5%, 62.5%, and 77.5%. Selection remains the dominant measured failure mode. The high provenance percentage is conditional on a gold-retain source actually being selected; it does not mean semantic support is generally validated. In particular, the gold set marks deictic adoption such as `ok, so we do want to add it now` as requiring assistant provenance, and it distinguishes supportable narrow propositions from unsupported elaboration.
+
+A controlled `v2-6` comparison used the same clean zero-Memory base CVA, 66 Episodes, 48 workers, embedding route, batching, and contract for three fresh Luna-low runs and three Luna-medium runs. Reasoning effort was the intended variable, and the configured route was restored to low afterward.
+
+```text
+reasoning   wall times (s)          avg wall   Memories       rejected       evidence turns   selection   provenance   metadata   guards   source Jaccard   strict semantic target
+low         37.766 49.234 39.373     42.12     102 110 110     16 10 13       22 0 8           63.3%       98.2%        87.5%      100%     0.536            60.0%
+medium      73.377 74.949 65.444     71.26     129 132 126     17 15 22       36 8 22          65.0%       98.4%        83.6%      100%     0.656            60.0%
+```
+
+`source Jaccard` is the mean pairwise overlap of all source nodes selected within the three runs at that reasoning level. `strict semantic target` is an explicit manual/model review against the 40 tracked semantic targets, counting omissions, incomplete targets, unsupported authority/provenance, and false-positive Memories as failures; it is intentionally stricter than the mechanical source-selection metric.
+
+Medium reasoning made source selection more repeatable and increased raw Memory production, but did not improve aggregate semantic-target agreement. It gained only 1.7 mechanical selection points, reduced acceptable metadata agreement, took about 69% longer wall-clock time, and produced about 20% more Memories. Stable failures were largely unchanged: future ship variants, player-color identity, the narrow current custom-room-code fact, narrow server-authoritative collision state, the contextual deleted-assets correction, and calibrated prompt sizing were missed in all six runs, while the Godot-first question was incorrectly converted into a decision in all six. ShipStats was selected once at each reasoning level but still lacked the required assistant-content provenance. Medium also introduced one Prompt-41 receipt-derived Memory and one `fix it?` execution-request Memory that low omitted correctly.
+
+The result does not support spending more reasoning budget on Insomnia extraction. Luna-low remains the selected bring-up default. The remaining quality problem is semantic selection/support policy: additional reasoning stabilizes a broader choice of sources, but does not make that choice materially more correct. Contract `v2-6` did raise the tracked explicit forbidden-content/numbered-receipt guard score to 100% in all six runs, but general semantic authority, entailment, and non-numbered execution-state handling still require a stronger validation/review mechanism rather than more lexical heuristics. The comparison is only three runs per level, so small numeric differences should not be treated as precise population estimates.
 
 ### Benchmark baseline — 2026-08-15
 
