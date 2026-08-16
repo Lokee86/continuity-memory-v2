@@ -1,3 +1,4 @@
+use super::candidate_policy::validate_semantic_authority;
 use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{InsomniaCandidate, InsomniaExtractionError, InsomniaRejection};
 use crate::{EpisodeId, ResolvedTurn};
@@ -129,6 +130,16 @@ pub(super) fn validate_candidates(
                 || (content_node.is_empty() != content_quote.is_empty()))
         {
             reason = Some("content-source fields must be all empty or all present".to_owned());
+        }
+        if reason.is_none() {
+            reason = validate_semantic_authority(
+                &authority_kind,
+                &category,
+                raw.title.trim(),
+                &source_quote,
+                raw.content.trim(),
+                !content_node.is_empty(),
+            );
         }
         let key = candidate_key(
             episode_id,

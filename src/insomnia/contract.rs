@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v2-4";
+pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v2-5";
 pub const MAX_INSOMNIA_CANDIDATES: usize = 64;
 
 pub const INSOMNIA_SYSTEM_PROMPT: &str = r#"You extract durable working memories from one authoritative conversation episode.

@@ -281,6 +281,41 @@ fn authority_kind_is_required_and_preserved_by_structured_extraction() {
 }
 
 #[test]
+fn deterministic_authority_policy_rejects_missing_adoption_provenance() {
+    let path = test_path("adoption-without-provenance.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append(&mut cva, "u0", None, "user", 10, "alright, that works");
+    let episode = queue_episode(&mut cva, "u0");
+    let turns = cva.episode_turns(episode.id).unwrap();
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "test-model",
+        vec![json!({
+            "candidates": [{
+                "authority_kind": "adoption",
+                "category": "decision",
+                "type": "project",
+                "title": "Server state response",
+                "content": "The server returns the updated Player state.",
+                "source_node_id": "u0",
+                "source_quote": "alright, that works",
+                "content_source_conversation_id": "",
+                "content_source_node_id": "",
+                "content_source_quote": ""
+            }],
+            "evidence_requests": []
+        })],
+    ));
+    let extraction = extractor.extract(&episode, &turns).unwrap();
+    assert!(extraction.candidates.is_empty());
+    assert_eq!(extraction.rejected.len(), 1);
+    assert!(
+        extraction.rejected[0]
+            .reason
+            .contains("requires assistant content provenance")
+    );
+}
+
+#[test]
 fn urgent_scheduling_does_not_force_a_memory() {
     let path = test_path("zero.cva");
     let mut cva = Cva::create(&path).unwrap();

@@ -1,4 +1,7 @@
 mod candidate;
+mod candidate_policy;
+mod candidate_receipt_policy;
+mod candidate_text;
 pub(crate) mod codec;
 mod contract;
 mod cva;
@@ -34,6 +37,8 @@ pub use worker::{
     InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_WORKERS,
 };
 
+#[cfg(test)]
+mod candidate_policy_tests;
 #[cfg(test)]
 mod evidence_flow_tests;
 #[cfg(test)]
