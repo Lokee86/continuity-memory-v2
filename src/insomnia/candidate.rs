@@ -10,15 +10,15 @@ use std::collections::HashSet;
 
 #[derive(Clone)]
 pub(super) struct RawCandidate {
-    authority_kind: String,
-    category: String,
-    memory_type: String,
-    title: String,
-    content: String,
-    source_node_id: String,
-    source_quote: String,
-    authority_source: RawSource,
-    grounding_source: RawSource,
+    pub(super) authority_kind: String,
+    pub(super) category: String,
+    pub(super) memory_type: String,
+    pub(super) title: String,
+    pub(super) content: String,
+    pub(super) source_node_id: String,
+    pub(super) source_quote: String,
+    pub(super) authority_source: RawSource,
+    pub(super) grounding_source: RawSource,
 }
 
 pub(super) fn parse_candidates(

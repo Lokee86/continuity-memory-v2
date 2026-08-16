@@ -10,7 +10,12 @@ mod cva;
 mod error;
 mod evidence;
 mod extraction;
+mod ledger;
+mod ledger_contract;
+mod ledger_pipeline;
+mod ledger_synthesis;
 mod model;
+mod payload;
 mod processor;
 pub(crate) mod rebuild;
 pub(crate) mod store;
@@ -27,6 +32,10 @@ pub use evidence::{
 pub use extraction::{
     InsomniaCandidate, InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtraction,
     InsomniaExtractionError, InsomniaExtractor, InsomniaRejection,
+};
+pub use ledger_contract::{
+    INSOMNIA_DISPOSITION_SYSTEM_PROMPT, INSOMNIA_LEDGER_CONTRACT_VERSION,
+    INSOMNIA_SYNTHESIS_SYSTEM_PROMPT, insomnia_ledger_schema, insomnia_synthesis_schema,
 };
 pub use model::{
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
@@ -53,6 +62,10 @@ mod extraction_tests;
 mod gold_tests;
 #[cfg(test)]
 mod grounding_tests;
+#[cfg(test)]
+mod ledger_tests;
+#[cfg(test)]
+mod ledger_validation_tests;
 #[cfg(test)]
 mod queue_recovery_tests;
 #[cfg(test)]

@@ -127,6 +127,8 @@ pub enum InsomniaCommand {
         embedding_concurrency: usize,
         #[arg(long)]
         existing_queue_only: bool,
+        #[arg(long)]
+        ledger: bool,
     },
 }
 

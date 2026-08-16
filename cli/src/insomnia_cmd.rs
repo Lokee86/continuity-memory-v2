@@ -17,6 +17,7 @@ pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
             embedding_batch_size,
             embedding_concurrency,
             existing_queue_only,
+            ledger,
         } => run_file(
             config_path,
             &cva,
@@ -25,6 +26,7 @@ pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
             embedding_batch_size,
             embedding_concurrency,
             existing_queue_only,
+            ledger,
         ),
     }
 }
@@ -38,13 +40,18 @@ fn run_file(
     embedding_batch_size: usize,
     embedding_concurrency: usize,
     existing_queue_only: bool,
+    ledger: bool,
 ) -> Result<()> {
     let config = ContinuityConfig::open(config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let general = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
     let embedding = OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard)?
         .with_batching(embedding_batch_size, embedding_concurrency)?;
-    let extractor = InsomniaExtractor::new(general);
+    let extractor = if ledger {
+        InsomniaExtractor::new_ledger(general)
+    } else {
+        InsomniaExtractor::new(general)
+    };
     let mut cva = Cva::open(cva_path)?;
 
     let before = cva.insomnia_stats();

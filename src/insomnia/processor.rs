@@ -209,6 +209,7 @@ fn apply_prepared(
         started_at_ns,
         completed_at_ns,
         prepared.model,
+        prepared.contract_version,
         &result,
     )?;
     Ok(result)

@@ -5,14 +5,14 @@ use crate::insomnia::candidate::hex;
 use crate::insomnia::store::InsomniaStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Archive, Container, Episode, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, InsomniaExtraction,
-    InsomniaRejection, InsomniaWork, MemoryDraft,
+    Archive, Container, Episode, InsomniaExtraction, InsomniaRejection, InsomniaWork, MemoryDraft,
 };
 
 pub(crate) struct PreparedApplication {
     pub(crate) drafts: Vec<MemoryDraft>,
     pub(crate) rejected: Vec<InsomniaRejection>,
     pub(crate) model: String,
+    pub(crate) contract_version: String,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -25,6 +25,7 @@ pub(crate) fn prepare_application(
     scope: &str,
     completed_at_ns: i64,
 ) -> Result<PreparedApplication, InsomniaProcessError> {
+    let contract_version = extraction.contract_version;
     let mut rejected = extraction.rejected;
     let mut drafts = Vec::with_capacity(extraction.candidates.len());
     for candidate in extraction.candidates {
@@ -67,6 +68,7 @@ pub(crate) fn prepare_application(
         drafts,
         rejected,
         model: extraction.model,
+        contract_version,
     })
 }
 
@@ -95,6 +97,7 @@ pub(crate) fn finish_application(
     started_at_ns: i64,
     completed_at_ns: i64,
     model: String,
+    contract_version: String,
     result: &InsomniaProcessResult,
 ) -> Result<(), InsomniaProcessError> {
     let memory_ids: Vec<_> = result
@@ -113,7 +116,7 @@ pub(crate) fn finish_application(
         started_at_ns,
         completed_at_ns,
         model,
-        INSOMNIA_EXTRACTOR_CONTRACT_VERSION.into(),
+        contract_version,
         memory_ids,
         result.rejected.len() as u32,
     )?;

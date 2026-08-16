@@ -42,6 +42,7 @@ pub(super) fn apply_success(
         drafts,
         rejected,
         model,
+        contract_version,
     } = {
         let mut container = shared
             .container
@@ -100,6 +101,7 @@ pub(super) fn apply_success(
             started_at_ns,
             completed_at_ns,
             model,
+            contract_version,
             &result,
         )?;
     }
