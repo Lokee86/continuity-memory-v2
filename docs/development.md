@@ -292,6 +292,14 @@ The revised unmeasured contract is `v2-9-ledger`. Pass 1 now explicitly treats p
 
 The Sol-high usage cap prevented a second live run after these v2-9 changes, so v2-9 is intentionally **not** promoted to the normal Insomnia path yet. Sol-high remains the experimental baseline for both passes until the decomposition itself is validated; model/reasoning cost and worker concurrency should be tuned down only afterward. No result here suggests vector retrieval is needed for the tracked failures.
 
+### Insomnia routine tuning corpus — 2026-08-16
+
+Routine semantic tuning no longer uses the full 12-conversation / 66-Episode fixture. Gold v3 spans 28 distinct source Episodes, which is still too expensive for repeated frontier-model iteration. `corpus/insomnia-tuning-v1.jsonl` is the deliberately adversarial core fixture: 11 isolated Episodes, 314 turns, and 19 gold-v3 cases (`15` retained-state cases and `4` omit cases). `corpus/insomnia-gold-v3-tuning-v1.json` is the matching evaluator subset. Source-node IDs and source content are preserved verbatim; fixture-local conversation/Episode IDs isolate each selected path cleanly.
+
+The selected cases cover the failure modes that have actually driven Insomnia changes: short/deictic adoption, correction plus grounding, unsupported contextual elaboration, asserted tag questions versus pure questions, pure execution receipts, mixed receipt/current-state turns, transient phase metadata, future modality, supersession, over-atomization, long governing architecture with trailing implementation commentary, and simple direct-state sanity. One redundant C-family precision-adoption case was intentionally dropped because equivalent adoption behavior is already exercised by two C-family cases plus the separate `alright, that works` case.
+
+For a two-pass extractor this reduces the nominal no-evidence model-call floor from `66 * 2 = 132` calls to `11 * 2 = 22`, about an `83%` reduction. Use the 11-Episode fixture for routine prompt/contract/model tuning. Use full gold v3 / the 66-Episode fixture only for milestone confirmation after the small corpus is stable, not for every iteration.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
