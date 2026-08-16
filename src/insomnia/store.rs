@@ -1,4 +1,4 @@
-use super::codec::{encode_format, encode_work};
+use super::codec::encode_format;
 use crate::{
     Archive, Container, EpisodeId, InsomniaAttempt, InsomniaError, InsomniaLeaseToken,
     InsomniaPriority, InsomniaStats, InsomniaWork, InsomniaWorkState,
@@ -6,6 +6,7 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
+mod rebuild;
 mod scheduler;
 mod transitions;
 
@@ -33,13 +34,9 @@ impl InsomniaStore {
         Ok(())
     }
 
-    pub(crate) fn rebuild_schedule(&mut self, archive: &Archive) -> Result<(), InsomniaError> {
-        self.scheduler.rebuild(archive, &self.work)
-    }
-
     pub(crate) fn queue(
         &mut self,
-        container: &mut Container,
+        _container: &mut Container,
         archive: &Archive,
         episode_id: EpisodeId,
         priority: InsomniaPriority,
@@ -60,7 +57,6 @@ impl InsomniaStore {
             last_error: None,
             updated_at_ns: now_ns,
         };
-        container.append(&encode_work(&work)?)?;
         self.scheduler.register(archive, &work)?;
         self.insert_work(work.clone());
         Ok((work, true))
@@ -68,7 +64,7 @@ impl InsomniaStore {
 
     pub(crate) fn claim_next(
         &mut self,
-        container: &mut Container,
+        _container: &mut Container,
         worker_id: &str,
         now_ns: i64,
         lease_duration_ns: i64,
@@ -96,13 +92,13 @@ impl InsomniaStore {
         claimed.retry_after_ns = None;
         claimed.last_error = None;
         claimed.updated_at_ns = now_ns;
-        self.persist_work(container, claimed.clone())?;
+        self.replace_work(claimed.clone())?;
         Ok(Some(claimed))
     }
 
     pub(crate) fn renew(
         &mut self,
-        container: &mut Container,
+        _container: &mut Container,
         episode_id: EpisodeId,
         token: InsomniaLeaseToken,
         now_ns: i64,
@@ -114,7 +110,7 @@ impl InsomniaStore {
         let mut work = self.active_claim(episode_id, token, now_ns)?;
         work.lease_expires_ns = Some(now_ns.saturating_add(lease_duration_ns));
         work.updated_at_ns = now_ns;
-        self.persist_work(container, work.clone())?;
+        self.replace_work(work.clone())?;
         Ok(work)
     }
 
@@ -142,11 +138,7 @@ impl InsomniaStore {
         }
     }
 
-    pub(crate) fn apply_work(&mut self, mut work: InsomniaWork) {
-        if work.state == InsomniaWorkState::Processing {
-            work.state = InsomniaWorkState::Pending;
-            clear_lease(&mut work);
-        }
+    pub(crate) fn apply_work(&mut self, work: InsomniaWork) {
         self.insert_work(work);
     }
 
@@ -158,23 +150,23 @@ impl InsomniaStore {
         &mut self,
         completion: &super::completion::InsomniaCompletion,
     ) -> Result<(), InsomniaError> {
-        let mut work = self
-            .work
-            .get(&completion.episode_id)
-            .cloned()
-            .ok_or(InsomniaError::MissingWork)?;
-        if completion.attempt == 0 || completion.attempt < work.attempt_count {
+        if completion.attempt == 0 {
             return Err(InsomniaError::InvalidTransition);
         }
-        let old = work.clone();
-        work.state = InsomniaWorkState::Complete;
-        work.attempt_count = completion.attempt;
-        clear_lease(&mut work);
-        work.retry_after_ns = None;
-        work.last_error = None;
-        work.updated_at_ns = completion.completed_at_ns;
-        self.scheduler.replace(&old, &work);
-        self.insert_work(work);
+        if let Some(mut work) = self.work.get(&completion.episode_id).cloned() {
+            if completion.attempt < work.attempt_count {
+                return Err(InsomniaError::InvalidTransition);
+            }
+            let old = work.clone();
+            work.state = InsomniaWorkState::Complete;
+            work.attempt_count = completion.attempt;
+            clear_lease(&mut work);
+            work.retry_after_ns = None;
+            work.last_error = None;
+            work.updated_at_ns = completion.completed_at_ns;
+            self.scheduler.replace(&old, &work);
+            self.insert_work(work);
+        }
         self.attempts
             .retain(|attempt| attempt.episode_id != completion.episode_id);
         self.attempts.push(InsomniaAttempt {
@@ -242,17 +234,12 @@ impl InsomniaStore {
         Ok(work.clone())
     }
 
-    pub(super) fn persist_work(
-        &mut self,
-        container: &mut Container,
-        work: InsomniaWork,
-    ) -> Result<(), InsomniaError> {
+    pub(super) fn replace_work(&mut self, work: InsomniaWork) -> Result<(), InsomniaError> {
         let old = self
             .work
             .get(&work.episode_id)
             .cloned()
             .ok_or(InsomniaError::MissingWork)?;
-        container.append(&encode_work(&work)?)?;
         self.scheduler.replace(&old, &work);
         self.insert_work(work);
         Ok(())

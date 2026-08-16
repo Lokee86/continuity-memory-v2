@@ -1,4 +1,5 @@
 use super::{InsomniaStore, clear_lease};
+use crate::insomnia::codec::encode_work;
 use crate::{
     Container, EpisodeId, InsomniaError, InsomniaLeaseToken, InsomniaWork, InsomniaWorkState,
 };
@@ -6,7 +7,7 @@ use crate::{
 impl InsomniaStore {
     pub(crate) fn fail(
         &mut self,
-        container: &mut Container,
+        _container: &mut Container,
         episode_id: EpisodeId,
         token: InsomniaLeaseToken,
         _started_at_ns: i64,
@@ -23,7 +24,7 @@ impl InsomniaStore {
         work.retry_after_ns = Some(retry_after_ns);
         work.last_error = Some(reason);
         work.updated_at_ns = failed_at_ns;
-        self.persist_work(container, work.clone())?;
+        self.replace_work(work.clone())?;
         Ok(work)
     }
 
@@ -45,7 +46,8 @@ impl InsomniaStore {
         work.retry_after_ns = None;
         work.last_error = Some(reason);
         work.updated_at_ns = terminal_at_ns;
-        self.persist_work(container, work.clone())?;
+        container.append(&encode_work(&work)?)?;
+        self.replace_work(work.clone())?;
         Ok(work)
     }
 }

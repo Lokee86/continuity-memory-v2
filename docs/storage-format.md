@@ -180,7 +180,7 @@ Format marker:
 ```text
 8 bytes   "CVAINSF1"
 ```
-Current work state:
+Legacy/final work-state record:
 ```text
 8 bytes   "CVAINSW1"
 32 bytes  EpisodeId
@@ -194,7 +194,7 @@ optional i64 lease expiry
 optional i64 retry-after
 optional string last error
 ```
-Work records are current operational coordination. Multiple physical revisions may exist, but reopen keeps only the latest logical state for each Episode.
+`CVAINSW1` remains decodable for existing development files and is still used for one final Terminal outcome during the current compatibility slice. New Pending, Processing, renewal, Failed/retry, and lease-expiry transitions are runtime-only and do not emit records. On reopen, persisted transient Work states are ignored; every Episode without a final success/terminal outcome is re-derived as Pending from Archive Episode metadata. Old Complete/Terminal records remain compatible final state.
 
 Successful Episode completion:
 ```text
@@ -217,7 +217,7 @@ repeated newly published records:
 ```
 `CVAINSC1` is the visibility boundary for an Insomnia success. Content-addressed Memory bodies and global-version tickets may be appended before it, but nested Memory records are not reconstructed as current Memories until this complete chunk is present. The same chunk reconstructs the compact successful Insomnia receipt. Zero new Memory records is valid.
 
-The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable and terminal failures persist only through `CVAINSW1`; a later success logically replaces prior attempt history with the one compact `CVAINSC1` receipt.
+The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as the one compact `CVAINSC1` receipt.
 
 Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
 

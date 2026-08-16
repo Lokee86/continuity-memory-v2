@@ -2,7 +2,7 @@ use super::test_support::{episode, test_path};
 use crate::{Cva, EpisodeBoundary, EpisodeOrigin, InsomniaPriority, InsomniaWorkState};
 
 #[test]
-fn processing_claims_are_reclaimable_after_restart_and_attempt_history_persists() {
+fn processing_claims_are_rederived_as_pending_after_restart() {
     let path = test_path("restart.cva");
     let mut cva = Cva::create(&path).unwrap();
     let episode = episode(
@@ -22,14 +22,14 @@ fn processing_claims_are_reclaimable_after_restart_and_attempt_history_persists(
 
     let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.insomnia.scheduler_counts(), (1, 0, 0));
-    assert_eq!(
-        reopened.insomnia_work(episode.id).unwrap().state,
-        InsomniaWorkState::Pending
-    );
+    let pending = reopened.insomnia_work(episode.id).unwrap();
+    assert_eq!(pending.state, InsomniaWorkState::Pending);
+    assert_eq!(pending.attempt_count, 0);
     let reclaimed = reopened
         .claim_insomnia_episode("w2", 31, 1000)
         .unwrap()
         .unwrap();
+    assert_eq!(reclaimed.attempt_count, 1);
     reopened
         .complete_insomnia_episode(
             episode.id,
@@ -54,7 +54,7 @@ fn processing_claims_are_reclaimable_after_restart_and_attempt_history_persists(
 }
 
 #[test]
-fn retry_delay_is_durable_and_respected() {
+fn retry_delay_is_runtime_only_and_restart_requeues_immediately() {
     let path = test_path("retry.cva");
     let mut cva = Cva::create(&path).unwrap();
     let episode = episode(
@@ -84,16 +84,87 @@ fn retry_delay_is_durable_and_respected() {
 
     let mut reopened = Cva::open(&path).unwrap();
     assert!(reopened.insomnia_attempts(episode.id).is_empty());
+    let pending = reopened.insomnia_work(episode.id).unwrap();
+    assert_eq!(pending.state, InsomniaWorkState::Pending);
+    assert_eq!(pending.attempt_count, 0);
     assert!(
         reopened
             .claim_insomnia_episode("w2", 49, 100)
             .unwrap()
-            .is_none()
+            .is_some()
+    );
+}
+
+#[test]
+fn transient_work_transitions_do_not_grow_the_cva() {
+    let path = test_path("transient-no-growth.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let episode = episode(
+        &mut cva,
+        "c1",
+        "e",
+        10,
+        EpisodeOrigin::Live,
+        EpisodeBoundary::Inactivity,
+    );
+    cva.sync().unwrap();
+    let before = std::fs::metadata(&path).unwrap().len();
+
+    cva.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 20)
+        .unwrap();
+    let claim = cva.claim_insomnia_episode("w1", 30, 100).unwrap().unwrap();
+    cva.renew_insomnia_lease(episode.id, claim.lease_token.unwrap(), 31, 100)
+        .unwrap();
+    cva.fail_insomnia_episode(
+        episode.id,
+        claim.lease_token.unwrap(),
+        30,
+        32,
+        50,
+        "provider overloaded".into(),
+    )
+    .unwrap();
+    cva.sync().unwrap();
+
+    assert_eq!(std::fs::metadata(&path).unwrap().len(), before);
+}
+
+#[test]
+fn final_terminal_outcome_remains_durable() {
+    let path = test_path("terminal-final.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let episode = episode(
+        &mut cva,
+        "c1",
+        "e",
+        10,
+        EpisodeOrigin::Live,
+        EpisodeBoundary::Inactivity,
+    );
+    cva.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 20)
+        .unwrap();
+    let claim = cva.claim_insomnia_episode("w1", 30, 100).unwrap().unwrap();
+    cva.terminal_insomnia_episode(
+        episode.id,
+        claim.lease_token.unwrap(),
+        30,
+        31,
+        "invalid endpoint configuration".into(),
+    )
+    .unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.insomnia.scheduler_counts(), (0, 0, 0));
+    assert_eq!(
+        reopened.insomnia_work(episode.id).unwrap().state,
+        InsomniaWorkState::Terminal
     );
     assert!(
         reopened
-            .claim_insomnia_episode("w2", 50, 100)
+            .claim_insomnia_episode("w2", 40, 100)
             .unwrap()
-            .is_some()
+            .is_none()
     );
 }
