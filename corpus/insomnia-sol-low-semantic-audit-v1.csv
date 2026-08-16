@@ -1,0 +1,41 @@
+case_id,run1,run2,run3,note
+candid-feedback,correct,correct,correct,Faithful durable instruction.
+concise-responses,correct,correct,correct,Faithful preference.
+two-minute-prompts,correct,correct,correct,Faithful process preference.
+trades-experience,correct,correct,correct,Faithful fact.
+windows-wsl-environment,correct,correct,correct,Faithful environment fact.
+space-rocks-repository,correct,correct,correct,Faithful repository identity.
+creatureserver-mothballed,correct,correct,correct,Grounding correctly resolves creatureServer; R3 URL is identifying context rather than a new material proposition.
+workspace-repository-location,correct,correct,correct,Faithful location decision.
+explanatory-prompt-titles,correct,correct,correct,Faithful instruction.
+agent-plan-step-boundaries,correct,correct,correct,R2 includes additional step-splitting requirements that are explicitly present in the same user authority turn.
+packet-migration-architecture,covered_by_alternate_authority,covered_by_alternate_authority,correct,R1/R2 retain the same richer-generator and staged-migration state from a later user-authoritative adoption in the Episode.
+context-sensitive-game-menu,correct,correct,correct,Faithful state-dependent menu behavior.
+explicit-client-session-mode,correct,correct,correct,Faithful planned client state.
+devtool-scope,missing,incomplete,correct,R2 keeps the initial tool list but loses the rule that Godot-redundant items may be omitted.
+future-ship-variants,correct,missing,correct,R2 retains related ship-variant foundation state but not the explicit player-acquirable/different-stats proposition.
+player-color-identity,covered_by_later_authority,covered_by_later_authority,missing,Gold's modulate implementation is superseded later in the same Episode by a user-authoritative shader-hue design; R1/R2 correctly retain the later local-default/remote-distinct identity rule.
+current-lifecycle-blockers,correct,correct,correct,Faithful current-state correction.
+multiplayer-dialog-broken,correct,correct,correct,Faithful current-state diagnosis with supported details.
+browseros-existing-mcp,correct,provenance_error,missing,R2 has the right proposition but names BrowserOS without the grounding needed to resolve 'their MCP'; R3 only retains the broader expose-all-operations decision.
+adopt-server-response,correct,correct,correct,'That works' follows a concrete reported bug/fix cycle and supports the resulting server-response behavior; the gold adoption-only interpretation is somewhat conservative.
+adopt-c-family-adapter,missing,missing,missing,Stable true miss of an explicit deictic adoption immediately following the shared C-family adapter proposal.
+adopt-boundary-refactor-rule,correct,correct,correct,Faithful adoption.
+adopt-c-calibration-corpus,missing,incomplete,correct,R2 keeps Git/CBM plus judged relationships but drops the separate later C++ corpus.
+adopt-profiling-first,correct,missing,correct,Faithful when selected.
+adopt-precision-calibration,missing,incomplete,correct,R2 preserves the precision principle but not the full second-pass recoverable-call scope.
+retain-prompt-list-template,correct,correct,correct,Faithful retention with assistant authority.
+shipstats-now-grounded,covered_by_alternate_authority,covered_by_alternate_authority,correct,R1/R2 retain the later user-authoritative thin ship foundation that explicitly includes ShipStats now; R3 uses the intended correction-plus-grounding anchor.
+prompt-41-receipt,false_positive,false_positive,false_positive,Stable policy failure: completion-through-41 is converted into a RoomError implementation fact by combining the receipt with contextual prompt contents.
+prompts-25-26-receipt,correct_omit,correct_omit,correct_omit,Pure execution receipt omitted correctly.
+prompt-72-mixed-status,missing,missing,missing,Stable policy failure: the numbered completion clause suppresses the independently asserted durable state that things generally work with remaining visual bugs/oddities.
+local-spawner-question,correct_omit,correct_omit,correct_omit,Interrogative proposal omitted correctly.
+macro-change-question,correct_omit,correct_omit,correct_omit,Question omitted correctly.
+finish-job-request,correct_omit,correct_omit,correct_omit,Transient execution request omitted correctly.
+custom-room-code-current-fact,missing,correct,correct,R2/R3 correctly preserve only the current unsupported status and do not infer priority/deferment.
+collision-authority-narrow,missing,missing,missing,Stable true miss: an asserted server-authority proposition with a confirmation tag is suppressed as interrogative; later size-scale memories are related but do not preserve the narrow claim.
+deleted-assets-contextual-correction,incomplete,missing,over_expanded,R1 loses 'during cleanup'; R2's later recovery memories do not independently authorize the original deletion correction; R3 adds an unsupported 'need recovery' proposition.
+fix-it-question,correct_omit,correct_omit,correct_omit,Transient execution question omitted correctly.
+phase-renumbering,correct_omit,correct_omit,correct_omit,Transient phase metadata omitted correctly in these fresh runs.
+calibrated-prompt-sizing,provenance_overreach,correct,provenance_overreach,R1/R3 use prior assistant context to inject packet-migration-specific framing; R2 cleanly preserves the general selective-sizing correction from the user turn itself.
+godot-first-question,correct_omit,correct_omit,correct_omit,Question/plan conflict omitted correctly rather than converted into a new decision.
