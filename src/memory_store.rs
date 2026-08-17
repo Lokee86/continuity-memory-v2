@@ -1,5 +1,5 @@
 use crate::memory_codec::{
-    MemoryVersion, encode_body, encode_format, encode_record, encode_version,
+    MemoryVersion, decode_body, encode_body, encode_format, encode_record, encode_version,
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
@@ -169,8 +169,7 @@ impl MemoryStore {
         container: &mut Container,
         id: MemoryBodyId,
     ) -> Result<String, MemoryError> {
-        let chunk = self.bodies.get(&id).ok_or(MemoryError::MissingBody)?;
-        let body = decode_body_payload(&container.read(*chunk)?)?;
+        let body = self.body_bytes(container, id)?;
         let (title, content) = decode_memory_body(&body)?;
         Ok(format!("{title}\n\n{content}"))
     }
@@ -283,6 +282,33 @@ impl MemoryStore {
         Ok(())
     }
 
+    fn body_bytes(
+        &self,
+        container: &mut Container,
+        id: MemoryBodyId,
+    ) -> Result<Vec<u8>, MemoryError> {
+        let chunk = self.bodies.get(&id).ok_or(MemoryError::MissingBody)?;
+        let payload = container.read(*chunk)?;
+        if let Some((stored_id, body)) = decode_body(&payload)? {
+            return if stored_id == id {
+                Ok(body)
+            } else {
+                Err(MemoryError::CorruptBody)
+            };
+        }
+        if let Some(completion) = crate::insomnia::completion::decode_completion(&payload)
+            .map_err(MemoryError::CorruptRecord)?
+        {
+            return completion
+                .bodies
+                .into_iter()
+                .find(|body| body.id == id)
+                .map(|body| body.bytes)
+                .ok_or(MemoryError::MissingBody);
+        }
+        Err(MemoryError::CorruptBody)
+    }
+
     fn put_body(
         &mut self,
         container: &mut Container,
@@ -291,8 +317,8 @@ impl MemoryStore {
     ) -> Result<MemoryBodyId, MemoryError> {
         let id = memory_body_id(title, content);
         let bytes = memory_body_bytes(title, content);
-        if let Some(chunk) = self.bodies.get(&id).copied() {
-            let stored = decode_body_payload(&container.read(chunk)?)?;
+        if self.bodies.contains_key(&id) {
+            let stored = self.body_bytes(container, id)?;
             return if stored == bytes {
                 Ok(id)
             } else {
@@ -309,11 +335,7 @@ impl MemoryStore {
         container: &mut Container,
         record: &MemoryRecord,
     ) -> Result<Memory, MemoryError> {
-        let chunk = self
-            .bodies
-            .get(&record.body_id)
-            .ok_or(MemoryError::MissingBody)?;
-        let body = decode_body_payload(&container.read(*chunk)?)?;
+        let body = self.body_bytes(container, record.body_id)?;
         let (title, content) = decode_memory_body(&body)?;
         Ok(Memory {
             id: record.id,
@@ -340,12 +362,6 @@ impl MemoryStore {
             memory_version: record.memory_version,
         })
     }
-}
-
-fn decode_body_payload(record: &[u8]) -> Result<Vec<u8>, MemoryError> {
-    crate::memory_codec::decode_body(record)?
-        .map(|(_, body)| body)
-        .ok_or(MemoryError::CorruptBody)
 }
 
 fn decode_memory_body(bytes: &[u8]) -> Result<(String, String), MemoryError> {

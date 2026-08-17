@@ -1,10 +1,10 @@
 use super::completion::decode_completion;
 use crate::{
-    Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaExtractor, InsomniaPriority,
-    InsomniaWorkState, SimulatedGeneralEndpoint,
+    ChunkRef, Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaExtractor,
+    InsomniaPriority, InsomniaWorkState, SimulatedGeneralEndpoint,
 };
 use serde_json::{Value, json};
-use std::fs::OpenOptions;
+use std::fs;
 
 use super::test_support::test_path;
 
@@ -87,6 +87,101 @@ fn process(cva: &mut Cva, count: usize, now: i64) -> crate::InsomniaProcessResul
         .unwrap()
 }
 
+fn fail_processing_once(cva: &mut Cva, now: i64) {
+    let claim = cva
+        .claim_insomnia_episode("worker", now, 1_000)
+        .unwrap()
+        .unwrap();
+    let token = claim.lease_token.unwrap();
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "synthetic-failure",
+        Vec::new(),
+    ));
+    assert!(
+        cva.process_claimed_insomnia_episode(&claim, &extractor, "private", now, now + 1)
+            .is_err()
+    );
+    cva.fail_insomnia_episode(
+        claim.episode_id,
+        token,
+        now,
+        now + 1,
+        now + 2,
+        "synthetic processing failure".into(),
+    )
+    .unwrap();
+}
+
+fn completion_chunk(cva: &mut Cva) -> ChunkRef {
+    cva.container
+        .chunks()
+        .unwrap()
+        .into_iter()
+        .find(|chunk| {
+            let payload = cva.container.read(*chunk).unwrap();
+            decode_completion(&payload).unwrap().is_some()
+        })
+        .unwrap()
+}
+
+fn completion_chunks(cva: &mut Cva) -> usize {
+    cva.container
+        .chunks()
+        .unwrap()
+        .into_iter()
+        .filter(|chunk| {
+            let payload = cva.container.read(*chunk).unwrap();
+            decode_completion(&payload).unwrap().is_some()
+        })
+        .count()
+}
+
+fn legacy_completion_payload(episode_id: crate::EpisodeId, attempt: u32) -> Vec<u8> {
+    fn push_string(out: &mut Vec<u8>, value: &str) {
+        out.extend_from_slice(&(value.len() as u32).to_le_bytes());
+        out.extend_from_slice(value.as_bytes());
+    }
+
+    let mut out = Vec::new();
+    out.extend_from_slice(b"CVAINSC1");
+    out.extend_from_slice(&episode_id.0);
+    out.extend_from_slice(&attempt.to_le_bytes());
+    out.extend_from_slice(&110_i64.to_le_bytes());
+    out.extend_from_slice(&111_i64.to_le_bytes());
+    out.extend_from_slice(&0_u32.to_le_bytes());
+    push_string(&mut out, "legacy-synthetic");
+    push_string(&mut out, "legacy-v1");
+    out.extend_from_slice(&0_u32.to_le_bytes());
+    out.extend_from_slice(&0_u32.to_le_bytes());
+    out
+}
+
+#[test]
+fn legacy_cvainsc1_completion_reopens_as_final_success() {
+    let (path, mut cva, episode) = setup("completion-legacy-v1.cva");
+    let claim = cva
+        .claim_insomnia_episode("legacy-worker", 110, 1_000)
+        .unwrap()
+        .unwrap();
+    let payload = legacy_completion_payload(episode.id, claim.attempt_count);
+    let decoded = decode_completion(&payload).unwrap().unwrap();
+    assert!(decoded.bodies.is_empty());
+    assert!(decoded.records.is_empty());
+    cva.container.append(&payload).unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(&path).unwrap();
+    let attempts = reopened.insomnia_attempts(episode.id);
+    assert_eq!(attempts.len(), 1);
+    assert_eq!(attempts[0].state, InsomniaWorkState::Complete);
+    assert_eq!(attempts[0].extractor_model, "legacy-synthetic");
+    assert_eq!(
+        reopened.insomnia_work(episode.id).unwrap().state,
+        InsomniaWorkState::Complete
+    );
+}
+
 #[test]
 fn successful_completion_collapses_retry_history_and_reopens() {
     let (path, mut cva, episode) = setup("completion-retry.cva");
@@ -106,13 +201,23 @@ fn successful_completion_collapses_retry_history_and_reopens() {
     assert!(cva.insomnia_attempts(episode.id).is_empty());
     let result = process(&mut cva, 2, 120);
     assert_eq!(result.created.len(), 2);
+    let expected: Vec<_> = result
+        .created
+        .iter()
+        .map(|memory| (memory.id, memory.global_version, memory.memory_version))
+        .collect();
     assert_eq!(cva.insomnia_attempts(episode.id).len(), 1);
     assert_eq!(cva.insomnia_attempts(episode.id)[0].attempt, 2);
     cva.sync().unwrap();
     drop(cva);
 
-    let reopened = Cva::open(&path).unwrap();
+    let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.memory_stats().memories, 2);
+    for (id, global_version, memory_version) in expected {
+        let memory = reopened.memory(id).unwrap();
+        assert_eq!(memory.global_version, global_version);
+        assert_eq!(memory.memory_version, memory_version);
+    }
     let attempts = reopened.insomnia_attempts(episode.id);
     assert_eq!(attempts.len(), 1);
     assert_eq!(attempts[0].attempt, 2);
@@ -128,8 +233,11 @@ fn successful_completion_collapses_retry_history_and_reopens() {
 fn zero_and_many_memory_completions_are_single_outcomes() {
     for (name, count) in [("completion-zero.cva", 0), ("completion-many.cva", 8)] {
         let (path, mut cva, episode) = setup(name);
+        let chunks_before = cva.container.chunks().unwrap().len();
         let result = process(&mut cva, count, 110);
         assert_eq!(result.created.len(), count);
+        assert_eq!(cva.container.chunks().unwrap().len(), chunks_before + 1);
+        assert_eq!(completion_chunks(&mut cva), 1);
         drop(cva);
         let reopened = Cva::open(&path).unwrap();
         assert_eq!(reopened.memory_stats().memories, count);
@@ -140,46 +248,81 @@ fn zero_and_many_memory_completions_are_single_outcomes() {
 }
 
 #[test]
-fn truncated_completion_is_recovered_as_fully_unpublished_then_retries_cleanly() {
-    let (path, mut cva, episode) = setup("completion-truncated.cva");
-    let result = process(&mut cva, 2, 110);
-    assert_eq!(result.created.len(), 2);
-    let commit = cva
-        .container
-        .chunks()
-        .unwrap()
-        .into_iter()
-        .find(|chunk| {
-            let payload = cva.container.read(*chunk).unwrap();
-            decode_completion(&payload).unwrap().is_some()
-        })
-        .unwrap();
-    drop(cva);
+fn one_thousand_processing_failures_add_zero_bytes_before_single_append_success() {
+    let (path, mut cva, _episode) = setup("completion-thousand-failures.cva");
+    cva.sync().unwrap();
+    let bytes_before = fs::metadata(&path).unwrap().len();
+    let chunks_before = cva.container.chunks().unwrap().len();
 
-    let partial_len = commit.offset + 8 + commit.len / 2;
-    OpenOptions::new()
-        .write(true)
-        .open(&path)
-        .unwrap()
-        .set_len(partial_len)
-        .unwrap();
+    for index in 0..1_000_i64 {
+        fail_processing_once(&mut cva, 1_000 + index * 10);
+    }
+    cva.sync().unwrap();
+    assert_eq!(fs::metadata(&path).unwrap().len(), bytes_before);
+    assert_eq!(cva.container.chunks().unwrap().len(), chunks_before);
+    assert_eq!(completion_chunks(&mut cva), 0);
 
-    let mut reopened = Cva::open(&path).unwrap();
-    assert_eq!(reopened.memory_stats().memories, 0);
-    assert_eq!(
-        reopened.insomnia_work(episode.id).unwrap().state,
-        InsomniaWorkState::Pending
-    );
-    assert!(reopened.insomnia_attempts(episode.id).is_empty());
-    let retry = process(&mut reopened, 2, 200);
-    assert_eq!(retry.created.len(), 2);
-    drop(reopened);
+    let result = process(&mut cva, 3, 20_000);
+    assert_eq!(result.created.len(), 3);
+    assert_eq!(cva.container.chunks().unwrap().len(), chunks_before + 1);
+    assert_eq!(completion_chunks(&mut cva), 1);
+}
 
-    let final_open = Cva::open(&path).unwrap();
-    assert_eq!(final_open.memory_stats().memories, 2);
-    assert_eq!(final_open.insomnia_attempts(episode.id).len(), 1);
-    assert_eq!(
-        final_open.insomnia_work(episode.id).unwrap().state,
-        InsomniaWorkState::Complete
-    );
+#[test]
+fn truncated_completion_is_recovered_for_zero_one_and_many_memories_then_retries_cleanly() {
+    for (case, count) in [("zero", 0), ("one", 1), ("many", 3)] {
+        let (path, mut cva, episode) = setup(&format!("completion-truncated-{case}.cva"));
+        let original_result = process(&mut cva, count, 110);
+        let expected_ids: Vec<_> = original_result
+            .created
+            .iter()
+            .map(|memory| memory.id)
+            .collect();
+        let commit = completion_chunk(&mut cva);
+        assert_eq!(completion_chunks(&mut cva), 1);
+        drop(cva);
+
+        let original = fs::read(&path).unwrap();
+        let full_end = commit.offset + 8 + commit.len;
+        let mut cuts = vec![
+            commit.offset + 1,
+            commit.offset + 7,
+            commit.offset + 8,
+            commit.offset + 9,
+            commit.offset + 8 + commit.len / 3,
+            commit.offset + 8 + commit.len / 2,
+            full_end - 1,
+        ];
+        cuts.sort_unstable();
+        cuts.dedup();
+        cuts.retain(|cut| *cut > commit.offset && *cut < full_end);
+
+        for (iteration, cut) in cuts.into_iter().enumerate() {
+            fs::write(&path, &original[..cut as usize]).unwrap();
+
+            let mut reopened = Cva::open(&path).unwrap();
+            assert_eq!(reopened.memory_stats().memories, 0);
+            assert_eq!(
+                reopened.insomnia_work(episode.id).unwrap().state,
+                InsomniaWorkState::Pending
+            );
+            assert!(reopened.insomnia_attempts(episode.id).is_empty());
+            assert_eq!(fs::metadata(&path).unwrap().len(), commit.offset);
+
+            let retry = process(&mut reopened, count, 1_000 + iteration as i64 * 10);
+            let retry_ids: Vec<_> = retry.created.iter().map(|memory| memory.id).collect();
+            assert_eq!(retry_ids, expected_ids);
+            assert_eq!(completion_chunks(&mut reopened), 1);
+            drop(reopened);
+
+            let final_open = Cva::open(&path).unwrap();
+            assert_eq!(final_open.memory_stats().memories, count);
+            assert_eq!(final_open.insomnia_attempts(episode.id).len(), 1);
+            assert_eq!(
+                final_open.insomnia_work(episode.id).unwrap().state,
+                InsomniaWorkState::Complete
+            );
+            drop(final_open);
+        }
+    }
 }

@@ -202,6 +202,8 @@ impl Cva {
             extractor_version,
             rejected_count,
             memory_ids,
+            global_version_start: self.container.next_version_candidate(),
+            bodies: Vec::new(),
             records: Vec::new(),
         };
         let payload = encode_completion(&completion)

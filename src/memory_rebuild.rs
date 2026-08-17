@@ -27,6 +27,7 @@ impl MemoryOpenState {
         if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
             .map_err(MemoryError::CorruptRecord)?
         {
+            self.store.apply_grouped_bodies(chunk, &completion.bodies)?;
             for record in completion.records {
                 if record.global_version == 0 || record.global_version > latest_global_version {
                     return Err(MemoryError::InvalidVersion);

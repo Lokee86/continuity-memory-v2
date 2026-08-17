@@ -85,8 +85,9 @@ pub(crate) fn commit_application(
         .ok_or(InsomniaProcessError::InvalidClaim)?;
     insomnia.active_claim(claim.episode_id, token, completed_at_ns)?;
     let batch = memories.stage_grouped_insomnia(container, prepared.drafts)?;
+    let existing = batch.existing;
     let mut memory_ids: Vec<_> = batch.records.iter().map(|record| record.id).collect();
-    memory_ids.extend(batch.existing.iter().map(|memory| memory.id));
+    memory_ids.extend(existing.iter().map(|memory| memory.id));
     let completion = InsomniaCompletion {
         episode_id: claim.episode_id,
         attempt: claim.attempt_count,
@@ -96,19 +97,25 @@ pub(crate) fn commit_application(
         extractor_version: INSOMNIA_EXTRACTOR_CONTRACT_VERSION.into(),
         rejected_count: prepared.rejected.len() as u32,
         memory_ids,
+        global_version_start: batch.global_version_start,
+        bodies: batch.bodies,
         records: batch.records,
     };
     let payload = encode_completion(&completion)
         .map_err(|_| crate::InsomniaError::InvalidField("completion record"))?;
-    container
+    let completion_chunk = container
         .append(&payload)
         .map_err(crate::InsomniaError::from)?;
+    container
+        .commit_embedded_version_range(completion.global_version_start, completion.records.len())
+        .map_err(crate::InsomniaError::from)?;
     container.sync().map_err(crate::InsomniaError::from)?;
+    memories.apply_grouped_bodies(completion_chunk, &completion.bodies)?;
     let created = memories.apply_grouped_records(container, &completion.records)?;
     insomnia.apply_completion(&completion)?;
     Ok(InsomniaProcessResult {
         created,
-        existing: batch.existing,
+        existing,
         rejected: prepared.rejected,
     })
 }
