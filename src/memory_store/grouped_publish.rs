@@ -1,9 +1,12 @@
 use super::*;
-use std::collections::HashSet;
+use crate::insomnia::completion::InsomniaCompletionBody;
+use std::collections::{HashMap, HashSet};
 
 pub(crate) struct PreparedMemoryBatch {
     pub(crate) records: Vec<MemoryRecord>,
     pub(crate) existing: Vec<Memory>,
+    pub(crate) bodies: Vec<InsomniaCompletionBody>,
+    pub(crate) global_version_start: u64,
 }
 
 impl MemoryStore {
@@ -12,8 +15,11 @@ impl MemoryStore {
         container: &mut Container,
         drafts: Vec<MemoryDraft>,
     ) -> Result<PreparedMemoryBatch, MemoryError> {
+        let global_version_start = container.next_version_candidate();
         let mut records = Vec::new();
         let mut existing = Vec::new();
+        let mut bodies: Vec<InsomniaCompletionBody> = Vec::new();
+        let mut body_indexes: HashMap<MemoryBodyId, usize> = HashMap::new();
         let mut seen_mutations = HashSet::new();
         for draft in drafts {
             validate_draft(&draft)?;
@@ -32,13 +38,31 @@ impl MemoryStore {
             if self.current.contains_key(&id) {
                 return Err(MemoryError::RevisionConflict);
             }
-            let body_id = self.put_body(container, &draft.title, &draft.content)?;
+            let body_id = memory_body_id(&draft.title, &draft.content);
+            let body_bytes = memory_body_bytes(&draft.title, &draft.content);
+            if self.bodies.contains_key(&body_id) {
+                if self.body_bytes(container, body_id)? != body_bytes {
+                    return Err(MemoryError::HashCollision);
+                }
+            } else if let Some(index) = body_indexes.get(&body_id).copied() {
+                if bodies[index].bytes != body_bytes {
+                    return Err(MemoryError::HashCollision);
+                }
+            } else {
+                body_indexes.insert(body_id, bodies.len());
+                bodies.push(InsomniaCompletionBody {
+                    id: body_id,
+                    bytes: body_bytes,
+                });
+            }
             let offset = u64::try_from(records.len()).map_err(|_| MemoryError::VersionExhausted)?;
             let memory_version = self
                 .next_memory_version
                 .checked_add(offset)
                 .ok_or(MemoryError::VersionExhausted)?;
-            let global_version = container.allocate_version()?;
+            let global_version = global_version_start
+                .checked_add(offset)
+                .ok_or(MemoryError::VersionExhausted)?;
             records.push(MemoryRecord {
                 id,
                 revision: 1,
@@ -63,7 +87,27 @@ impl MemoryStore {
                 memory_version,
             });
         }
-        Ok(PreparedMemoryBatch { records, existing })
+        Ok(PreparedMemoryBatch {
+            records,
+            existing,
+            bodies,
+            global_version_start,
+        })
+    }
+
+    pub(crate) fn apply_grouped_bodies(
+        &mut self,
+        chunk: ChunkRef,
+        bodies: &[InsomniaCompletionBody],
+    ) -> Result<(), MemoryError> {
+        for body in bodies {
+            let (title, content) = decode_memory_body(&body.bytes)?;
+            if memory_body_id(&title, &content) != body.id {
+                return Err(MemoryError::CorruptBody);
+            }
+            self.insert_body(body.id, chunk);
+        }
+        Ok(())
     }
 
     pub(crate) fn apply_grouped_records(

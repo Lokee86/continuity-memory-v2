@@ -24,7 +24,7 @@ N bytes payload
 8 bytes   "CVAVERS1"
 u64       global version
 ```
-Tickets begin at `1` and are physically consecutive. They order semantic mutations across concrete databases. Immutable backing objects do not independently consume tickets.
+Global versions begin at `1` and are semantically consecutive. Ordinary semantic owners persist one `CVAVERS1` ticket per version. `CVAINSC2` is the exception: it owns a contiguous embedded global-version range for the Memory records inside that completion transaction, so those versions do not require standalone ticket chunks. Global versions order semantic mutations across concrete databases; immutable backing objects do not independently consume versions.
 ### Archive records
 Format marker:
 ```text
@@ -196,18 +196,25 @@ optional string last error
 ```
 `CVAINSW1` remains decodable for existing development files and is still used for one final Terminal outcome during the current compatibility slice. New Pending, Processing, renewal, Failed/retry, and lease-expiry transitions are runtime-only and do not emit records. On reopen, persisted transient Work states are ignored; every Episode without a final success/terminal outcome is re-derived as Pending from Archive Episode metadata. Old Complete/Terminal records remain compatible final state.
 
-Successful Episode completion:
+Current successful Episode completion:
 ```text
-8 bytes   "CVAINSC1"
+8 bytes   "CVAINSC2"
 32 bytes  EpisodeId
 u32       attempt number
 i64       started_at_ns
 i64       completed_at_ns
 u32       rejected candidate count
+u64       first embedded global version
+u32       embedded global-version count
 string    extractor model
 string    extractor contract/version
 u32       resulting MemoryId count
 N×32      resulting MemoryIds
+u32       embedded Memory-body count
+repeated embedded Memory bodies:
+    32    MemoryBodyId
+    u32   Memory-body byte length
+    N     exact Memory body bytes: u64 title byte length + UTF-8 title + u64 content byte length + UTF-8 content
 u32       newly published Memory-record count
 repeated newly published records:
     u64   global version
@@ -215,9 +222,15 @@ repeated newly published records:
     u32   encoded Memory-record length
     N     complete "CVAMEMR2" record payload
 ```
-`CVAINSC1` is the visibility boundary for an Insomnia success. Content-addressed Memory bodies and global-version tickets may be appended before it, but nested Memory records are not reconstructed as current Memories until this complete chunk is present. The same chunk reconstructs the compact successful Insomnia receipt. Zero new Memory records is valid.
+The embedded global-version count must equal the newly published Memory-record count. For a non-empty publication, record global versions are contiguous beginning at the stored first version. A zero-Memory completion consumes no global versions.
 
-The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as the one compact `CVAINSC1` receipt.
+`CVAINSC2` is the physical and logical visibility boundary for an Insomnia success. New content-addressed Memory bodies, their Memory records, their global-version allocation, and the compact successful Episode receipt all live inside this one outer CVA chunk. No standalone Memory-body, Memory-record, Memory-version, or `CVAVERS1` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing bodies may be referenced without being re-embedded.
+
+If a `CVAINSC2` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer chunk, leaving no orphan body, record, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. A valid completed transaction reconstructs all of its new Memories and the successful Insomnia receipt together.
+
+`CVAINSC1` remains decodable for existing development files. In that legacy format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk; the completion remains the logical visibility boundary for its nested Memory records. Current processing writes only `CVAINSC2`.
+
+The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC2` transaction.
 
 Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
 
