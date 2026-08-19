@@ -1,6 +1,7 @@
 use crate::{
-    CompatibilityProfileError, CompatibilityProfileId, Cva, EmbeddingEndpoint, GeneralEndpoint,
-    InsomniaError, InsomniaExtractor, InsomniaProcessError, MemoryVectorError, MemoryVectorId,
+    ArchiveError, CompatibilityProfileError, CompatibilityProfileId, Cva, EmbeddingEndpoint,
+    GeneralEndpoint, InsomniaError, InsomniaExtractor, InsomniaProcessError, MemoryVectorError,
+    MemoryVectorId,
 };
 use std::fmt;
 
@@ -59,6 +60,7 @@ pub struct InsomniaDrainResult {
 #[derive(Debug)]
 pub enum InsomniaWorkerError {
     InvalidConfig(&'static str),
+    Archive(ArchiveError),
     Queue(InsomniaError),
     Process(InsomniaProcessError),
     CompatibilityProfile(CompatibilityProfileError),
@@ -73,6 +75,7 @@ impl fmt::Display for InsomniaWorkerError {
             Self::InvalidConfig(field) => {
                 write!(f, "invalid Insomnia worker configuration: {field}")
             }
+            Self::Archive(error) => write!(f, "{error}"),
             Self::Queue(error) => write!(f, "{error}"),
             Self::Process(error) => write!(f, "{error}"),
             Self::CompatibilityProfile(error) => write!(f, "{error}"),
@@ -84,6 +87,12 @@ impl fmt::Display for InsomniaWorkerError {
 }
 
 impl std::error::Error for InsomniaWorkerError {}
+
+impl From<ArchiveError> for InsomniaWorkerError {
+    fn from(value: ArchiveError) -> Self {
+        Self::Archive(value)
+    }
+}
 
 impl From<InsomniaError> for InsomniaWorkerError {
     fn from(value: InsomniaError) -> Self {

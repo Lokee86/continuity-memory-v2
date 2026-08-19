@@ -1,8 +1,9 @@
 use super::{InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError};
-use crate::insomnia::evidence::resolve_evidence_parts;
+use crate::insomnia::evidence::{hydrate_evidence_parts, plan_evidence};
 use crate::insomnia::extraction::{InsomniaExtractionStage, InsomniaExtractor};
 use crate::insomnia::processor::claimed_episode_input_parts;
 use crate::insomnia::store::InsomniaStore;
+use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::{Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaWork};
 use std::sync::Mutex;
@@ -30,6 +31,7 @@ pub(super) struct DrainCounters {
 
 pub(super) struct DrainShared<'a> {
     pub(super) archive: &'a Archive,
+    pub(super) lexical_index: &'a LexicalIndex,
     pub(super) container: Mutex<&'a mut Container>,
     pub(super) memories: Mutex<&'a mut MemoryStore>,
     pub(super) insomnia: Mutex<&'a mut InsomniaStore>,
@@ -46,8 +48,11 @@ pub(super) fn drain<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    cva.lexical_index
+        .ensure_current(&cva.archive, &mut cva.container)?;
     let shared = DrainShared {
         archive: &cva.archive,
+        lexical_index: &cva.lexical_index,
         container: Mutex::new(&mut cva.container),
         memories: Mutex::new(&mut cva.memories),
         insomnia: Mutex::new(&mut cva.insomnia),
@@ -184,11 +189,17 @@ fn run_extraction<E: GeneralEndpoint>(
     match extractor.start(episode, turns)? {
         InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
         InsomniaExtractionStage::Evidence(round) => {
+            let plans = plan_evidence(
+                shared.archive,
+                shared.lexical_index,
+                episode,
+                &round.requests,
+            );
             let (results, evidence_turns) = {
                 let mut container = shared.container.lock().map_err(|_| {
                     InsomniaExtractionError::InvalidOutput("CVA container lock poisoned".into())
                 })?;
-                resolve_evidence_parts(shared.archive, &mut container, episode, &round.requests)?
+                hydrate_evidence_parts(shared.archive, &mut container, &plans)?
             };
             extractor.finish_evidence(episode, turns, round, results, evidence_turns)
         }

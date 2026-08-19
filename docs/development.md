@@ -82,7 +82,7 @@ Synthetic Insomnia mechanical stress:
 cargo run --release --example insomnia_stress -- [episodes] [workers] [dimensions] [delay_ms] [evidence_every]
 ```
 
-The stress harness creates isolated import Episodes with materialized Archive fragments, emits one directly authorized Memory per Episode through a deterministic General endpoint, builds simulated Memory Vectors, syncs, reopens, and verifies Episode, Memory, and vector counts. `evidence_every=0` disables historical evidence; a positive value forces every Nth Episode through one full lexical `archive_search` before final synthesis.
+The stress harness creates isolated import Episodes with materialized Archive fragments, emits one directly authorized Memory per Episode through a deterministic General endpoint, builds simulated Memory Vectors, syncs, reopens, and verifies Episode, Memory, and vector counts. `evidence_every=0` disables historical evidence; a positive value forces every Nth Episode through one lexical `archive_search` before final synthesis.
 
 ## Prepared-corpus measurements — 2026-08-14
 
@@ -322,7 +322,21 @@ episodes  workers  evidence rate  drain time   episodes/s   CVA bytes      reope
 
 The zero-latency endpoint intentionally exposes the serialized mutation ceiling: adding workers does not improve the approximately 2.1K Episode/s mechanical rate because model latency has been removed. Scaling from 5,000 to 20,000 Episodes with fragments and vectors remains close to linear, while the measured live `gpt-5.6-luna` 48-worker run is only about 3.1 Episodes/s. Normal Insomnia mechanics therefore have more than two orders of magnitude of headroom over current live inference.
 
-The synthetic evidence cases isolate the remaining scale-sensitive path. `archive_search` currently performs a full lexical fragment scan while holding the Container lock. At 5,000 fragments, forcing 1% of Episodes through that path roughly halves synthetic throughput; forcing 10% reduces it to about 203 Episodes/s. That is still far above current model throughput, but unlike ordinary point/bounded reads it scales with both archive fragment count and evidence-search frequency. Persistent lexical indexing or a different evidence-search path should be added before broad historical search becomes common at much larger archive sizes.
+The pre-index evidence cases exposed a scale-sensitive path: `archive_search` performed a full lexical fragment scan while holding the Container lock. At 5,000 fragments, forcing 1% of Episodes through that path roughly halved synthetic throughput; forcing 10% reduced it to about 203 Episodes/s. Those measurements are retained above as the baseline that motivated the shared lexical index.
+
+#### Shared lexical-index rerun — 2026-08-19
+
+Insomnia evidence now uses the same disposable derived lexical index as normal lexical/hybrid retrieval. The finite drain builds the index once before spawning workers; exact-turn/range planning and lexical ranking then occur against immutable Archive/index state without the Container lock, and only the bounded winning turn bodies are hydrated through the serialized Container handle. Lexical tokenization, scoring, and tie-breaking are unchanged, and the index remains non-persistent derived state with no CVA format change.
+
+```text
+episodes  workers  evidence rate  drain time   episodes/s
+5,000     48       0%              2.399 s      2,083.786
+5,000     48       1%              2.473 s      2,021.939
+5,000     48       10%             2.441 s      2,048.242
+20,000    48       10%            11.053 s      1,809.476
+```
+
+At 5,000 fragments and 10% historical-evidence usage, throughput improved from `203.107` to `2,048.242` Episodes/s, about a tenfold increase. At 20,000 fragments the same 10% evidence rate still sustained `1,809.476` Episodes/s. The former repeated full-Archive scan is therefore no longer the scaling bottleneck; the remaining evidence cost is bounded index-query work plus hydration of selected turn bodies.
 
 ### Benchmark baseline — 2026-08-15
 

@@ -1,6 +1,7 @@
 use super::extraction::{InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtractionError};
-use crate::lexical_search::lexical_candidates_parts;
-use crate::{Archive, Container, Cva, Episode, ResolvedTurn};
+use crate::lexical_index::LexicalIndex;
+use crate::lexical_search::lexical_terms;
+use crate::{Archive, Container, Cva, Episode, Fragment, Node, ResolvedTurn};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
@@ -58,36 +59,71 @@ pub(crate) fn resolve_evidence(
     episode: &Episode,
     requests: &[EvidenceRequest],
 ) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
-    resolve_evidence_parts(&cva.archive, &mut cva.container, episode, requests)
+    cva.lexical_index
+        .ensure_current(&cva.archive, &mut cva.container)
+        .map_err(|error| {
+            InsomniaExtractionError::InvalidOutput(format!(
+                "Archive lexical index could not be built: {error}"
+            ))
+        })?;
+    let plans = plan_evidence(&cva.archive, &cva.lexical_index, episode, requests);
+    hydrate_evidence_parts(&cva.archive, &mut cva.container, &plans)
 }
 
-pub(crate) fn resolve_evidence_parts(
+pub(crate) fn plan_evidence(
     archive: &Archive,
-    container: &mut Container,
+    lexical_index: &LexicalIndex,
     _episode: &Episode,
     requests: &[EvidenceRequest],
+) -> Vec<EvidencePlan> {
+    requests
+        .iter()
+        .map(|request| EvidencePlan {
+            kind: request.kind.clone(),
+            selection: match request.kind.as_str() {
+                "turn" => plan_turn(archive, request),
+                "conversation_range" => plan_range(archive, request),
+                "archive_search" => plan_search(lexical_index, request),
+                _ => Err(format!("unknown evidence request kind {:?}", request.kind)),
+            },
+        })
+        .collect()
+}
+
+pub(crate) fn hydrate_evidence_parts(
+    archive: &Archive,
+    container: &mut Container,
+    plans: &[EvidencePlan],
 ) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
-    let mut results = Vec::with_capacity(requests.len());
+    let mut results = Vec::with_capacity(plans.len());
     let mut all_turns = Vec::new();
-    for request in requests {
-        let resolved = match request.kind.as_str() {
-            "turn" => resolve_turn(archive, container, request),
-            "conversation_range" => resolve_range(archive, container, request),
-            "archive_search" => resolve_search(archive, container, request),
-            _ => Err(format!("unknown evidence request kind {:?}", request.kind)),
+    for plan in plans {
+        let resolved = match &plan.selection {
+            Ok(EvidenceSelection::Turn {
+                conversation_id,
+                node,
+            }) => hydrate_turn(archive, container, conversation_id, node),
+            Ok(EvidenceSelection::Range {
+                conversation_id,
+                nodes,
+            }) => hydrate_range(archive, container, conversation_id, nodes),
+            Ok(EvidenceSelection::Search { fragments }) => {
+                hydrate_search(archive, container, fragments)
+            }
+            Err(error) => Err(error.clone()),
         };
         match resolved {
             Ok(turns) => {
                 all_turns.extend(turns.iter().cloned());
                 results.push(InsomniaEvidenceResult {
-                    kind: request.kind.clone(),
+                    kind: plan.kind.clone(),
                     turns,
                     error: None,
                     truncated: false,
                 });
             }
             Err(error) => results.push(InsomniaEvidenceResult {
-                kind: request.kind.clone(),
+                kind: plan.kind.clone(),
                 turns: Vec::new(),
                 error: Some(error),
                 truncated: false,
@@ -109,11 +145,26 @@ pub(crate) fn resolve_evidence_parts(
     Ok((results, bounded))
 }
 
-fn resolve_turn(
-    archive: &Archive,
-    container: &mut Container,
-    request: &EvidenceRequest,
-) -> Result<Vec<InsomniaEvidenceTurn>, String> {
+pub(crate) struct EvidencePlan {
+    kind: String,
+    selection: Result<EvidenceSelection, String>,
+}
+
+pub(crate) enum EvidenceSelection {
+    Turn {
+        conversation_id: String,
+        node: Node,
+    },
+    Range {
+        conversation_id: String,
+        nodes: Vec<Node>,
+    },
+    Search {
+        fragments: Vec<Fragment>,
+    },
+}
+
+fn plan_turn(archive: &Archive, request: &EvidenceRequest) -> Result<EvidenceSelection, String> {
     let conversation_id = request.conversation_id.trim();
     let node_id = request.node_id.trim();
     if conversation_id.is_empty() || node_id.is_empty() {
@@ -123,25 +174,13 @@ fn resolve_turn(
         .require_node(conversation_id, node_id, crate::ArchiveError::MissingNode)
         .map_err(|_| "requested turn was not found".to_owned())?
         .clone();
-    let content = archive
-        .content(container, node.content_id)
-        .map_err(|error| error.to_string())?;
-    Ok(vec![to_evidence_turn(
-        conversation_id,
-        ResolvedTurn {
-            node_id: node.id,
-            role: node.role,
-            timestamp_ns: node.timestamp_ns,
-            content,
-        },
-    )])
+    Ok(EvidenceSelection::Turn {
+        conversation_id: conversation_id.to_owned(),
+        node,
+    })
 }
 
-fn resolve_range(
-    archive: &Archive,
-    container: &mut Container,
-    request: &EvidenceRequest,
-) -> Result<Vec<InsomniaEvidenceTurn>, String> {
+fn plan_range(archive: &Archive, request: &EvidenceRequest) -> Result<EvidenceSelection, String> {
     let conversation_id = request.conversation_id.trim();
     let start_node_id = request.start_node_id.trim();
     let end_node_id = request.end_node_id.trim();
@@ -163,7 +202,71 @@ fn resolve_range(
             "conversation_range must contain between 1 and {MAX_RANGE_NODES} nodes"
         ));
     }
-    selected
+    Ok(EvidenceSelection::Range {
+        conversation_id: conversation_id.to_owned(),
+        nodes: selected.to_vec(),
+    })
+}
+
+fn plan_search(
+    lexical_index: &LexicalIndex,
+    request: &EvidenceRequest,
+) -> Result<EvidenceSelection, String> {
+    let query = request.query.trim();
+    if query.is_empty() || query.len() > 512 {
+        return Err("archive_search requires a query of at most 512 bytes".into());
+    }
+    let limit = if request.limit == 0 {
+        DEFAULT_SEARCH_RESULTS
+    } else {
+        request.limit
+    };
+    if !(1..=MAX_SEARCH_RESULTS).contains(&limit) {
+        return Err(format!(
+            "archive_search limit must be between 1 and {MAX_SEARCH_RESULTS}"
+        ));
+    }
+    let terms = lexical_terms(query);
+    let candidates = lexical_index.search(&terms, limit.saturating_mul(4));
+    let conversation_filter = request.conversation_id.trim();
+    let fragments = candidates
+        .into_iter()
+        .filter(|hit| {
+            conversation_filter.is_empty() || hit.fragment.conversation_id == conversation_filter
+        })
+        .take(limit)
+        .map(|hit| hit.fragment)
+        .collect();
+    Ok(EvidenceSelection::Search { fragments })
+}
+
+fn hydrate_turn(
+    archive: &Archive,
+    container: &mut Container,
+    conversation_id: &str,
+    node: &Node,
+) -> Result<Vec<InsomniaEvidenceTurn>, String> {
+    let content = archive
+        .content(container, node.content_id)
+        .map_err(|error| error.to_string())?;
+    Ok(vec![to_evidence_turn(
+        conversation_id,
+        ResolvedTurn {
+            node_id: node.id.clone(),
+            role: node.role.clone(),
+            timestamp_ns: node.timestamp_ns,
+            content,
+        },
+    )])
+}
+
+fn hydrate_range(
+    archive: &Archive,
+    container: &mut Container,
+    conversation_id: &str,
+    nodes: &[Node],
+) -> Result<Vec<InsomniaEvidenceTurn>, String> {
+    nodes
         .iter()
         .map(|node| {
             let content = archive
@@ -180,47 +283,22 @@ fn resolve_range(
         .collect()
 }
 
-fn resolve_search(
+fn hydrate_search(
     archive: &Archive,
     container: &mut Container,
-    request: &EvidenceRequest,
+    fragments: &[Fragment],
 ) -> Result<Vec<InsomniaEvidenceTurn>, String> {
-    let query = request.query.trim();
-    if query.is_empty() || query.len() > 512 {
-        return Err("archive_search requires a query of at most 512 bytes".into());
-    }
-    let limit = if request.limit == 0 {
-        DEFAULT_SEARCH_RESULTS
-    } else {
-        request.limit
-    };
-    if !(1..=MAX_SEARCH_RESULTS).contains(&limit) {
-        return Err(format!(
-            "archive_search limit must be between 1 and {MAX_SEARCH_RESULTS}"
-        ));
-    }
-    let candidates = lexical_candidates_parts(archive, container, query, limit.saturating_mul(4))
-        .map_err(|error| error.to_string())?;
-    let conversation_filter = request.conversation_id.trim();
     let mut turns = Vec::new();
-    let mut accepted = 0;
-    for hit in candidates {
-        if !conversation_filter.is_empty() && hit.fragment.conversation_id != conversation_filter {
-            continue;
-        }
-        let conversation_id = hit.fragment.conversation_id.clone();
+    for fragment in fragments {
+        let conversation_id = fragment.conversation_id.clone();
         let fragment_turns = archive
-            .fragment_turns(container, hit.fragment.id)
+            .fragment_turns(container, fragment.id)
             .map_err(|error| error.to_string())?;
         turns.extend(
             fragment_turns
                 .into_iter()
                 .map(|turn| to_evidence_turn(&conversation_id, turn)),
         );
-        accepted += 1;
-        if accepted == limit {
-            break;
-        }
     }
     Ok(turns)
 }
