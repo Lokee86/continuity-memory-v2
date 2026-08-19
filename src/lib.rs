@@ -57,6 +57,7 @@ mod fragment_store;
 mod fragmenter;
 mod general_endpoint;
 mod insomnia;
+mod lexical_index;
 mod lexical_search;
 mod master_key;
 mod master_key_entropy;
@@ -202,6 +203,8 @@ mod episode_tests;
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod lexical_index_tests;
 #[cfg(test)]
 mod master_key_tests;
 #[cfg(test)]

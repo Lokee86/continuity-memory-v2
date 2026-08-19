@@ -2,6 +2,7 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::insomnia::store::InsomniaStore;
+use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
@@ -18,6 +19,7 @@ pub struct Cva {
     pub(crate) archive: Archive,
     pub(crate) memories: MemoryStore,
     pub(crate) insomnia: InsomniaStore,
+    pub(crate) lexical_index: LexicalIndex,
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) archive_vectors: ArchiveVectorStore,

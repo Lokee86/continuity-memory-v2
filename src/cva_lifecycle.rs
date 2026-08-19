@@ -6,6 +6,7 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::insomnia::store::InsomniaStore;
+use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_rebuild::MemoryVectorOpenState;
@@ -23,6 +24,7 @@ impl Cva {
         let archive = Archive::empty();
         let memories = MemoryStore::empty();
         let insomnia = InsomniaStore::empty();
+        let lexical_index = LexicalIndex::default();
         let packed_vectors = PackedVectorStore::default();
         let memory_vectors = MemoryVectorStore::default();
         let archive_vectors = ArchiveVectorStore::default();
@@ -42,6 +44,7 @@ impl Cva {
             archive,
             memories,
             insomnia,
+            lexical_index,
             packed_vectors,
             memory_vectors,
             archive_vectors,
@@ -77,6 +80,7 @@ impl Cva {
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
         insomnia.rebuild_schedule(&archive)?;
+        let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
         let memory_vectors =
@@ -94,6 +98,7 @@ impl Cva {
             archive,
             memories,
             insomnia,
+            lexical_index,
             packed_vectors,
             memory_vectors,
             archive_vectors,

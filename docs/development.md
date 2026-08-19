@@ -30,7 +30,8 @@ src/embedding_endpoint.rs           endpoint contract + deterministic simulation
 src/compatibility_profile*.rs       tolerant compatibility contracts/probes/reopen
 src/vector_generation*.rs           generation publication/history/reopen
 src/semantic_search*.rs             exact current-generation semantic retrieval
-src/lexical_search.rs / search*.rs  original lexical + hybrid retrieval policy
+src/lexical_index.rs               disposable derived Archive lexical index
+src/lexical_search.rs / search*.rs  original lexical scoring + hybrid retrieval policy
 src/lib.rs                          public exports
 examples/archive_roundtrip.rs        prepared Archive corpus smoke
 examples/vector_generation_smoke.rs  two-profile vector + retrieval smoke
@@ -74,6 +75,14 @@ cargo run --release --example archive_open_profile -- <archive.cva> [runs]
 ```
 
 The benchmark is standalone and reports median/p90 `Cva::open` time plus allocator-tracked retained and peak additional bytes.
+
+Synthetic Insomnia mechanical stress:
+
+```text
+cargo run --release --example insomnia_stress -- [episodes] [workers] [dimensions] [delay_ms] [evidence_every]
+```
+
+The stress harness creates isolated import Episodes with materialized Archive fragments, emits one directly authorized Memory per Episode through a deterministic General endpoint, builds simulated Memory Vectors, syncs, reopens, and verifies Episode, Memory, and vector counts. `evidence_every=0` disables historical evidence; a positive value forces every Nth Episode through one full lexical `archive_search` before final synthesis.
 
 ## Prepared-corpus measurements — 2026-08-14
 
@@ -295,6 +304,25 @@ Container reopen treats an incomplete final length-prefixed chunk as an interrup
 Operational retention is deliberately narrow. Pending queue state, claims, leases, renewals, retry counters, retry delays, and retryable failures exist only in memory and emit no `CVAINSW1` chunks. On reopen, every Episode without a final success or terminal outcome is derived as Pending with a fresh runtime attempt count. Successful processing retains one compact `CVAINSC2` transaction containing the producing model/contract, timestamps, Memory IDs, rejected count, newly required Memory bodies/records, and their global-version range. Terminal outcomes still use one durable final `CVAINSW1` record during this compatibility slice. Detailed extraction responses, evidence bundles, disposition/synthesis intermediates, and retry traces are not made durable.
 
 This removes normal Insomnia garbage at the source rather than depending on vacuum. Queue/claim/renew/retry transitions add zero CVA bytes, failed extraction or synthesis adds zero CVA bytes, and once an Episode already exists a successful processing pass adds only its single completion transaction. Older development CVAs can still contain superseded `CVAINSW1` records and legacy staged-body/`CVAINSC1` layouts, which remain readable as compatibility history. Current Insomnia processing has no pre-completion persistent staging seam and should not require a general CVA vacuum for normal operation.
+
+### Synthetic Insomnia mechanical scaling — 2026-08-17
+
+`examples/insomnia_stress.rs` isolates storage, scheduling, application, and Memory-Vector publication from model latency. Each synthetic conversation contains one durable user fact, one materialized Archive fragment, one finalized import Episode, one directly authorized Memory, and one simulated 1024-dimensional Memory Vector. The normal `drain_insomnia_backlog` path is used, followed by sync, reopen, and count validation.
+
+Release-mode results on the current development machine:
+
+```text
+episodes  workers  evidence rate  drain time   episodes/s   CVA bytes      reopen
+5,000     1        0%              2.320 s      2,155.278    26,701,304     224 ms
+5,000     48       0%              2.285 s      2,188.239    26,701,304     221 ms
+20,000    48       0%              9.660 s      2,070.450   106,941,304   1,260 ms
+5,000     48       1%              4.739 s      1,055.014    26,701,304     228 ms
+5,000     48       10%            24.618 s        203.107    26,701,304     227 ms
+```
+
+The zero-latency endpoint intentionally exposes the serialized mutation ceiling: adding workers does not improve the approximately 2.1K Episode/s mechanical rate because model latency has been removed. Scaling from 5,000 to 20,000 Episodes with fragments and vectors remains close to linear, while the measured live `gpt-5.6-luna` 48-worker run is only about 3.1 Episodes/s. Normal Insomnia mechanics therefore have more than two orders of magnitude of headroom over current live inference.
+
+The synthetic evidence cases isolate the remaining scale-sensitive path. `archive_search` currently performs a full lexical fragment scan while holding the Container lock. At 5,000 fragments, forcing 1% of Episodes through that path roughly halves synthetic throughput; forcing 10% reduces it to about 203 Episodes/s. That is still far above current model throughput, but unlike ordinary point/bounded reads it scales with both archive fragment count and evidence-search frequency. Persistent lexical indexing or a different evidence-search path should be added before broad historical search becomes common at much larger archive sizes.
 
 ### Benchmark baseline — 2026-08-15
 

@@ -12,7 +12,10 @@ impl Cva {
         query: &str,
         limit: usize,
     ) -> Result<Vec<LexicalHit>, SearchError> {
-        lexical_candidates_parts(&self.archive, &mut self.container, query, limit)
+        let terms = lexical_terms(query);
+        self.lexical_index
+            .ensure_current(&self.archive, &mut self.container)?;
+        Ok(self.lexical_index.search(&terms, limit))
     }
 }
 
@@ -90,7 +93,7 @@ pub(crate) fn lexical_terms(value: &str) -> Vec<String> {
     terms
 }
 
-fn term_counts(value: &str) -> HashMap<String, usize> {
+pub(crate) fn term_counts(value: &str) -> HashMap<String, usize> {
     let lower = value.to_lowercase();
     lexical_terms(value)
         .into_iter()
