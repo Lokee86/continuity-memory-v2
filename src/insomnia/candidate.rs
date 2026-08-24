@@ -19,6 +19,7 @@ pub(super) struct RawCandidate {
     source_quote: String,
     authority_source: RawSource,
     grounding_source: RawSource,
+    semantic_key: String,
 }
 
 pub(super) fn parse_candidates(
@@ -49,6 +50,12 @@ fn parse_candidate(value: &Value) -> Result<RawCandidate, InsomniaExtractionErro
         source_quote: required_string(value, "source_quote")?,
         authority_source: parse_source(value, "authority_source")?,
         grounding_source: parse_source(value, "grounding_source")?,
+        semantic_key: value
+            .get("semantic_key")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .trim()
+            .to_owned(),
     })
 }
 
@@ -97,6 +104,7 @@ pub(super) fn validate_candidates(
             &source_quote,
             &authority_source,
             &grounding_source,
+            &raw.semantic_key,
         );
         if reason.is_none() && !seen.insert(key.clone()) {
             reason = Some("duplicate candidate authority anchor".to_owned());
@@ -138,9 +146,10 @@ fn candidate_key(
     source_quote: &str,
     authority_source: &RawSource,
     grounding_source: &RawSource,
+    semantic_key: &str,
 ) -> String {
     let mut hash = Sha256::new();
-    hash.update(b"continuity-insomnia-candidate\0");
+    hash.update(b"continuity-insomnia-candidate-v3\0");
     hash.update(episode_id.0);
     for value in [
         source_node_id,
@@ -151,6 +160,7 @@ fn candidate_key(
         &grounding_source.conversation_id,
         &grounding_source.node_id,
         &grounding_source.quote,
+        semantic_key,
     ] {
         hash.update((value.len() as u64).to_le_bytes());
         hash.update(value.as_bytes());

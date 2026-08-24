@@ -51,27 +51,51 @@ fn setup(name: &str) -> (std::path::PathBuf, Cva, crate::Episode) {
     (path, cva, episode)
 }
 
-fn response(count: usize) -> Value {
-    let candidates: Vec<_> = (0..count)
-        .map(|index| {
+fn responses(count: usize) -> Vec<Value> {
+    let mut turns = serde_json::Map::new();
+    for index in 0..8 {
+        let clause = if index < count {
             json!({
+                "disposition": "retain",
                 "authority_kind": "direct",
                 "category": "decision",
                 "type": "project",
-                "title": format!("Atomic completion {index}"),
-                "content": format!("Atomic Insomnia completion invariant {index}."),
-                "source_node_id": format!("u{index}"),
-                "source_quote": format!("Atomic Insomnia completion fact {index}."),
-                "authority_source_conversation_id": "",
+                "lifecycle": "current",
+                "proposition": format!("Atomic Insomnia completion invariant {index}."),
                 "authority_source_node_id": "",
-                "authority_source_quote": "",
-                "grounding_source_conversation_id": "",
                 "grounding_source_node_id": "",
-                "grounding_source_quote": ""
+                "reason": "synthetic durable state"
             })
-        })
-        .collect();
-    json!({"candidates": candidates})
+        } else {
+            json!({
+                "disposition": "omit",
+                "authority_kind": "none",
+                "category": "none",
+                "type": "none",
+                "lifecycle": "none",
+                "proposition": "",
+                "authority_source_node_id": "",
+                "grounding_source_node_id": "",
+                "reason": "synthetic omission"
+            })
+        };
+        turns.insert(format!("u{index}"), json!([clause]));
+    }
+    let mut responses = vec![json!({"turns": turns, "evidence_requests": []})];
+    if count > 0 {
+        let mut groups = serde_json::Map::new();
+        for index in 0..count {
+            groups.insert(
+                format!("g{index:03}"),
+                json!({
+                    "title": format!("Atomic completion {index}"),
+                    "content": format!("Atomic Insomnia completion invariant {index}.")
+                }),
+            );
+        }
+        responses.push(json!({"groups": groups}));
+    }
+    responses
 }
 
 fn process(cva: &mut Cva, count: usize, now: i64) -> crate::InsomniaProcessResult {
@@ -81,7 +105,7 @@ fn process(cva: &mut Cva, count: usize, now: i64) -> crate::InsomniaProcessResul
         .unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "synthetic-insomnia",
-        vec![response(count)],
+        responses(count),
     ));
     cva.process_claimed_insomnia_episode(&claim, &extractor, "private", now, now + 1)
         .unwrap()

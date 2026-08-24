@@ -1,8 +1,10 @@
+use super::ledger;
+use super::synthesis::SYNTHESIS_SYSTEM_PROMPT;
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, INSOMNIA_SYSTEM_PROMPT, InsomniaExtractor,
     InsomniaPriority, InsomniaWorkState, SimulatedGeneralEndpoint,
 };
-use serde_json::json;
+use serde_json::{Value, json};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -48,6 +50,50 @@ fn queue_episode(cva: &mut Cva, leaf: &str) -> crate::Episode {
     episode
 }
 
+fn omit() -> Value {
+    json!({
+        "disposition": "omit",
+        "authority_kind": "none",
+        "category": "none",
+        "type": "none",
+        "lifecycle": "none",
+        "proposition": "",
+        "authority_source_node_id": "",
+        "grounding_source_node_id": "",
+        "reason": "not durable state"
+    })
+}
+
+fn retain(
+    authority_kind: &str,
+    category: &str,
+    memory_type: &str,
+    lifecycle: &str,
+    proposition: &str,
+    authority_source_node_id: &str,
+    grounding_source_node_id: &str,
+) -> Value {
+    json!({
+        "disposition": "retain",
+        "authority_kind": authority_kind,
+        "category": category,
+        "type": memory_type,
+        "lifecycle": lifecycle,
+        "proposition": proposition,
+        "authority_source_node_id": authority_source_node_id,
+        "grounding_source_node_id": grounding_source_node_id,
+        "reason": "durable state"
+    })
+}
+
+fn ledger(turns: Value) -> Value {
+    json!({"turns": turns, "evidence_requests": []})
+}
+
+fn wording(title: &str, content: &str) -> Value {
+    json!({"groups": {"g000": {"title": title, "content": content}}})
+}
+
 #[test]
 fn claimed_episode_extracts_and_publishes_authoritative_memory() {
     let path = test_path("publish.cva");
@@ -68,23 +114,23 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
         .unwrap();
     let endpoint = SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({
-            "candidates": [{
-                "authority_kind": "direct",
-                "category": "decision",
-                "type": "project",
-                "title": "Insomnia owns working-memory generation",
-                "content": "Continuity uses Insomnia as the sole authoritative generator of working memory.",
-                "source_node_id": "u0",
-                "source_quote": "Continuity should keep all working-memory generation in Insomnia.",
-                "authority_source_conversation_id": "",
-                "authority_source_node_id": "",
-                "authority_source_quote": "",
-                "grounding_source_conversation_id": "",
-                "grounding_source_node_id": "",
-                "grounding_source_quote": ""
-            }]
-        })],
+        vec![
+            ledger(json!({
+                "u0": [retain(
+                    "direct",
+                    "decision",
+                    "project",
+                    "current",
+                    "Continuity uses Insomnia as the sole authoritative generator of working memory.",
+                    "",
+                    ""
+                )]
+            })),
+            wording(
+                "Insomnia owns working-memory generation",
+                "Continuity uses Insomnia as the sole authoritative generator of working memory.",
+            ),
+        ],
     );
     let extractor = InsomniaExtractor::new(endpoint);
     let result = cva
@@ -109,7 +155,7 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
 }
 
 #[test]
-fn assistant_cannot_become_user_authority() {
+fn assistant_cannot_become_user_authority_even_if_provider_bypasses_schema() {
     let path = test_path("authority.cva");
     let mut cva = Cva::create(&path).unwrap();
     append(&mut cva, "u0", None, "user", 10, "What should we do?");
@@ -122,35 +168,24 @@ fn assistant_cannot_become_user_authority() {
         "Use Insomnia for all memory generation.",
     );
     let episode = queue_episode(&mut cva, "a0");
-    let claim = cva.claim_insomnia_episode("w", 110, 100).unwrap().unwrap();
+    let turns = cva.episode_turns(episode.id).unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({"candidates": [{
-            "authority_kind": "direct",
-            "category": "decision",
-            "type": "project",
-            "title": "Bad authority",
-            "content": "Use Insomnia.",
-            "source_node_id": "a0",
-            "source_quote": "Use Insomnia for all memory generation.",
-            "authority_source_conversation_id": "",
-            "authority_source_node_id": "",
-            "authority_source_quote": "",
-            "grounding_source_conversation_id": "",
-            "grounding_source_node_id": "",
-            "grounding_source_quote": ""
-        }]})],
+        vec![ledger(json!({
+            "u0": [omit()],
+            "a0": [retain(
+                "direct",
+                "decision",
+                "project",
+                "current",
+                "Use Insomnia for all memory generation.",
+                "",
+                ""
+            )]
+        }))],
     ));
-    let result = cva
-        .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 120)
-        .unwrap();
-    assert!(result.created.is_empty());
-    assert_eq!(result.rejected.len(), 1);
-    assert_eq!(cva.memory_stats().memories, 0);
-    assert_eq!(
-        cva.insomnia_work(episode.id).unwrap().state,
-        InsomniaWorkState::Complete
-    );
+    let error = extractor.extract(&episode, &turns).unwrap_err();
+    assert!(error.to_string().contains("non-user source key"));
 }
 
 #[test]
@@ -179,21 +214,24 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
     let claim = cva.claim_insomnia_episode("w", 110, 100).unwrap().unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({"candidates": [{
-            "authority_kind": "retention",
-            "category": "decision",
-            "type": "project",
-            "title": "Episode inactivity boundary",
-            "content": "Episodes use a fifteen minute inactivity boundary.",
-            "source_node_id": "u1",
-            "source_quote": "Remember that.",
-            "authority_source_conversation_id": "c1",
-            "authority_source_node_id": "a0",
-            "authority_source_quote": "Use a fifteen minute inactivity boundary.",
-            "grounding_source_conversation_id": "",
-            "grounding_source_node_id": "",
-            "grounding_source_quote": ""
-        }]})],
+        vec![
+            ledger(json!({
+                "u0": [omit()],
+                "u1": [retain(
+                    "retention",
+                    "decision",
+                    "project",
+                    "current",
+                    "Episodes use a fifteen minute inactivity boundary.",
+                    "a0",
+                    ""
+                )]
+            })),
+            wording(
+                "Episode inactivity boundary",
+                "Episodes use a fifteen minute inactivity boundary.",
+            ),
+        ],
     ));
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 120)
@@ -211,49 +249,34 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
 }
 
 #[test]
-fn legacy_extraction_policy_remains_in_extractor_contract() {
+fn two_pass_selector_and_wording_contracts_preserve_tuned_policy() {
     for clause in [
-        "Do not retain advice, recommendations, examples, explanations, generated copy",
-        "Optimize for durable information density, not sentence-level atomicity",
-        "Project implementation details, reusable commands and paths, procedures, sequencing, current state, diagnoses, and unresolved next actions may be durable",
-        "Never emit a standalone memory whose durable content is only that a prompt, phase, step, migration batch, test run, commit, push, merge, file move, verification, or cleanup completed",
-        "Do not target a fixed candidate count",
-        "Use the shortest contiguous quote that establishes user authority for the complete candidate; never paraphrase it",
-        "An imperative request such as \"Remember that.\" or \"Remember this.\" MUST produce a candidate",
-        "Do not extract vague standalone references",
-        "Return candidates in source-turn order",
+        "Questions and requests are non-authoritative by default",
+        "Pure execution/checkpoint receipts are omitted",
+        "everything seems to be working OK so far",
+        "Terse assent such as \"that works\"",
+        "Archive evidence is supporting context, never independent user authority",
+        "Prefer the FINAL user-authoritative source",
     ] {
         assert!(
             INSOMNIA_SYSTEM_PROMPT.contains(clause),
-            "missing legacy extraction-contract clause: {clause}"
+            "missing selector-contract clause: {clause}"
         );
     }
-    assert!(INSOMNIA_SYSTEM_PROMPT.contains("Do you remember that?"));
-    assert!(INSOMNIA_SYSTEM_PROMPT.contains("MUST NOT be treated as adoption"));
-    assert!(INSOMNIA_SYSTEM_PROMPT.contains("authority_kind must be exactly one of"));
-    assert!(
-        INSOMNIA_SYSTEM_PROMPT
-            .contains("A question must never be converted into an asserted decision")
-    );
-    assert!(INSOMNIA_SYSTEM_PROMPT.contains("A vague or deictic user turn"));
+    for clause in [
+        "Your ONLY job is to write one concise durable Memory title and content body",
+        "Do not add, drop, merge, split, rename, or reorder groups",
+        "Grounding and authority metadata are already final",
+    ] {
+        assert!(
+            SYNTHESIS_SYSTEM_PROMPT.contains(clause),
+            "missing wording-contract clause: {clause}"
+        );
+    }
 }
 
 #[test]
-fn authority_kind_is_required_and_preserved_by_structured_extraction() {
-    let schema = crate::insomnia_schema();
-    let candidate_schema = &schema["properties"]["candidates"]["items"];
-    assert_eq!(
-        candidate_schema["properties"]["authority_kind"]["enum"],
-        json!(["direct", "correction", "adoption", "retention"])
-    );
-    assert!(
-        candidate_schema["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "authority_kind")
-    );
-
+fn authority_kind_is_required_and_preserved_by_structured_selection() {
     let path = test_path("authority-kind.cva");
     let mut cva = Cva::create(&path).unwrap();
     append(
@@ -266,34 +289,44 @@ fn authority_kind_is_required_and_preserved_by_structured_extraction() {
     );
     let episode = queue_episode(&mut cva, "u0");
     let turns = cva.episode_turns(episode.id).unwrap();
+    let schema = ledger::schema(&turns, &[], true);
+    let clause = &schema["properties"]["turns"]["properties"]["u0"]["items"];
+    assert_eq!(
+        clause["properties"]["authority_kind"]["enum"],
+        json!(["direct", "correction", "adoption", "retention", "none"])
+    );
+    assert!(
+        clause["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "authority_kind")
+    );
+
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({
-            "candidates": [{
-                "authority_kind": "direct",
-                "category": "preference",
-                "type": "communication",
-                "title": "Concise responses",
-                "content": "The user prefers concise answers.",
-                "source_node_id": "u0",
-                "source_quote": "I prefer concise answers.",
-                "authority_source_conversation_id": "",
-                "authority_source_node_id": "",
-                "authority_source_quote": "",
-                "grounding_source_conversation_id": "",
-                "grounding_source_node_id": "",
-                "grounding_source_quote": ""
-            }],
-            "evidence_requests": []
-        })],
+        vec![
+            ledger(json!({"u0": [retain(
+                "direct",
+                "preference",
+                "communication",
+                "current",
+                "The user prefers concise answers.",
+                "",
+                ""
+            )]})),
+            wording("Concise responses", "The user prefers concise answers."),
+        ],
     ));
     let extraction = extractor.extract(&episode, &turns).unwrap();
     assert_eq!(extraction.candidates.len(), 1);
     assert_eq!(extraction.candidates[0].authority_kind, "direct");
+    assert_eq!(extraction.candidates[0].category, "preference");
+    assert_eq!(extraction.candidates[0].memory_type, "communication");
 }
 
 #[test]
-fn deterministic_authority_policy_rejects_missing_adoption_provenance() {
+fn missing_adoption_provenance_is_a_structural_ledger_error() {
     let path = test_path("adoption-without-provenance.cva");
     let mut cva = Cva::create(&path).unwrap();
     append(&mut cva, "u0", None, "user", 10, "alright, that works");
@@ -301,33 +334,116 @@ fn deterministic_authority_policy_rejects_missing_adoption_provenance() {
     let turns = cva.episode_turns(episode.id).unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({
-            "candidates": [{
+        vec![ledger(json!({"u0": [retain(
+            "adoption",
+            "decision",
+            "project",
+            "current",
+            "The server returns the updated Player state.",
+            "",
+            ""
+        )]}))],
+    ));
+    let error = extractor.extract(&episode, &turns).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("adoption lacks assistant authority")
+    );
+}
+
+#[test]
+fn wording_pass_cannot_override_ledger_ownership() {
+    let path = test_path("wording-ownership.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append(
+        &mut cva,
+        "u0",
+        None,
+        "user",
+        10,
+        "The server is authoritative for collision.",
+    );
+    append(&mut cva, "a0", Some("u0"), "assistant", 20, "Understood.");
+    let episode = queue_episode(&mut cva, "a0");
+    let turns = cva.episode_turns(episode.id).unwrap();
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "test-model",
+        vec![
+            ledger(json!({"u0": [retain(
+                "direct",
+                "constraint",
+                "project",
+                "current",
+                "The server is authoritative for collision.",
+                "",
+                ""
+            )]})),
+            json!({"groups": {"g000": {
+                "title": "Server collision authority",
+                "content": "The server is authoritative for collision.",
                 "authority_kind": "adoption",
-                "category": "decision",
-                "type": "project",
-                "title": "Server state response",
-                "content": "The server returns the updated Player state.",
-                "source_node_id": "u0",
-                "source_quote": "alright, that works",
-                "authority_source_conversation_id": "",
-                "authority_source_node_id": "",
-                "authority_source_quote": "",
-                "grounding_source_conversation_id": "",
-                "grounding_source_node_id": "",
-                "grounding_source_quote": ""
-            }],
-            "evidence_requests": []
-        })],
+                "category": "preference",
+                "type": "other",
+                "authority_source_node_id": "a0"
+            }}}),
+        ],
     ));
     let extraction = extractor.extract(&episode, &turns).unwrap();
-    assert!(extraction.candidates.is_empty());
-    assert_eq!(extraction.rejected.len(), 1);
-    assert!(
-        extraction.rejected[0]
-            .reason
-            .contains("requires assistant authority provenance")
+    assert_eq!(extraction.candidates.len(), 1);
+    let candidate = &extraction.candidates[0];
+    assert_eq!(candidate.authority_kind, "direct");
+    assert_eq!(candidate.category, "constraint");
+    assert_eq!(candidate.memory_type, "project");
+    assert!(candidate.authority_source_node_id.is_none());
+}
+
+#[test]
+fn structurally_distinct_groups_from_one_turn_have_distinct_candidate_keys() {
+    let path = test_path("group-identity.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append(
+        &mut cva,
+        "u0",
+        None,
+        "user",
+        10,
+        "The packet migration is strict now, and later it must remain byte-equivalent.",
     );
+    let episode = queue_episode(&mut cva, "u0");
+    let turns = cva.episode_turns(episode.id).unwrap();
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "test-model",
+        vec![
+            ledger(json!({"u0": [
+                retain(
+                    "direct",
+                    "constraint",
+                    "project",
+                    "current",
+                    "The packet migration is strict now.",
+                    "",
+                    ""
+                ),
+                retain(
+                    "direct",
+                    "constraint",
+                    "project",
+                    "future",
+                    "The packet migration must remain byte-equivalent.",
+                    "",
+                    ""
+                )
+            ]})),
+            json!({"groups": {
+                "g000": {"title": "Strict packet migration", "content": "The packet migration is strict now."},
+                "g001": {"title": "Packet byte equivalence", "content": "The packet migration must remain byte-equivalent."}
+            }}),
+        ],
+    ));
+    let extraction = extractor.extract(&episode, &turns).unwrap();
+    assert_eq!(extraction.candidates.len(), 2);
+    assert_ne!(extraction.candidates[0].key, extraction.candidates[1].key);
 }
 
 #[test]
@@ -343,7 +459,7 @@ fn urgent_scheduling_does_not_force_a_memory() {
     let claim = cva.claim_insomnia_episode("w", 31, 100).unwrap().unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({"candidates": []})],
+        vec![ledger(json!({"u0": [omit()]}))],
     ));
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", 31, 32)

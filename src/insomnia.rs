@@ -11,10 +11,12 @@ mod cva;
 mod error;
 mod evidence;
 mod extraction;
+mod ledger;
 mod model;
 mod processor;
 pub(crate) mod rebuild;
 pub(crate) mod store;
+mod synthesis;
 mod worker;
 
 pub use contract::{

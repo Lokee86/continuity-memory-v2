@@ -1,4 +1,4 @@
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 pub const LEDGER_PROMPT: &str = r#"You are the authority-selection pass for Continuity Insomnia.
 Given one complete authoritative conversation episode, produce a clause-level ledger. This pass decides WHAT durable user-authoritative state exists. It does not write Memories.
@@ -25,20 +25,19 @@ Disposition rules:
 
 For retain/superseded entries, source_quote must be an exact contiguous quote from the source user turn. For a wholly omitted turn, source_quote may be empty. For omitted entries use authority_kind/category/type/lifecycle = none and proposition = empty. Completeness is more important than brevity in this pass; retention count is not. When uncertain whether a clause is durable authority or conversational scaffolding, omit it unless the user clearly states durable state."#;
 
-pub const SYNTHESIS_PROMPT: &str = r#"You are the synthesis pass for Continuity Insomnia.
-You receive an authoritative episode plus a validated authority/disposition ledger. The ledger is the semantic gate. Write durable Memories ONLY from ledger entries whose disposition is retain. Never resurrect omit or superseded entries, and never add a proposition that the ledger did not authorize.
+pub const SYNTHESIS_PROMPT: &str = r#"You are the wording pass for Continuity Insomnia.
+You receive an authoritative episode plus deterministic synthesis groups built from a validated authority/disposition ledger. Every group already has final semantic ownership: source, authority kind, category, type, lifecycle, assistant-authority provenance, grounding provenance, and retained propositions.
+
+Your ONLY job is to write one concise durable Memory title and content body for every supplied group.
 Rules:
-1. source_node_id is the user authority turn from a retained ledger entry. source_quote is an exact contiguous quote from that turn.
-2. direct/correction candidates must not use assistant authority provenance. adoption requires the earlier assistant authority source. retention uses assistant authority provenance only when the retained proposition came from assistant-authored content.
-3. Grounding may resolve a referent only and must not expand semantic content.
-4. Optimize for durable information density. Consolidate tightly related retained clauses from the SAME user authority turn when they share authority/lifecycle and belong together. Do not merge unrelated state.
-5. Preserve current/future/historical modality and corrections. Do not include superseded state as current.
-6. Strip execution receipts, numbered prompt/phase/step progress, transient implementation chatter, and unsupported contextual detail.
-7. Keep narrow propositions narrow. Do not infer importance, rationale, architecture, paths, or consequences that the retained ledger entry did not authorize.
-8. Produce zero candidates when the ledger contains no retained entries.
-9. Use empty strings for unused provenance fields.
-10. Copy authority/grounding source quotes exactly from the referenced episode turn, and use the episode conversation_id for matching source conversation fields.
-The episode is supplied so you can copy exact quotes and supporting source text. It is not permission to override the ledger."#;
+1. Return exactly one wording result for every required group key. Do not add, drop, merge, split, rename, or reorder groups.
+2. Preserve every proposition in the group. You may consolidate wording, but may not omit a retained proposition or add a proposition not present in the group.
+3. Preserve modality exactly: current, future, historical, uncertainty, and correction semantics must not drift.
+4. Strip conversational/checkpoint phrasing that is not part of the retained propositions. Do not introduce prompt/phase/step numbers, receipts, implementation chatter, rationale, architecture, paths, consequences, or contextual facts absent from the group.
+5. Grounding and authority metadata are already final and are not fields you can edit.
+6. Keep content compact and durable. The title should identify the remembered state; the body should state the grouped propositions naturally without editorial commentary.
+
+The episode is supplied only to help preserve referent wording when necessary. It is not permission to reinterpret the groups."#;
 
 const CATEGORIES: &[&str] = &[
     "fact",
@@ -97,46 +96,39 @@ pub fn ledger_schema(episode: &Value) -> Value {
     })
 }
 
-pub fn synthesis_schema(episode: &Value, ledger: &Value) -> Value {
-    let retained: Vec<String> = ledger["entries"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter(|entry| entry["disposition"] == "retain")
-        .filter_map(|entry| entry["source_node_id"].as_str().map(str::to_owned))
-        .collect();
-    let source_ids = if retained.is_empty() {
-        vec![String::new()]
-    } else {
-        retained
-    };
-    let max_items = if source_ids == [String::new()] { 0 } else { 64 };
-    let assistant_ids = with_empty(ids_for_role(episode, "assistant"));
-    let all_ids = with_empty(all_ids(episode));
-    json!({
-        "type": "object", "additionalProperties": false,
-        "properties": {"candidates": {
-            "type": "array", "maxItems": max_items,
-            "items": {
-                "type": "object", "additionalProperties": false,
+pub fn synthesis_schema(groups: &Value) -> Value {
+    let mut properties = Map::new();
+    let mut required = Vec::new();
+    for group in groups.as_array().into_iter().flatten() {
+        let Some(group_id) = group["group_id"].as_str() else {
+            continue;
+        };
+        required.push(Value::String(group_id.to_owned()));
+        properties.insert(
+            group_id.to_owned(),
+            json!({
+                "type": "object",
+                "additionalProperties": false,
                 "properties": {
-                    "authority_kind": {"type": "string", "enum": ["direct", "correction", "adoption", "retention"]},
-                    "category": {"type": "string", "enum": CATEGORIES},
-                    "type": {"type": "string", "enum": TYPES},
-                    "title": {"type": "string"}, "content": {"type": "string"},
-                    "source_node_id": {"type": "string", "enum": source_ids},
-                    "source_quote": {"type": "string"},
-                    "authority_source_conversation_id": {"type": "string"},
-                    "authority_source_node_id": {"type": "string", "enum": assistant_ids},
-                    "authority_source_quote": {"type": "string"},
-                    "grounding_source_conversation_id": {"type": "string"},
-                    "grounding_source_node_id": {"type": "string", "enum": all_ids},
-                    "grounding_source_quote": {"type": "string"}
+                    "title": {"type": "string"},
+                    "content": {"type": "string"}
                 },
-                "required": ["authority_kind", "category", "type", "title", "content", "source_node_id", "source_quote", "authority_source_conversation_id", "authority_source_node_id", "authority_source_quote", "grounding_source_conversation_id", "grounding_source_node_id", "grounding_source_quote"]
+                "required": ["title", "content"]
+            }),
+        );
+    }
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "groups": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": properties,
+                "required": required
             }
-        }},
-        "required": ["candidates"]
+        },
+        "required": ["groups"]
     })
 }
 

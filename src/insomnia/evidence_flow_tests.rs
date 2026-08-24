@@ -1,6 +1,6 @@
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, FragmentConfig, InsomniaExtractor,
-    InsomniaPriority, InsomniaWorkState, SimulatedGeneralEndpoint,
+    InsomniaPriority, SimulatedGeneralEndpoint,
 };
 use serde_json::json;
 use std::fs;
@@ -48,6 +48,15 @@ fn queue_episode(cva: &mut Cva, leaf: &str) -> crate::Episode {
     episode
 }
 
+fn omit(reason: &str) -> serde_json::Value {
+    json!({
+        "disposition":"omit", "authority_kind":"none", "category":"none",
+        "type":"none", "lifecycle":"none", "proposition":"",
+        "authority_source_node_id":"", "grounding_source_node_id":"",
+        "reason":reason
+    })
+}
+
 #[test]
 fn historical_archive_search_can_supply_adopted_assistant_content() {
     let path = test_path("historical-evidence.cva");
@@ -86,20 +95,27 @@ fn historical_archive_search_can_supply_adopted_assistant_content() {
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
         vec![
-            json!({"candidates": [], "evidence_requests": [{
-                "kind": "archive_search", "conversation_id": "old", "node_id": "",
-                "start_node_id": "", "end_node_id": "", "query": "deployment target Windows Linux", "limit": 1
-            }]}),
-            json!({"candidates": [{
-                "authority_kind": "retention", "category": "fact", "type": "project", "title": "Deployment targets",
-                "content": "The deployment target is Windows and Linux.",
-                "source_node_id": "u0", "source_quote": "Remember the deployment target we discussed.",
-                "authority_source_conversation_id": "old", "authority_source_node_id": "old-a",
-                "authority_source_quote": "The deployment target is Windows and Linux.",
-                "grounding_source_conversation_id": "",
-                "grounding_source_node_id": "",
-                "grounding_source_quote": ""
-            }], "evidence_requests": []}),
+            json!({
+                "turns": {"u0": [omit("requires historical assistant evidence")]},
+                "evidence_requests": [{
+                    "kind": "archive_search", "conversation_id": "old", "node_id": "",
+                    "start_node_id": "", "end_node_id": "", "query": "deployment target Windows Linux", "limit": 1
+                }]
+            }),
+            json!({
+                "turns": {"u0": [{
+                    "disposition":"retain", "authority_kind":"retention", "category":"fact",
+                    "type":"project", "lifecycle":"current",
+                    "proposition":"The deployment target is Windows and Linux.",
+                    "authority_source_node_id":"old-a", "grounding_source_node_id":"",
+                    "reason":"user explicitly retains historical assistant-authored state"
+                }]},
+                "evidence_requests": []
+            }),
+            json!({"groups": {"g000": {
+                "title":"Deployment targets",
+                "content":"The deployment target is Windows and Linux."
+            }}}),
         ],
     ));
     let result = cva
@@ -148,35 +164,27 @@ fn external_authority_source_must_have_been_returned_as_evidence() {
         "Remember the deployment target we discussed.",
     );
     let episode = queue_episode(&mut cva, "u0");
-    let claim = cva.claim_insomnia_episode("w", 110, 100).unwrap().unwrap();
+    let turns = cva.episode_turns(episode.id).unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({"candidates": [{
-            "authority_kind": "retention", "category": "fact", "type": "project", "title": "Deployment targets",
-            "content": "The deployment target is Windows and Linux.",
-            "source_node_id": "u0", "source_quote": "Remember the deployment target we discussed.",
-            "authority_source_conversation_id": "old", "authority_source_node_id": "old-a",
-            "authority_source_quote": "The deployment target is Windows and Linux.",
-            "grounding_source_conversation_id": "",
-            "grounding_source_node_id": "",
-            "grounding_source_quote": ""
-        }], "evidence_requests": []})],
+        vec![json!({
+            "turns": {"u0": [{
+                "disposition":"retain", "authority_kind":"retention", "category":"fact",
+                "type":"project", "lifecycle":"current",
+                "proposition":"The deployment target is Windows and Linux.",
+                "authority_source_node_id":"old-a", "grounding_source_node_id":"",
+                "reason":"invalid unsupplied historical authority"
+            }]},
+            "evidence_requests": []
+        })],
     ));
-    let result = cva
-        .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 120)
-        .unwrap();
-    assert!(result.created.is_empty());
-    assert_eq!(result.rejected.len(), 1);
+    let error = extractor.extract(&episode, &turns).unwrap_err();
     assert!(
-        result.rejected[0]
-            .reason
-            .contains("was not supplied by bounded archive evidence")
+        error
+            .to_string()
+            .contains("not an available assistant turn")
     );
     assert_eq!(cva.memory_stats().memories, 0);
-    assert_eq!(
-        cva.insomnia_work(episode.id).unwrap().state,
-        InsomniaWorkState::Complete
-    );
 }
 
 #[test]
@@ -186,10 +194,13 @@ fn second_archive_evidence_round_is_rejected() {
     append(&mut cva, "u0", None, "user", 10, "Remember that.");
     let episode = queue_episode(&mut cva, "u0");
     let turns = cva.episode_turns(episode.id).unwrap();
-    let response = json!({"candidates": [], "evidence_requests": [{
-        "kind": "turn", "conversation_id": "c1", "node_id": "u0",
-        "start_node_id": "", "end_node_id": "", "query": "", "limit": 0
-    }]});
+    let response = json!({
+        "turns": {"u0": [omit("requires evidence")]},
+        "evidence_requests": [{
+            "kind": "turn", "conversation_id": "c1", "node_id": "u0",
+            "start_node_id": "", "end_node_id": "", "query": "", "limit": 0
+        }]
+    });
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
         vec![response.clone(), response],

@@ -154,10 +154,11 @@ fn run_episode(
     canonicalize_ledger_quotes(episode, &mut ledger);
     write_json(&ledger_path, &ledger).map_err(|e| e.to_string())?;
     validate_ledger(episode, &ledger)?;
+    let synthesis_groups = build_synthesis_groups(&ledger)?;
     let synthesis_payload =
-        json!({"authoritative_episode": episode, "authority_disposition_ledger": ledger});
+        json!({"authoritative_episode": episode, "synthesis_groups": synthesis_groups});
     let synthesis_path = output.join(format!("episode-{:03}-synthesis.json", index + 1));
-    let mut synthesis = if resume && synthesis_path.exists() {
+    let synthesis = if resume && synthesis_path.exists() {
         serde_json::from_str(&fs::read_to_string(&synthesis_path).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?
     } else {
@@ -165,24 +166,21 @@ fn run_episode(
             .complete_json(
                 contract::SYNTHESIS_PROMPT,
                 &synthesis_payload.to_string(),
-                "insomnia_memory_synthesis",
-                &contract::synthesis_schema(
-                    episode,
-                    &synthesis_payload["authority_disposition_ledger"],
-                ),
+                "insomnia_memory_wording",
+                &contract::synthesis_schema(&synthesis_payload["synthesis_groups"]),
             )
             .map_err(|e| e.to_string())?
     };
-    canonicalize_synthesis_provenance(episode, &mut synthesis);
     write_json(&synthesis_path, &synthesis).map_err(|e| e.to_string())?;
-    validate_candidates(
-        episode,
-        &synthesis_payload["authority_disposition_ledger"],
-        &synthesis,
-    )?;
-    Ok(
-        json!({"conversation_id": episode["conversation_id"], "ledger": synthesis_payload["authority_disposition_ledger"], "candidates": synthesis["candidates"]}),
-    )
+    let candidates =
+        materialize_candidates(episode, &synthesis_payload["synthesis_groups"], &synthesis)?;
+    validate_candidates(episode, &ledger, &candidates)?;
+    Ok(json!({
+        "conversation_id": episode["conversation_id"],
+        "ledger": ledger,
+        "synthesis_groups": synthesis_payload["synthesis_groups"],
+        "candidates": candidates
+    }))
 }
 
 fn validate_ledger(episode: &Value, ledger: &Value) -> Result<(), String> {
@@ -228,7 +226,7 @@ fn validate_ledger(episode: &Value, ledger: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_candidates(episode: &Value, ledger: &Value, synthesis: &Value) -> Result<(), String> {
+fn validate_candidates(episode: &Value, ledger: &Value, candidates: &Value) -> Result<(), String> {
     let turns = turn_map(episode);
     let retained: HashSet<&str> = ledger["entries"]
         .as_array()
@@ -237,10 +235,7 @@ fn validate_candidates(episode: &Value, ledger: &Value, synthesis: &Value) -> Re
         .filter(|e| e["disposition"] == "retain")
         .filter_map(|e| e["source_node_id"].as_str())
         .collect();
-    for candidate in synthesis["candidates"]
-        .as_array()
-        .ok_or("candidates is not an array")?
-    {
+    for candidate in candidates.as_array().ok_or("candidates is not an array")? {
         let id = candidate["source_node_id"]
             .as_str()
             .ok_or("candidate source_node_id is not a string")?;
@@ -250,6 +245,15 @@ fn validate_candidates(episode: &Value, ledger: &Value, synthesis: &Value) -> Re
         let quote = candidate["source_quote"].as_str().unwrap_or("");
         if quote.is_empty() || !turns[id]["content"].as_str().unwrap_or("").contains(quote) {
             return Err(format!("candidate quote is not exact: {id}"));
+        }
+        if candidate["title"].as_str().unwrap_or("").trim().is_empty()
+            || candidate["content"]
+                .as_str()
+                .unwrap_or("")
+                .trim()
+                .is_empty()
+        {
+            return Err(format!("candidate wording is empty: {id}"));
         }
     }
     Ok(())
@@ -317,63 +321,127 @@ fn canonicalize_ledger_quotes(episode: &Value, ledger: &mut Value) {
         }
     }
 }
-fn canonicalize_synthesis_provenance(episode: &Value, synthesis: &mut Value) {
-    let turns = turn_map(episode);
-    let conversation = episode["conversation_id"].as_str().unwrap_or("").to_owned();
-    let Some(candidates) = synthesis["candidates"].as_array_mut() else {
-        return;
-    };
-    for candidate in candidates {
-        canonicalize_candidate_source(&turns, candidate, "source_node_id", "source_quote");
-        canonicalize_candidate_source(
-            &turns,
-            candidate,
-            "authority_source_node_id",
-            "authority_source_quote",
-        );
-        canonicalize_candidate_source(
-            &turns,
-            candidate,
-            "grounding_source_node_id",
-            "grounding_source_quote",
-        );
-        if !candidate["authority_source_node_id"]
-            .as_str()
-            .unwrap_or("")
-            .is_empty()
-        {
-            candidate["authority_source_conversation_id"] = Value::String(conversation.clone());
+fn build_synthesis_groups(ledger: &Value) -> Result<Value, String> {
+    let entries = ledger["entries"]
+        .as_array()
+        .ok_or("ledger.entries is not an array")?;
+    let mut groups: Vec<Value> = Vec::new();
+    for (entry_index, entry) in entries.iter().enumerate() {
+        if entry["disposition"] != "retain" {
+            continue;
         }
-        if !candidate["grounding_source_node_id"]
-            .as_str()
-            .unwrap_or("")
-            .is_empty()
+        if let Some(group) = groups
+            .iter_mut()
+            .find(|group| same_synthesis_signature(group, entry))
         {
-            candidate["grounding_source_conversation_id"] = Value::String(conversation.clone());
+            group["ledger_entry_indices"]
+                .as_array_mut()
+                .expect("group indices")
+                .push(json!(entry_index));
+            group["propositions"]
+                .as_array_mut()
+                .expect("group propositions")
+                .push(entry["proposition"].clone());
+            continue;
         }
+        let group_id = format!("g{:03}", groups.len());
+        groups.push(json!({
+            "group_id": group_id,
+            "ledger_entry_indices": [entry_index],
+            "source_node_id": entry["source_node_id"],
+            "authority_kind": entry["authority_kind"],
+            "category": entry["category"],
+            "type": entry["type"],
+            "lifecycle": entry["lifecycle"],
+            "authority_source_node_id": entry["authority_source_node_id"],
+            "grounding_source_node_id": entry["grounding_source_node_id"],
+            "propositions": [entry["proposition"].clone()]
+        }));
     }
+    Ok(Value::Array(groups))
 }
-fn canonicalize_candidate_source(
-    turns: &HashMap<&str, &Value>,
-    candidate: &mut Value,
-    id_key: &str,
-    quote_key: &str,
-) {
-    let Some(id) = candidate[id_key].as_str() else {
-        return;
-    };
-    if id.is_empty() {
-        candidate[quote_key] = Value::String(String::new());
-        return;
+
+fn same_synthesis_signature(group: &Value, entry: &Value) -> bool {
+    [
+        "source_node_id",
+        "authority_kind",
+        "category",
+        "type",
+        "lifecycle",
+        "authority_source_node_id",
+        "grounding_source_node_id",
+    ]
+    .into_iter()
+    .all(|key| group[key] == entry[key])
+}
+
+fn materialize_candidates(
+    episode: &Value,
+    groups: &Value,
+    synthesis: &Value,
+) -> Result<Value, String> {
+    let turns = turn_map(episode);
+    let wording = synthesis["groups"]
+        .as_object()
+        .ok_or("synthesis.groups is not an object")?;
+    let groups = groups
+        .as_array()
+        .ok_or("synthesis_groups is not an array")?;
+    if wording.len() != groups.len() {
+        return Err(format!(
+            "synthesis group count mismatch: expected {}, got {}",
+            groups.len(),
+            wording.len()
+        ));
     }
-    let Some(source) = turns.get(id).and_then(|turn| turn["content"].as_str()) else {
-        return;
-    };
-    let exact = candidate[quote_key]
-        .as_str()
-        .is_some_and(|quote| !quote.is_empty() && source.contains(quote));
-    if !exact {
-        candidate[quote_key] = Value::String(source.to_owned());
+    let conversation_id = episode["conversation_id"].as_str().unwrap_or("");
+    let mut candidates = Vec::with_capacity(groups.len());
+    for group in groups {
+        let group_id = group["group_id"]
+            .as_str()
+            .ok_or("synthesis group lacks group_id")?;
+        let words = wording
+            .get(group_id)
+            .ok_or_else(|| format!("synthesis omitted group {group_id}"))?;
+        let source_node_id = group["source_node_id"].as_str().unwrap_or("");
+        let source_quote = exact_turn_content(&turns, source_node_id)?;
+        let authority_node_id = group["authority_source_node_id"].as_str().unwrap_or("");
+        let grounding_node_id = group["grounding_source_node_id"].as_str().unwrap_or("");
+        let authority_quote = optional_turn_content(&turns, authority_node_id)?;
+        let grounding_quote = optional_turn_content(&turns, grounding_node_id)?;
+        candidates.push(json!({
+            "authority_kind": group["authority_kind"],
+            "category": group["category"],
+            "type": group["type"],
+            "lifecycle": group["lifecycle"],
+            "title": words["title"],
+            "content": words["content"],
+            "source_node_id": source_node_id,
+            "source_quote": source_quote,
+            "authority_source_conversation_id": if authority_node_id.is_empty() { "" } else { conversation_id },
+            "authority_source_node_id": authority_node_id,
+            "authority_source_quote": authority_quote,
+            "grounding_source_conversation_id": if grounding_node_id.is_empty() { "" } else { conversation_id },
+            "grounding_source_node_id": grounding_node_id,
+            "grounding_source_quote": grounding_quote
+        }));
+    }
+    Ok(Value::Array(candidates))
+}
+
+fn exact_turn_content(turns: &HashMap<&str, &Value>, id: &str) -> Result<String, String> {
+    turns
+        .get(id)
+        .and_then(|turn| turn["content"].as_str())
+        .map(str::to_owned)
+        .ok_or_else(|| format!("missing provenance turn: {id}"))
+}
+
+fn optional_turn_content(turns: &HashMap<&str, &Value>, id: &str) -> Result<String, String> {
+    if id.is_empty() {
+        Ok(String::new())
+    } else {
+        exact_turn_content(turns, id)
     }
 }
 fn memory_row(candidate: &Value) -> Value {

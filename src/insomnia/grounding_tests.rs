@@ -79,18 +79,28 @@ fn correction_can_use_grounding_without_adopting_assistant_authority() {
     let claim = cva.claim_insomnia_episode("w", 110, 100).unwrap().unwrap();
     let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({
-            "candidates": [{
-                "authority_kind":"correction", "category":"decision", "type":"project",
-                "title":"Add ShipStats now", "content":"Add ShipStats now.",
-                "source_node_id":"u1", "source_quote":"we do want to add it now",
-                "authority_source_conversation_id":"", "authority_source_node_id":"",
-                "authority_source_quote":"", "grounding_source_conversation_id":"c1",
-                "grounding_source_node_id":"a0",
-                "grounding_source_quote":"Step 3 means introduce ShipStats now"
-            }],
-            "evidence_requests": []
-        })],
+        vec![
+            json!({
+                "turns": {
+                    "u0": [{
+                        "disposition":"omit", "authority_kind":"none", "category":"none",
+                        "type":"none", "lifecycle":"none", "proposition":"",
+                        "authority_source_node_id":"", "grounding_source_node_id":"",
+                        "reason":"question"
+                    }],
+                    "u1": [{
+                        "disposition":"retain", "authority_kind":"correction", "category":"decision",
+                        "type":"project", "lifecycle":"current", "proposition":"Add ShipStats now.",
+                        "authority_source_node_id":"", "grounding_source_node_id":"a0",
+                        "reason":"user correction grounded by prior referent"
+                    }]
+                },
+                "evidence_requests": []
+            }),
+            json!({"groups": {"g000": {
+                "title":"Add ShipStats now", "content":"Add ShipStats now."
+            }}}),
+        ],
     ));
     let result = cva
         .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 120)

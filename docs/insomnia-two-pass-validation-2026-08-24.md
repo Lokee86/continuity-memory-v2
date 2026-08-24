@@ -6,11 +6,11 @@ Parent index: [Documentation index](INDEX.md)
 
 This record captures the small-fixture validation of a two-pass Insomnia semantic architecture, the pass-1 tuning sequence, and the model/provider comparison against `gpt-5.6-sol`, `stealth/ox-alpha`, and `gpt-5.6-luna` at low reasoning.
 
-The authoritative production Insomnia runtime has not yet been converted to this architecture. The implementation in `examples/` and `tools/` is an experimental harness.
+The authoritative Insomnia runtime now implements this architecture under extractor contract `v3-0`. The implementations in `examples/` and `tools/` remain benchmark/provider-compatibility harnesses rather than production execution paths.
 
 ## Overview
 
-The focused fixture supports the two-pass decomposition and establishes `gpt-5.6-sol` at low reasoning as the current selector candidate. Sol-low reached complete durable-state coverage and omit cleanliness after pass-1 tuning; Ox Alpha matched recall but lost precision/provenance and required provider-specific structural handling; Luna-low fell below the observed selector capability floor. The next work is not another broad semantic pass: pass 2 must stop independently choosing provenance/classification already decided by the ledger.
+The focused fixture supports the two-pass decomposition and establishes `gpt-5.6-sol` at low reasoning as the current selector candidate. Sol-low reached complete durable-state coverage and omit cleanliness after pass-1 tuning; Ox Alpha matched recall but lost precision/provenance and required provider-specific structural handling; Luna-low fell below the observed selector capability floor. A controlled pass-2 ownership test then removed the remaining synthesis-side authority leakage, and that ownership boundary is now implemented in authoritative Insomnia `v3-0`.
 
 ## Fixture and evaluator
 
@@ -93,7 +93,7 @@ The Prompt-72 turn is semantically handled as intended: `everything seems to be 
 
 The remaining anchor loss is ShipStats: the earlier correction/decision source was treated as superseded by a later valid direct restatement. Durable state coverage therefore remains 100% even though exact anchor fidelity is 94.7%.
 
-The remaining authority noise exposed a second architectural issue: pass 2 can still choose provenance/classification independently from pass 1. In observed cases, a correct direct ledger entry was synthesized with an invented assistant authority source. This is a synthesis ownership leak, not evidence that pass 1 needs another broad tuning round.
+The remaining authority noise exposed a second architectural issue: the original experimental pass 2 could choose provenance/classification independently from pass 1. In observed cases, a correct direct ledger entry was synthesized with an invented assistant authority source. That synthesis ownership leak motivated the fixed-group `v3-0` production boundary described below.
 
 ## Ox Alpha through Nous
 
@@ -187,20 +187,26 @@ Comparison:
 
 Sol-low remains the preferred Insomnia selector for the next implementation step. Ox Alpha is worth retaining as a compatibility/model benchmark, particularly because its state coverage matches Sol, but it currently needs more transport/structure normalization and loses on disposition/provenance discipline. Luna-low is below the observed pass-1 capability threshold.
 
-## Architectural conclusion
+## Pass-2 ownership validation and production integration
 
-The small-fixture evidence supports the two-pass decomposition. It does not currently support adding a third general semantic review pass.
+The controlled `v7` comparison reused the exact Sol-low v6 ledgers and changed only pass 2. Sixty-eight retained ledger clauses collapsed deterministically into 49 structurally compatible synthesis groups. The wording model received only required group keys and `{title, content}` output fields; provenance, classification, lifecycle, source IDs, and group membership were no longer model-editable.
 
-The next change should tighten ownership between the two existing passes:
+The controlled result produced 49 Memories with `94.7%` anchor fidelity, `100%` state coverage, `100%` omit cleanliness, **`100%` authority**, `100%` grounding, `60%` metadata, and `100%` guards. Compared with v6, authority rose from `95.8%` to `100%` with no loss in coverage, omit cleanliness, grounding, or guards. The unchanged metadata score confirms those residual classifications belong to pass 1 rather than synthesis.
 
-- **Pass 1 owns:** disposition, authority kind, lifecycle, source identity, assistant-authority identity, grounding identity, and preferably category/type.
-- **Pass 2 owns:** wording and consolidation of already-retained ledger propositions.
+A fresh end-to-end `v7` Sol-low run produced 51 Memories and scored `89.5%` anchor fidelity, `93.3%` state coverage, `100%` omit cleanliness, `100%` authority, `100%` grounding, `71.4%` metadata, and `100%` guards. Its substantive coverage miss was `future-ship-variants`, which pass 1 stochastically omitted; no synthesis-side authority/provenance failure reappeared.
 
-Pass 2 should not independently rediscover authority/provenance or resurrect state. Where possible, provenance/classification should be inherited or deterministically constructed from the validated ledger.
+Authoritative Insomnia now implements this ownership boundary as extractor contract `v3-0`:
 
-A future third pass, if measured failures justify one, should be a narrow adversarial reject/flag validator rather than another state-discovery or rewriting pass.
+- **Pass 1 owns:** disposition, authority kind, lifecycle, source identity, assistant-authority identity, grounding identity, category, and type.
+- Retained clauses are deterministically grouped only when all those structural fields match.
+- **Pass 2 owns:** title/body wording for every required group and cannot add, drop, merge, split, or reclassify groups through its schema.
+- Continuity reconstructs exact source/authority/grounding provenance from selected IDs rather than asking the wording model to reproduce source bytes.
+- One bounded Archive evidence round remains inside pass 1; the final ledger is resolved before synthesis begins.
+- Candidate identity includes deterministic ledger semantic material so structurally distinct Memories from one source turn do not collide when exact full-turn provenance is reused.
 
-The authoritative `src/insomnia.rs` runtime remains single-pass until this ownership change is implemented and verified. After the two-pass runtime is integrated and stable, run one full 66-Episode gold-v3 milestone confirmation, then recalibrate concurrency for the selected model mix. The historical 48-worker Luna optimum must not be assumed valid for Sol/two-pass inference.
+The evidence still does not justify a third general semantic review pass. A future third pass, if measured failures justify one, should be a narrow adversarial reject/flag validator rather than another state-discovery or rewriting pass.
+
+The next milestone is one full 66-Episode gold-v3 confirmation against authoritative `v3-0`, followed by concurrency recalibration for the selected Sol/two-pass model mix. The historical 48-worker Luna optimum must not be assumed valid.
 
 ## Experimental implementation
 
@@ -223,4 +229,4 @@ The Rust harness uses the configured Insomnia route and forces low reasoning in 
 
 ## Notes
 
-These measurements are specific to the 11-Episode tuning fixture and current prompts/provider behavior. They establish an implementation direction, not population-level model accuracy. Full 66-Episode gold-v3 confirmation remains a later milestone after authoritative two-pass integration.
+These measurements are specific to the 11-Episode tuning fixture and current prompts/provider behavior. They establish and now protect an implemented architecture, not population-level model accuracy. Full 66-Episode gold-v3 confirmation remains the next semantic milestone for authoritative `v3-0`.

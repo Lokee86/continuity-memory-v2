@@ -35,24 +35,22 @@ fn queue_memory_episode(cva: &mut Cva) {
 fn memory_extractor() -> InsomniaExtractor<SimulatedGeneralEndpoint> {
     InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
         "test-model",
-        vec![json!({
-            "candidates": [{
-                "authority_kind": "direct",
-                "category": "preference",
-                "type": "project",
-                "title": "Preferred editor",
-                "content": "The user prefers Helix for editing code.",
-                "source_node_id": "u0",
-                "source_quote": "I prefer Helix for editing code.",
-                "authority_source_conversation_id": "",
-                "authority_source_node_id": "",
-                "authority_source_quote": "",
-                "grounding_source_conversation_id": "",
-                "grounding_source_node_id": "",
-                "grounding_source_quote": ""
-            }],
-            "evidence_requests": []
-        })],
+        vec![
+            json!({
+                "turns": {"u0": [{
+                    "disposition":"retain", "authority_kind":"direct", "category":"preference",
+                    "type":"project", "lifecycle":"current",
+                    "proposition":"The user prefers Helix for editing code.",
+                    "authority_source_node_id":"", "grounding_source_node_id":"",
+                    "reason":"durable preference"
+                }]},
+                "evidence_requests": []
+            }),
+            json!({"groups": {"g000": {
+                "title":"Preferred editor",
+                "content":"The user prefers Helix for editing code."
+            }}}),
+        ],
     ))
 }
 

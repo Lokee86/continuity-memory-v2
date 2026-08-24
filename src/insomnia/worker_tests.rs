@@ -57,8 +57,8 @@ impl GeneralEndpoint for TrackingEndpoint {
     fn complete_json(
         &self,
         _system_prompt: &str,
-        _user_payload: &str,
-        _schema_name: &str,
+        user_payload: &str,
+        schema_name: &str,
         _schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
         self.calls.fetch_add(1, Ordering::SeqCst);
@@ -80,7 +80,30 @@ impl GeneralEndpoint for TrackingEndpoint {
         self.peak.fetch_max(active, Ordering::SeqCst);
         thread::sleep(self.delay);
         self.active.fetch_sub(1, Ordering::SeqCst);
-        Ok(json!({"candidates": [], "evidence_requests": []}))
+        if schema_name != "insomnia_authority_disposition_ledger" {
+            return Err(GeneralEndpointError::Failure(format!(
+                "unexpected synthetic schema {schema_name}"
+            )));
+        }
+        let payload: Value = serde_json::from_str(user_payload)
+            .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
+        let mut ledger_turns = serde_json::Map::new();
+        for turn in payload["turns"].as_array().into_iter().flatten() {
+            if turn["role"] != "user" {
+                continue;
+            }
+            let id = turn["id"].as_str().unwrap_or("");
+            ledger_turns.insert(
+                id.to_owned(),
+                json!([{
+                    "disposition":"omit", "authority_kind":"none", "category":"none",
+                    "type":"none", "lifecycle":"none", "proposition":"",
+                    "authority_source_node_id":"", "grounding_source_node_id":"",
+                    "reason":"No durable memory here."
+                }]),
+            );
+        }
+        Ok(json!({"turns": ledger_turns, "evidence_requests": []}))
     }
 }
 
