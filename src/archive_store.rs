@@ -12,6 +12,8 @@ impl Archive {
             fragments: Default::default(),
             episodes: Default::default(),
             files: Default::default(),
+            source_attachments: Default::default(),
+            file_memory_links: Default::default(),
             record_versions: Vec::new(),
             next_archive_version: 1,
         }
@@ -103,6 +105,7 @@ impl Archive {
         self.validate_fragments()?;
         self.validate_episodes()?;
         self.validate_files()?;
+        self.validate_file_memory_links()?;
         Ok(())
     }
 

@@ -5,6 +5,8 @@ use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::hash_content;
 use crate::episode_index::EpisodeIndex;
 use crate::file_index::FileIndex;
+use crate::file_memory_link_index::FileMemoryLinkIndex;
+use crate::source_attachment_index::SourceAttachmentIndex;
 use crate::{Archive, ArchiveError, ArchiveRecordVersion, ChunkRef};
 use std::collections::{HashMap, HashSet};
 
@@ -15,6 +17,8 @@ pub(crate) struct ArchiveOpenState {
     fragments: FragmentIndex,
     episodes: EpisodeIndex,
     files: FileIndex,
+    source_attachments: SourceAttachmentIndex,
+    file_memory_links: FileMemoryLinkIndex,
     record_versions: Vec<ArchiveRecordVersion>,
     pending_records: HashMap<ChunkRef, ArchiveRecord>,
     versioned_records: HashSet<ChunkRef>,
@@ -31,6 +35,8 @@ impl ArchiveOpenState {
             fragments: Default::default(),
             episodes: Default::default(),
             files: Default::default(),
+            source_attachments: Default::default(),
+            file_memory_links: Default::default(),
             record_versions: Vec::new(),
             pending_records: HashMap::new(),
             versioned_records: HashSet::new(),
@@ -67,7 +73,9 @@ impl ArchiveOpenState {
             | ArchiveRecord::Branch(_)
             | ArchiveRecord::Fragment(_)
             | ArchiveRecord::Episode(_)
-            | ArchiveRecord::File(_)) => {
+            | ArchiveRecord::File(_)
+            | ArchiveRecord::IngestedTurn(_)
+            | ArchiveRecord::FileMemoryLink(_)) => {
                 self.pending_records.insert(chunk, record);
             }
             ArchiveRecord::Other => {}
@@ -86,6 +94,8 @@ impl ArchiveOpenState {
             fragments: self.fragments,
             episodes: self.episodes,
             files: self.files,
+            source_attachments: self.source_attachments,
+            file_memory_links: self.file_memory_links,
             record_versions: self.record_versions,
             next_archive_version: self.next_archive_version,
         })
@@ -140,6 +150,22 @@ impl ArchiveOpenState {
             }
             ArchiveRecord::Episode(episode) => self.episodes.insert(episode).map(|_| ()),
             ArchiveRecord::File(file) => self.files.insert(file).map(|_| ()),
+            ArchiveRecord::IngestedTurn(turn) => {
+                let conversation_id = turn.node.conversation_id.clone();
+                let node_id = turn.node.id.clone();
+                let file_ids = turn.attachments.iter().map(|file| file.id).collect();
+                self.nodes.insert(turn.node)?;
+                for file in turn.attachments {
+                    self.files.insert(file)?;
+                }
+                self.source_attachments
+                    .insert(&conversation_id, &node_id, file_ids)?;
+                Ok(())
+            }
+            ArchiveRecord::FileMemoryLink(link) => {
+                self.file_memory_links.insert(link);
+                Ok(())
+            }
             _ => Err(ArchiveError::InvalidArchiveRecordVersion),
         }
     }

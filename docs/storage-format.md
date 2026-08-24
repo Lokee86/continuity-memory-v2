@@ -74,7 +74,34 @@ u64       original byte length
 string    filename
 string    MIME type; empty = none
 ```
-File bytes reuse the content-addressed `CVACONT1` store. `FileId` is SHA-256 over the `CVAFILE1-ID\0` domain separator, `ContentId`, byte length, length-prefixed filename, and length-prefixed MIME type. Identical bytes therefore share one content object while distinct filenames or MIME metadata remain distinct file manifests.
+File bytes reuse the content-addressed `CVACONT1` store. `FileId` is SHA-256 over the `CVAFILE1-ID\0` domain separator, `ContentId`, byte length, length-prefixed filename, and length-prefixed MIME type. Identical bytes therefore share one content object while distinct filenames or MIME metadata remain distinct file manifests. `CVAFILE1` remains the standalone semantic representation for files introduced outside a source turn.
+
+Native source turn with attachments:
+```text
+8 bytes   "CVATURN1"
+i64       timestamp_ns
+32 bytes  node ContentId
+string    node ID
+string    conversation ID
+string    parent node ID; empty = none
+string    role
+u32       attachment count
+repeated attachments:
+    32 bytes  FileId
+    32 bytes  ContentId
+    u64       original byte length
+    string    filename
+    string    MIME type; empty = none
+```
+The turn body and attachment bytes are stored first as content-addressed `CVACONT1` backing objects. One versioned `CVATURN1` then publishes the source node, its attachment file manifests, and the source-to-file relationship together. An unversioned `CVATURN1` is inert. Attached files therefore require no later source-association record or importer-side repair step.
+
+File-to-Memory link:
+```text
+8 bytes   "CVAFMEM1"
+32 bytes  FileId
+32 bytes  MemoryId
+```
+The `(FileId, MemoryId)` pair is the link identity. The file must exist in Archive when the link is written; `Cva` validates the Memory target after both Archive and Memories have rebuilt. This record represents a later semantic relationship and is intentionally separate from native source attachment provenance.
 
 Archive semantic metadata:
 ```text
@@ -84,7 +111,7 @@ u64       Archive version
 u64       record chunk offset
 u64       record payload length
 ```
-Archive versions begin at `1` and are contiguous. A semantic Archive payload without valid metadata is inert. Nodes, branches, fragments, episodes, and file manifests are semantic Archive payloads. Fragment creation Archive versions are retained in the derived fragment index so later generation coverage can be validated.
+Archive versions begin at `1` and are contiguous. A semantic Archive payload without valid metadata is inert. Nodes, native source turns, branches, fragments, episodes, standalone file manifests, and file-to-Memory links are semantic Archive payloads. One `CVATURN1` consumes one Archive/global version regardless of its attachment count. Fragment creation Archive versions are retained in the derived fragment index so later generation coverage can be validated.
 ### Packed vectors
 Format marker:
 ```text

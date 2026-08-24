@@ -62,6 +62,9 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 48. **Executable model routing requires matching auth.** A runtime switchboard cannot resolve a route whose credential is missing or whose auth kind does not match the provider.
 49. **Current branch inventory is derived read state.** Enumerating current branches exposes the latest visible branch revision and adds no new Archive authority or persistent record.
 50. **The CLI owns no semantics.** The detachable `cli/` package may compose only public library operations; CVA, config, auth, and retrieval authority remain in the core library.
+51. **Source attachments are intrinsic source-event data.** Importers/runtimes submit a turn and its attachments together; they do not persist a file and then separately reconstruct its source-turn provenance.
+52. **A source turn and its attachments publish together.** The node, attached file manifests, and source-to-file relationship become visible through one Archive semantic mutation; unversioned staged content or turn payloads are inert.
+53. **Later file relationships remain explicit.** A file-to-Memory relationship crosses owners by stable `FileId`/`MemoryId` and does not transfer file authority into Memories.
 
 ## Safety boundaries
 

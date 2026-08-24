@@ -35,4 +35,6 @@ pub struct ArchiveStats {
     pub fragments: usize,
     pub episodes: usize,
     pub files: usize,
+    pub source_attachments: usize,
+    pub file_memory_links: usize,
 }

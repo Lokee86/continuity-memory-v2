@@ -1,9 +1,17 @@
 use crate::args::ImportCommand;
-use anyhow::{Result, anyhow};
-use continuity_memory::{Branch, Cva, FragmentConfig};
+use anyhow::{Context, Result, anyhow};
+use continuity_memory::{Branch, Cva, FragmentConfig, IncomingAttachment, IncomingTurn};
 use serde::Deserialize;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
+use std::path::{Path, PathBuf};
+
+#[derive(Deserialize)]
+struct InputAttachment {
+    path: PathBuf,
+    filename: Option<String>,
+    mime_type: Option<String>,
+}
 
 #[derive(Deserialize)]
 #[serde(tag = "kind")]
@@ -16,6 +24,8 @@ enum Input {
         role: String,
         timestamp_ns: i64,
         content: String,
+        #[serde(default)]
+        attachments: Vec<InputAttachment>,
     },
     #[serde(rename = "branch")]
     Branch {
@@ -46,7 +56,9 @@ pub fn run(command: ImportCommand) -> Result<()> {
                 Cva::create(&cva)?
             };
             let config = FragmentConfig { turns, overlap };
+            let input_dir = input.parent().unwrap_or_else(|| Path::new("."));
             let mut nodes = 0_usize;
+            let mut attachments = 0_usize;
             let mut branches = 0_usize;
             let mut fragments = 0_usize;
             for line in BufReader::new(File::open(&input)?).lines() {
@@ -62,15 +74,22 @@ pub fn run(command: ImportCommand) -> Result<()> {
                         role,
                         timestamp_ns,
                         content,
+                        attachments: incoming_attachments,
                     } => {
-                        archive.append_node(
+                        let incoming_attachments = incoming_attachments
+                            .into_iter()
+                            .map(|attachment| load_attachment(input_dir, attachment))
+                            .collect::<Result<Vec<_>>>()?;
+                        attachments += incoming_attachments.len();
+                        archive.ingest_turn(IncomingTurn {
                             id,
                             conversation_id,
                             parent_id,
                             role,
                             timestamp_ns,
-                            &content,
-                        )?;
+                            content,
+                            attachments: incoming_attachments,
+                        })?;
                         nodes += 1;
                     }
                     Input::Branch {
@@ -99,8 +118,9 @@ pub fn run(command: ImportCommand) -> Result<()> {
             }
             archive.sync()?;
             println!(
-                "imported: nodes={} branches={} new_fragments={} cva={}",
+                "imported: nodes={} attachments={} branches={} new_fragments={} cva={}",
                 nodes,
+                attachments,
                 branches,
                 fragments,
                 cva.display()
@@ -108,4 +128,27 @@ pub fn run(command: ImportCommand) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn load_attachment(input_dir: &Path, attachment: InputAttachment) -> Result<IncomingAttachment> {
+    let path = if attachment.path.is_absolute() {
+        attachment.path
+    } else {
+        input_dir.join(attachment.path)
+    };
+    let filename = match attachment.filename {
+        Some(filename) => filename,
+        None => path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .map(str::to_owned)
+            .ok_or_else(|| anyhow!("attachment path has no UTF-8 filename: {}", path.display()))?,
+    };
+    let bytes =
+        fs::read(&path).with_context(|| format!("failed to read attachment {}", path.display()))?;
+    Ok(IncomingAttachment {
+        filename,
+        mime_type: attachment.mime_type,
+        bytes,
+    })
 }

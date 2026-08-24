@@ -3,6 +3,8 @@ use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::{hash_content, validate_text};
 use crate::file_index::FileIndex;
+use crate::file_memory_link_index::FileMemoryLinkIndex;
+use crate::source_attachment_index::SourceAttachmentIndex;
 use crate::{
     ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, Node, ResolvedTurn,
 };
@@ -14,6 +16,8 @@ pub struct Archive {
     pub(crate) fragments: FragmentIndex,
     pub(crate) episodes: crate::episode_index::EpisodeIndex,
     pub(crate) files: FileIndex,
+    pub(crate) source_attachments: SourceAttachmentIndex,
+    pub(crate) file_memory_links: FileMemoryLinkIndex,
     pub(crate) record_versions: Vec<ArchiveRecordVersion>,
     pub(crate) next_archive_version: u64,
 }
@@ -127,6 +131,8 @@ impl Archive {
             fragments: self.fragments.len(),
             episodes: self.episodes.len(),
             files: self.files.len(),
+            source_attachments: self.source_attachments.len(),
+            file_memory_links: self.file_memory_links.len(),
         }
     }
 }

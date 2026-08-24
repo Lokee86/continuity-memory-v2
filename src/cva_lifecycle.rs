@@ -4,6 +4,7 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_global_validation::validate_semantic_global_versions;
+use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
@@ -77,6 +78,7 @@ impl Cva {
         archive.validate_references()?;
         let memories = memory_state.finish()?;
         memories.validate_provenance(&archive)?;
+        validate_file_memory_targets(&archive, &memories)?;
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
         insomnia.rebuild_schedule(&archive)?;

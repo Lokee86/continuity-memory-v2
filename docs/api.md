@@ -10,7 +10,7 @@ The public API exposes `ContinuityConfig` and the initial model-switchboard type
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
 ### Archive
-Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, and:
+Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, `IncomingAttachment`, `IncomingTurn`, `IngestedTurn`, `FileMemoryLink`, and:
 
 ```text
 ArchiveRecordVersion {
@@ -20,7 +20,11 @@ ArchiveRecordVersion {
 }
 ```
 
-Core operations through `Cva` include `append_node`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, fragment materialization/read methods, `store_file`, `file`, `files`, `file_bytes`, `search_files`, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary CAM bytes. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
+Core operations through `Cva` include `append_node`, native `ingest_turn`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, fragment materialization/read methods, `store_file`, `file`, `files`, `file_bytes`, `search_files`, `files_for_source`, `link_file_to_memory`, `file_memory_links`, `files_for_memory`, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
+
+`ingest_turn(IncomingTurn)` is the source-ingestion boundary. `IncomingTurn` carries the source node plus zero or more `IncomingAttachment { filename, mime_type, bytes }` values. The node, attachment manifests, and source-to-file provenance are published as one Archive semantic mutation; callers do not store an attachment and then separately link it back to the turn. `files_for_source(conversation_id, node_id)` resolves those native attachments. Repeating the identical source event is idempotent; changing the attachment set for an existing node is a conflict.
+
+`store_file` remains the lower-level path for a file that is not being introduced as part of a source turn. `link_file_to_memory` is intentionally separate: a later Memory relationship is a real cross-owner semantic link, not source-ingestion provenance. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary CAM bytes. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
 
 Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
 

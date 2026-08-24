@@ -35,8 +35,14 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("archive_version: {}", cva.archive_version());
     println!("vector_version: {}", cva.vector_version());
     println!(
-        "archive: nodes={} branches={} fragments={} content_objects={}",
-        archive.nodes, archive.branches, archive.fragments, archive.content_objects
+        "archive: nodes={} branches={} fragments={} files={} source_attachments={} file_memory_links={} content_objects={}",
+        archive.nodes,
+        archive.branches,
+        archive.fragments,
+        archive.files,
+        archive.source_attachments,
+        archive.file_memory_links,
+        archive.content_objects
     );
     println!(
         "packed_vectors: objects={} rows={} matrix_bytes={}",

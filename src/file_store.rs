@@ -11,28 +11,15 @@ impl Archive {
         mime_type: Option<String>,
         bytes: &[u8],
     ) -> Result<StoredFile, ArchiveError> {
-        validate_text(&filename, "filename")?;
-        if let Some(value) = mime_type.as_deref() {
-            validate_text(value, "mime type")?;
-        }
-        let byte_length = u64::try_from(bytes.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
-        let content_id = hash_content(bytes);
-        let id = file_id(&filename, mime_type.as_deref(), content_id, byte_length);
-        let file = StoredFile {
-            id,
-            content_id,
-            filename,
-            mime_type,
-            byte_length,
-        };
-        if let Some(existing) = self.files.get(id) {
+        let file = build_stored_file(filename, mime_type, bytes)?;
+        if let Some(existing) = self.files.get(file.id) {
             return if existing == &file {
                 Ok(existing.clone())
             } else {
                 Err(ArchiveError::ConflictingFile)
             };
         }
-        self.put_content_bytes(container, content_id, bytes)?;
+        self.put_content_bytes(container, file.content_id, bytes)?;
         let record = container.append(&encode_file(&file)?)?;
         self.publish_record(container, record)?;
         self.files.insert(file.clone())?;
@@ -87,6 +74,26 @@ impl Archive {
         }
         Ok(())
     }
+}
+
+pub(crate) fn build_stored_file(
+    filename: String,
+    mime_type: Option<String>,
+    bytes: &[u8],
+) -> Result<StoredFile, ArchiveError> {
+    validate_text(&filename, "filename")?;
+    if let Some(value) = mime_type.as_deref() {
+        validate_text(value, "mime type")?;
+    }
+    let byte_length = u64::try_from(bytes.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
+    let content_id = hash_content(bytes);
+    Ok(StoredFile {
+        id: file_id(&filename, mime_type.as_deref(), content_id, byte_length),
+        content_id,
+        filename,
+        mime_type,
+        byte_length,
+    })
 }
 
 fn file_id(

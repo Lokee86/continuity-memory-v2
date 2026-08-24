@@ -39,11 +39,13 @@ pub mod cva;
 mod cva_archive_vectors;
 mod cva_compatibility_profiles;
 mod cva_error;
+mod cva_file_memory;
 mod cva_global_validation;
 mod cva_lifecycle;
 mod cva_memory_publish;
 mod cva_memory_vectors;
 mod cva_packed_vectors;
+mod cva_turn_ingest;
 mod cva_vector_generations;
 mod embedding_endpoint;
 mod episode_builder;
@@ -53,6 +55,10 @@ mod episode_model;
 mod episode_policy;
 mod episode_store;
 mod file_index;
+mod file_memory_link_codec;
+mod file_memory_link_index;
+mod file_memory_link_model;
+mod file_memory_link_store;
 mod file_model;
 mod file_store;
 mod fragment_model;
@@ -93,6 +99,10 @@ mod search_model;
 mod semantic_search;
 mod semantic_search_error;
 mod semantic_search_model;
+mod source_attachment_index;
+mod turn_ingest_codec;
+mod turn_ingest_model;
+mod turn_ingest_store;
 mod vector_generation_codec;
 mod vector_generation_error;
 mod vector_generation_model;
@@ -130,6 +140,7 @@ pub use episode_model::{
     EpisodeId, EpisodeOrigin,
 };
 pub use episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
+pub use file_memory_link_model::FileMemoryLink;
 pub use file_model::{FileId, FileSearchHit, StoredFile};
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
@@ -184,6 +195,7 @@ pub use search_model::{
 };
 pub use semantic_search_error::SemanticSearchError;
 pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
+pub use turn_ingest_model::{IncomingAttachment, IncomingTurn, IngestedTurn};
 pub use vector_generation_error::VectorGenerationError;
 pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
 
@@ -203,6 +215,8 @@ mod container_tests;
 mod credential_tests;
 #[cfg(test)]
 mod episode_tests;
+#[cfg(test)]
+mod file_memory_link_tests;
 #[cfg(test)]
 mod file_tests;
 #[cfg(test)]
@@ -233,6 +247,8 @@ mod search_policy_tests;
 mod search_tests;
 #[cfg(test)]
 mod semantic_search_tests;
+#[cfg(test)]
+mod turn_ingest_tests;
 #[cfg(test)]
 mod vector_generation_tests;
 #[cfg(test)]

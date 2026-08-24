@@ -54,7 +54,7 @@ ContinuityConfig
 ### Container
 Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
 ### Archive
-Archive owns source-history semantics: content-addressed text, immutable conversation nodes, conversation-local parent ancestry, branch/session-head revisions, fragments, immutable deterministic Episodes, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes.
+Archive owns source-history semantics: content-addressed content bytes, immutable conversation nodes, native source-turn attachments, standalone embedded file manifests, conversation-local parent ancestry, branch/session-head revisions, fragments, immutable deterministic Episodes, explicit file-to-Memory links, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes. A source turn with attachments enters through one `IncomingTurn` ingestion boundary: body and attachment bytes may be staged as content-addressed backing objects, but the node, attached file manifests, and source provenance become semantically visible together under one Archive publication. Source attachment provenance is therefore part of the source event, not a generic association operation. Later file-to-Memory relationships remain explicit stable-ID links and do not transfer file ownership to Memories.
 `archive_version` is a whole-Archive mutation cut. It is not conversation ancestry.
 
 Episodes are contiguous ancestry ranges made from whole user-led response cycles. They are finalized by size, 15-minute configurable inactivity, finite-import end, or the narrow `create_memory` request. Finalizing an Episode never closes its conversation. No semantic topic detector participates in Episode identity.
@@ -216,6 +216,7 @@ G103 / A701   Archive mutation
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
 | physical Container/global clock | `src/container*.rs` |
 | Archive/history/fragments/Episodes | `src/archive*.rs`, `src/fragment*.rs`, `src/episode*.rs` |
+| native turn/file ingestion | `src/turn_ingest_*.rs`, `src/source_attachment_index.rs`, `src/file*.rs`, `src/cva_turn_ingest.rs`, `src/cva_file_memory.rs` |
 | Memories | `src/memory*.rs` |
 | Insomnia extraction/processing/operational scheduling | `src/insomnia.rs`, `src/insomnia/**/*.rs` |
 | packed matrices | `src/packed_vector_*.rs` |

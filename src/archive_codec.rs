@@ -1,6 +1,9 @@
 use crate::episode_codec::{EPISODE_MAGIC, decode_episode};
+use crate::file_memory_link_codec::{FILE_MEMORY_LINK_MAGIC, decode_file_memory_link};
+use crate::turn_ingest_codec::{INGESTED_TURN_MAGIC, decode_ingested_turn};
 use crate::{
-    ArchiveError, Branch, ContentId, Episode, FileId, Fragment, FragmentId, Node, StoredFile,
+    ArchiveError, Branch, ContentId, Episode, FileId, FileMemoryLink, Fragment, FragmentId,
+    IngestedTurn, Node, StoredFile,
 };
 
 const CONTENT_MAGIC: [u8; 8] = *b"CVACONT1";
@@ -16,6 +19,8 @@ pub enum ArchiveRecord {
     Fragment(Fragment),
     Episode(Episode),
     File(StoredFile),
+    IngestedTurn(IngestedTurn),
+    FileMemoryLink(FileMemoryLink),
     Other,
 }
 
@@ -90,6 +95,12 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     }
     if bytes[..8] == FILE_MAGIC {
         return decode_file(bytes);
+    }
+    if bytes[..8] == INGESTED_TURN_MAGIC {
+        return decode_ingested_turn(bytes).map(ArchiveRecord::IngestedTurn);
+    }
+    if bytes[..8] == FILE_MEMORY_LINK_MAGIC {
+        return decode_file_memory_link(bytes).map(ArchiveRecord::FileMemoryLink);
     }
     if bytes[..8] == EPISODE_MAGIC {
         return decode_episode(bytes)?

@@ -69,7 +69,7 @@ The global `--config` option defaults to `continuity.cfg` in the current directo
 
 `cva verify` performs a normal `Cva::open`, so the same format/reopen/reference validation used by the library is exercised.
 
-`import graph-jsonl` accepts the current development graph JSONL records used by the corpus smoke harness. It creates the target CVA when absent or appends idempotent/compatible records to an existing CVA, then materializes branch fragments with the requested window/overlap policy.
+`import graph-jsonl` accepts the current development graph JSONL records used by the corpus smoke harness. It creates the target CVA when absent or appends idempotent/compatible records to an existing CVA, then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
 
 Archive inspection is read-only. `archive conversations` uses the public current-branch inventory; `archive show` resolves one current branch; fragment commands list or expand durable fragments.
 
