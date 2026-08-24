@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Continuity Memory v2.
 ## Overview
-The development format is one append-only CVA file containing Archive, vector-backing, compatibility-profile, and vector-generation records. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
+The development format is one append-only CVA file containing Archive source/history records, embedded files, Memories, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
 ### CVA header
@@ -65,6 +65,20 @@ string    conversation ID
 string    start node ID
 string    end node ID
 ```
+Episode:
+```text
+8 bytes   "CVAEPIS1"
+32 bytes  EpisodeId
+u8        origin: 1=Live, 2=Import
+u8        boundary: 1=Size, 2=Inactivity, 3=CreateMemory, 4=ImportEnd
+i64       source_through_ns
+i64       finalized_at_ns
+string    conversation ID
+string    start node ID
+string    end node ID
+```
+`EpisodeId` is SHA-256 over the conversation ID, start node ID, and end node ID in order, with each value encoded as `u64 byte_length + UTF-8 bytes`. Episodes are Archive semantic records and are published through ordinary `CVAAREC1` metadata.
+
 File manifest:
 ```text
 8 bytes   "CVAFILE1"
@@ -112,6 +126,61 @@ u64       record chunk offset
 u64       record payload length
 ```
 Archive versions begin at `1` and are contiguous. A semantic Archive payload without valid metadata is inert. Nodes, native source turns, branches, fragments, episodes, standalone file manifests, and file-to-Memory links are semantic Archive payloads. One `CVATURN1` consumes one Archive/global version regardless of its attachment count. Fragment creation Archive versions are retained in the derived fragment index so later generation coverage can be validated.
+
+### Memories
+Format marker:
+```text
+8 bytes   "CVAMEMF2"
+```
+Standalone content-addressed Memory body:
+```text
+8 bytes   "CVAMBDY1"
+32 bytes  MemoryBodyId = SHA-256(exact body bytes)
+u32       body byte length
+N bytes   body bytes
+```
+The exact body bytes are:
+```text
+u64       title UTF-8 byte length
+N bytes   title UTF-8
+u64       content UTF-8 byte length
+N bytes   content UTF-8
+```
+Memory record:
+```text
+8 bytes   "CVAMEMR2"
+32 bytes  MemoryId
+u64       revision
+32 bytes  MemoryBodyId
+u8        archived: 0=false, 1=true
+optional  MemoryId superseded_by
+optional  MemoryId parent_id
+optional  EpisodeId source_episode_id
+i64       created_at_ns
+i64       updated_at_ns
+string    category
+string    memory_type
+string    scope
+string    lifecycle_state
+optional  string source_node_id
+optional  string content_source_conversation_id
+optional  string content_source_node_id
+optional  string grounding_source_conversation_id
+optional  string grounding_source_node_id
+string    mutation_id
+```
+Optional fixed IDs and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+
+Standalone Memory publication metadata:
+```text
+8 bytes   "CVAMEMV1"
+u64       global version
+u64       Memory version
+u64       record chunk offset
+u64       record payload length
+```
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR2`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful Insomnia processing uses the `CVAINSC2` transaction described below instead: newly required Memory bodies, `CVAMEMR2` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it.
+
 ### Packed vectors
 Format marker:
 ```text
@@ -278,17 +347,18 @@ u32 byte_length
 N bytes UTF-8
 ```
 ## Historical semantics
-Archive and Vector Generations have independent local watermarks. Global ordering may interleave them; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
+Archive, Memories, and Vector Generations have independent local watermarks. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
 `Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Earlier development formats are rejected rather than migrated.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
-Default fragments use eight turns with two-turn overlap. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
+Default fragments use eight turns with two-turn overlap. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 ## Related docs
 - [Architecture](architecture.md)
 - [Rust API](api.md)
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
+- [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
 - [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 ## Notes
 These are development formats. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. File-tree semantics, file-content extraction/indexing, migration, packing/compression, authentication/encryption, quantization metadata, persistent lexical indexing, ANN acceleration, and retention/vacuum remain future work.

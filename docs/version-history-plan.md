@@ -4,142 +4,136 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document owns the remaining plan for whole-CVA historical recovery now that Archive uses layered clocks and conversation-local ancestry.
+This document owns future work for whole-CVA historical views, restore-and-continue, retention, and rollback. Current versioning behavior is documented in [Architecture](architecture.md), [Storage format](storage-format.md), and [Architectural invariants](invariants.md).
 
 ## Overview
 
-The implemented model deliberately separates:
+Future historical recovery composes owner-local history at explicit cuts rather than inventing a CVA-wide semantic ancestry chain. Read-only historical views, retained-line identity, restore-and-continue, checkpoint acceleration, and physical reclamation are separate stages with explicit recovery semantics.
 
-```text
-CVA global_version       cross-database ordering
-Archive archive_version  whole-Archive mutation watermark
-Vectors vector_version   vector-generation publication watermark
-conversation ancestry    node parent links + branch/session revisions
-checkpoint               rebuild acceleration only
-```
+## Governing constraints
 
-No integer adjacency is semantic ancestry.
+Future historical recovery must preserve these architectural constraints:
 
-## Current status
-
-Implemented for Archive:
-
-- container-issued monotonically increasing global `u64` tickets;
-- contiguous Archive-local `u64` versions;
-- one `ArchiveRecordVersion { global_version, archive_version, record }` per semantic Archive mutation;
-- node parent links scoped to a conversation;
-- repeated immutable branch/session-head revisions;
-- historical branch-head lookup at an Archive watermark;
-- continuation from an old node through a new local branch;
-- no Archive-wide parent-linked publication chain.
-
-The CVA now also contains immutable packed-vector matrices, Archive-Vector bindings, immutable Compatibility Profiles, and a mutable VectorGenerationStore. Vector-generation publication has its own dense `vector_version` and consumes CVA-global tickets; the latest visible generation per profile is current. This is the second concrete mutable semantic timeline. Generic whole-CVA historical materialization, restore-and-continue activation, retention/vacuum, and concurrent multi-writer publication remain unimplemented.
-
-## Expected ownership or ownership boundary
-
-The container owns only the CVA-global ordering ticket. Each database may own a local monotonic watermark if useful for its own snapshots/history.
-
-Archive owns `archive_version`. VectorGenerationStore owns `vector_version`. Neither local watermark is a generalized dependency identity. A generation may record a concrete `source_archive_version` because it is derived from a specific Archive cut; that explicit source fact does not make Archive's clock globally semantic.
-
-Conversation/session ancestry remains Archive domain data, not a clock concern.
+- semantic owners retain independent local history/watermark semantics;
+- CVA-global ordering remains ordering rather than semantic ancestry;
+- conversation/session ancestry remains source-domain data;
+- explicit cross-owner source watermarks may be recorded when semantically meaningful, but no generalized dependency identity is introduced;
+- checkpoints remain disposable reconstruction acceleration, never rollback authority;
+- ordinary writes must not publish a CVA-wide state manifest;
+- restore-and-continue must not silently reincorporate state that the selected historical line intentionally abandoned.
 
 ## Planned behavior
 
-### Global ordering
+### 1. Owner-local historical views
 
-Current semantic records can interleave:
+Define read-only historical-view APIs for each mutable semantic owner that needs them. Views must resolve owner state at an explicit local watermark without mutating current state or introducing parent links between whole-database publications.
 
-```text
-G100 Archive A700
-G101 Vectors V20
-G102 Archive A701
-G103 Vectors V21
-```
+### 2. Whole-CVA read-only historical point
 
-The global number answers “when did this mutation enter the CVA ordering?” It does not answer “what is its semantic parent?”
+Define a resolver for a CVA-global ordering point that selects the latest visible state of each mutable semantic owner at or before that point.
 
-### Archive cuts
+The resulting view must:
 
-An Archive watermark identifies one whole-Archive historical cut:
+- be read-only;
+- preserve owner-local semantics;
+- expose which local cut was selected for each owner;
+- reject missing/corrupt cross-owner references at that historical point;
+- avoid fabricating a generalized CVA root object.
 
-```text
-A700 = replay Archive semantic mutations 1..700
-```
+### 3. Pins, retention, and timeline identity
 
-Because logical branch/session heads are revisions, replay chooses the newest visible revision for each branch identity while retaining all immutable nodes/fragments visible through the cut.
+Before destructive reclamation or restore-and-continue exists, define durable identities for historical lines that must remain reachable.
 
-A future `ArchiveView(A700)` can materialize this without any Archive-wide parent chain.
+Required semantics include:
 
-### Conversation/session branching
+- user/system pins;
+- current-line identity;
+- abandoned-but-retained lines;
+- minimum retained source state required by surviving cross-owner references;
+- generation/branch/session retention interaction.
 
-Conversation history is independent:
+### 4. Crash-safe restore-and-continue
 
-```text
-A1 -> A2 -> A3
-       \
-        A4' -> A5'
-```
+Define how a user selects a historical whole-CVA point and continues from it without rewriting old immutable history.
 
-The Archive watermark continues forward while this branch is created. Other conversations are unaffected.
+The new line must have explicit identity, and later writes must attach to that selected line rather than implicitly seeing superseded future state.
 
-### Whole-CVA historical point
+This design must remain compatible with purpose-built semantic owners and must not force unrelated databases to republish heads on every normal write.
 
-A global point `G=N` can now conceptually resolve Archive to the latest `archive_version` visible at or before `N` and Vector Generations to the latest `vector_version` visible at or before `N`. Within that vector cut, the newest visible generation for each profile is current.
+### 5. Checkpoint acceleration
 
-The public API does not yet materialize that combined read-only view. **Continuing from a whole-CVA historical point** remains harder because future writes must not silently reincorporate abandoned later state. With two mutable semantic domains now implemented, that ownership problem is concrete enough to design next rather than speculate through a generalized state root.
+Add owner-specific or composition-level derived checkpoints only after cold-open/replay measurements justify them.
 
-### Checkpoints
+A checkpoint may accelerate reconstruction through a documented watermark but must be fully disposable and reproducible from authoritative records.
 
-An Archive checkpoint may say:
+### 6. Reachability, compaction, and vacuum
 
-```text
-checkpoint covers through A85000
-```
+After timeline/pin semantics exist, define physical reclamation:
 
-It accelerates open/replay. It is disposable/rebuildable and is not a rollback root.
+- compute authoritative reachability from retained semantic lines;
+- retain backing objects required by any surviving owner/reference;
+- reclaim abandoned chunks safely;
+- optionally rewrite/compact the physical file without changing semantic identities;
+- verify equivalence before replacing the source CVA.
+
+### 7. Concurrent publication mechanics
+
+Define physical append-position and global-version reservation for multiple live writers only after the long-lived runtime demonstrates a concrete need. Concurrency mechanics must not introduce a shared semantic head.
 
 ## Implementation sequence
 
-1. Compact Archive lookup representation keyed to an Archive watermark. **Implemented.**
-2. Add immutable packed-vector backing storage without inventing semantic publication. **Implemented.**
-3. Add immutable Archive-Vector row bindings without compatibility-profile or publication semantics. **Implemented.**
-4. Add immutable compatibility profiles plus vector-generation publication with a dense local watermark. **Implemented.**
-5. Prove global ordering across Archive and Vector Generations without semantic coupling. **Implemented.**
-6. Define read-only whole-CVA point materialization from global ordering plus the two local cuts.
-7. Re-evaluate optional Archive checkpoint load + replay tail from larger cold-open measurements.
-8. Only then define crash-safe restore-and-continue plus retention/vacuum semantics.
+```text
+owner-local historical views
+    ↓
+whole-CVA read-only point
+    ↓
+pins + retention/timeline identity
+    ↓
+restore-and-continue
+    ↓
+checkpoint acceleration as measured
+    ↓
+reachability + compaction/vacuum
+```
+
+Concurrent publication mechanics can be developed independently once a real runtime workload requires them.
 
 ## Acceptance criteria
 
-- Unrelated conversations can advance without a shared semantic head.
-- Every Archive semantic mutation has exact global and Archive ordering.
-- Every published vector generation has exact global and vector-local ordering.
-- Archive and vector-generation cuts are independently reconstructible.
-- No CVA-global version is claimed by more than one semantic mutation across those stores.
-- Local conversation revival does not rewind unrelated Archive state.
-- Future store-local clocks do not become cross-store dependency identities.
-- Whole-CVA restore, when implemented, does not require every normal write to publish a global state manifest.
+- A historical read never mutates current semantic state.
+- A whole-CVA point reports explicit per-owner cuts.
+- No global ordering integer becomes semantic ancestry.
+- Restore-and-continue produces an explicit new retained line rather than rewriting old records.
+- Abandoned later state cannot reappear implicitly after restore.
+- Normal writes remain owner-local and do not publish a global state manifest.
+- Checkpoints are removable without changing historical meaning.
+- Vacuum never reclaims an object reachable from any retained line.
+- Crash/reopen during restore or compaction fails safely to either the old valid file/line or the new valid file/line.
 
 ## Open decisions
 
-- Generic historical `ArchiveView` representation/API.
-- Concurrent reservation of physical append positions and global versions.
-- Read-only whole-CVA view representation/API across Archive and Vector Generations.
-- Whole-CVA restore-and-continue timeline identity now that multiple mutable stores exist.
-- Retention/pinning/vacuum policy for abandoned histories.
-- User-facing terminology for archive cuts, sessions, and timelines.
+- Historical-view API shape and terminology.
+- Whole-CVA point representation.
+- Timeline/line identity representation.
+- Pinning ownership and user-facing controls.
+- Cross-owner reachability calculation without a generalized dependency engine.
+- Restore activation record format and crash boundary.
+- Retention defaults for branches, Memories, vector generations, files, and future semantic owners.
+- Checkpoint representation/cadence.
+- Compaction replacement strategy and verification.
+- Concurrent append/version reservation mechanics.
 
 ## Related docs
 
 - [Architecture](architecture.md)
 - [Storage format](storage-format.md)
+- [Architectural invariants](invariants.md)
 - [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
 - [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md)
 - [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
-- [Superseded ADR 0002](decisions/0002-branching-publication-history.md)
 - [Roadmap](roadmap.md)
 
 ## Notes
 
-The key correction is scope: immutable record history and conversation/session ancestry are local facts; the Archive as a whole is a database observed at integer watermarks, not one giant parent-linked record.
+This is a future-only planning document. Current historical/version behavior belongs in the current architecture and storage references.

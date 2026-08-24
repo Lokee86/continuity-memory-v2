@@ -13,7 +13,7 @@
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
-- [Roadmap](roadmap.md) — future implementation sequence.
+- [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
-- [Versioning, historical cuts, and rollback](version-history-plan.md) — implemented Archive layered clocks plus the remaining whole-CVA historical-recovery plan.
+- [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.

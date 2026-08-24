@@ -14,4 +14,5 @@
 - [ADR 0012: Deterministic episodes and Insomnia memory authority](0012-deterministic-episodes-and-insomnia-memory-authority.md) — **Accepted**, 2026-08-15.
 - [ADR 0013: Immutable Memory Vector bindings](0013-immutable-memory-vector-bindings.md) — **Accepted**, 2026-08-15.
 - [ADR 0014: Echo historical reasoning traces](0014-echo-historical-reasoning-traces.md) — **Accepted**, 2026-08-16.
-- [ADR 0015: ACP inline interaction stream](0015-acp-inline-interaction-stream.md) — **Accepted as an integration direction**, 2026-08-17; proxy/MCP-over-ACP mechanics remain Draft-dependent.
+- [ADR 0015: ACP inline interaction stream](0015-acp-inline-interaction-stream.md) — **Accepted for ACP adapter capture semantics; amended by ADR 0016**, 2026-08-17.
+- [ADR 0016: Native product surface and shared interaction runtime](0016-native-product-surface-and-shared-interaction-runtime.md) — **Accepted**, 2026-08-24.

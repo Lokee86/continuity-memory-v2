@@ -11,6 +11,8 @@ Cva
 ├── Archive
 │   ├── archive_version: u64
 │   ├── conversation/session-local ancestry
+│   ├── source turns + native attachments + embedded files
+│   ├── explicit file-to-Memory links
 │   └── immutable Episodes
 ├── Memories
 │   └── memory_version: u64 + immutable revisions
@@ -57,13 +59,15 @@ Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file
 Archive owns source-history semantics: content-addressed content bytes, immutable conversation nodes, native source-turn attachments, standalone embedded file manifests, conversation-local parent ancestry, branch/session-head revisions, fragments, immutable deterministic Episodes, explicit file-to-Memory links, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes. A source turn with attachments enters through one `IncomingTurn` ingestion boundary: body and attachment bytes may be staged as content-addressed backing objects, but the node, attached file manifests, and source provenance become semantically visible together under one Archive publication. Source attachment provenance is therefore part of the source event, not a generic association operation. Later file-to-Memory relationships remain explicit stable-ID links and do not transfer file ownership to Memories.
 `archive_version` is a whole-Archive mutation cut. It is not conversation ancestry.
 
+The current source-ingestion execution boundary is synchronous and library-level: callers can submit one complete source turn at a time, and the repo-local graph-JSONL importer drives that boundary once per node. No long-lived live-ingestion service, transport adapter, CVA management service, or native product UI exists in the current implementation; those gaps are owned by [Current limitations](current-limitations.md) and future work by [Roadmap](roadmap.md).
+
 Episodes are contiguous ancestry ranges made from whole user-led response cycles. They are finalized by size, 15-minute configurable inactivity, finite-import end, or the narrow `create_memory` request. Finalizing an Episode never closes its conversation. No semantic topic detector participates in Episode identity.
 
 ### Memories
 Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. A Memory's `MemoryBodyId` is immutable across revisions: metadata/classification/lifecycle may change, but semantic title/content cannot mutate in place. Semantic corrections create another Memory rather than rewriting an existing body. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Insomnia persists assistant-authored **authority provenance** in the existing `content_source_*` record fields only when the user adopts/retains that assistant proposition; separate `grounding_source_*` fields identify context used only to resolve a referent in a user-owned proposition. Grounding never supplies semantic authority. Memory authority does not depend on vector availability.
 
 ### Insomnia operational state
-Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Pending/retry/terminal state is durable only while operationally relevant, and processing claims are reclaimable after reopen. Successful processing atomically publishes all newly created Memory records together with one compact Episode-completion receipt; prior failed-attempt history is not retained as active history after success. This owner consumes no semantic version clock.
+Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Pending, processing, lease-renewal, and retryable-failure transitions are runtime-only and are re-derived as Pending after reopen when no final outcome exists. A Terminal outcome remains durable as one final work record; a successful outcome atomically publishes all newly created Memory records together with one compact Episode-completion transaction. Prior failed-attempt history is not retained as active history after success. This owner consumes no semantic version clock.
 
 `create_memory` is not a Memory write API. It finalizes the current uncovered live Episode tail and queues it at immediate-live priority; Insomnia remains the only authority that can turn source material into working-memory revisions.
 
@@ -238,5 +242,6 @@ G103 / A701   Archive mutation
 - [Versioning and rollback plan](version-history-plan.md)
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 - [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
+- [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
 ## Notes
-Codex OAuth token refresh, search filters, reranking, ANN acceleration, explicit generation retirement, and whole-CVA restore-and-continue remain separate slices.
+Unimplemented behavior is tracked in [Current limitations](current-limitations.md); future implementation sequencing is tracked only in [Roadmap](roadmap.md).

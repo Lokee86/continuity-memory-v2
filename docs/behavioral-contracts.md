@@ -43,6 +43,12 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Shared prefixes/content bodies deduplicate | `archive_tests::shared_branch_prefix_and_content_are_stored_once` |
 | Identical node append is idempotent | `archive_tests::identical_node_append_is_idempotent` |
 | Unversioned semantic payloads remain inert on reopen | `archive_tests::unversioned_semantic_record_is_inert_on_reopen` |
+| Standalone embedded files round-trip arbitrary bytes, deduplicate identical content, and preserve distinct manifest identity | `file_tests::files_round_trip_and_share_content_objects` |
+| Filename search is incremental/reopenable and does not search file contents | `file_tests::filename_search_is_incremental_reopenable_and_does_not_search_file_contents` |
+| One turn ingestion publishes the source node, attached file manifests, and native source provenance together under one Archive mutation | `turn_ingest_tests::turn_ingestion_publishes_node_and_attachments_together` |
+| Repeated identical turn ingestion is idempotent while attachment drift conflicts | `turn_ingest_tests::turn_ingestion_is_idempotent_and_rejects_attachment_drift` |
+| Unversioned native turn-ingestion records are inert after reopen | `turn_ingest_tests::unversioned_ingested_turn_is_inert_on_reopen` |
+| File-to-Memory links are explicit, idempotent, cross-owner validated, and reopenable | `file_memory_link_tests::file_memory_links_are_explicit_idempotent_and_reopenable`, `file_memory_link_tests::reopen_rejects_file_link_to_missing_memory` |
 | Fragment windows/tails remain append-only and branch-neutral | `fragment_tests::*` |
 | Packed-vector matrices round-trip beside Archive data in one CVA | `packed_vector_tests::packed_vectors_round_trip_inside_same_cva_as_archive` |
 | Equal packed matrices deduplicate by schema+bytes | `packed_vector_tests::identical_packed_matrix_is_content_addressed_once` |
@@ -84,6 +90,10 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Prepared corpus supports two independent simulated profiles/generations plus default hybrid retrieval | `examples/vector_generation_smoke.rs` |
 
 ## Future contracts
+
+Before the shared live runtime ships, tests must prove that equivalent native and external-adapter interaction fixtures normalize to equivalent source semantics, that acknowledged source events survive restart under one explicit durability rule, and that transport metadata cannot become semantic authority.
+
+Before CVA management/native UI ships, tests must prove that management mutations compose concrete owner APIs, preserve owner validation, and do not introduce a generic mutable semantic object layer.
 
 Before concurrent writers are supported, tests must prove that unrelated sessions do not serialize on a semantic Archive head and that global/file-position reservation is the only required shared ordering boundary.
 

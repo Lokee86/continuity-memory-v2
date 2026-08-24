@@ -69,7 +69,9 @@ The global `--config` option defaults to `continuity.cfg` in the current directo
 
 `cva verify` performs a normal `Cva::open`, so the same format/reopen/reference validation used by the library is exercised.
 
-`import graph-jsonl` accepts the current development graph JSONL records used by the corpus smoke harness. It creates the target CVA when absent or appends idempotent/compatible records to an existing CVA, then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
+`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target CVA when absent or appends idempotent/compatible records to an existing CVA, then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
+
+The CLI does not expose a single-turn live-ingestion command, file-management commands, or a persistent capture service. The graph importer is currently the only CLI surface that drives turn ingestion.
 
 Archive inspection is read-only. `archive conversations` uses the public current-branch inventory; `archive show` resolves one current branch; fragment commands list or expand durable fragments.
 
@@ -95,4 +97,4 @@ Repository verification also performs command-level smoke tests for CVA create/i
 
 ## Notes
 
-The CLI owns no HTTP protocol semantics; live embedding and General-model execution are supplied by the core provider endpoints and `ConfiguredGeneralEndpoint` dispatch. The CLI's Insomnia worker is a finite bring-up/drain command, not the future shared long-lived runtime.
+The CLI owns no HTTP protocol semantics; live embedding and General-model execution are supplied by the core provider endpoints and `ConfiguredGeneralEndpoint` dispatch. The CLI's Insomnia worker is a finite bring-up/drain command. Product/runtime and management work is tracked in [Roadmap](roadmap.md).

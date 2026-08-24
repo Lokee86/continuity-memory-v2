@@ -21,7 +21,7 @@ The repository uses the `library-engine` profile with the `stateful` capability.
 - [Maintainer map](maintainer-map.md) routes change areas to canonical owners and implementation boundaries.
 - [Behavioral contracts](behavioral-contracts.md) maps critical behavior to protecting tests.
 - [Roadmap](roadmap.md) owns future implementation sequence.
-- [Version history and rollback](version-history-plan.md) owns the unimplemented rollback design and open implementation decisions.
+- [Version history and rollback](version-history-plan.md) owns future whole-CVA historical-view, restore, retention, and reclamation design.
 - [Current limitations](current-limitations.md) owns present defects and incomplete behavior.
 - [Documentation coverage](documentation-coverage.md) maps production code and examples to current documentation.
 - [Architectural decisions](decisions/INDEX.md) record why consequential choices were made; they do not replace current architecture or planning owners.
@@ -34,6 +34,7 @@ The repository uses the `library-engine` profile with the `stateful` capability.
 4. Every direct Markdown file or documentation subfolder under `docs/` is listed in `docs/INDEX.md`.
 5. Storage ownership, mutation, recovery, compatibility, and testing changes update their canonical owners in the same change.
 6. A documentation checker pass proves structural compliance only; known semantic gaps remain explicit.
+7. Planning documents are future-only. When planned behavior becomes current, remove it from the plan and document the resulting behavior in the appropriate current-state owner.
 
 ## Enforcement
 

@@ -4,117 +4,200 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document owns the cross-cutting implementation sequence for the clean Continuity rebuild.
+This document owns future implementation work for Continuity. Completed behavior does not belong here; current behavior is documented in [Architecture](architecture.md), [Rust API](api.md), [Repo-local CLI](cli.md), and [Current limitations](current-limitations.md).
 
 ## Overview
 
-Concrete storage owners come first. Shared mechanics are generalized only after at least two concrete owners prove the same requirement.
+Future work is organized around productization first, with intelligence quality and storage/history work proceeding in parallel where they do not block the usable product surface. New semantic owners remain purpose-built and shared mechanics are introduced only where concrete owners or runtime requirements justify them.
 
-## Current status
+## Product direction
 
-Completed bootstrap slices:
+Continuity is moving from a storage/retrieval substrate toward a usable commercial product for both technical and non-technical users.
 
-1. CVA create/open/header and opaque chunk storage.
-2. Container-global monotonic `u64` ordering.
-3. Archive content-addressed bodies and branch-aware node graph.
-4. Durable range-only fragments with 8-turn / 2-overlap policy.
-5. Archive-local contiguous `u64` mutation ordering.
-6. Dual `(global_version, archive_version)` metadata per semantic Archive mutation.
-7. Append-only branch/session-head revisions with historical lookup.
-8. Old-conversation revival through conversation-local branching, not Archive rollback.
-9. Reopen validation and prepared-corpus round trip.
-10. Compact Archive-owned derived indexes without composite string keys; current measurements are tracked in `development.md`.
-11. Single-pass Container/Archive reopen reconstruction.
-12. Lodestone-derived generic packed-vector rows plus an immutable content-addressed packed-vector store inside the CVA.
-13. Immutable Archive-Vector sets that bind packed rows to ordered Archive `FragmentId`s with exact cross-store validation in the same physical reopen scan.
-14. Immutable endpoint-independent compatibility profiles with Query/Document reference probes, tolerant cosine verification, and deterministic simulated endpoints.
-15. Vector-generation semantic publication with dense local `vector_version`, CVA-global ordering, per-profile current generations, Archive coverage validation, and inert incomplete publications.
-16. Exact semantic retrieval through compatibility verification, Query-mode embedding, current-generation resolution, exact cosine scan, and row-to-FragmentId mapping.
-17. Original default lexical/hybrid retrieval with 30-candidate fusion, `0.45/0.55` channel weighting, overlap diversification, and 10 final results.
-18. Purpose-built replaceable local configuration container with fragment/retrieval objects, deterministic framing, unknown-object preservation, and atomic whole-file replacement.
-19. Expandable model-switchboard routing with `General`/`Insomnia`/`Embedding` capabilities, `openai-codex`/`openai-ready` providers, explicit auth kinds, persisted `models.general` / optional `models.insomnia` / `models.embedding` objects, and Insomnia-to-General fallback.
-20. Self-generated 256-bit master key with a temporary JSON-backed key-store seam for later encrypted credential objects.
-21. AES-256-GCM credential objects with stable credential IDs, model-route references, wrong-key/tamper rejection, and switchboard auth-header attachment.
-22. Detachable repo-local CLI package exposing CVA/config/auth/archive/vector inspection plus simulated vector/retrieval bring-up through public library APIs only.
-23. Direct `openai-ready` embedding HTTP transport with configured dimensions, Query/Document input types, deterministic response ordering, L2 normalization, measured 16-input batching, and bounded 16-request concurrency.
-24. Archive-owned deterministic Episodes with response-cycle packing, 32 KiB default input ceiling, appendable-conversation semantics, 15-minute configurable inactivity finalization, finite-import tail finalization, and branch-prefix validation.
-25. A separate mutable Memories owner with immutable revisions, mutation-ID idempotency, exact Archive/Episode provenance, dense `memory_version`, and CVA-global publication ordering.
-26. A separate Insomnia operational owner with immediate-live/live/import scheduling classes, oldest-source ordering within each class, durable current queue/lease/retry state, restart reclamation, terminal state, and a narrow `create_memory` tail-finalization + immediate-queue seam.
-27. An `insomnia` Rust module with exact Episode input reads, strict JSON-schema General-model extraction, candidate/user-authority validation, explicit-retention semantics, deterministic candidate identity, and idempotent Memory publication.
-28. Immutable Memory Vectors over shared packed matrices, keyed by `(CompatibilityProfileId, MemoryBodyId)`, with missing-only embedding, reopen validation, and enforced immutable Memory semantic bodies across metadata revisions.
-29. One bounded read-only Insomnia Archive-evidence round with exact-turn, maximum-64-node ancestry-range, and lexical-search reads; four-request and 64-turn/128-KiB global bounds; second-round rejection; current-Episode-only user authority; and evidence-bound external assistant provenance.
-30. A configurable one-shot Insomnia backlog worker pool with 1–64 workers (default 48 after live Luna/low calibration), atomic distinct-Episode claims, model inference outside the serialized CVA mutation boundary, bounded evidence reads between model rounds, retry/terminal handling, whole-backlog drain semantics, canonical-import registration, and automatic core Memory-Vector completion after authoritative extraction using missing-only `(CompatibilityProfileId, MemoryBodyId)` bindings.
-31. Native ChatGPT/Codex device-code credential acquisition using OpenAI's device-auth protocol, including one-time code presentation, authorization polling, OAuth code exchange, ChatGPT account-ID extraction, encrypted credential persistence, and a repo-local `config credential login-codex` command with no manual token copy/paste.
-32. Provider-native `openai-codex` General/Insomnia Responses transport with ChatGPT OAuth/account headers, explicit persisted reasoning effort, strict JSON-schema output, SSE completion parsing, provider dispatch alongside `openai-ready`, and a live `gpt-5.6-luna` / low-reasoning Insomnia transport smoke.
-33. Live whole-file Insomnia concurrency calibration over the prepared 12-conversation / 66-Episode corpus using `gpt-5.6-luna` at low reasoning: 1/2/4/8/16/32/40/44/48/52/56/64-worker runs plus a 48-worker repeat, zero retries or terminal failures at every point, and a measured 48-worker processing sweet spot under extractor contract `v2-2`. That contract was later found to use a shortened semantic prompt; `v2-3` restored the tuned legacy extraction contract. Five additional 48-worker `v2-3` runs completed cleanly and exposed semantic selection/provenance weaknesses despite improved consolidation. Contract `v2-4` made candidate authority explicit; `v2-5` added narrow deterministic provenance/question/receipt enforcement; `v2-6` rejects residual numbered prompt/phase/step progress framing; `v2-7` separates adopted assistant authority from referent grounding and persists both provenance roles independently. Gold v1 remains historical; gold v2 corrects four grounding cases while retaining the same 40 source anchors. A controlled three-run low versus three-run medium `v2-6` comparison found identical strict semantic-target agreement at 60.0%; medium increased all-source repeatability (`0.536` to `0.656` mean pairwise Jaccard) but took about 69% longer, produced about 20% more Memories, and did not materially improve correctness. Luna-low remains the selected reasoning level. 48 remains the provisional worker default pending the focused concurrency confirmation after semantic selection/support work settles.
-34. A candidate-level second-pass semantic reviewer was implemented experimentally and rejected after live measurement rather than retained. Three v2-7 control runs versus three review runs showed improved omit-case cleanliness (`79.2%` to `87.5%`) but worse retain-source recall (`65.6%` to `57.3%`) and worse average mechanical gold selection (`68.3%` to `63.3%`). The reviewer removed the tracked Godot-first false decision but could not recover omitted sources and still retained phase-renumbering. Direct inspection confirmed all four grounding-required gold cases already have sufficient context inside their authoritative Episode, so broader ancestry/vector retrieval is not the current blocker. Experimental reviewer code was removed.
-35. Atomic self-cleaning Insomnia completion: Memory bodies/global-version tickets may be staged inertly, but newly created Memory records and the final Episode outcome become visible only through one `CVAINSC1` completion chunk. Reopen truncates an incomplete trailing chunk, so interruption before/during completion yields no partial Memory publication and the claim is reclaimable. Successful completion collapses prior attempt history to one compact receipt; retry/terminal failures persist only current Work state rather than an append-only attempt log.
+The primary user experience will be a native Continuity interface backed by a shared long-lived runtime. External agent protocols such as ACP are interoperability adapters into that runtime, not prerequisites for using the product and not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
 
-## Expected ownership or ownership boundary
+## Near-term productization sequence
 
-`Cva` owns physical composition and the single Container handle. Archive owns source-history semantics, immutable Episodes, and `archive_version`. Memories owns authoritative working-memory revisions and dense `memory_version`; semantic `MemoryBodyId` content is immutable across revisions. Insomnia operational state owns episode-processing coordination but no semantic clock. Packed vectors own immutable numeric matrices; Memory Vectors own immutable `(CompatibilityProfileId, MemoryBodyId)` row bindings; Archive Vectors own immutable row-to-fragment bindings; Compatibility Profiles own immutable vector-space compatibility contracts. Vector Generations own Archive profile/population activation and the independent dense `vector_version`. Archive, Memories, and Vector Generations interleave only through CVA-global ordering; Memory Vectors are clock-neutral derived bindings.
+### 1. Shared live interaction runtime
 
-## Planned behavior
+Build one long-lived runtime that owns live session execution and normalizes incoming interaction events before they reach semantic storage owners.
 
-Near-term priorities:
+Required behavior:
 
-1. Validate the **two-pass authority/disposition ledger** on the small routine tuning corpus first: `corpus/insomnia-tuning-v1.jsonl` contains 11 isolated Episodes / 314 turns with 19 matching gold-v3 cases. Use frontier-model settings while validating the decomposition, and require improvements in durable-state coverage without regressing question/receipt/transient-state precision, supersession, grounding discipline, or Memory count. Reserve the full 66-Episode fixture for milestone confirmation only after the small corpus is stable.
-2. Once the two-pass architecture is validated, tune model/reasoning cost and throughput independently on the 11-Episode fixture, then run one full gold-v3 confirmation and only afterward recalibrate worker concurrency for the chosen model mix. Do not reuse the old 48-worker Luna-low optimum for heavier models, and do not add vector retrieval or another blanket semantic reviewer unless a measured case demonstrates a distinct need.
-3. Build the shared long-lived Continuity runtime, including automatic size/inactivity episode scheduling, persistent/background worker orchestration, cached endpoint capability verification, and host exposure of the narrow `create_memory` tool. Treat **inline ACP-compatible interaction capture** as the preferred live-agent integration direction where available: Continuity should sit between an ACP-capable client/host and downstream agent, automatically persist every exposed user/agent/tool/session event that traverses that path, and optionally supply retrieved historical context before downstream processing. ACP is the conversational/session data plane; MCP/API remain explicit memory/tool surfaces rather than the ordinary transcript-persistence mechanism. This direction is not IDE-specific. Preserve the product requirement independently of the current Draft ACP proxy-chain/MCP-over-ACP mechanics; closed provider/web surfaces still require imports or provider-specific adapters. See ADR 0015.
-4. Extend provider transport beyond the implemented `openai-ready` embedding/General paths and implemented `openai-codex` device-code + General/Insomnia execution: add OAuth token refresh and later provider-native/local adapters; replace temporary JSON key persistence with an OS credential-store implementation before production.
-5. Add Graph as its own semantic owner and reconnect Dream only after Memories are operational; Ego follows the shared runtime and memory retrieval path. Add **Echo** as the separate source-scoped historical reasoning/CoT owner defined by ADR 0014 before Ego begins consuming reasoning history: Echo is cold by default, outside the Memory lifecycle, cannot establish user authority or truth, and is searchable only after ordinary retrieval selects exactly one visible source event. Initial Echo retrieval has no conversation-wide scope, source sets, automatic neighboring-turn expansion, Episode-wide scope, or global search. Provider-native traces remain structurally faithful while normalized under that one visible source: ChatGPT graph reasoning events, DeepSeek `THINK` fragments, Hermes/Codex action-loop summaries plus opaque encrypted reasoning items, and Claude ordered thinking/tool traces with raw/hidden/summary/signature states. Provenance units and derived retrieval units are distinct so large raw reasoning blocks can be segmented without destroying their native source representation. **Dream rebuild constraint:** processing direction must not determine semantic edge direction. Candidate evaluation should treat the selected/source Memory only as the scheduling trigger, evaluate the Memory pair, and return the correct relationship orientation independently (for example, processing B against A must still be able to persist `A --factual--> B` when A supplies the fact used by B). Do not preserve the native Go coupling where Dream can emit only `SOURCE -> CANDIDATE`. This also requires redesigning the old source-owned replacement/retraction rule so an edge discovered from the opposite evaluation direction cannot later be retracted merely because it is not reproduced by the endpoint Memory's own pass. **Dream lifecycle constraint:** rebuild the active lifecycle as `extracted → knowledge → canonical`, with `archived` as the retained inactive state rather than restoring the old separate `snapshot` concept. Canonical means the current preferred/authoritative representation, not permanence or age, and remains fully duplicatable, supersedable, relatable, and reconsiderable. Superseded memories and non-representative semantic duplicates should become archived while retaining provenance and graph/equivalence history; duplicate archival must not erase repetition evidence used by Dream or Ego. Existing canonical representatives should not be displaced by a newer duplicate merely because it is newer. Ego should prefer canonical memories during synthesis while still using archived history when historical/repetition evidence is relevant.
-6. Continue measurement-driven Archive packing/checkpoint/ANN work separately; do not block Insomnia bring-up on speculative storage acceleration.
+- accept individual live user/agent interaction events rather than requiring batch import;
+- preserve stable session/conversation identity across reconnect/resume;
+- normalize completed messages, attachments/artifacts, and supported tool/session events without making any transport protocol semantically authoritative;
+- assemble streamed messages into one documented durable publication boundary;
+- schedule inactivity/size-driven Episode work continuously;
+- run Memory/vector work continuously in the background;
+- cache verified model/embedding capabilities safely;
+- expose the narrow explicit memory-control operations needed by hosts;
+- define heartbeat, cancellation, retry, and shutdown behavior for long-running inference work.
 
-## Implementation sequence
+### 2. CVA management API
 
-For each new store:
+Expose coherent user-facing administration without introducing a generalized database abstraction.
 
-```text
-define authority + records
-    ↓
-define local mutation/revision semantics
-    ↓
-attach global ordering only as needed
-    ↓
-prove reopen/recovery
-    ↓
-measure simple implementation
-    ↓
-add acceleration
-```
+The management surface should compose explicit owner operations for:
 
-## Acceptance criteria
+- conversation/session inventory and inspection;
+- file inventory, import, export, source provenance, and later organization;
+- Memory inventory, provenance, lifecycle inspection, and permitted manual lifecycle actions;
+- health, verification, statistics, and diagnostics;
+- selective import/export of user-owned state;
+- safe unlink/removal operations only after retention/history semantics are defined.
 
-A storage slice is complete only when ownership, persistent format, failure/recovery, focused tests, documentation coverage, and derived-vs-authoritative state are explicit.
+The management layer must remain an application/service surface over concrete owners, not a new semantic owner or generic mutable object store.
+
+### 3. Native Continuity interface
+
+Build the first direct product surface over the shared runtime and management API.
+
+The initial interface should make a CVA useful without exposing storage internals:
+
+- workspace/project selection;
+- conversational agent surface;
+- conversation/history browser;
+- file browser;
+- Memory/knowledge browser;
+- provenance/history inspection;
+- agent/model selection and configuration;
+- basic health/status visibility.
+
+The interface should be useful to a non-developer without requiring ACP, MCP, a terminal, an IDE, or knowledge of CVA internals.
+
+### 4. ACP interoperability adapter
+
+Implement ACP as a first-class external agent/client adapter over the same live runtime used by the native interface.
+
+Required work includes:
+
+- map ACP session/message identity onto the normalized interaction/session contract;
+- capture supported observable messages, attachments, tool events, and surfaced reasoning without treating ACP metadata as semantic authority;
+- define streamed-message assembly and acknowledgement durability;
+- support retrieval/context injection without rewriting authoritative source events;
+- define reconnect/resume and fail-open/fail-closed behavior;
+- isolate Draft/protocol churn inside the adapter;
+- preserve privacy/consent controls for automatic capture.
+
+ACP-specific behavior remains constrained by [ADR 0015](decisions/0015-acp-inline-interaction-stream.md), as amended by ADR 0016.
+
+### 5. Production import and adapter layer
+
+Add historical/closed-provider ingestion adapters that feed the same normalized source contract as live interaction paths.
+
+Priorities:
+
+- production ChatGPT import;
+- Claude/provider export import;
+- Codex/Hermes and other agent-session adapters where structured history is available;
+- provider research/artifact provenance, including a distinction between the initiating workflow, produced artifact, and artifact provenance;
+- deterministic re-import/idempotency rules;
+- explicit handling of edits, replacements, deleted messages, and provider-specific branches.
+
+### 6. File usability
+
+Add product-level file usability:
+
+- standalone file add/import and export through management surfaces;
+- user-visible path/folder/tree organization semantics;
+- rename/move semantics that preserve underlying immutable content identity;
+- extraction pipelines for supported document/file types;
+- file-content indexing and retrieval with explicit separation between filename metadata and content-derived indexes;
+- generated-artifact provenance and later artifact lifecycle policy.
+
+### 7. Production runtime and security hardening
+
+- OAuth token refresh for provider credentials;
+- operating-system credential-store backed master-key persistence;
+- default OS application/config locations;
+- provider retry/backoff and rate-limit adaptation;
+- runtime observability without leaking secrets or user content;
+- crash-safe service restart and background-work recovery;
+- explicit local IPC/API authentication and authorization if a service boundary is exposed.
+
+## Parallel intelligence-quality work
+
+Continue Insomnia quality work independently from product-surface construction:
+
+1. integrate the two-pass authority/disposition architecture into the authoritative runtime so pass 1 owns disposition, authority, lifecycle, provenance, and other selected semantic metadata while pass 2 is restricted to faithful wording/consolidation;
+2. verify the integrated runtime against the focused tuning fixture, including mixed-turn omission/retention and provenance ownership boundaries;
+3. run the large corpus only as a milestone confirmation after the integrated path is stable;
+4. tune synthesis-model/reasoning cost and throughput only after the ownership split is verified;
+5. recalibrate worker concurrency for the selected production model mix rather than carrying forward an older optimum by assumption.
+
+Do not add a general third semantic-review pass or broader retrieval unless a measured failure demonstrates a distinct need.
+
+## Later semantic layers
+
+### Echo
+
+Add Echo as the source-scoped historical reasoning owner defined by [ADR 0014](decisions/0014-echo-historical-reasoning-traces.md). Keep it cold by default, non-authoritative, and source-scoped rather than globally searchable.
+
+### Graph and Dream
+
+Add Graph as its own semantic owner and reconnect Dream with pair-oriented relationship evaluation. Processing direction must not determine semantic edge direction. Rebuild lifecycle handling around `extracted → knowledge → canonical`, with `archived` as retained inactive history for superseded and non-representative duplicate Memories.
+
+### Ego
+
+Add active context synthesis only after the shared runtime, Memory retrieval, and graph/lifecycle semantics are stable enough to provide trustworthy inputs.
+
+## Storage, scale, and historical recovery
+
+Keep these measurement-driven and independent from product-surface work:
+
+- Archive checkpoint representation/cadence;
+- bounded packing/compression;
+- mapped/segmented vector scanning and ANN acceleration;
+- persistent lexical acceleration only if reopen/query measurements justify it;
+- quantized searchable representations;
+- explicit vector-generation retirement;
+- whole-CVA historical views and restore-and-continue;
+- retention, reachability, compaction, and vacuum;
+- concurrent append/version reservation.
+
+Whole-CVA historical recovery has its own future-only plan in [Versioning, historical cuts, and rollback](version-history-plan.md).
+
+## Product acceptance gates
+
+### Usable local product
+
+A non-developer can create/open a user-owned CVA, converse through the native interface, add/view/export files, browse conversations and durable knowledge, and understand basic provenance without CLI use.
+
+### Interoperable product
+
+The same CVA can receive equivalent normalized interaction history from the native interface and at least one external agent protocol adapter without protocol-specific semantic records.
+
+### Durable live product
+
+Long-running capture, background processing, reconnect, crash/restart, and provider failures have explicit tested behavior and do not silently lose acknowledged source events.
+
+### Expandable semantic product
+
+New semantic owners remain purpose-built, use stable cross-owner IDs, and do not require a generalized CVA root/dependency framework.
 
 ## Open decisions
 
-- Archive checkpoint representation, cadence, and retention.
-- Exact pack target size, Archive record grouping, and compression codec; ADR 0004 fixes the bounded ancestry-aware shape but leaves these measurement-driven.
-- Actual concurrent file append/version reservation mechanics.
-- Broader calibration of compatibility policy v2 against representative routed/local embedding endpoints beyond the measured OpenRouter/Qwen3 route.
-- Explicit vector-generation retirement/deactivation and retention policy.
-- Quantization metadata and alternate packed representations for published generations.
-- Whole-CVA historical materialization and restore/timeline representation now that Archive, Memories, and Vector Generations are concrete mutable semantic domains.
-- Retention/vacuum semantics for abandoned conversation/session branches.
-- Dream pair-evaluation ownership: define how independently oriented edges are identified, attributed, reconsidered, and retracted once semantic edge direction is decoupled from the Memory that triggered processing. The rebuilt design must not require the semantically correct edge origin to be selected as the processing source before that edge can exist.
-- Dream lifecycle reconciliation: implement `extracted → knowledge → canonical` plus `archived`, with no separate `snapshot` state unless a future qualitative distinction is demonstrated. Define deterministic representative selection for equivalent non-canonical memories and restoration behavior when a relationship that caused archival is later retracted. Superseded and duplicate memories remain durable evidence; archived duplicates continue to count toward equivalence/repetition history.
-- Deferred importer/artifact provenance: provider research workflows such as ChatGPT Deep Research appear to produce separately managed report artifacts whose provenance is distinct from ordinary assistant messages and from generic generated/uploaded artifacts. Preserve the conceptual separation between (1) the initiating research turn, (2) the relationship from that turn/workflow to the produced artifact, and (3) artifact provenance such as `deep_research`, independent of the artifact's physical/document type. Do not collapse this into a message-level `generation_mode`, and do not treat later messages that merely reference a saved research report as research outputs themselves. This is a future import/artifact-normalization concern, not a near-term implementation priority.
+- User-facing workspace/project model and whether one CVA maps one-to-one to that concept.
+- Exact normalized interaction/session event vocabulary above Archive ingestion.
+- Native UI/runtime process topology and local IPC boundary.
+- Which CVA mutations are safe to expose as direct user actions before whole-history retention semantics exist.
+- Streaming acknowledgement point: before or after durable source publication.
+- Adapter failure policy and privacy controls for automatic capture.
+- File path/tree ownership and rename/move identity semantics.
+- Artifact provenance vocabulary across uploaded, generated, imported, and provider-managed artifacts.
+- Archive checkpoint representation, packing/compression choices, and retention policy.
+- Whole-CVA restore/timeline terminology and retention semantics.
 
 ## Related docs
 
 - [Architecture](architecture.md)
 - [Current limitations](current-limitations.md)
 - [Versioning and rollback plan](version-history-plan.md)
-- [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md)
-- [ADR 0009](decisions/0009-expandable-model-switchboard.md)
-- [ADR 0010](decisions/0010-encrypted-credential-objects.md)
-- [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
-- [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
-- [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 - [ADR 0014](decisions/0014-echo-historical-reasoning-traces.md)
 - [ADR 0015](decisions/0015-acp-inline-interaction-stream.md)
+- [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
 
 ## Notes
 
-Sequence can change with measurements; ownership boundaries should not.
+This file is future-only by policy. When a roadmap item ships, remove it from this document and document the resulting behavior in the current-state owners instead.

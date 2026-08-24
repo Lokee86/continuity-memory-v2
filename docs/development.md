@@ -24,6 +24,11 @@ src/master_key*.rs                  generated master key + temporary JSON key st
 src/cva*.rs                         composition/public CVA lifecycle
 src/container*.rs                   physical CVA substrate/global ordering
 src/archive*.rs / fragment*.rs      Archive semantics/history/fragments
+src/turn_ingest*.rs / file*.rs      native source-turn attachments + embedded files
+src/episode*.rs                     deterministic Archive Episodes
+src/memory*.rs                      authoritative Memory bodies/revisions
+src/insomnia.rs / insomnia/**       extraction, evidence, scheduling, finite worker
+src/memory_vector*.rs               immutable Memory body/profile row bindings
 src/packed_vector*.rs               immutable packed matrices
 src/archive_vector*.rs              immutable row -> FragmentId bindings
 src/embedding_endpoint.rs           endpoint contract + deterministic simulation
@@ -380,4 +385,4 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 
 ## Notes
 
-Additional provider-native/local adapters, Codex OAuth token refresh, and production import interfaces are not implemented in this repository.
+The current library has a synchronous per-turn ingestion primitive and the development graph importer can drive it, but no long-lived live-ingestion runtime, CVA management service, native product UI, ACP adapter, or production provider/session importer exists yet. Additional provider-native/local adapters and Codex OAuth token refresh are also absent; future sequencing is owned by [Roadmap](roadmap.md).

@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 ## Overview
-The public API exposes `ContinuityConfig` and the initial model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; vector backing/publication; compatibility profiles; hybrid retrieval; simulated and direct OpenAI-ready embedding capabilities; chunk references; and errors. It remains development-stage.
+The public API exposes `ContinuityConfig` and model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; Episodes; Memories; embedded files and source attachments; vector backing/publication; compatibility profiles; hybrid retrieval; simulated and direct provider capabilities; chunk references; and errors. It remains development-stage.
 ## Exact contract
 ### Local configuration
 `ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
@@ -24,9 +24,29 @@ Core operations through `Cva` include `append_node`, native `ingest_turn`, `appe
 
 `ingest_turn(IncomingTurn)` is the source-ingestion boundary. `IncomingTurn` carries the source node plus zero or more `IncomingAttachment { filename, mime_type, bytes }` values. The node, attachment manifests, and source-to-file provenance are published as one Archive semantic mutation; callers do not store an attachment and then separately link it back to the turn. `files_for_source(conversation_id, node_id)` resolves those native attachments. Repeating the identical source event is idempotent; changing the attachment set for an existing node is a conflict.
 
-`store_file` remains the lower-level path for a file that is not being introduced as part of a source turn. `link_file_to_memory` is intentionally separate: a later Memory relationship is a real cross-owner semantic link, not source-ingestion provenance. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary CAM bytes. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
+This is currently a synchronous Rust library operation, not a continuously running capture service. The development importer calls it once per normalized input node; no live protocol/runtime endpoint invokes it automatically yet.
+
+`store_file` remains the lower-level path for a file that is not being introduced as part of a source turn. `link_file_to_memory` is intentionally separate: a later Memory relationship is a real cross-owner semantic link, not source-ingestion provenance. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary binary CAM bytes. One `CVACONT1` content object uses a `u32` byte-length field, so one stored file/content body must be smaller than 4 GiB. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
 
 Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
+
+### Episodes
+
+Public Episode models are `Episode`, `EpisodeId`, `EpisodeOrigin::{Live, Import}`, `EpisodeBoundary::{Size, Inactivity, CreateMemory, ImportEnd}`, `EpisodeConfig`, and `EpisodeBuildResult`. `DEFAULT_EPISODE_MAX_INPUT_BYTES` is 32 KiB and `DEFAULT_EPISODE_INACTIVITY_NS` is the current inactivity-policy default.
+
+`materialize_branch_episodes` and `materialize_path_episodes` derive deterministic contiguous ancestry ranges from whole user-led response cycles. `episodes`, `episodes_for_conversation`, `episode`, and `episode_turns` inspect the resulting Archive-owned source ranges. Finalizing an Episode does not close its conversation.
+
+### Memories
+
+Public Memory models are `MemoryId`, `MemoryBodyId`, `MemoryRevisionId`, `MemoryDraft`, `Memory`, `MemoryStats`, and `MemoryError`.
+
+`Cva::publish_memory(id, expected_revision, draft)` publishes one Memory revision after validating Archive/Episode provenance. A new Memory may omit `id`, in which case its stable ID derives from `mutation_id`; replaying the same mutation/draft is idempotent, while changed content under the same mutation conflicts. Existing Memory IDs require the exact expected current revision.
+
+A Memory's semantic title/content is represented by one immutable `MemoryBodyId`. Later revisions may change metadata, provenance, lifecycle, archival, parent, or supersession state, but they cannot mutate semantic title/content in place. A semantic correction is therefore another Memory rather than a rewritten body.
+
+`memory(id)`, `memory_revision(id, revision)`, `memory_stats()`, `memory_version()`, and `memory_body_id(id)` expose current/historical revision state and the dense Memory-local watermark. Memory publication consumes one CVA-global semantic version and one dense `memory_version`; Memory-body backing objects are content-addressed and clock-neutral.
+
+`source_node_id` plus `source_episode_id` identify user authority inside an authoritative Episode. `content_source_*` identifies adopted/retained assistant authority when present; `grounding_source_*` identifies context used only to resolve a referent. Both external source tuples must resolve to real Archive nodes. Grounding never supplies semantic authority.
 
 ### Packed vectors
 Public types:
@@ -208,4 +228,4 @@ G102/A701  Archive mutation
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 
 ## Notes
-No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. OpenAI-ready embedding/General transport, ChatGPT/Codex device-code acquisition, provider-native Codex General/Insomnia Responses transport, and the finite Insomnia backlog worker are implemented; Codex token refresh and the shared long-lived runtime remain next.
+No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. Product/runtime gaps are tracked in [Current limitations](current-limitations.md), and future sequencing is tracked in [Roadmap](roadmap.md).

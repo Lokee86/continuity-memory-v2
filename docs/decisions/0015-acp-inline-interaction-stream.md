@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted as an integration direction — 2026-08-17. Protocol-specific proxy mechanics remain provisional while the ACP proxy-chain and MCP-over-ACP RFDs are Draft.
+Accepted for ACP adapter capture semantics — 2026-08-17. **Amended by [ADR 0016](0016-native-product-surface-and-shared-interaction-runtime.md)** on 2026-08-24: ACP remains a first-class external interoperability/capture path, but it is no longer the primary Continuity product surface. Protocol-specific proxy mechanics remain provisional while the ACP proxy-chain and MCP-over-ACP RFDs are Draft.
 
 ## Context
 
@@ -148,7 +148,7 @@ If ACP proxy mechanics change, the product requirement and Archive/Memory owners
 - Live transcript capture no longer depends on optional model tool use.
 - The CVA can receive source history at the moment the user/agent interaction occurs rather than through later scraping.
 - Continuity gains a natural interception point for retrieval/context injection before downstream agent processing.
-- ACP can serve as a primary agential interface without requiring an IDE-specific product architecture.
+- ACP can serve as a first-class external agential interface without requiring an IDE-specific product architecture.
 - MCP remains valuable for explicit memory operations without carrying responsibility for transcript persistence.
 - Provider-private reasoning and state remain outside Continuity unless explicitly emitted through the observable stream.
 - ACP-specific transport churn is isolated behind the integration adapter rather than entering Archive semantics.
@@ -157,7 +157,7 @@ If ACP proxy mechanics change, the product requirement and Archive/Memory owners
 ## Open implementation decisions
 
 - exact ACP proxy/conductor integration if/when the Draft proxy-chain RFD stabilizes;
-- whether Continuity ships its own ACP client/front end, acts only as a proxy, or supports both;
+- exact hosting/proxy shape for external ACP agents inside or alongside the native Continuity product surface;
 - mapping ACP session/message identifiers onto Archive conversation/node identity across reconnect/resume;
 - chunk assembly and durable publication boundaries for streamed messages;
 - treatment of edits/replacements/replays when protocol-level message identity is available;
@@ -211,3 +211,4 @@ When implemented, focused tests should prove:
 - [Roadmap](../roadmap.md)
 - [ADR 0012](0012-deterministic-episodes-and-insomnia-memory-authority.md)
 - [ADR 0014](0014-echo-historical-reasoning-traces.md)
+- [ADR 0016](0016-native-product-surface-and-shared-interaction-runtime.md)

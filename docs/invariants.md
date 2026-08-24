@@ -65,6 +65,9 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 51. **Source attachments are intrinsic source-event data.** Importers/runtimes submit a turn and its attachments together; they do not persist a file and then separately reconstruct its source-turn provenance.
 52. **A source turn and its attachments publish together.** The node, attached file manifests, and source-to-file relationship become visible through one Archive semantic mutation; unversioned staged content or turn payloads are inert.
 53. **Later file relationships remain explicit.** A file-to-Memory relationship crosses owners by stable `FileId`/`MemoryId` and does not transfer file authority into Memories.
+54. **Interaction transports do not define semantic storage.** Native UI, ACP, imports, APIs, and future provider adapters must normalize above concrete semantic owners; protocol-specific message models cannot become Archive authority by convenience.
+55. **Product management is not a generalized semantic store.** A CVA management surface may compose explicit owner operations, but it cannot bypass owner validation or introduce a generic mutable object/root/dependency model.
+56. **External protocols are optional product integrations.** The native product surface cannot require ACP, MCP, an IDE, or another external agent host merely to use customer-owned CVA state.
 
 ## Safety boundaries
 
@@ -76,6 +79,7 @@ Changing version ownership, conversation ancestry, mutable-record revision seman
 - [Behavioral contracts](behavioral-contracts.md)
 - [Versioning and rollback plan](version-history-plan.md)
 - [Architectural decisions](decisions/INDEX.md)
+- [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
 
 ## Notes
 

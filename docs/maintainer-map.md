@@ -27,6 +27,12 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 | Branch/session head revisions and old-session revival | [Architecture](architecture.md), [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md) | `src/archive.rs`, `src/archive_history.rs` | `branch_heads_are_append_only_revisions`, `old_conversation_point_can_start_a_new_local_branch` |
 | Content addressing/body reuse | [Architecture](architecture.md), [Storage format](storage-format.md) | `src/archive_store.rs`, `src/archive_codec.rs` | `src/archive_tests.rs` |
 | Native source-turn attachments / embedded files / file-Memory links | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md) | `src/turn_ingest_*.rs`, `src/source_attachment_index.rs`, `src/file*.rs`, `src/cva_turn_ingest.rs`, `src/cva_file_memory.rs` | `src/turn_ingest_tests.rs`, `src/file_tests.rs`, `src/file_memory_link_tests.rs` |
+| Deterministic Episodes / finalization policy | [Architecture](architecture.md), [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md) | `src/episode_*.rs` | `src/episode_tests.rs` |
+| Memories / revision authority / provenance | [Architecture](architecture.md), [Rust API](api.md), [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md) | `src/memory_*.rs`, `src/cva_memory_publish.rs` | `src/memory_tests.rs` |
+| Insomnia extraction / evidence / queue / finite worker | [Architecture](architecture.md), [Current limitations](current-limitations.md), [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md) | `src/insomnia.rs`, `src/insomnia/**/*.rs` | `src/insomnia/**/*tests.rs` |
+| Memory Vector bindings / missing-only embedding | [Architecture](architecture.md), [Rust API](api.md), [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md) | `src/memory_vector_*.rs`, `src/cva_memory_vectors.rs` | `src/memory_vector_tests.rs`, `src/insomnia/worker_vector_tests.rs` |
+| Live interaction runtime / CVA management / native product UI | [Roadmap](roadmap.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) | not implemented | future runtime/management/UI integration suites |
+| ACP interoperability adapter | [ADR 0015](decisions/0015-acp-inline-interaction-stream.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md), [Roadmap](roadmap.md) | not implemented | future adapter normalization/capture suites |
 | Fragment identity/windows/tails | [Architecture](architecture.md), [Storage format](storage-format.md) | `src/fragment_*` | `src/fragment_tests.rs` |
 | Packed-vector representation/storage | [Storage format](storage-format.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) | `src/packed_vector_*`, Lodestone `crates/packed` | `src/packed_vector_tests.rs`, Lodestone packed tests |
 | Archive-Vector row bindings | [Storage format](storage-format.md), [ADR 0006](decisions/0006-archive-vector-row-bindings.md) | `src/archive_vector_*`, `src/cva_archive_vectors.rs` | `src/archive_vector_tests.rs` |
@@ -54,6 +60,9 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 - Vector Generations own profile/population activation, Archive coverage, and the vector-local semantic watermark.
 - Archive and vector-local version adjacency do not imply ancestry or cross-store dependency identity.
 - Node parent links and branch/session revisions own local conversation history.
+- Source attachments are intrinsic to source-turn ingestion; later file-to-Memory links remain explicit cross-owner references.
+- Future live runtimes and product surfaces normalize transport events above semantic owners; ACP/native UI/import details do not define Archive semantics.
+- A future CVA management surface composes concrete owner APIs and cannot become a generalized semantic store.
 - Future stores retain independent authority even when they share the CVA global clock.
 
 ## Related docs
@@ -65,4 +74,4 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 
 ## Notes
 
-Update this map when new stores or the shared runtime gain concrete implementation roots.
+Update this map when future runtime, management, UI, adapter, or semantic-store work gains concrete implementation roots.
