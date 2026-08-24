@@ -36,7 +36,7 @@ Content:
 8 bytes   "CVACONT1"
 32 bytes  ContentId = SHA-256(content)
 u32       byte length
-N bytes   UTF-8 content
+N bytes   arbitrary content bytes
 ```
 Node:
 ```text
@@ -65,6 +65,17 @@ string    conversation ID
 string    start node ID
 string    end node ID
 ```
+File manifest:
+```text
+8 bytes   "CVAFILE1"
+32 bytes  FileId
+32 bytes  ContentId
+u64       original byte length
+string    filename
+string    MIME type; empty = none
+```
+File bytes reuse the content-addressed `CVACONT1` store. `FileId` is SHA-256 over the `CVAFILE1-ID\0` domain separator, `ContentId`, byte length, length-prefixed filename, and length-prefixed MIME type. Identical bytes therefore share one content object while distinct filenames or MIME metadata remain distinct file manifests.
+
 Archive semantic metadata:
 ```text
 8 bytes   "CVAAREC1"
@@ -73,7 +84,7 @@ u64       Archive version
 u64       record chunk offset
 u64       record payload length
 ```
-Archive versions begin at `1` and are contiguous. A semantic Archive payload without valid metadata is inert. Fragment creation Archive versions are retained in the derived fragment index so later generation coverage can be validated.
+Archive versions begin at `1` and are contiguous. A semantic Archive payload without valid metadata is inert. Nodes, branches, fragments, episodes, and file manifests are semantic Archive payloads. Fragment creation Archive versions are retained in the derived fragment index so later generation coverage can be validated.
 ### Packed vectors
 Format marker:
 ```text
@@ -253,4 +264,4 @@ Default fragments use eight turns with two-turn overlap. Compatibility probe sui
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 ## Notes
-These are development formats. Migration, packing/compression, authentication/encryption, quantization metadata, persistent lexical indexing, ANN acceleration, and retention/vacuum remain future work.
+These are development formats. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. File-tree semantics, file-content extraction/indexing, migration, packing/compression, authentication/encryption, quantization metadata, persistent lexical indexing, ANN acceleration, and retention/vacuum remain future work.

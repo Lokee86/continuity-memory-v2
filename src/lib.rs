@@ -52,6 +52,9 @@ mod episode_index;
 mod episode_model;
 mod episode_policy;
 mod episode_store;
+mod file_index;
+mod file_model;
+mod file_store;
 mod fragment_model;
 mod fragment_store;
 mod fragmenter;
@@ -127,6 +130,7 @@ pub use episode_model::{
     EpisodeId, EpisodeOrigin,
 };
 pub use episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
+pub use file_model::{FileId, FileSearchHit, StoredFile};
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
 pub use insomnia::{
@@ -199,6 +203,8 @@ mod container_tests;
 mod credential_tests;
 #[cfg(test)]
 mod episode_tests;
+#[cfg(test)]
+mod file_tests;
 #[cfg(test)]
 mod fragment_tests;
 #[cfg(test)]

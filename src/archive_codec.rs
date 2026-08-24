@@ -1,10 +1,13 @@
 use crate::episode_codec::{EPISODE_MAGIC, decode_episode};
-use crate::{ArchiveError, Branch, ContentId, Episode, Fragment, FragmentId, Node};
+use crate::{
+    ArchiveError, Branch, ContentId, Episode, FileId, Fragment, FragmentId, Node, StoredFile,
+};
 
 const CONTENT_MAGIC: [u8; 8] = *b"CVACONT1";
 const NODE_MAGIC: [u8; 8] = *b"CVANODE1";
 const BRANCH_MAGIC: [u8; 8] = *b"CVABRCH1";
 const FRAGMENT_MAGIC: [u8; 8] = *b"CVAFRAG1";
+const FILE_MAGIC: [u8; 8] = *b"CVAFILE1";
 
 pub enum ArchiveRecord {
     Content(ContentId, Vec<u8>),
@@ -12,6 +15,7 @@ pub enum ArchiveRecord {
     Branch(Branch),
     Fragment(Fragment),
     Episode(Episode),
+    File(StoredFile),
     Other,
 }
 
@@ -57,6 +61,17 @@ pub fn encode_fragment(fragment: &Fragment) -> Result<Vec<u8>, ArchiveError> {
     Ok(out)
 }
 
+pub fn encode_file(file: &StoredFile) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = Vec::with_capacity(128 + file.filename.len());
+    out.extend_from_slice(&FILE_MAGIC);
+    out.extend_from_slice(&file.id.0);
+    out.extend_from_slice(&file.content_id.0);
+    out.extend_from_slice(&file.byte_length.to_le_bytes());
+    write_string(&mut out, &file.filename)?;
+    write_string(&mut out, file.mime_type.as_deref().unwrap_or(""))?;
+    Ok(out)
+}
+
 pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 8 {
         return Ok(ArchiveRecord::Other);
@@ -72,6 +87,9 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     }
     if bytes[..8] == FRAGMENT_MAGIC {
         return decode_fragment(bytes);
+    }
+    if bytes[..8] == FILE_MAGIC {
+        return decode_file(bytes);
     }
     if bytes[..8] == EPISODE_MAGIC {
         return decode_episode(bytes)?
@@ -155,6 +173,26 @@ fn decode_fragment(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
         conversation_id,
         start_node_id,
         end_node_id,
+    }))
+}
+
+fn decode_file(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
+    if bytes.len() < 80 {
+        return Err(ArchiveError::CorruptRecord("short file record"));
+    }
+    let id = FileId(bytes[8..40].try_into().unwrap());
+    let content_id = ContentId(bytes[40..72].try_into().unwrap());
+    let byte_length = u64::from_le_bytes(bytes[72..80].try_into().unwrap());
+    let mut cursor = 80;
+    let filename = read_string(bytes, &mut cursor)?;
+    let mime_type = read_string(bytes, &mut cursor)?;
+    require_end(bytes, cursor)?;
+    Ok(ArchiveRecord::File(StoredFile {
+        id,
+        content_id,
+        filename,
+        mime_type: (!mime_type.is_empty()).then_some(mime_type),
+        byte_length,
     }))
 }
 

@@ -2,6 +2,7 @@ use crate::archive_codec::{encode_branch, encode_node};
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::{hash_content, validate_text};
+use crate::file_index::FileIndex;
 use crate::{
     ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, Node, ResolvedTurn,
 };
@@ -12,6 +13,7 @@ pub struct Archive {
     pub(crate) branches: BranchIndex,
     pub(crate) fragments: FragmentIndex,
     pub(crate) episodes: crate::episode_index::EpisodeIndex,
+    pub(crate) files: FileIndex,
     pub(crate) record_versions: Vec<ArchiveRecordVersion>,
     pub(crate) next_archive_version: u64,
 }
@@ -124,6 +126,7 @@ impl Archive {
             branches: self.branches.len(),
             fragments: self.fragments.len(),
             episodes: self.episodes.len(),
+            files: self.files.len(),
         }
     }
 }

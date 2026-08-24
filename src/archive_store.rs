@@ -11,6 +11,7 @@ impl Archive {
             branches: Default::default(),
             fragments: Default::default(),
             episodes: Default::default(),
+            files: Default::default(),
             record_versions: Vec::new(),
             next_archive_version: 1,
         }
@@ -22,13 +23,22 @@ impl Archive {
         id: ContentId,
         content: &str,
     ) -> Result<(), ArchiveError> {
+        self.put_content_bytes(container, id, content.as_bytes())
+    }
+
+    pub(crate) fn put_content_bytes(
+        &mut self,
+        container: &mut Container,
+        id: ContentId,
+        content: &[u8],
+    ) -> Result<(), ArchiveError> {
         if self.contents.contains(id) {
-            if self.content(container, id)? != content {
+            if self.content_bytes(container, id)? != content {
                 return Err(ArchiveError::HashCollision);
             }
             return Ok(());
         }
-        let chunk = container.append(&encode_content(id, content.as_bytes())?)?;
+        let chunk = container.append(&encode_content(id, content)?)?;
         self.contents.insert(id, chunk);
         Ok(())
     }
@@ -38,11 +48,17 @@ impl Archive {
         container: &mut Container,
         id: ContentId,
     ) -> Result<String, ArchiveError> {
+        String::from_utf8(self.content_bytes(container, id)?).map_err(|_| ArchiveError::InvalidUtf8)
+    }
+
+    pub(crate) fn content_bytes(
+        &self,
+        container: &mut Container,
+        id: ContentId,
+    ) -> Result<Vec<u8>, ArchiveError> {
         let chunk = self.contents.get(id).ok_or(ArchiveError::MissingContent)?;
         match decode_record(&container.read(chunk)?)? {
-            ArchiveRecord::Content(found, bytes) if found == id => {
-                String::from_utf8(bytes).map_err(|_| ArchiveError::InvalidUtf8)
-            }
+            ArchiveRecord::Content(found, bytes) if found == id => Ok(bytes),
             _ => Err(ArchiveError::MissingContent),
         }
     }
@@ -86,6 +102,7 @@ impl Archive {
         }
         self.validate_fragments()?;
         self.validate_episodes()?;
+        self.validate_files()?;
         Ok(())
     }
 

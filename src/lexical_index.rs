@@ -1,11 +1,13 @@
 use crate::lexical_search::{LexicalHit, term_counts};
-use crate::{Archive, ArchiveError, Container, Fragment};
+use crate::{Archive, ArchiveError, Container, FileSearchHit, Fragment, StoredFile};
 use std::collections::HashMap;
 
 #[derive(Default)]
 pub(crate) struct LexicalIndex {
     fragments: Vec<IndexedFragment>,
     postings: HashMap<String, Vec<Posting>>,
+    files: Vec<StoredFile>,
+    file_postings: HashMap<String, Vec<FilePosting>>,
 }
 
 #[derive(Clone)]
@@ -17,6 +19,12 @@ struct IndexedFragment {
 #[derive(Clone, Copy)]
 struct Posting {
     fragment_slot: usize,
+    frequency: u8,
+}
+
+#[derive(Clone, Copy)]
+struct FilePosting {
+    file_slot: usize,
     frequency: u8,
 }
 
@@ -41,6 +49,20 @@ impl LexicalIndex {
                 archive_version: archive.fragments.archive_version(fragment.id).unwrap_or(0),
             });
         }
+        for file in archive.files.iter().skip(self.files.len()) {
+            let counts = term_counts(&file.filename);
+            let slot = self.files.len();
+            for (term, count) in counts {
+                self.file_postings
+                    .entry(term)
+                    .or_default()
+                    .push(FilePosting {
+                        file_slot: slot,
+                        frequency: u8::try_from(count.min(4)).unwrap_or(4),
+                    });
+            }
+            self.files.push(file.clone());
+        }
         Ok(())
     }
 
@@ -54,21 +76,17 @@ impl LexicalIndex {
                 continue;
             };
             for posting in postings {
-                let entry = scores.entry(posting.fragment_slot).or_default();
-                entry.matched_terms += 1;
-                entry.frequency += usize::from(posting.frequency);
+                add_score(&mut scores, posting.fragment_slot, posting.frequency);
             }
         }
         let mut hits = scores
             .into_iter()
             .map(|(slot, parts)| {
                 let indexed = &self.fragments[slot];
-                let coverage = parts.matched_terms as f64 / terms.len() as f64;
-                let density = (parts.frequency as f64 / (terms.len() * 2) as f64).min(1.0);
                 (
                     LexicalHit {
                         fragment: indexed.fragment.clone(),
-                        score: 0.85 * coverage + 0.15 * density,
+                        score: score(parts, terms.len()),
                     },
                     indexed.archive_version,
                 )
@@ -85,10 +103,53 @@ impl LexicalIndex {
         hits.truncate(limit);
         hits.into_iter().map(|(hit, _)| hit).collect()
     }
+
+    pub(crate) fn search_files(&self, terms: &[String], limit: usize) -> Vec<FileSearchHit> {
+        if terms.is_empty() || limit == 0 {
+            return Vec::new();
+        }
+        let mut scores: HashMap<usize, ScoreParts> = HashMap::new();
+        for term in terms {
+            let Some(postings) = self.file_postings.get(term) else {
+                continue;
+            };
+            for posting in postings {
+                add_score(&mut scores, posting.file_slot, posting.frequency);
+            }
+        }
+        let mut hits = scores
+            .into_iter()
+            .map(|(slot, parts)| FileSearchHit {
+                file: self.files[slot].clone(),
+                score: score(parts, terms.len()),
+            })
+            .collect::<Vec<_>>();
+        hits.sort_by(|left, right| {
+            right
+                .score
+                .total_cmp(&left.score)
+                .then_with(|| left.file.filename.cmp(&right.file.filename))
+                .then_with(|| left.file.id.0.cmp(&right.file.id.0))
+        });
+        hits.truncate(limit);
+        hits
+    }
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 struct ScoreParts {
     matched_terms: usize,
     frequency: usize,
+}
+
+fn add_score(scores: &mut HashMap<usize, ScoreParts>, slot: usize, frequency: u8) {
+    let entry = scores.entry(slot).or_default();
+    entry.matched_terms += 1;
+    entry.frequency += usize::from(frequency);
+}
+
+fn score(parts: ScoreParts, term_count: usize) -> f64 {
+    let coverage = parts.matched_terms as f64 / term_count as f64;
+    let density = (parts.frequency as f64 / (term_count * 2) as f64).min(1.0);
+    0.85 * coverage + 0.15 * density
 }

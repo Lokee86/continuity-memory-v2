@@ -9,9 +9,9 @@ use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, CvaError,
-    Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig, EpisodeId, EpisodeOrigin,
+    Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig, EpisodeId, EpisodeOrigin, FileId,
     Fragment, FragmentConfig, FragmentId, Memory, MemoryDraft, MemoryError, MemoryId, MemoryStats,
-    Node, ResolvedTurn,
+    Node, ResolvedTurn, StoredFile,
 };
 
 pub struct Cva {
@@ -230,6 +230,28 @@ impl Cva {
 
     pub fn fragments(&self) -> Vec<Fragment> {
         self.archive.fragments()
+    }
+
+    pub fn store_file(
+        &mut self,
+        filename: String,
+        mime_type: Option<String>,
+        bytes: &[u8],
+    ) -> Result<StoredFile, ArchiveError> {
+        self.archive
+            .store_file(&mut self.container, filename, mime_type, bytes)
+    }
+
+    pub fn file(&self, id: FileId) -> Option<&StoredFile> {
+        self.archive.file(id)
+    }
+
+    pub fn files(&self) -> Vec<StoredFile> {
+        self.archive.files()
+    }
+
+    pub fn file_bytes(&mut self, id: FileId) -> Result<Vec<u8>, ArchiveError> {
+        self.archive.file_bytes(&mut self.container, id)
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

@@ -4,6 +4,7 @@ use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::hash_content;
 use crate::episode_index::EpisodeIndex;
+use crate::file_index::FileIndex;
 use crate::{Archive, ArchiveError, ArchiveRecordVersion, ChunkRef};
 use std::collections::{HashMap, HashSet};
 
@@ -13,6 +14,7 @@ pub(crate) struct ArchiveOpenState {
     branches: BranchIndex,
     fragments: FragmentIndex,
     episodes: EpisodeIndex,
+    files: FileIndex,
     record_versions: Vec<ArchiveRecordVersion>,
     pending_records: HashMap<ChunkRef, ArchiveRecord>,
     versioned_records: HashSet<ChunkRef>,
@@ -28,6 +30,7 @@ impl ArchiveOpenState {
             branches: Default::default(),
             fragments: Default::default(),
             episodes: Default::default(),
+            files: Default::default(),
             record_versions: Vec::new(),
             pending_records: HashMap::new(),
             versioned_records: HashSet::new(),
@@ -63,7 +66,8 @@ impl ArchiveOpenState {
             record @ (ArchiveRecord::Node(_)
             | ArchiveRecord::Branch(_)
             | ArchiveRecord::Fragment(_)
-            | ArchiveRecord::Episode(_)) => {
+            | ArchiveRecord::Episode(_)
+            | ArchiveRecord::File(_)) => {
                 self.pending_records.insert(chunk, record);
             }
             ArchiveRecord::Other => {}
@@ -81,6 +85,7 @@ impl ArchiveOpenState {
             branches: self.branches,
             fragments: self.fragments,
             episodes: self.episodes,
+            files: self.files,
             record_versions: self.record_versions,
             next_archive_version: self.next_archive_version,
         })
@@ -134,6 +139,7 @@ impl ArchiveOpenState {
                 self.fragments.insert(fragment, archive_version).map(|_| ())
             }
             ArchiveRecord::Episode(episode) => self.episodes.insert(episode).map(|_| ()),
+            ArchiveRecord::File(file) => self.files.insert(file).map(|_| ()),
             _ => Err(ArchiveError::InvalidArchiveRecordVersion),
         }
     }

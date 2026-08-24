@@ -1,5 +1,6 @@
 use crate::archive_codec::encode_node;
-use crate::{Branch, Cva, Node};
+use crate::archive_store::hash_content;
+use crate::{ArchiveError, Branch, Cva, Node};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -94,6 +95,41 @@ fn shared_branch_prefix_and_content_are_stored_once() {
     );
     assert_eq!(a[0].content, "same body");
     assert_eq!(a[2].content, "same body");
+}
+
+#[test]
+fn binary_content_round_trips_across_reopen() {
+    let path = test_path();
+    let bytes = vec![0x00, 0xff, 0x80, 0x41, 0x00, 0xfe, 0x7f];
+    let id = hash_content(&bytes);
+
+    let mut archive = Cva::create(&path).unwrap();
+    archive
+        .archive
+        .put_content_bytes(&mut archive.container, id, &bytes)
+        .unwrap();
+    assert_eq!(
+        archive
+            .archive
+            .content_bytes(&mut archive.container, id)
+            .unwrap(),
+        bytes
+    );
+    assert!(matches!(
+        archive.archive.content(&mut archive.container, id),
+        Err(ArchiveError::InvalidUtf8)
+    ));
+    archive.sync().unwrap();
+    drop(archive);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(
+        reopened
+            .archive
+            .content_bytes(&mut reopened.container, id)
+            .unwrap(),
+        bytes
+    );
 }
 
 #[test]

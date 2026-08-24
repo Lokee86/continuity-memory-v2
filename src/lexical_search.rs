@@ -1,4 +1,4 @@
-use crate::{Archive, Container, Cva, Fragment, SearchError};
+use crate::{Archive, Container, Cva, FileSearchHit, Fragment, SearchError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct LexicalHit {
@@ -16,6 +16,17 @@ impl Cva {
         self.lexical_index
             .ensure_current(&self.archive, &mut self.container)?;
         Ok(self.lexical_index.search(&terms, limit))
+    }
+
+    pub fn search_files(
+        &mut self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<FileSearchHit>, SearchError> {
+        let terms = lexical_terms(query);
+        self.lexical_index
+            .ensure_current(&self.archive, &mut self.container)?;
+        Ok(self.lexical_index.search_files(&terms, limit))
     }
 }
 

@@ -10,7 +10,7 @@ The public API exposes `ContinuityConfig` and the initial model-switchboard type
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
 ### Archive
-Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, and:
+Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, and:
 
 ```text
 ArchiveRecordVersion {
@@ -20,7 +20,7 @@ ArchiveRecordVersion {
 }
 ```
 
-Core operations through `Cva` include `append_node`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, fragment materialization/read methods, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
+Core operations through `Cva` include `append_node`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, fragment materialization/read methods, `store_file`, `file`, `files`, `file_bytes`, `search_files`, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary CAM bytes. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
 
 Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
 
