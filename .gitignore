@@ -14,3 +14,7 @@ continuity.master-key.json
 .arcana/
 .grimoire/
 .lexicon/
+
+# Python generated state
+__pycache__/
+*.pyc

@@ -72,7 +72,7 @@ from pathlib import Path
 
 
 def _rust_contract_prompt(name):
-    contract = Path(__file__).resolve().parents[1] / "examples" / "insomnia_two_pass_sol" / "contract.rs"
+    contract = Path(__file__).resolve().parents[1] / "examples" / "insomnia_three_pass_sol_luna" / "contract.rs"
     text = contract.read_text(encoding="utf-8")
     start_marker = f'pub const {name}: &str = r#"'
     start = text.index(start_marker) + len(start_marker)

@@ -4,6 +4,10 @@
 Gold v3 separates exact benchmark-anchor disposition from semantic-state source
 coverage. Provenance, metadata, forbidden-content, and receipt guards remain
 mechanical; semantic_target equivalence still requires human/model judgment.
+
+When a memory dump has a sibling run.json, scoring is automatically scoped to
+source turns that were actually presented in that run. This prevents trimmed
+fixtures from being penalized for gold cases they could not possibly emit.
 """
 
 import argparse
@@ -24,6 +28,19 @@ NUMBERED_PROGRESS = re.compile(
 
 def load(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def available_sources(path):
+    run_path = Path(path).with_name("run.json")
+    if not run_path.exists():
+        return None
+    sources = set()
+    for episode in load(run_path):
+        for entry in episode.get("ledger", {}).get("entries", []):
+            source = entry.get("source_node_id")
+            if source:
+                sources.add(source)
+    return sources
 
 
 def policy_ok(policy, present):
@@ -75,7 +92,8 @@ def coverage_rows(contract, rows):
     categories = contract.get("coverage_categories")
     types = contract.get("coverage_types")
     return [
-        row for row in rows
+        row
+        for row in rows
         if (not categories or row.get("category") in categories)
         and (not types or row.get("type") in types)
     ]
@@ -112,7 +130,11 @@ def score_source(contract, rows, result, failures, case_id, relation):
     return True
 
 
-def score_run(cases, memories):
+def source_is_available(source_node_id, scope):
+    return scope is None or source_node_id in scope
+
+
+def score_run(cases, memories, scope=None):
     by_source = defaultdict(list)
     for memory in memories:
         by_source[memory.get("source_node_id")].append(memory)
@@ -120,18 +142,26 @@ def score_run(cases, memories):
     result = defaultdict(int)
     failures = defaultdict(list)
     for case in cases:
-        anchor_rows = by_source.get(case["source_node_id"], [])
-        disposition = anchor_disposition(case)
-        anchor_expected = disposition == "retain"
-        anchor_ok = bool(anchor_rows) == anchor_expected
-        result["cases"] += 1
-        result["anchor_ok"] += anchor_ok
-        if not anchor_ok:
-            why = "missing" if anchor_expected else f"unexpected_{disposition}"
-            failures["anchor"].append((case["id"], why))
+        anchor_source = case["source_node_id"]
+        anchor_rows = by_source.get(anchor_source, [])
 
+        if source_is_available(anchor_source, scope):
+            disposition = anchor_disposition(case)
+            anchor_expected = disposition == "retain"
+            anchor_ok = bool(anchor_rows) == anchor_expected
+            result["cases"] += 1
+            result["anchor_ok"] += anchor_ok
+            if not anchor_ok:
+                why = "missing" if anchor_expected else f"unexpected_{disposition}"
+                failures["anchor"].append((case["id"], why))
+
+        sources = [
+            source
+            for source in normalized_sources(case)
+            if source_is_available(source["source_node_id"], scope)
+        ]
         valid_coverage = False
-        for source in normalized_sources(case):
+        for source in sources:
             contract = source_contract(case, source)
             relation = source.get("relation", "anchor")
             valid_coverage = score_source(
@@ -144,11 +174,12 @@ def score_run(cases, memories):
             ) or valid_coverage
 
         if state_retain(case):
-            result["state_cases"] += 1
-            result["state_coverage_ok"] += valid_coverage
-            if not valid_coverage:
-                failures["coverage"].append((case["id"], "missing_valid_state"))
-        else:
+            if sources:
+                result["state_cases"] += 1
+                result["state_coverage_ok"] += valid_coverage
+                if not valid_coverage:
+                    failures["coverage"].append((case["id"], "missing_valid_state"))
+        elif source_is_available(anchor_source, scope):
             result["omit_cases"] += 1
             clean = not anchor_rows
             result["omit_ok"] += clean
@@ -177,6 +208,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="+")
     parser.add_argument("--gold", default=str(DEFAULT_GOLD))
+    parser.add_argument(
+        "--unscoped",
+        action="store_true",
+        help="score all gold cases even when a sibling run.json identifies a trimmed fixture",
+    )
     args = parser.parse_args()
 
     gold = load(args.gold)
@@ -184,11 +220,26 @@ def main():
     aggregate = defaultdict(int)
     print(f"gold={gold.get('version', Path(args.gold).name)}")
     for path in args.paths:
-        result, failures = score_run(cases, load(path))
+        scope = None if args.unscoped else available_sources(path)
+        result, failures = score_run(cases, load(path), scope)
         for key, value in result.items():
             aggregate[key] += value
         print_score(Path(path).name, result)
-        for kind in ("anchor", "coverage", "omit", "authority", "grounding", "metadata", "guards"):
+        if scope is not None:
+            print(
+                f"  scoped to {len(scope)} presented user turns: "
+                f"{result['cases']} anchor cases, {result['state_cases']} state cases, "
+                f"{result['omit_cases']} omit cases"
+            )
+        for kind in (
+            "anchor",
+            "coverage",
+            "omit",
+            "authority",
+            "grounding",
+            "metadata",
+            "guards",
+        ):
             if failures[kind]:
                 detail = ", ".join(f"{case}:{why}" for case, why in failures[kind])
                 print(f"  {kind} failures: {detail}")

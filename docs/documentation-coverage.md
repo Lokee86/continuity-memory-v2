@@ -40,7 +40,8 @@ Only implemented code belongs in this matrix. Future-only product/runtime work i
 | `examples/archive_roundtrip.rs` | Prepared graph-corpus Archive round-trip smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
 | `examples/archive_open_profile.rs` | Standalone open-time/allocator benchmark | [Development](development.md) |
 | `examples/vector_generation_smoke.rs` | Simulated compatibility/generation/retrieval smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
-| `examples/insomnia_two_pass_sol/*`, `examples/run_two_pass_openrouter.rs`, `tools/insomnia_two_pass_prompts.py`, `tools/nous_json_client.py`, `tools/run_insomnia_two_pass.py` | Experimental two-pass Insomnia authority-ledger/synthesis validation plus Ox/Nous/OpenRouter provider compatibility harnesses | [Development](development.md), [Insomnia two-pass validation](insomnia-two-pass-validation-2026-08-24.md), [Roadmap](roadmap.md) |
+| `examples/insomnia_three_pass_sol_luna/*` | Frozen three-model-pass Insomnia tuning harness: Sol-low semantic ledger, deterministic fixed groups, Luna-low metadata, Sol-low wording | [Development](development.md), [Insomnia semantic validation](insomnia-semantic-validation-2026-08-24.md), [Roadmap](roadmap.md) |
+| `examples/run_two_pass_openrouter.rs`, `tools/insomnia_two_pass_prompts.py`, `tools/nous_json_client.py`, `tools/run_insomnia_two_pass.py` | Historical two-pass Ox/Nous/OpenRouter provider-compatibility harnesses sharing the current ledger/synthesis semantic rules | [Development](development.md), [Insomnia semantic validation](insomnia-semantic-validation-2026-08-24.md) |
 
 ## Coverage rules
 

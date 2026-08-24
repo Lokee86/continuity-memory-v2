@@ -298,7 +298,7 @@ Routine semantic tuning no longer uses the full 12-conversation / 66-Episode fix
 
 The selected cases cover the failure modes that have actually driven Insomnia changes: short/deictic adoption, correction plus grounding, unsupported contextual elaboration, asserted tag questions versus pure questions, pure execution receipts, mixed receipt/current-state turns, transient phase metadata, future modality, supersession, over-atomization, long governing architecture with trailing implementation commentary, and simple direct-state sanity. One redundant C-family precision-adoption case was intentionally dropped because equivalent adoption behavior is already exercised by two C-family cases plus the separate `alright, that works` case.
 
-For a two-pass extractor this reduces the nominal no-evidence model-call floor from `66 * 2 = 132` calls to `11 * 2 = 22`, about an `83%` reduction. Use the 11-Episode fixture for routine prompt/contract/model tuning. Use full gold v3 / the 66-Episode fixture only for milestone confirmation after the small corpus is stable, not for every iteration.
+Historically, for the two-pass extractor this reduced the nominal no-evidence model-call floor from `66 * 2 = 132` calls to `11 * 2 = 22`, about an `83%` reduction. The final three-model-pass tuning harness has a nominal no-evidence floor of 33 calls on the same fixture. Routine tuning is now frozen: keep the 11-Episode corpus as a regression fixture, and use full gold v3 / the 66-Episode corpus only for milestone confirmation rather than renewed benchmark-specific optimization.
 
 ### Atomic self-cleaning Insomnia completion — 2026-08-16
 
@@ -343,13 +343,17 @@ episodes  workers  evidence rate  drain time   episodes/s
 
 At 5,000 fragments and 10% historical-evidence usage, throughput improved from `203.107` to `2,048.242` Episodes/s, about a tenfold increase. At 20,000 fragments the same 10% evidence rate still sustained `1,809.476` Episodes/s. The former repeated full-Archive scan is therefore no longer the scaling bottleneck; the remaining evidence cost is bounded index-query work plus hydration of selected turn bodies.
 
-### Insomnia two-pass semantic validation — 2026-08-24
+### Insomnia semantic tuning closure — 2026-08-24
 
-The 11-Episode / 19-case gold-v3 tuning fixture now validates the proposed clause-level authority/disposition ledger followed by Memory synthesis. The tuned `gpt-5.6-sol` low-reasoning run produced 54 Memories with `94.7%` anchor fidelity, `100%` durable-state coverage, `100%` omit cleanliness, `95.8%` authority, `100%` grounding, and `100%` guards. `stealth/ox-alpha` through Nous reached the same `100%` state coverage but lower precision/provenance (`75%` omit cleanliness, `90.9%` authority, `86.4%` grounding); forced tool calling is required because normal JSON `response_format` is ignored. `gpt-5.6-luna` low reasoning fell to `73.3%` state coverage and `50%` omit cleanliness even after six non-gold missing ledger turns were deterministically repaired as omissions.
+Routine semantic tuning is frozen on the 11-Episode adversarial fixture. The active experimental architecture is `Sol-low semantic ledger -> deterministic fixed groups -> Luna-low metadata -> Sol-low wording`. The separate metadata pass is classification-only and cannot alter semantic groups. In the controlled comparison it preserved all 51 frozen groups while raising metadata agreement from `71.4%` to `93.3%`.
 
-The current model ranking for the hard selection pass is therefore `Sol-low > Ox Alpha-low >> Luna-low`. A controlled pass-2-only rerun using the exact v6 Sol ledgers then raised authority from `95.8%` to `100%` while preserving `100%` state coverage, omit cleanliness, grounding, and guards. Authoritative extractor contract `v3-0` now implements that ownership boundary: pass 1 owns disposition, authority, lifecycle, provenance, category, and type; deterministic grouping fixes Memory structure; pass 2 returns title/body wording only. A fresh v7 Sol-low run kept authority/grounding/omit/guards at `100%` but stochastically missed `future-ship-variants`, confirming the remaining quality variance is pass-1 selection rather than synthesis leakage. No current result justifies a general third semantic-review pass or broader vector retrieval.
+The evaluator now scopes gold-v3 automatically to source turns actually present in the sibling `run.json`. This corrected a denominator error in earlier ad-hoc scoring: the trimmed fixture contains 19 evaluable anchor cases, 15 retained-state cases, and 4 omit cases, not all 40 gold-v3 sources. Correctly scoped controlled v7 results are `89.5%` Anchor / `93.3%` State / `100%` Omit. Final pass-1 changes add clause-level extraction for mixed question/request turns, preserve durable future/possible clauses, strip checkpoint framing from retained propositions, distinguish corroboration from supersession, and supersede an older mixed clause wholesale when a material mechanism/value/requirement is actually replaced.
 
-Full experimental history, provider-specific compatibility work, caveats, and exact comparison tables are recorded in [Insomnia two-pass validation — 2026-08-24](insomnia-two-pass-validation-2026-08-24.md).
+Two fresh full runs around the finalized prompt produced `94.7%` Anchor, `93.3–100%` State, and `100%` Omit. Targeted reruns of every remaining edge (`future-ship-variants`, phase renumbering, Prompt-72 mixed status, ShipStats corroboration, genuine player-colour supersession, and workspace-repository location) all reached their expected semantic behavior. Remaining full-run misses move between cases and reproduce correctly in isolation, so further prompt squeezing is treated as benchmark overfitting against model sampling variance rather than useful tuning.
+
+The hard selector ranking remains `Sol-low > Ox Alpha-low >> Luna-low`. Authoritative extractor contract `v3-0` still implements the semantic-ledger + wording ownership boundary; the dedicated metadata pass remains an experimental design to port into the authoritative runtime. Further semantic reliability work should require a materially different capability boundary such as stronger/fine-tuned models, voting/verifier architecture, deterministic semantic preprocessing, or another separately justified structural stage.
+
+Full experimental history, provider-specific compatibility work, caveats, and exact comparison tables are recorded in [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md).
 
 ### Benchmark baseline — 2026-08-15
 
@@ -377,7 +381,7 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 - [Documentation coverage](documentation-coverage.md)
 - [Behavioral contracts](behavioral-contracts.md)
 - [Repo-local CLI](cli.md)
-- [Insomnia two-pass validation — 2026-08-24](insomnia-two-pass-validation-2026-08-24.md)
+- [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)

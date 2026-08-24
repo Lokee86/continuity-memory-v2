@@ -116,17 +116,16 @@ Add product-level file usability:
 - crash-safe service restart and background-work recovery;
 - explicit local IPC/API authentication and authorization if a service boundary is exposed.
 
-## Parallel intelligence-quality work
+## Parallel Insomnia validation and integration
 
-Continue Insomnia quality work independently from product-surface construction:
+Routine prompt tuning on the 11-Episode adversarial fixture is complete and frozen. Future work is implementation/validation rather than continued fixture optimization:
 
-1. integrate the two-pass authority/disposition architecture into the authoritative runtime so pass 1 owns disposition, authority, lifecycle, provenance, and other selected semantic metadata while pass 2 is restricted to faithful wording/consolidation;
-2. verify the integrated runtime against the focused tuning fixture, including mixed-turn omission/retention and provenance ownership boundaries;
-3. run the large corpus only as a milestone confirmation after the integrated path is stable;
-4. tune synthesis-model/reasoning cost and throughput only after the ownership split is verified;
-5. recalibrate worker concurrency for the selected production model mix rather than carrying forward an older optimum by assumption.
+1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
+2. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
+3. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/wording model mix;
+4. treat further semantic-quality work as a new capability boundary only when measured production failures justify it: stronger/fine-tuned models, voting/verifier architecture, deterministic semantic preprocessing, or another narrowly owned structural stage.
 
-Do not add a general third semantic-review pass or broader retrieval unless a measured failure demonstrates a distinct need.
+Do not resume benchmark-specific prompt squeezing or add a general semantic review/rewrite pass merely to chase stochastic misses on the tuning fixture.
 
 ## Later semantic layers
 
