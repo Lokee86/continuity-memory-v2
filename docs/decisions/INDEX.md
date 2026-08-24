@@ -13,3 +13,5 @@
 - [ADR 0011: Detachable repo-local CLI](0011-detachable-repo-local-cli.md) — **Accepted**, 2026-08-15.
 - [ADR 0012: Deterministic episodes and Insomnia memory authority](0012-deterministic-episodes-and-insomnia-memory-authority.md) — **Accepted**, 2026-08-15.
 - [ADR 0013: Immutable Memory Vector bindings](0013-immutable-memory-vector-bindings.md) — **Accepted**, 2026-08-15.
+- [ADR 0014: Echo historical reasoning traces](0014-echo-historical-reasoning-traces.md) — **Accepted**, 2026-08-16.
+- [ADR 0015: ACP inline interaction stream](0015-acp-inline-interaction-stream.md) — **Accepted as an integration direction**, 2026-08-17; proxy/MCP-over-ACP mechanics remain Draft-dependent.
