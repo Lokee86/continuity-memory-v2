@@ -338,6 +338,14 @@ episodes  workers  evidence rate  drain time   episodes/s
 
 At 5,000 fragments and 10% historical-evidence usage, throughput improved from `203.107` to `2,048.242` Episodes/s, about a tenfold increase. At 20,000 fragments the same 10% evidence rate still sustained `1,809.476` Episodes/s. The former repeated full-Archive scan is therefore no longer the scaling bottleneck; the remaining evidence cost is bounded index-query work plus hydration of selected turn bodies.
 
+### Insomnia two-pass semantic validation — 2026-08-24
+
+The 11-Episode / 19-case gold-v3 tuning fixture now validates the proposed clause-level authority/disposition ledger followed by Memory synthesis. The tuned `gpt-5.6-sol` low-reasoning run produced 54 Memories with `94.7%` anchor fidelity, `100%` durable-state coverage, `100%` omit cleanliness, `95.8%` authority, `100%` grounding, and `100%` guards. `stealth/ox-alpha` through Nous reached the same `100%` state coverage but lower precision/provenance (`75%` omit cleanliness, `90.9%` authority, `86.4%` grounding); forced tool calling is required because normal JSON `response_format` is ignored. `gpt-5.6-luna` low reasoning fell to `73.3%` state coverage and `50%` omit cleanliness even after six non-gold missing ledger turns were deterministically repaired as omissions.
+
+The current model ranking for the hard selection pass is therefore `Sol-low > Ox Alpha-low >> Luna-low`. Pass 1 is considered sufficiently validated on the small fixture to stop broad prompt tuning. The next defect is ownership leakage in pass 2: synthesis can still invent or alter authority/provenance/classification after the ledger has decided them. The next implementation step is to make pass 1 authoritative for disposition, authority, lifecycle, provenance, and preferably metadata, leaving pass 2 responsible for wording/consolidation only. No current result justifies a general third semantic-review pass or broader vector retrieval.
+
+Full experimental history, provider-specific compatibility work, caveats, and exact comparison tables are recorded in [Insomnia two-pass validation — 2026-08-24](insomnia-two-pass-validation-2026-08-24.md).
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.
@@ -364,6 +372,7 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 - [Documentation coverage](documentation-coverage.md)
 - [Behavioral contracts](behavioral-contracts.md)
 - [Repo-local CLI](cli.md)
+- [Insomnia two-pass validation — 2026-08-24](insomnia-two-pass-validation-2026-08-24.md)
 - [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
 - [ADR 0009](decisions/0009-expandable-model-switchboard.md)
 - [ADR 0010](decisions/0010-encrypted-credential-objects.md)

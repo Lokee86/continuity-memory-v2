@@ -7,6 +7,7 @@
 - [Rust API](api.md) — current public library surface and behavior.
 - [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.
 - [Development](development.md) — repository workflow, tests, and smoke example.
+- [Insomnia two-pass validation — 2026-08-24](insomnia-two-pass-validation-2026-08-24.md) — authority-ledger tuning, Sol/Ox/Luna comparison, and provider compatibility findings.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.

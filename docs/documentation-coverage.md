@@ -48,6 +48,7 @@ Coverage remains intentionally small while the rebuild is early.
 | `examples/archive_roundtrip.rs` | Prepared-corpus reopen smoke | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
 | `examples/archive_open_profile.rs` | Standalone open-time/allocator benchmark | [Development](development.md) |
 | `examples/vector_generation_smoke.rs` | Two-profile simulated generation build/reopen over prepared corpus | [Development](development.md), [Behavioral contracts](behavioral-contracts.md) |
+| `examples/insomnia_two_pass_sol/*`, `examples/run_two_pass_openrouter.rs`, `tools/insomnia_two_pass_prompts.py`, `tools/nous_json_client.py`, `tools/run_insomnia_two_pass.py` | Experimental two-pass Insomnia authority-ledger/synthesis validation plus Ox/Nous/OpenRouter provider compatibility harnesses | [Development](development.md), [Insomnia two-pass validation](insomnia-two-pass-validation-2026-08-24.md), [Roadmap](roadmap.md) |
 
 ## Coverage rules
 
