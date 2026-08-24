@@ -235,6 +235,72 @@ One final full run missed `workspace-repository-location`; an immediate isolated
 
 A full 66-Episode gold-v3 run remains useful as milestone confirmation, not as another routine tuning loop. Worker concurrency should be recalibrated for the eventual production model mix rather than inheriting the historical Luna/48-worker optimum.
 
+## Future reliability architecture options
+
+The remaining quality ceiling is no longer a prompt-tuning problem. If production evidence later shows that the current stochastic miss rate is operationally unacceptable, the next experiments should change the inference architecture rather than specialize the existing fixture further.
+
+### Targeted semantic verifier / repair
+
+Add a narrow verifier after the semantic ledger is produced. The verifier must not rediscover the Episode from scratch or rewrite every Memory. It receives the frozen source turn plus the selected ledger decision and may only flag bounded structural errors such as:
+
+- durable clause incorrectly omitted;
+- question/request/checkpoint incorrectly retained;
+- genuine replacement incorrectly treated as corroboration, or corroboration incorrectly treated as supersession;
+- proposition expanded beyond the user's authority.
+
+Only flagged entries proceed to a repair call. This is materially different from the blanket candidate reviewer already tested and rejected, which reduced recall because it re-reviewed every candidate. A targeted verifier is preferable if production failures cluster in identifiable high-risk semantic boundaries.
+
+### Multi-sample voting for ambiguous clauses
+
+For clauses identified as ambiguous, sample the semantic selector more than once and compare `retain` / `omit` / `superseded`, authority, and proposition decisions. Unanimous or strong-majority decisions can proceed directly; disagreements can be escalated to a verifier.
+
+This directly attacks stochastic variation instead of attempting to remove probability through prompt wording. It is also the most obvious cost multiplier, so it should be selectively routed rather than applied to every turn unless measured failure economics justify the additional inference.
+
+### Deterministic clause-candidate preprocessing
+
+Move some boundary detection out of the model. A deterministic or lightweight preprocessing stage could split a user turn into candidate declarative assertions, questions/requests, checkpoint spans, and other rhetorical segments before Sol performs semantic disposition.
+
+The intended benefit is to reduce mixed-turn ambiguity such as `durable future plan + what do you think?` or `checkpoint + independent current status`. The risk is replacing model variance with brittle linguistic heuristics. Any preprocessor must therefore generate candidates rather than make final semantic decisions, and it must preserve the original source span so the selector can reject or recombine candidates when segmentation is imperfect.
+
+### Ambiguity / confidence routing
+
+Make Insomnia a tiered inference pipeline rather than sending every clause through identical work. The first semantic stage should emit a bounded ambiguity/risk signal or deterministic structural risk classification. Straightforward direct assertions can remain on the cheapest path. Higher-risk cases can receive additional processing, including:
+
+- terse adoption/retention;
+- correction requiring grounding;
+- mixed receipt plus durable state;
+- possible supersession/corroboration conflicts;
+- uncertain future modality;
+- provenance-sensitive deictic references.
+
+This allows verifier/voting cost to be concentrated where the architecture already knows errors are more likely.
+
+### Separate supersession resolver
+
+Split state extraction from state-relationship resolution. One stage would extract durable propositions from each authoritative source independently. A later relationship stage would compare overlapping propositions and classify relationships such as `current`, `duplicate`, `corroborates`, or `supersedes`.
+
+This reduces the semantic burden on the source selector, which currently both discovers state and reasons about whether later state invalidates it. It also approaches Dream/Graph relationship territory, so ownership must remain explicit: Insomnia may need enough local supersession logic to publish current working Memory safely, while broader cross-Memory relationship/lifecycle reasoning should not be duplicated if Dream becomes the canonical owner.
+
+### Evidence-aware provenance verifier
+
+Adoption and grounding are structurally different from ordinary direct authority and can receive their own narrow support check. A provenance verifier could answer only questions such as:
+
+- does the selected assistant authority source actually contain the proposition the user adopted/retained?;
+- does the grounding source merely resolve a referent, or is semantic content leaking from it?;
+- is the selected grounding source necessary and temporally valid?;
+
+This stage should never manufacture missing user authority or broaden the proposition. It exists only to validate the support relationship already selected by the semantic pass.
+
+### Preferred escalation architecture
+
+If production data eventually justifies additional reliability work, the most plausible next architecture is:
+
+`deterministic clause candidates -> Sol semantic selector -> fixed semantic groups -> targeted ambiguity/verifier stage -> Luna metadata -> Sol wording`
+
+The verifier should be invoked only for structurally ambiguous/high-risk cases. Multi-sample voting can be added inside that ambiguity path if the residual failure rate justifies its inference cost.
+
+This is not current implementation work. The present architecture remains the baseline until production-observed failures establish both a distinct failure class and enough value to justify the added latency, cost, and complexity. Model fine-tuning/weight changes or a materially stronger selector remain alternative capability boundaries if available.
+
 ## Experimental implementation
 
 - `examples/insomnia_three_pass_sol_luna/main.rs`

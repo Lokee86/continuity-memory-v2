@@ -123,9 +123,9 @@ Routine prompt tuning on the 11-Episode adversarial fixture is complete and froz
 1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
 2. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
 3. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/wording model mix;
-4. treat further semantic-quality work as a new capability boundary only when measured production failures justify it: stronger/fine-tuned models, voting/verifier architecture, deterministic semantic preprocessing, or another narrowly owned structural stage.
+4. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
 
-Do not resume benchmark-specific prompt squeezing or add a general semantic review/rewrite pass merely to chase stochastic misses on the tuning fixture.
+Do not resume benchmark-specific prompt squeezing or add a general semantic review/rewrite pass merely to chase stochastic misses on the tuning fixture. Any reliability architecture should be triggered by production-observed failure classes and should concentrate extra inference on ambiguous/high-risk cases rather than multiplying every Insomnia call by default.
 
 ## Later semantic layers
 
