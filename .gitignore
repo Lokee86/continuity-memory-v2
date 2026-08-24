@@ -9,3 +9,8 @@ bin/
 continuity.cfg
 continuity.master-key.json
 .env
+
+# Repo-local generated tool state
+.arcana/
+.grimoire/
+.lexicon/
