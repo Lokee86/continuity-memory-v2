@@ -404,7 +404,11 @@ real related verifier:        13/13 accept
 real unrelated negatives:      4/4 none
 ```
 
-The real fixture contains 103 Insomnia-generated Memories and one 1024-dimensional compatibility profile. It is an initial seam validation, not a population accuracy claim. It exercises candidate retrieval plus classifier/verifier behavior; it does not yet measure live Graph publication/lifecycle precision, canonical promotion, or a purpose-built temporal-only corpus.
+The real fixture contains 103 Insomnia-generated Memories and one 1024-dimensional compatibility profile. It is an initial seam validation, not a population accuracy claim.
+
+A follow-up write-enabled validation used three controlled disposable CVAs with the same live Ox route. A temporal-only pair was retrieved with semantic/lexical lanes disabled and an unvectorized candidate, then classified, published, lifecycle-completed, replayed idempotently, and reopened successfully. A verified supersession published `NEW -> OLD`, archived OLD with `superseded_by = NEW`, promoted NEW to active knowledge, replayed as a no-op, and survived reopen. Two verified duplicate observations inserted around an existing older representative rewired to `newest -> middle -> oldest`, archived the redundant extracted observations, replayed as a no-op, and survived reopen.
+
+Together the two live validations now exercise candidate recall, temporal-only retrieval, strict classifier/verifier transport, accepted Graph publication, duplicate-chain rewiring, supersession lifecycle projection, successful `extracted -> knowledge`, idempotent replay, and reopen recovery. They remain small targeted fixtures rather than population-level semantic-quality measurements. No observed case requires bounded reverse reconsideration, so Phase 9 remains intentionally unimplemented until a concrete failure justifies it.
 
 ### Phase 9 — bounded reconsideration if required
 
