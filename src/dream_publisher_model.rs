@@ -5,5 +5,4 @@ pub enum DreamPublicationOutcome {
     NoChange,
     Published(Vec<GraphRelation>),
     Withheld(DreamVerificationVerdict),
-    DeferredDuplicate,
 }

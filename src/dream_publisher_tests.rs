@@ -198,7 +198,7 @@ fn required_verification_must_accept_before_publication() {
 }
 
 #[test]
-fn duplicate_publication_is_deferred_until_predecessor_chain_semantics_exist() {
+fn verified_duplicate_publishes_one_chronological_predecessor_edge() {
     let (mut cva, a, b) = pair();
     let proposed = classification(
         a,
@@ -207,17 +207,23 @@ fn duplicate_publication_is_deferred_until_predecessor_chain_semantics_exist() {
         DreamRelationDirection::Undirected,
     );
     let accepted = verification(&proposed, DreamVerificationVerdict::Accept);
-    assert_eq!(
-        cva.publish_dream_pair(
+    let outcome = cva
+        .publish_dream_pair(
             &proposed,
             Some(&accepted),
             DreamVerificationPolicy::default(),
             0,
         )
-        .unwrap(),
-        DreamPublicationOutcome::DeferredDuplicate
-    );
-    assert_eq!(cva.graph_version(), 0);
+        .unwrap();
+    assert!(matches!(outcome, DreamPublicationOutcome::Published(_)));
+    assert_eq!(cva.graph_version(), 1);
+    let duplicate = cva
+        .graph_relations()
+        .into_iter()
+        .find(|relation| relation.kind == GraphRelationKind::DuplicateOf)
+        .unwrap();
+    assert_eq!(cva.memory(duplicate.source).unwrap().title, "Right");
+    assert_eq!(cva.memory(duplicate.target).unwrap().title, "Left");
 }
 
 #[test]

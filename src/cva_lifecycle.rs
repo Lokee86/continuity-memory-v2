@@ -4,6 +4,7 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_global_validation::validate_semantic_global_versions;
+use crate::dream_duplicate_index::DuplicateIndex;
 use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
@@ -54,6 +55,7 @@ impl Cva {
             container,
             archive,
             memories,
+            duplicate_index: DuplicateIndex::empty(),
             graph,
             insomnia,
             lexical_index,
@@ -120,6 +122,7 @@ impl Cva {
             container,
             archive,
             memories,
+            duplicate_index: DuplicateIndex::empty(),
             graph,
             insomnia,
             lexical_index,

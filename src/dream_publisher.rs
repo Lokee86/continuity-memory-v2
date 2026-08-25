@@ -20,7 +20,11 @@ impl Cva {
             return Ok(outcome);
         }
         if classification.relation == DreamRelationKind::DuplicateOf {
-            return Ok(DreamPublicationOutcome::DeferredDuplicate);
+            return self.publish_duplicate_pair(
+                classification.a,
+                classification.b,
+                expected_graph_version,
+            );
         }
         let current_graph_version = self.graph_version();
         if expected_graph_version != current_graph_version {

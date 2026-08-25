@@ -69,10 +69,13 @@ mod dream_classifier;
 mod dream_classifier_error;
 mod dream_classifier_model;
 mod dream_classifier_schema;
+mod dream_duplicate;
+mod dream_duplicate_index;
 mod dream_pair_context;
 mod dream_publisher;
 mod dream_publisher_error;
 mod dream_publisher_model;
+mod dream_source_time;
 mod dream_verifier;
 mod dream_verifier_error;
 mod dream_verifier_model;
@@ -340,6 +343,8 @@ mod dream_candidate_test_support;
 mod dream_candidate_tests;
 #[cfg(test)]
 mod dream_classifier_tests;
+#[cfg(test)]
+mod dream_duplicate_tests;
 #[cfg(test)]
 mod dream_publisher_tests;
 #[cfg(test)]

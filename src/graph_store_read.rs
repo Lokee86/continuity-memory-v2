@@ -33,10 +33,6 @@ impl GraphStore {
         relations
     }
 
-    pub(crate) fn mutations(&self) -> &[GraphRelation] {
-        &self.mutations
-    }
-
     pub(crate) fn transaction_global_versions(&self) -> &[u64] {
         &self.transaction_global_versions
     }

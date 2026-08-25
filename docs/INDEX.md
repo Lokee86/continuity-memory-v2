@@ -15,7 +15,7 @@
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
-- [Dream implementation plan](dream-implementation-plan.md) — pair-oriented Dream redesign, implemented Milestones A/B/C/D candidate retrieval, pair classification, independent verification, and atomic Graph publication, plus indexed duplicate-chain, temporal, lifecycle, and remaining staged work.
+- [Dream implementation plan](dream-implementation-plan.md) — pair-oriented Dream redesign, implemented Milestones A/B/C/D/E candidate retrieval, classification, verification, atomic Graph publication, and indexed chronological duplicate chains, plus temporal/lifecycle and remaining staged work.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.

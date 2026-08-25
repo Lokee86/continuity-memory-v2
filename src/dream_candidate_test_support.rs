@@ -24,6 +24,26 @@ pub(crate) fn memory(
     timestamp_ns: i64,
     archived: bool,
 ) -> MemoryId {
+    memory_with_created_at(
+        cva,
+        mutation_id,
+        title,
+        content,
+        timestamp_ns,
+        archived,
+        999,
+    )
+}
+
+pub(crate) fn memory_with_created_at(
+    cva: &mut Cva,
+    mutation_id: &str,
+    title: &str,
+    content: &str,
+    timestamp_ns: i64,
+    archived: bool,
+    created_at_ns: i64,
+) -> MemoryId {
     let node_id = format!("node-{mutation_id}");
     cva.append_node(
         node_id.clone(),
@@ -34,14 +54,10 @@ pub(crate) fn memory(
         content,
     )
     .unwrap();
-    cva.publish_memory(
-        None,
-        0,
-        draft(mutation_id, title, content, &node_id, archived),
-    )
-    .unwrap()
-    .0
-    .id
+    let mut draft = draft(mutation_id, title, content, &node_id, archived);
+    draft.created_at_ns = created_at_ns;
+    draft.updated_at_ns = created_at_ns;
+    cva.publish_memory(None, 0, draft).unwrap().0.id
 }
 
 pub(crate) fn install_vectors(

@@ -6,11 +6,11 @@ Parent index: [Documentation index](INDEX.md)
 
 This document owns the current implementation plan for Dream over the implemented Graph owner. It records the redesign derived from review of CTX Dream, the previous Continuity Dream implementation, the current Graph foundation, and the August 2026 planning discussion.
 
-Dream's bounded candidate-retrieval, pair-classification, independent-verification, and accepted Graph-publication seams are now implemented; duplicate-chain and lifecycle behavior remain planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
+Dream's bounded candidate-retrieval, pair-classification, independent-verification, accepted Graph-publication, and chronological duplicate-chain seams are now implemented; lifecycle behavior remains planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
 
 ## Overview
 
-Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, and atomic accepted-relation publication are implemented. Remaining work proceeds through duplicate/supersession handling, deterministic temporal interpretation, lifecycle policy, and only then long-lived scheduling/runtime integration.
+Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, and chronological duplicate-chain publication are implemented. Remaining work proceeds through lifecycle/supersession handling, deterministic temporal interpretation, canonical policy, and only then long-lived scheduling/runtime integration.
 
 ## Responsibility
 
@@ -109,7 +109,7 @@ semantic duplicate history
 
 The temporal key must use authoritative source chronology, with a deterministic tie-breaker where timestamps collide.
 
-An ordered map/B-tree gives logarithmic predecessor/successor lookup and constant-size chain rewiring. A more specialized date/time index may later provide expected constant-time lookup if measurements justify it. The exact index is an implementation choice; duplicate semantics must not depend on it.
+Milestone E implements this lookup as a **derived, graph-versioned B-tree index**. Each duplicate component is ordered by `(authoritative source timestamp, MemoryId)`; `MemoryId` is only a deterministic tie-breaker for equal source timestamps. The index is not durable authority and is rebuilt lazily from active `duplicate_of` Graph edges after reopen or whenever its cached Graph version is stale. `Memory.created_at` is never used. A more specialized index may later replace the B-tree if measurements justify it without changing chain semantics.
 
 The previous implementation became complicated because it combined durable concurrency, source-owned replacement, out-of-order discovery, and chain repair. Those operational concerns must not be mistaken for complexity inherent in the duplicate model itself.
 
@@ -223,7 +223,7 @@ The strict v1 output proposes one relation from `none`, `topical`, `factual`, `c
 
 Every non-none proposal must include exactly one verbatim evidence quote from each Memory. Continuity validates relation/direction compatibility, unique A/B evidence coverage, and literal quote membership after the model call. Invalid structured conclusions are rejected before any downstream stage can observe them as accepted semantics.
 
-The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification remains transient; accepted non-duplicate conclusions can now be reconciled into Graph atomically. Lifecycle mutation remains a later stage.
+The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification remains transient; accepted conclusions, including verified duplicates through the predecessor-chain seam, can now be reconciled into Graph atomically. Lifecycle mutation remains a later stage.
 
 ## Lifecycle
 
@@ -290,7 +290,7 @@ The Memory being processed should be presented with the same context. Dream can 
 
 Classification and verification outputs may remain transient until an accepted relationship is published. Graph remains the authoritative durable owner of accepted Memory-to-Memory relationships. Model identity, policy version, raw confidence, verifier traces, or other evaluation diagnostics should not be added to Graph merely because they could be recorded; add such persistence only when a concrete reproducibility, migration, audit, or invalidation requirement demonstrates the need.
 
-Milestone D settles the required Graph publication behavior for primary Dream relations. `Cva::set_memory_relations` publishes one or several edge changes as a single Graph semantic transaction; `publish_dream_pair` uses that boundary to preserve semantic direction, retract replaced primary pair relations, and activate the new conclusion without exposing contradictory intermediate state. Topical/recurrent use reciprocal edges; factual/causal/supersedes preserve classifier direction; `none` clears primary Dream state. Duplicate persistence is deliberately deferred to the chronological predecessor-chain milestone.
+Milestone D settles the required Graph publication behavior for primary Dream relations. `Cva::set_memory_relations` publishes one or several edge changes as a single Graph semantic transaction; `publish_dream_pair` uses that boundary to preserve semantic direction, retract replaced primary pair relations, and activate the new conclusion without exposing contradictory intermediate state. Topical/recurrent use reciprocal edges; factual/causal/supersedes preserve classifier direction; `none` clears primary Dream state. Milestone E extends that seam for verified duplicates by publishing only the chronological predecessor-chain edges and atomically retracting any replaced non-duplicate primary relation for the classified pair.
 
 ## Implementation sequence
 
@@ -347,19 +347,32 @@ Milestone D currently provides:
 - preservation of structural-parent/references Graph state;
 - verification gating before publication;
 - idempotent no-op publication when the pair is already in the desired state;
-- verified duplicate publication deferred until predecessor-chain semantics are implemented.
+- duplicate persistence delegated to the Milestone E predecessor-chain seam.
 
-The next end-to-end milestone adds duplicate/supersession lifecycle behavior and the `extracted -> knowledge` completion transition around the now-working inference/publication pipeline.
+### Phase 6 — duplicate predecessor chain — implemented
 
-### Phase 6 — duplicate and supersession lifecycle
+Milestone E currently provides:
 
-- implement indexed duplicate predecessor-chain insertion;
+- verified `duplicate_of` publication as a directed `newer -> previous equivalent` predecessor chain;
+- deterministic ordering from authoritative source timestamps only, with `MemoryId` as the equal-timestamp tie-breaker;
+- a derived graph-versioned B-tree component index, lazily rebuilt after reopen/staleness;
+- deterministic middle insertion and component merging through one atomic Graph transaction;
+- insertion-order independence across all tested permutations;
+- atomic removal of an existing non-duplicate primary relation when the same pair becomes a verified duplicate;
+- explicit failure when a duplicate Memory has no authoritative source timestamp;
+- tests proving `Memory.created_at` bookkeeping cannot change duplicate order.
+
+The next end-to-end milestone adds lifecycle consequences and the `extracted -> knowledge` completion transition around the now-working inference/publication pipeline.
+
+### Phase 7 — duplicate/supersession lifecycle
+
 - derive duplicate observation/history information from the chain;
 - archive non-representative duplicate Memories according to policy;
-- reconcile supersession;
-- begin measured canonical-promotion policy.
+- reconcile supersession lifecycle projections;
+- implement the first successful Dream completion transition `extracted -> knowledge`;
+- begin measured canonical-promotion policy only after representative validation.
 
-### Phase 7 — deterministic temporal layer
+### Phase 8 — deterministic temporal layer
 
 - obtain source turn/Episode timestamps through provenance;
 - deterministically parse content-time expressions;
@@ -368,11 +381,11 @@ The next end-to-end milestone adds duplicate/supersession lifecycle behavior and
 - add temporal candidate lookup/indexing;
 - require deterministic verification for any later model enrichment.
 
-### Phase 8 — bounded reconsideration if required
+### Phase 9 — bounded reconsideration if required
 
 Only add cases demonstrated by tests/production evidence. Do not blindly reproduce the previous reverse-trigger architecture.
 
-### Phase 9 — long-lived runtime integration
+### Phase 10 — long-lived runtime integration
 
 After semantic behavior is correct:
 
@@ -382,7 +395,7 @@ After semantic behavior is correct:
 - resumable explicit rescans/migrations;
 - status and control surfaces.
 
-### Phase 10 — optional sophistication
+### Phase 11 — optional sophistication
 
 Only when measurements justify it:
 
@@ -414,15 +427,14 @@ Do not reproduce these CTX/previous-Dream mechanisms by default:
 
 The review has not yet frozen:
 
-1. which relationship kinds are represented as symmetric versus directed in persistent Graph storage;
-2. persistent Graph coexistence/cardinality policy beyond the classifier's one-primary-proposal contract;
-3. exact independent-observation/corroboration policy across duplicate chains;
-4. exact canonical-promotion rules;
-5. whether second-pass verification becomes universal for all non-topical semantic relations after measurement;
-6. exact temporal index representation and whether it is persisted or cheaply rebuilt;
-7. precise semantics for `references`.
+1. persistent Graph coexistence/cardinality policy beyond the classifier's one-primary-proposal contract;
+2. exact independent-observation/corroboration policy across duplicate chains;
+3. exact canonical-promotion rules;
+4. whether second-pass verification becomes universal for all non-topical semantic relations after measurement;
+5. exact general temporal index representation beyond the implemented duplicate-chain source-time index;
+6. precise semantics for `references`.
 
-The next implementation milestone is duplicate/supersession handling: implement the chronological duplicate predecessor chain and lifecycle consequences without changing the already-settled pair-oriented classifier/verifier/publication contract.
+The next implementation milestone is lifecycle completion: apply duplicate/supersession consequences and the first `extracted -> knowledge` Dream completion transition without changing the settled pair-oriented classifier/verifier/publication and duplicate-chain contracts.
 
 ## Related docs
 
