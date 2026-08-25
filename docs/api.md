@@ -19,6 +19,12 @@ Public types are `WorkspaceMetadata { id, name, workspace_type }`, `WorkspaceMet
 
 Workspace metadata is clock-neutral: initialization consumes no Archive, Memory, Vector Generation, or CVA-global semantic version. Rename/type-change lifecycle is not exposed in this first slice.
 
+### CVA comparison and reconciliation
+
+Public comparison types are `CvaComparison`, `CvaRelation`, and `CvaReconcileError`. `Cva::compare(left, right)` opens and validates two CVAs, requires matching `WorkspaceMetadata.id` values, compares their physical append-only chunk histories, and reports `Identical`, `LeftExtendsRight`, `RightExtendsLeft`, or `Diverged` plus common/total chunk counts.
+
+Comparison is detection only. Divergent semantic replay/merge, conflict reporting, derived-state rebuild, and crash-safe output promotion are not implemented yet; see ADR 0018.
+
 ### Archive
 Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ConversationSummary`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, `IncomingAttachment`, `IncomingTurn`, `IngestedTurn`, `FileMemoryLink`, and:
 

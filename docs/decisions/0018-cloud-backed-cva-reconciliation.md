@@ -1,0 +1,182 @@
+# ADR 0018: Cloud-backed CVA reconciliation
+
+## Status
+
+Accepted — 2026-08-24. Initial comparison/detection seam implemented; semantic reconciliation remains in progress.
+
+## Purpose
+
+Allow a Warlock workspace CVA to live in user-controlled cloud storage without requiring a Warlock-owned synchronization service.
+
+## Context
+
+Construction makes desktop/phone/tablet access a first-class requirement. Common cloud storage systems already own file transport, offline caching, version history, and conflicted-copy preservation. Reimplementing those responsibilities inside Warlock would add substantial infrastructure and weaken the local/user-owned storage model.
+
+A cloud provider cannot, however, understand the internal semantics of an arbitrary `.cva`. If two devices independently modify copies of the same workspace, the provider may preserve both files but cannot safely merge their logical records.
+
+Continuity can perform that last step because it owns the CVA format and semantic stores.
+
+## Decision
+
+### Cloud storage owns transport
+
+Warlock and Continuity do not implement a general cloud synchronization service for the first multi-device architecture.
+
+The user's selected provider remains responsible for:
+
+- storage;
+- upload/download;
+- offline caching;
+- availability;
+- server-side file version history; and
+- detection/preservation of conflicting physical copies.
+
+Continuity owns only CVA-specific comparison and reconciliation.
+
+### Workspace identity is the reconciliation boundary
+
+Two CVAs are eligible for reconciliation only when both contain workspace metadata and their stable `WorkspaceMetadata.id` values are equal.
+
+A filename, directory, cloud-provider identity, or display name is not sufficient proof that two files represent the same workspace.
+
+### Physical history is used to detect ordinary cloud divergence
+
+Cloud-conflicted copies normally begin as byte-identical copies of one CVA and then acquire different append-only tails.
+
+The first comparison layer therefore identifies the longest common physical chunk prefix and classifies the pair as:
+
+```text
+Identical
+LeftExtendsRight
+RightExtendsLeft
+Diverged
+```
+
+This layer is detection only. It does not assume that physical chunk positions or global version numbers remain reusable after divergence.
+
+### Divergent tails must be reconciled semantically
+
+Raw tails must not be concatenated. Each diverged copy may independently allocate overlapping CVA-global, Archive, Memory, or other local version numbers.
+
+The reconciliation engine must decode authoritative records from both tails and replay accepted records into a newly written CVA so the destination allocates valid clocks and physical references.
+
+Conceptually:
+
+```text
+base.cva
+├── common history
+├── left semantic tail
+└── right semantic tail
+        ↓
+semantic classification
+        ↓
+replay into new CVA
+        ↓
+validate + sync
+        ↓
+replace/promote canonical copy
+```
+
+### Stable semantic identity drives automatic merge
+
+Reconciliation should prefer existing domain identities and invariants rather than inventing one generic merge rule.
+
+Examples:
+
+- identical stable Node ID + identical record: duplicate, keep once;
+- identical stable Node ID + incompatible record: conflict;
+- Memory mutation replay with identical record: idempotent duplicate;
+- same Memory revision changed incompatibly: conflict;
+- unrelated records: preserve both when their domain invariants allow replay;
+- content-addressed immutable objects: deduplicate by identity/content.
+
+Each purpose-built store remains responsible for deciding whether an imported/replayed record is valid.
+
+### Derived state should be rebuilt when cheaper and safer
+
+Indexes, vector bindings, caches, and similar derived structures do not need byte-for-byte reconciliation when they can be regenerated from authoritative merged state.
+
+The initial implementation should prioritize correctness of authoritative source/history and rebuild derived owners afterward where practical.
+
+### Reconciliation writes a new file
+
+A divergent merge must not mutate the only canonical copy in place.
+
+The intended lifecycle is:
+
+```text
+left.cva + right.cva
+        ↓
+workspace.merge.tmp.cva
+        ↓
+Cva::open / full validation
+        ↓
+sync
+        ↓
+promote/replace canonical file
+```
+
+Original conflicted copies are retained until validation succeeds.
+
+## Initial implementation
+
+The first code slice adds `Cva::compare(left, right)` and public comparison models.
+
+It currently:
+
+1. opens and validates both CVAs;
+2. requires workspace metadata on both sides;
+3. rejects mismatched workspace IDs;
+4. compares their physical chunk histories;
+5. reports the common prefix and relation.
+
+This provides the detection seam Warlock/cloud-drive handling can use before semantic merge exists.
+
+## Next implementation slices
+
+1. Add a read-only representation of divergent logical records rather than exposing raw container chunks to callers.
+2. Classify tail records by semantic owner and stable identity.
+3. Implement deterministic duplicate handling for Archive records/content objects first.
+4. Add Memory replay using existing mutation/revision conflict semantics.
+5. Rebuild or intentionally omit derived vector/index state in the first merged output.
+6. Write merged output to a new CVA and run ordinary open-time validation before promotion.
+7. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation.
+8. Test realistic cloud-conflict fixtures, including two offline devices appending unrelated records.
+
+## Non-goals
+
+This decision does not introduce:
+
+- a Warlock cloud account requirement;
+- a Warlock-hosted canonical database;
+- multi-master network replication;
+- CRDT semantics for every Continuity store;
+- provider-specific synchronization protocols; or
+- automatic semantic conflict resolution where two edits are genuinely incompatible.
+
+## Consequences
+
+- Multi-device use can rely on OneDrive, Google Drive, iCloud Drive, Dropbox, SharePoint-backed files, or equivalent storage transports.
+- The CVA remains user-owned and portable.
+- Continuity gains one bounded responsibility: understanding divergent copies of its own format.
+- Automatic reconciliation can improve incrementally without coupling the storage format to any cloud vendor.
+- True simultaneous semantic conflicts remain explicit rather than being silently overwritten.
+
+## Verification
+
+The initial tests prove that comparison:
+
+- recognizes identical copied CVAs;
+- recognizes when one copy is strictly ahead;
+- recognizes independent divergent tails; and
+- rejects different workspace IDs.
+
+Full reconciliation will require additional tests for replay ordering, duplicate records, Memory revisions, conflicting stable IDs, derived-state rebuild, crash-safe output promotion, and reopen validation.
+
+## Related docs
+
+- [ADR 0003](0003-layered-version-clocks-and-local-ancestry.md)
+- [ADR 0005](0005-cva-composition-and-packed-vector-objects.md)
+- [ADR 0017](0017-cva-workspace-and-warlock-host-application.md)
+- [Architecture](../architecture.md)
+- [Roadmap](../roadmap.md)

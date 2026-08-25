@@ -50,6 +50,9 @@ ReliquaryConfig
 ### Workspace metadata
 `WorkspaceMetadataStore` owns one optional singleton workspace identity inside the CVA: stable ID, display name, and extensible workspace-type identifier. `Cva::create_workspace` initializes the record at creation; an ordinary CVA may be initialized exactly once later. Current workspace metadata is clock-neutral and does not participate in Archive, Memory, Vector Generation, or CVA-global semantic ordering. The owner is deliberately not a generic metadata/property store. Rename/type-change history and external-resource bindings are not part of this first slice.
 
+### CVA comparison and reconciliation
+`Cva::compare` is the first cloud-conflict reconciliation seam. It requires stable workspace identity on both files, rejects mismatched workspace IDs, and compares the physical chunk streams to find their longest common prefix. The result classifies identical copies, a strict extension on either side, or true physical divergence. It does not merge tails or reuse divergent version clocks. Future reconciliation will decode divergent authoritative records and replay accepted semantic state into a new validated CVA; cloud providers remain responsible for storage transport and conflicted-copy preservation. See [ADR 0018](decisions/0018-cloud-backed-cva-reconciliation.md).
+
 ### Local configuration
 `ReliquaryConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Ordinary objects are unencrypted; credential objects are authenticated encrypted payloads.
 ### Repo-local CLI

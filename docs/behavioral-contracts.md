@@ -31,6 +31,7 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | New CVA header reopens | `container_tests::create_then_reopen_cva` |
 | Workspace ID/name/type initialize once and survive reopen | `workspace_metadata_tests::workspace_metadata_round_trips`, `workspace_metadata_tests::ordinary_cva_can_be_initialized_as_workspace_once` |
 | Workspace metadata is bounded and consumes no semantic version clock | `workspace_metadata_tests::workspace_metadata_rejects_blank_or_oversized_fields`, `workspace_metadata_tests::workspace_metadata_does_not_advance_semantic_versions` |
+| CVA comparison requires the same stable workspace ID and distinguishes identical, one-side-ahead, and divergent physical histories | `cva_reconcile_tests::compare_identical_copies`, `cva_reconcile_tests::compare_detects_one_side_ahead`, `cva_reconcile_tests::compare_detects_divergent_tails`, `cva_reconcile_tests::compare_rejects_different_workspaces` |
 | Opaque chunks retain stable references | `container_tests::append_then_read_chunks` |
 | Global versions survive reopen | `container_tests::global_versions_survive_reopen` |
 | Truncated/non-CVA files are rejected | `container_tests::*truncated*`, `reject_non_cva_file` |

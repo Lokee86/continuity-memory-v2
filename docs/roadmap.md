@@ -59,8 +59,11 @@ Remaining host integration work includes:
 - Memory/knowledge access;
 - provenance/history inspection;
 - model/agent configuration seams required by the host;
-- background Episode/Insomnia execution; and
-- basic health/status visibility.
+- background Episode/Insomnia execution;
+- basic health/status visibility; and
+- cloud-backed conflicted-copy detection/reconciliation through Reliquary rather than a Warlock-owned sync service.
+
+`Cva::compare` now provides the first reconciliation seam: it verifies shared workspace identity and classifies identical, one-side-ahead, or physically diverged CVA histories. Remaining work is semantic tail replay into a newly validated CVA, domain-specific duplicate/conflict handling, and safe promotion of the merged output. See [ADR 0018](decisions/0018-cloud-backed-cva-reconciliation.md).
 
 The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Reliquary lifecycle semantics directly.
 
@@ -153,7 +156,8 @@ Keep these measurement-driven and independent from product-surface work:
 - explicit vector-generation retirement;
 - whole-CVA historical views and restore-and-continue;
 - retention, reachability, compaction, and vacuum;
-- concurrent append/version reservation.
+- concurrent append/version reservation;
+- semantic reconciliation of divergent cloud-backed CVA copies, building on the implemented comparison seam.
 
 Whole-CVA historical recovery has its own future-only plan in [Versioning, historical cuts, and rollback](version-history-plan.md).
 
@@ -198,6 +202,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - [ADR 0015](decisions/0015-acp-inline-interaction-stream.md)
 - [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
 - [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md)
+- [ADR 0018](decisions/0018-cloud-backed-cva-reconciliation.md)
 
 ## Notes
 
