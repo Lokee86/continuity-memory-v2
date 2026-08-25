@@ -51,6 +51,7 @@ mod cva_reconcile;
 mod cva_reconcile_archive;
 mod cva_reconcile_error;
 mod cva_reconcile_memory;
+mod cva_reconcile_promote;
 mod cva_reconcile_repack;
 mod cva_turn_ingest;
 mod cva_vector_generations;
@@ -255,6 +256,8 @@ mod cva_reconcile_link_tests;
 mod cva_reconcile_memory_tests;
 #[cfg(test)]
 mod cva_reconcile_merge_tests;
+#[cfg(test)]
+mod cva_reconcile_promotion_tests;
 #[cfg(test)]
 mod cva_reconcile_tests;
 #[cfg(test)]

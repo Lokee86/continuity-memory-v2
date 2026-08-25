@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Comparison plus fresh semantic repacking, derived-state cleanup, Archive/Memory/Insomnia replay, and file-to-Memory reconciliation are implemented; provider integration and canonical promotion remain in progress.
+Accepted — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Insomnia replay, file-to-Memory reconciliation, and safe path-based canonical promotion are implemented; provider discovery/integration remains in progress.
 
 ## Purpose
 
@@ -116,7 +116,7 @@ sync
 promote/replace canonical file
 ```
 
-Original conflicted copies are retained until validation succeeds.
+Original conflicted copies are retained until validation succeeds. `Cva::reconcile_and_promote` now implements this filesystem-path lifecycle: it fingerprints the canonical CVA, builds a hidden sibling candidate through `Cva::reconcile`, syncs/reopens it, verifies the canonical fingerprint is unchanged, creates and syncs a recovery copy, atomically replaces the canonical path, then reopens the promoted CVA before deleting the recovery copy. If any post-replacement finalization step fails, the recovery copy is restored and revalidated before the error is returned. The conflicted source is never modified. This guard detects ordinary changes during preparation but is not a substitute for a general interprocess writer lock or provider-side compare-and-swap.
 
 ## Initial implementation
 
@@ -137,16 +137,17 @@ They currently:
 11. replay file-to-Memory links after both endpoint owners exist and preserve compatibility profiles from both copies;
 12. omit packed vectors, Memory/Archive vector bindings, and Vector Generations from the repack, while reporting whether a vector rebuild is required;
 13. rely on the disposable lexical index to rebuild lazily from replayed merged Fragments/Files;
-14. sync and reopen the new output for validation, removing it if reconciliation fails.
+14. sync and reopen the new output for validation, removing it if reconciliation fails;
+15. when `reconcile_and_promote` is used, fingerprint the canonical input before/after candidate preparation, write a synced recovery copy, atomically replace the canonical path, reopen/sync the promoted CVA, restore and revalidate the recovery copy if any post-replacement finalization step fails, and clean hidden sibling artifacts after ordinary success/failure.
 
-This is now a functional semantic merge and derived-state cleanup path for current Archive/Memory/Insomnia/vector ownership, but not yet a complete product-level cloud-conflict workflow.
+This is now a functional semantic merge, derived-state cleanup, and safe path-based promotion path for current Archive/Memory/Insomnia/vector ownership, but not yet a complete product-level cloud-conflict workflow.
 
 ## Next implementation slices
 
 1. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation rather than exposing owner errors directly.
-2. Add provider-facing conflicted-copy discovery and safe canonical-file promotion around the library operation.
+2. Add provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
 3. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
-4. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, and repeated conflict/reconciliation cycles.
+4. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, repeated conflict/reconciliation cycles, and provider-mediated file replacement.
 
 ## Non-goals
 
@@ -171,7 +172,7 @@ This decision does not introduce:
 
 Tests now prove that comparison recognizes identical copies, strict extensions, independent divergent tails, and different workspace IDs. Reconciliation tests additionally prove unrelated source Nodes and attachments merge, immutable Episodes preserve Memory provenance, standalone and grouped Insomnia-produced Memory revisions are re-ticketed correctly, file-to-Memory links replay after their targets, identical completion receipts deduplicate, incompatible Branch/Memory/completion revisions fail closed, and failed merge output is removed. Derived-state coverage proves a divergent result is a fresh repack, preserves/revalidates Fragments and compatibility profiles from both sides, rebuilds lexical retrieval from merged Fragments, removes packed/Memory/Archive vector state and Vector Generations, and reports that vector rebuilding is required.
 
-Remaining work is richer conflict reporting, provider-level conflicted-copy discovery/fixtures, host-triggered vector rebuilding, repeated reconciliation-cycle testing, and canonical-file promotion.
+Remaining work is richer conflict reporting, provider-level conflicted-copy discovery/fixtures, host-triggered vector rebuilding, repeated reconciliation-cycle testing, and eventual stronger writer coordination if real multi-process/cloud races require it.
 
 ## Related docs
 

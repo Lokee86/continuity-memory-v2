@@ -21,6 +21,10 @@ pub enum CvaReconcileError {
     InvalidMemoryVersionRecord,
     ConflictingInsomniaCompletion,
     MissingCompletionMemory,
+    PromotionPathsMustDiffer,
+    CanonicalChangedDuringPromotion,
+    PromotionFinalizationFailed(String),
+    PromotionRecoveryFailed { failure: String, recovery: String },
 }
 
 impl fmt::Display for CvaReconcileError {
@@ -54,6 +58,27 @@ impl fmt::Display for CvaReconcileError {
             }
             Self::MissingCompletionMemory => {
                 write!(f, "Insomnia completion references a missing Memory")
+            }
+            Self::PromotionPathsMustDiffer => {
+                write!(f, "canonical and conflicted CVA paths must differ")
+            }
+            Self::CanonicalChangedDuringPromotion => {
+                write!(
+                    f,
+                    "canonical CVA changed while reconciliation was being prepared"
+                )
+            }
+            Self::PromotionFinalizationFailed(failure) => {
+                write!(
+                    f,
+                    "promoted CVA failed finalization and the canonical copy was restored: {failure}"
+                )
+            }
+            Self::PromotionRecoveryFailed { failure, recovery } => {
+                write!(
+                    f,
+                    "promoted CVA failed finalization ({failure}) and canonical recovery also failed ({recovery})"
+                )
             }
         }
     }
