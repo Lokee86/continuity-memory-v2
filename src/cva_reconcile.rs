@@ -29,6 +29,7 @@ pub struct CvaReconcileResult {
     pub duplicate_memory_revisions: usize,
     pub replayed_insomnia_completions: usize,
     pub replayed_file_memory_links: usize,
+    pub canonical_change_required: bool,
     pub vector_rebuild_required: bool,
 }
 
@@ -96,6 +97,7 @@ impl Cva {
 }
 
 fn empty_result(comparison: CvaComparison) -> CvaReconcileResult {
+    let canonical_change_required = comparison.relation == CvaRelation::RightExtendsLeft;
     CvaReconcileResult {
         comparison,
         replayed_archive_records: 0,
@@ -103,6 +105,7 @@ fn empty_result(comparison: CvaComparison) -> CvaReconcileResult {
         duplicate_memory_revisions: 0,
         replayed_insomnia_completions: 0,
         replayed_file_memory_links: 0,
+        canonical_change_required,
         vector_rebuild_required: false,
     }
 }

@@ -98,6 +98,7 @@ pub(crate) fn replay_archive_tail(
     destination: &mut Cva,
     tail: &ArchiveTail,
 ) -> Result<usize, CvaReconcileError> {
+    let before = destination.archive_version();
     for record in &tail.records {
         match record {
             ArchiveReplayRecord::Node(turn) => {
@@ -147,15 +148,16 @@ pub(crate) fn replay_archive_tail(
             }
         }
     }
-    Ok(tail.records.len())
+    Ok(destination.archive_version().saturating_sub(before) as usize)
 }
 
 pub(crate) fn replay_file_memory_links(
     destination: &mut Cva,
     links: &[FileMemoryLink],
 ) -> Result<usize, CvaReconcileError> {
+    let before = destination.archive_version();
     for link in links {
         destination.link_file_to_memory(link.file_id, link.memory_id)?;
     }
-    Ok(links.len())
+    Ok(destination.archive_version().saturating_sub(before) as usize)
 }

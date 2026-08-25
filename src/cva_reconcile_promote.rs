@@ -20,6 +20,10 @@ impl Cva {
         let temp = sibling_path(canonical, "merge.tmp");
         let backup = sibling_path(canonical, "merge.bak");
         let result = Self::reconcile(canonical, conflicted, &temp)?;
+        if !result.canonical_change_required {
+            let _ = fs::remove_file(&temp);
+            return Ok(result);
+        }
 
         let promote_result = (|| {
             let candidate = Self::open(&temp)?;

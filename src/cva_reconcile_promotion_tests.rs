@@ -56,6 +56,7 @@ fn reconcile_and_promote_replaces_canonical_after_validation() {
 
     let result = Cva::reconcile_and_promote(&canonical, &conflicted).unwrap();
     assert_eq!(result.comparison.workspace_id, "workspace-1");
+    assert!(result.canonical_change_required);
     let promoted = Cva::open(&canonical).unwrap();
     assert_eq!(promoted.stats().nodes, 2);
     let preserved_conflict = Cva::open(&conflicted).unwrap();
@@ -77,6 +78,27 @@ fn failed_reconciliation_never_changes_canonical() {
     assert!(Cva::reconcile_and_promote(&canonical, &conflicted).is_err());
     assert_eq!(fs::read(&canonical).unwrap(), before);
     assert_eq!(Cva::open(&canonical).unwrap().stats().nodes, 1);
+    assert!(promotion_artifacts(&dir).is_empty());
+}
+
+#[test]
+fn already_absorbed_conflicted_copy_is_a_noop() {
+    let dir = test_dir();
+    let canonical = dir.join("project.cva");
+    let conflicted = dir.join("project-conflicted.cva");
+    create_workspace(&canonical);
+    fs::copy(&canonical, &conflicted).unwrap();
+    append(&canonical, "left", "left state");
+    append(&conflicted, "right", "right state");
+
+    Cva::reconcile_and_promote(&canonical, &conflicted).unwrap();
+    let before = fs::read(&canonical).unwrap();
+    let result = Cva::reconcile_and_promote(&canonical, &conflicted).unwrap();
+
+    assert!(!result.canonical_change_required);
+    assert!(!result.vector_rebuild_required);
+    assert_eq!(fs::read(&canonical).unwrap(), before);
+    assert_eq!(Cva::open(&canonical).unwrap().stats().nodes, 2);
     assert!(promotion_artifacts(&dir).is_empty());
 }
 
