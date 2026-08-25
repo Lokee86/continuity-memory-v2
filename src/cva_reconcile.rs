@@ -1,5 +1,7 @@
-use crate::{ContainerError, Cva, CvaError};
-use std::fmt;
+use crate::Cva;
+use crate::cva_reconcile_archive::{read_archive_tail, replay_archive_tail};
+use crate::cva_reconcile_error::CvaReconcileError;
+use std::fs;
 use std::path::Path;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,12 +21,11 @@ pub struct CvaComparison {
     pub relation: CvaRelation,
 }
 
-#[derive(Debug)]
-pub enum CvaReconcileError {
-    Cva(CvaError),
-    Container(ContainerError),
-    MissingWorkspaceMetadata(&'static str),
-    WorkspaceMismatch { left: String, right: String },
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CvaReconcileResult {
+    pub comparison: CvaComparison,
+    pub replayed_archive_records: usize,
+    pub skipped_derived_archive_records: usize,
 }
 
 impl Cva {
@@ -34,17 +35,8 @@ impl Cva {
     ) -> Result<CvaComparison, CvaReconcileError> {
         let mut left = Self::open(left_path)?;
         let mut right = Self::open(right_path)?;
-
-        let left_id = left
-            .workspace_metadata()
-            .ok_or(CvaReconcileError::MissingWorkspaceMetadata("left"))?
-            .id
-            .clone();
-        let right_id = right
-            .workspace_metadata()
-            .ok_or(CvaReconcileError::MissingWorkspaceMetadata("right"))?
-            .id
-            .clone();
+        let left_id = workspace_id(&left, "left")?;
+        let right_id = workspace_id(&right, "right")?;
         if left_id != right_id {
             return Err(CvaReconcileError::WorkspaceMismatch {
                 left: left_id,
@@ -61,20 +53,9 @@ impl Cva {
             }
             common_chunk_count += 1;
         }
-
         let left_chunk_count = left_chunks.len();
         let right_chunk_count = right_chunks.len();
-        let relation =
-            if common_chunk_count == left_chunk_count && common_chunk_count == right_chunk_count {
-                CvaRelation::Identical
-            } else if common_chunk_count == right_chunk_count {
-                CvaRelation::LeftExtendsRight
-            } else if common_chunk_count == left_chunk_count {
-                CvaRelation::RightExtendsLeft
-            } else {
-                CvaRelation::Diverged
-            };
-
+        let relation = classify(common_chunk_count, left_chunk_count, right_chunk_count);
         Ok(CvaComparison {
             workspace_id: left_id,
             common_chunk_count,
@@ -83,33 +64,82 @@ impl Cva {
             relation,
         })
     }
-}
 
-impl fmt::Display for CvaReconcileError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Cva(error) => write!(f, "{error}"),
-            Self::Container(error) => write!(f, "{error}"),
-            Self::MissingWorkspaceMetadata(side) => {
-                write!(f, "{side} CVA has no workspace metadata")
-            }
-            Self::WorkspaceMismatch { left, right } => {
-                write!(f, "workspace mismatch: left={left} right={right}")
-            }
+    pub fn reconcile(
+        left_path: impl AsRef<Path>,
+        right_path: impl AsRef<Path>,
+        output_path: impl AsRef<Path>,
+    ) -> Result<CvaReconcileResult, CvaReconcileError> {
+        let left_path = left_path.as_ref();
+        let right_path = right_path.as_ref();
+        let output_path = output_path.as_ref();
+        if output_path.exists() {
+            return Err(CvaReconcileError::OutputExists);
         }
+
+        let comparison = Self::compare(left_path, right_path)?;
+        let source = match comparison.relation {
+            CvaRelation::RightExtendsLeft => right_path,
+            _ => left_path,
+        };
+        if comparison.relation != CvaRelation::Diverged {
+            copy_and_validate(source, output_path)?;
+            return Ok(CvaReconcileResult {
+                comparison,
+                replayed_archive_records: 0,
+                skipped_derived_archive_records: 0,
+            });
+        }
+
+        let mut right = Self::open(right_path)?;
+        let tail = read_archive_tail(&mut right, comparison.common_chunk_count)?;
+        fs::copy(left_path, output_path)?;
+        let merge_result = (|| {
+            let mut output = Self::open(output_path)?;
+            let (replayed, skipped) = replay_archive_tail(&mut output, tail)?;
+            output.sync()?;
+            drop(output);
+            Self::open(output_path)?;
+            Ok((replayed, skipped))
+        })();
+        let (replayed, skipped) = match merge_result {
+            Ok(value) => value,
+            Err(error) => {
+                let _ = fs::remove_file(output_path);
+                return Err(error);
+            }
+        };
+        Ok(CvaReconcileResult {
+            comparison,
+            replayed_archive_records: replayed,
+            skipped_derived_archive_records: skipped,
+        })
     }
 }
 
-impl std::error::Error for CvaReconcileError {}
+fn workspace_id(cva: &Cva, side: &'static str) -> Result<String, CvaReconcileError> {
+    cva.workspace_metadata()
+        .map(|metadata| metadata.id.clone())
+        .ok_or(CvaReconcileError::MissingWorkspaceMetadata(side))
+}
 
-impl From<CvaError> for CvaReconcileError {
-    fn from(value: CvaError) -> Self {
-        Self::Cva(value)
+fn classify(common: usize, left: usize, right: usize) -> CvaRelation {
+    if common == left && common == right {
+        CvaRelation::Identical
+    } else if common == right {
+        CvaRelation::LeftExtendsRight
+    } else if common == left {
+        CvaRelation::RightExtendsLeft
+    } else {
+        CvaRelation::Diverged
     }
 }
 
-impl From<ContainerError> for CvaReconcileError {
-    fn from(value: ContainerError) -> Self {
-        Self::Container(value)
+fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaReconcileError> {
+    fs::copy(source, output)?;
+    if let Err(error) = Cva::open(output) {
+        let _ = fs::remove_file(output);
+        return Err(error.into());
     }
+    Ok(())
 }

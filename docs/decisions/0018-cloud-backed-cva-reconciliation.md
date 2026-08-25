@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Initial comparison/detection seam implemented; semantic reconciliation remains in progress.
+Accepted — 2026-08-24. Comparison plus initial Archive semantic replay implemented; broader owner reconciliation remains in progress.
 
 ## Purpose
 
@@ -120,28 +120,32 @@ Original conflicted copies are retained until validation succeeds.
 
 ## Initial implementation
 
-The first code slice adds `Cva::compare(left, right)` and public comparison models.
+The first code slices add `Cva::compare(left, right)` plus `Cva::reconcile(left, right, output)`.
 
-It currently:
+They currently:
 
-1. opens and validates both CVAs;
-2. requires workspace metadata on both sides;
-3. rejects mismatched workspace IDs;
-4. compares their physical chunk histories;
-5. reports the common prefix and relation.
+1. open and validate both CVAs;
+2. require workspace metadata on both sides;
+3. reject mismatched workspace IDs;
+4. compare physical chunk histories and identify the common prefix;
+5. copy the complete side directly for identical/strict-extension cases;
+6. for true divergence, use the left CVA as a valid base and decode the right divergent Archive tail;
+7. replay source Nodes, attachment-bearing ingested turns, standalone Files, and Branch revisions through ordinary Continuity APIs;
+8. omit rebuildable Fragment/Episode records from the replay;
+9. refuse divergent Memories, durable Insomnia completions, and file-to-Memory links rather than dropping them;
+10. sync and reopen the new output for validation, removing it if reconciliation fails.
 
-This provides the detection seam Warlock/cloud-drive handling can use before semantic merge exists.
+This is the first actual semantic merge path, but not yet a complete whole-CVA merge.
 
 ## Next implementation slices
 
-1. Add a read-only representation of divergent logical records rather than exposing raw container chunks to callers.
-2. Classify tail records by semantic owner and stable identity.
-3. Implement deterministic duplicate handling for Archive records/content objects first.
-4. Add Memory replay using existing mutation/revision conflict semantics.
-5. Rebuild or intentionally omit derived vector/index state in the first merged output.
-6. Write merged output to a new CVA and run ordinary open-time validation before promotion.
-7. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation.
-8. Test realistic cloud-conflict fixtures, including two offline devices appending unrelated records.
+1. Add Memory replay using existing mutation/revision conflict semantics, including grouped Insomnia completion ownership so merged Memories do not cause completed Episodes to be reprocessed.
+2. Reconcile Archive file-to-Memory links after Memory replay exists.
+3. Rebuild omitted Episode/Fragment state where required rather than copying stale derived records.
+4. Rebuild or intentionally retire stale vector/index generations affected by merged Archive/Memory state.
+5. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation rather than exposing owner errors directly.
+6. Add provider-facing conflicted-copy discovery and safe canonical-file promotion around the library operation.
+7. Test realistic multi-device fixtures, including offline source capture plus independent Memory production.
 
 ## Non-goals
 
@@ -164,14 +168,9 @@ This decision does not introduce:
 
 ## Verification
 
-The initial tests prove that comparison:
+Tests now prove that comparison recognizes identical copies, strict extensions, independent divergent tails, and different workspace IDs. Reconciliation tests additionally prove unrelated divergent source Nodes merge, attachment-bearing turns survive replay, incompatible Branch revisions surface as conflicts, divergent Memories and durable Insomnia completions are refused, and failed merge output is removed.
 
-- recognizes identical copied CVAs;
-- recognizes when one copy is strictly ahead;
-- recognizes independent divergent tails; and
-- rejects different workspace IDs.
-
-Full reconciliation will require additional tests for replay ordering, duplicate records, Memory revisions, conflicting stable IDs, derived-state rebuild, crash-safe output promotion, and reopen validation.
+Full reconciliation still requires Memory/Insomnia replay tests, file-to-Memory links, derived-state rebuild, richer conflict reporting, provider-level conflicted-copy fixtures, and canonical-file promotion.
 
 ## Related docs
 

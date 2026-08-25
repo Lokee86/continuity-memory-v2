@@ -21,9 +21,11 @@ Workspace metadata is clock-neutral: initialization consumes no Archive, Memory,
 
 ### CVA comparison and reconciliation
 
-Public comparison types are `CvaComparison`, `CvaRelation`, and `CvaReconcileError`. `Cva::compare(left, right)` opens and validates two CVAs, requires matching `WorkspaceMetadata.id` values, compares their physical append-only chunk histories, and reports `Identical`, `LeftExtendsRight`, `RightExtendsLeft`, or `Diverged` plus common/total chunk counts.
+Public reconciliation types are `CvaComparison`, `CvaRelation`, `CvaReconcileResult`, and `CvaReconcileError`. `Cva::compare(left, right)` opens and validates two CVAs, requires matching `WorkspaceMetadata.id` values, compares their physical append-only chunk histories, and reports `Identical`, `LeftExtendsRight`, `RightExtendsLeft`, or `Diverged` plus common/total chunk counts.
 
-Comparison is detection only. Divergent semantic replay/merge, conflict reporting, derived-state rebuild, and crash-safe output promotion are not implemented yet; see ADR 0018.
+`Cva::reconcile(left, right, output)` writes a new output CVA. Identical/strict-extension cases copy the complete valid side. Diverged copies currently use the left CVA as the base and semantically replay the right divergent Archive tail for source Nodes, attachment-bearing ingested turns, standalone Files, and Branch revisions through ordinary Continuity APIs so new clocks are allocated correctly. Fragment/Episode records are treated as rebuildable derived state and omitted from the replay. Genuine Branch/Node/File conflicts are surfaced, and failed output is removed.
+
+Divergent Memories, durable Insomnia completions, and Archive file-to-Memory links are rejected rather than silently dropped. Full Memory/Insomnia reconciliation, derived-state rebuild, and canonical-file promotion remain future work; see ADR 0018.
 
 ### Archive
 Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ConversationSummary`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, `IncomingAttachment`, `IncomingTurn`, `IngestedTurn`, `FileMemoryLink`, and:
