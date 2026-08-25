@@ -6,6 +6,9 @@ bin/
 *.sqlite-shm
 *.sqlite-wal
 *.cva
+reliquary.cfg
+reliquary.master-key.json
+# Legacy pre-Reliquary local names remain ignored during transition.
 continuity.cfg
 continuity.master-key.json
 .env

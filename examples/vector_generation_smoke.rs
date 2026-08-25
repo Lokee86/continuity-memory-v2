@@ -1,4 +1,4 @@
-use continuity_memory::{Cva, SimulatedEmbeddingEndpoint, VectorNormalization};
+use reliquary_memory::{Cva, SimulatedEmbeddingEndpoint, VectorNormalization};
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;

@@ -8,7 +8,7 @@ Superseded by: none
 
 ## Context
 
-Earlier Continuity storage work generalized mutable domain state through broad roots, manifests, and dependency identities. Local changes could then invalidate unrelated structures, and storage ownership became difficult to reason about.
+Earlier Reliquary storage work generalized mutable domain state through broad roots, manifests, and dependency identities. Local changes could then invalidate unrelated structures, and storage ownership became difficult to reason about.
 
 The rebuild needs one portable `.cva` while retaining explicit authority for Archive, Memories, Graph, and vector domains.
 

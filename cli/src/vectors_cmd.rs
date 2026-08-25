@@ -1,9 +1,9 @@
 use crate::args::VectorsCommand;
 use crate::util::hex32;
 use anyhow::Result;
-use continuity_memory::{
-    ContinuityConfig, Cva, EmbeddingEndpoint, EmbeddingMode, ModelSwitchboard,
-    OpenAiReadyEmbeddingEndpoint,
+use reliquary_memory::{
+    Cva, EmbeddingEndpoint, EmbeddingMode, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint,
+    ReliquaryConfig,
 };
 use std::path::Path;
 
@@ -101,7 +101,7 @@ fn endpoint(
     batch_size: usize,
     concurrency: usize,
 ) -> Result<OpenAiReadyEmbeddingEndpoint> {
-    let config = ContinuityConfig::open(config_path)?;
+    let config = ReliquaryConfig::open(config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     Ok(
         OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard)?

@@ -6,7 +6,7 @@ Accepted — 2026-08-15.
 
 ## Context
 
-Continuity v2 treats conversations as indefinitely appendable Archive streams. A conversation does not acquire a terminal state merely because a provider session ended, an import reached its current end, or an earlier episode was finalized.
+Reliquary v2 treats conversations as indefinitely appendable Archive streams. A conversation does not acquire a terminal state merely because a provider session ended, an import reached its current end, or an earlier episode was finalized.
 
 The previous implementation already proved a useful deterministic episode model: one response cycle begins at a user turn and contains subsequent assistant/tool/system turns up to the next user turn; complete response cycles are packed beneath an exact serialized input budget and never split. The previous runtime also allowed the live model to satisfy memory generation independently of Insomnia. That second behavior no longer matches the v2 authority model.
 

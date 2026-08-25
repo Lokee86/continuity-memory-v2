@@ -1,7 +1,7 @@
 # CVA Storage Format
 Parent index: [Documentation index](INDEX.md)
 ## Purpose
-This document is the exact reference owner for persistent records currently implemented by Continuity Memory v2.
+This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
 The development format is one append-only CVA file containing Archive source/history records, embedded files, Memories, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
 ## Exact contract

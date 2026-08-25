@@ -10,7 +10,7 @@ Model routes need usable authentication without putting API keys or OAuth tokens
 
 ## Decision
 
-Credentials are replaceable current-state objects in `continuity.cfg` under stable logical keys:
+Credentials are replaceable current-state objects in `reliquary.cfg` under stable logical keys:
 
 ```text
 credential.<id>
@@ -31,7 +31,7 @@ Secrets are decrypted only into memory, secret debug output is redacted, and sec
 
 ## Master-key boundary
 
-Credential ciphertext lives in `continuity.cfg`; the master key does not. The current master-key backend remains the explicitly temporary plaintext `continuity.master-key.json`. Replacing that backend with the operating-system credential store does not change credential-object format or model-route references.
+Credential ciphertext lives in `reliquary.cfg`; the master key does not. The current master-key backend remains the explicitly temporary plaintext `reliquary.master-key.json`. Replacing that backend with the operating-system credential store does not change credential-object format or model-route references.
 
 ## Consequences
 
@@ -44,7 +44,7 @@ Credential ciphertext lives in `continuity.cfg`; the master key does not. The cu
 
 ## Rejected alternatives
 
-### Plaintext credentials in `continuity.cfg`
+### Plaintext credentials in `reliquary.cfg`
 
 Rejected because provider secrets should not be exposed merely to keep config implementation simple.
 

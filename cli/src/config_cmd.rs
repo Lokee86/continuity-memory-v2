@@ -1,9 +1,9 @@
 use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
 use crate::util::{credential_id, normalization, provider, read_secret, reasoning};
 use anyhow::{Result, anyhow};
-use continuity_memory::{
-    ContinuityConfig, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelSwitchboard,
-    OpenAiCodexDeviceAuth,
+use reliquary_memory::{
+    EmbeddingModelEndpoint, GeneralModelEndpoint, ModelSwitchboard, OpenAiCodexDeviceAuth,
+    ReliquaryConfig,
 };
 use std::path::Path;
 
@@ -42,7 +42,7 @@ fn show(path: &Path) -> Result<()> {
 }
 
 fn verify(path: &Path) -> Result<()> {
-    let config = ContinuityConfig::open(path)?;
+    let config = ReliquaryConfig::open(path)?;
     ModelSwitchboard::new(config.models, config.credentials)?;
     println!("config ok: {}", path.display());
     Ok(())
@@ -153,15 +153,15 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
     Ok(())
 }
 
-fn load(path: &Path) -> Result<ContinuityConfig> {
+fn load(path: &Path) -> Result<ReliquaryConfig> {
     if path.exists() {
-        Ok(ContinuityConfig::open(path)?)
+        Ok(ReliquaryConfig::open(path)?)
     } else {
-        Ok(ContinuityConfig::new(path))
+        Ok(ReliquaryConfig::new(path))
     }
 }
 
-fn validate_runtime(config: &ContinuityConfig) -> Result<()> {
+fn validate_runtime(config: &ReliquaryConfig) -> Result<()> {
     ModelSwitchboard::new(config.models.clone(), config.credentials.clone())?;
     Ok(())
 }

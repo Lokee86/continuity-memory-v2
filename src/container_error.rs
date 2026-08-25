@@ -5,7 +5,7 @@ impl fmt::Display for ContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(f, "container I/O error: {error}"),
-            Self::InvalidMagic => write!(f, "not a Continuity Vault Archive"),
+            Self::InvalidMagic => write!(f, "not a valid CVA container"),
             Self::TruncatedHeader => write!(f, "truncated CVA header"),
             Self::TruncatedChunk(offset) => write!(f, "truncated CVA chunk at {offset}"),
             Self::UnsupportedVersion(v) => {

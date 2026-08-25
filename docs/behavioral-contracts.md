@@ -14,7 +14,7 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 
 | Contract | Protection |
 | --- | --- |
-| Default local config saves/reopens with Continuity magic and typed defaults | `config_tests::default_config_saves_and_reopens` |
+| Default local config saves/reopens with Reliquary magic and typed defaults | `config_tests::default_config_saves_and_reopens` |
 | Config replacement keeps only current objects and does not grow from history | `config_tests::replacing_config_does_not_accumulate_old_objects` |
 | Unknown future config objects survive known-object replacement | `config_tests::unknown_objects_survive_known_config_replacement` |
 | Invalid config is rejected before replacing the existing file | `config_tests::invalid_values_do_not_replace_existing_config` |
@@ -22,12 +22,12 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | General/embedding routes and encrypted credentials round-trip together; route removal remains current-state replacement | `model_switchboard_tests::routes_and_credentials_round_trip_and_attach_auth_headers`, `model_switchboard_tests::clearing_model_routes_removes_them_from_current_config` |
 | Unsupported provider routes plus missing/wrong-kind credentials are rejected | `model_switchboard_tests::invalid_provider_routes_are_rejected`, `model_switchboard_tests::missing_or_wrong_credential_kind_is_rejected` |
 | OpenAI-ready and Codex credentials resolve to bearer auth; Codex also attaches ChatGPT account ID when present | `model_switchboard_tests::routes_and_credentials_round_trip_and_attach_auth_headers` |
-| Credential plaintext never appears in `continuity.cfg` and encrypted credentials round-trip | `credential_tests::encrypted_credentials_round_trip_without_plaintext_in_config` |
+| Credential plaintext never appears in `reliquary.cfg` and encrypted credentials round-trip | `credential_tests::encrypted_credentials_round_trip_without_plaintext_in_config` |
 | Wrong master keys and ciphertext tampering fail authenticated decryption | `credential_tests::wrong_master_key_cannot_decrypt_credentials`, `credential_tests::authenticated_encryption_rejects_tampering` |
 | Clearing credentials removes encrypted credential objects rather than accumulating history | `credential_tests::clearing_credentials_removes_encrypted_objects` |
 | Master key is generated once from OS entropy and remains stable across reloads | `master_key_tests::json_store_generates_and_reloads_one_stable_key` |
 | Independent key stores produce different keys and debug output redacts key material | `master_key_tests::separately_created_stores_get_different_keys`, `master_key_tests::debug_output_never_contains_key_material` |
-| `ContinuityConfig` places the temporary JSON master key beside the config | `config_tests::config_creates_temporary_master_key_beside_itself` |
+| `ReliquaryConfig` places the temporary JSON master key beside the config | `config_tests::config_creates_temporary_master_key_beside_itself` |
 | New CVA header reopens | `container_tests::create_then_reopen_cva` |
 | Workspace ID/name/type initialize once and survive reopen | `workspace_metadata_tests::workspace_metadata_round_trips`, `workspace_metadata_tests::ordinary_cva_can_be_initialized_as_workspace_once` |
 | Workspace metadata is bounded and consumes no semantic version clock | `workspace_metadata_tests::workspace_metadata_rejects_blank_or_oversized_fields`, `workspace_metadata_tests::workspace_metadata_does_not_advance_semantic_versions` |

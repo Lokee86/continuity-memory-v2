@@ -378,14 +378,14 @@ def main():
     parser.add_argument("--env-file")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
-    api_key = os.environ.get("NOUS_API_KEY") or os.environ.get("CONTINUITY_INSOMNIA_API_KEY")
+    api_key = os.environ.get("NOUS_API_KEY") or os.environ.get("RELIQUARY_INSOMNIA_API_KEY")
     if not api_key and args.env_file:
         for line in Path(args.env_file).read_text(encoding="utf-8").splitlines():
-            if line.startswith("CONTINUITY_INSOMNIA_API_KEY="):
+            if line.startswith("RELIQUARY_INSOMNIA_API_KEY="):
                 api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
                 break
     if not api_key:
-        raise SystemExit("set NOUS_API_KEY/CONTINUITY_INSOMNIA_API_KEY or pass --env-file")
+        raise SystemExit("set NOUS_API_KEY/RELIQUARY_INSOMNIA_API_KEY or pass --env-file")
 
     episodes = load_episodes(args.input)
     if args.limit is not None:

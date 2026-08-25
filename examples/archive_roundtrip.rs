@@ -1,4 +1,4 @@
-use continuity_memory::{Branch, Cva, FragmentConfig};
+use reliquary_memory::{Branch, Cva, FragmentConfig};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;

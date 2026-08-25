@@ -60,7 +60,7 @@ Raw packed-vector object creation does **not** allocate a CVA-global version tic
 - **Open one Container per database:** rejected because every database would rescan the same CVA and physical write ownership would be ambiguous.
 - **Give packed matrices a semantic local clock now:** rejected because raw matrices have no active-profile/generation semantics yet.
 - **Generalized database registry/trait:** rejected because two concrete owners do not justify merging semantic authority.
-- **Import all of `lodestone-core`:** rejected because Continuity only needs packed-row representation and should not pull in Lodestone's mmap/object/search dependencies.
+- **Import all of `lodestone-core`:** rejected because Reliquary only needs packed-row representation and should not pull in Lodestone's mmap/object/search dependencies.
 
 ## Verification
 

@@ -4,15 +4,15 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document owns the local Continuity configuration format, mutation semantics, and boundary from CVA semantic state.
+This document owns the local Reliquary configuration format, mutation semantics, and boundary from CVA semantic state.
 
 ## Overview
 
-Continuity uses one small purpose-built `continuity.cfg` file for machine-local current configuration. It uses replaceable logical objects, whole-file atomic replacement, and no internal history.
+Reliquary uses one small purpose-built `reliquary.cfg` file for machine-local current configuration. It uses replaceable logical objects, whole-file atomic replacement, and no internal history.
 
 ## Ownership
 
-`continuity.cfg` is a purpose-built local application-configuration file. It is not part of a `.cva`, does not participate in CVA semantic clocks, and has no historical or append-only semantics.
+`reliquary.cfg` is a purpose-built local application-configuration file. It is not part of a `.cva`, does not participate in CVA semantic clocks, and has no historical or append-only semantics.
 
 Configuration is current-state only:
 
@@ -25,7 +25,7 @@ serialize one complete current file image
     ↓
 write + sync temporary file
     ↓
-atomically replace continuity.cfg
+atomically replace reliquary.cfg
 ```
 
 If a user wants configuration history, that belongs in an external version-control system such as Git.
@@ -143,24 +143,24 @@ The encrypted plaintext begins with a credential-kind tag plus three reserved ze
 
 ## Replacement and durability
 
-`ContinuityConfig::save` validates all known objects before touching the existing file. It writes the new image to a temporary file in the same directory, flushes it, then performs a replace operation. Windows uses `MoveFileExW` with replace/write-through flags; Unix uses same-filesystem rename and synchronizes the parent directory.
+`ReliquaryConfig::save` validates all known objects before touching the existing file. It writes the new image to a temporary file in the same directory, flushes it, then performs a replace operation. Windows uses `MoveFileExW` with replace/write-through flags; Unix uses same-filesystem rename and synchronizes the parent directory.
 
 Repeated replacement does not accumulate superseded configuration objects or require compaction.
 
 ## Security boundary
 
-A locally generated 256-bit `MasterKey` is implemented. `ContinuityConfig::load_or_create_master_key()` currently persists it beside the config as `continuity.master-key.json`:
+A locally generated 256-bit `MasterKey` is implemented. `ReliquaryConfig::load_or_create_master_key()` currently persists it beside the config as `reliquary.master-key.json`:
 
 ```text
-continuity.cfg
-continuity.master-key.json
+reliquary.cfg
+reliquary.master-key.json
     version: 1
     master_key_hex: 64 hex characters
 ```
 
 Generation uses operating-system entropy (`BCryptGenRandom` on Windows and `/dev/urandom` on Unix). The key is created once and reused; normal load-or-create behavior never overwrites an existing key, and `Debug` output redacts the key material.
 
-The JSON store is explicitly temporary development plumbing, not the final security boundary. Because the master key is plaintext on disk, it provides no meaningful at-rest protection against an actor who can read both files. The intended production replacement remains the operating-system credential store while encrypted credential payloads remain in `continuity.cfg`.
+The JSON store is explicitly temporary development plumbing, not the final security boundary. Because the master key is plaintext on disk, it provides no meaningful at-rest protection against an actor who can read both files. The intended production replacement remains the operating-system credential store while encrypted credential payloads remain in `reliquary.cfg`.
 
 Credential objects are now encrypted independently with AES-256-GCM. Ordinary settings remain inexpensive and inspectable. Secret strings redact `Debug` output and are zeroized when dropped; plaintext codec buffers are also zeroized after encryption/decryption.
 

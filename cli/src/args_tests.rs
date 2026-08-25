@@ -4,7 +4,7 @@ use clap::Parser;
 
 #[test]
 fn parses_repo_local_cva_command() {
-    let cli = Cli::try_parse_from(["continuity", "cva", "info", "sample.cva"]).unwrap();
+    let cli = Cli::try_parse_from(["reliquary", "cva", "info", "sample.cva"]).unwrap();
     assert!(matches!(
         cli.command,
         Command::Cva {
@@ -16,7 +16,7 @@ fn parses_repo_local_cva_command() {
 #[test]
 fn api_key_command_accepts_stdin_mode_without_secret_argument() {
     let cli = Cli::try_parse_from([
-        "continuity",
+        "reliquary",
         "config",
         "credential",
         "add-api-key",
@@ -37,7 +37,7 @@ fn api_key_command_accepts_stdin_mode_without_secret_argument() {
 #[test]
 fn api_key_command_rejects_direct_secret_option() {
     let result = Cli::try_parse_from([
-        "continuity",
+        "reliquary",
         "config",
         "credential",
         "add-api-key",
@@ -50,8 +50,8 @@ fn api_key_command_rejects_direct_secret_option() {
 
 #[test]
 fn codex_device_login_command_accepts_credential_id() {
-    let cli = Cli::try_parse_from(["continuity", "config", "credential", "login-codex", "codex"])
-        .unwrap();
+    let cli =
+        Cli::try_parse_from(["reliquary", "config", "credential", "login-codex", "codex"]).unwrap();
     assert!(matches!(
         cli.command,
         Command::Config {
@@ -65,7 +65,7 @@ fn codex_device_login_command_accepts_credential_id() {
 #[test]
 fn insomnia_model_route_is_configurable() {
     let cli = Cli::try_parse_from([
-        "continuity",
+        "reliquary",
         "config",
         "model",
         "set-insomnia",
@@ -92,7 +92,7 @@ fn insomnia_model_route_is_configurable() {
 #[test]
 fn codex_general_route_accepts_low_reasoning() {
     let cli = Cli::try_parse_from([
-        "continuity",
+        "reliquary",
         "config",
         "model",
         "set-general",
@@ -121,7 +121,7 @@ fn codex_general_route_accepts_low_reasoning() {
 
 #[test]
 fn live_vector_probe_accepts_free_text() {
-    let cli = Cli::try_parse_from(["continuity", "vectors", "probe", "hello", "world"]).unwrap();
+    let cli = Cli::try_parse_from(["reliquary", "vectors", "probe", "hello", "world"]).unwrap();
     assert!(matches!(
         cli.command,
         Command::Vectors {
@@ -133,7 +133,7 @@ fn live_vector_probe_accepts_free_text() {
 #[test]
 fn live_vector_build_accepts_concurrency_controls() {
     let cli = Cli::try_parse_from([
-        "continuity",
+        "reliquary",
         "vectors",
         "build",
         "sample.cva",
@@ -157,7 +157,7 @@ fn live_vector_build_accepts_concurrency_controls() {
 
 #[test]
 fn live_vector_build_uses_measured_defaults() {
-    let cli = Cli::try_parse_from(["continuity", "vectors", "build", "sample.cva"]).unwrap();
+    let cli = Cli::try_parse_from(["reliquary", "vectors", "build", "sample.cva"]).unwrap();
     assert!(matches!(
         cli.command,
         Command::Vectors {
@@ -173,7 +173,7 @@ fn live_vector_build_uses_measured_defaults() {
 #[test]
 fn insomnia_run_exposes_worker_concurrency() {
     let cli = Cli::try_parse_from([
-        "continuity",
+        "reliquary",
         "insomnia",
         "run",
         "sample.cva",

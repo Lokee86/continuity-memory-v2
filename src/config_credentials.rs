@@ -51,5 +51,5 @@ pub(crate) fn insert_credentials(
 }
 
 pub(crate) fn master_key_path(config_path: &Path) -> PathBuf {
-    config_path.with_file_name("continuity.master-key.json")
+    config_path.with_file_name("reliquary.master-key.json")
 }

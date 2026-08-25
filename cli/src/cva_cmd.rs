@@ -1,7 +1,7 @@
 use crate::args::CvaCommand;
 use crate::util::{file_len, hex32};
 use anyhow::Result;
-use continuity_memory::Cva;
+use reliquary_memory::Cva;
 
 pub fn run(command: CvaCommand) -> Result<()> {
     match command {

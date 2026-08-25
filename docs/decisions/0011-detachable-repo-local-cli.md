@@ -5,17 +5,17 @@
 
 ## Context
 
-Continuity needs an operator-facing bring-up interface for CVA lifecycle, configuration/auth, archive inspection, and current vector/retrieval machinery. The core crate is a library and should not acquire product-CLI ownership merely to support development access.
+Reliquary needs an operator-facing bring-up interface for CVA lifecycle, configuration/auth, archive inspection, and current vector/retrieval machinery. The core crate is a library and should not acquire product-CLI ownership merely to support development access.
 
 The CLI also should not be installed system-wide during current bring-up work.
 
 ## Decision
 
-The CLI lives in `cli/` as a separate Cargo package named `continuity-cli` with a `continuity` binary.
+The CLI lives in `cli/` as a separate Cargo package named `reliquary-cli` with a `reliquary` binary.
 
-It is not a binary target or workspace member of the root `continuity-memory` package. Repository-local use is through `cargo run --manifest-path cli/Cargo.toml -- ...`.
+It is not a binary target or workspace member of the root `reliquary-memory` package. Repository-local use is through `cargo run --manifest-path cli/Cargo.toml -- ...`.
 
-The package may depend only on the public `continuity-memory` API. It may not reach into private library modules or duplicate semantic authority. If the CLI needs a generally useful read operation, that operation belongs in the public library API first.
+The package may depend only on the public `reliquary-memory` API. It may not reach into private library modules or duplicate semantic authority. If the CLI needs a generally useful read operation, that operation belongs in the public library API first.
 
 The package owns argument parsing, terminal prompting, human-readable output, and operator command composition only. CVA semantics, configuration persistence/encryption, provider-auth semantics, and retrieval remain owned by the library.
 

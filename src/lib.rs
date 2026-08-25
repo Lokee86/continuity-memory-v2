@@ -136,7 +136,7 @@ pub use compatibility_profile_model::{
     CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileId,
     CompatibilityProfileStats, CompatibilityReport,
 };
-pub use config::ContinuityConfig;
+pub use config::ReliquaryConfig;
 pub use config_error::ConfigError;
 pub use configured_general::ConfiguredGeneralEndpoint;
 pub use container::{ChunkRef, Container, ContainerError, FormatVersion};

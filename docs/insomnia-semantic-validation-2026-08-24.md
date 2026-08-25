@@ -39,7 +39,7 @@ Pass 1 remains the semantic gate. Neither metadata nor wording may resurrect omi
 Several fields proved inappropriate to leave to probabilistic byte reproduction or unconstrained identifier generation:
 
 - Dynamic per-Episode schemas constrain user source IDs, assistant authority IDs, and grounding IDs to real Episode turns.
-- Continuity owns byte-exact provenance. If a model selects the correct source ID but slightly changes Markdown/punctuation in a quote, the harness repairs the quote from the authoritative source turn.
+- Reliquary owns byte-exact provenance. If a model selects the correct source ID but slightly changes Markdown/punctuation in a quote, the harness repairs the quote from the authoritative source turn.
 - Direct/correction authority cannot acquire assistant authority provenance merely because synthesis emits one.
 - Self-grounding is stripped.
 - Experimental resume support reuses completed ledger/synthesis artifacts instead of rerunning already-completed inference.
@@ -201,7 +201,7 @@ Authoritative Insomnia now implements this ownership boundary as extractor contr
 - **Pass 1 owns:** disposition, authority kind, lifecycle, source identity, assistant-authority identity, grounding identity, category, and type.
 - Retained clauses are deterministically grouped only when all those structural fields match.
 - **Pass 2 owns:** title/body wording for every required group and cannot add, drop, merge, split, or reclassify groups through its schema.
-- Continuity reconstructs exact source/authority/grounding provenance from selected IDs rather than asking the wording model to reproduce source bytes.
+- Reliquary reconstructs exact source/authority/grounding provenance from selected IDs rather than asking the wording model to reproduce source bytes.
 - One bounded Archive evidence round remains inside pass 1; the final ledger is resolved before synthesis begins.
 - Candidate identity includes deterministic ledger semantic material so structurally distinct Memories from one source turn do not collide when exact full-turn provenance is reused.
 
@@ -300,6 +300,16 @@ If production data eventually justifies additional reliability work, the most pl
 The verifier should be invoked only for structurally ambiguous/high-risk cases. Multi-sample voting can be added inside that ambiguity path if the residual failure rate justifies its inference cost.
 
 This is not current implementation work. The present architecture remains the baseline until production-observed failures establish both a distinct failure class and enough value to justify the added latency, cost, and complexity. Model fine-tuning/weight changes or a materially stronger selector remain alternative capability boundaries if available.
+
+### User/project persistence-scope classification
+
+A separate design problem now sits downstream of durable-state extraction: the system may maintain two independent persistence/retrieval layers, user-global **Phylactery** and project-local **Reliquary**. A retained durable Memory therefore needs an eventual `user | project` ownership decision before publication. This is a persistence/context boundary, not another semantic-discovery pass.
+
+The existing Luna metadata pass could be extended with `scope`, but that is **not yet the preferred or final architecture**. User/profile and project Memories have different provenance requirements, and user-global publication has a larger pollution/privacy blast radius. A dedicated narrow scope-classification pass may therefore be cleaner, independently tunable, and easier to regression-test. Both designs must remain viable until fixtures compare them.
+
+Phylactery Memories must not require source turns. When Reliquary policy permits, source/provenance may be copied into Phylactery; when source export is forbidden by NDA/confidentiality or other policy, a permitted generalized user Memory may still exist without those source records. Scope classification and export permission are separate decisions.
+
+Ordering also remains open. Running scope classification before synthesis allows destination-aware wording/schema; running it after synthesis gives the classifier the final atomic Memory. The current working bias is before synthesis if destination-specific representation proves material, but this should be tested rather than assumed. See [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md).
 
 ## Experimental implementation
 

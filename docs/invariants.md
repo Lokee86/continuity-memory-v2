@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document defines the governing architectural constraints for the Continuity Memory v2 rebuild.
+This document defines the governing architectural constraints for the Reliquary Memory v2 rebuild.
 
 ## Overview
 
@@ -20,7 +20,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 6. **Derived state remains derived.** Indexes/checkpoints/caches cannot become authority by persistence alone.
 7. **Runtime work state is not semantic authority.**
 8. **Prefer concrete duplication over speculative semantic generalization.**
-9. **Previous Continuity code has no automatic authority.**
+9. **Previous Reliquary code has no automatic authority.**
 10. **Architecture outranks experimental-format compatibility.**
 11. **Archive text has one authority.** Content bytes live in content-addressed objects referenced by nodes.
 12. **Conversation ancestry is local.** Node `parent_id` cannot cross conversation IDs.
@@ -54,7 +54,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 40. **Retrieval never mixes vector spaces.** Exact semantic search resolves one selected Compatibility Profile's current Vector Generation, searches only that generation, and maps only its row bindings back to Archive fragments.
 41. **Published generation representation must be interpretable.** Until alternate scalar/quantization semantics are explicitly defined, Vector Generations may reference only `f32` packed matrices even though raw PackedVectorStore objects support other scalar types.
 42. **Retrieval is derived and read-only.** Lexical scoring, semantic search, hybrid fusion, deduplication, and diversification persist no authority and consume no semantic version ticket.
-43. **Local configuration is current state, not semantic history.** `continuity.cfg` is separate from `.cva`, uses replaceable logical objects, and consumes no semantic version ticket.
+43. **Local configuration is current state, not semantic history.** `reliquary.cfg` is separate from `.cva`, uses replaceable logical objects, and consumes no semantic version ticket.
 44. **Configuration replacement does not accumulate history.** Saving writes one complete validated current image and atomically replaces the prior file; superseded config objects are not retained.
 45. **Model routing is not vector compatibility.** Switchboard provider/model/URL selections are machine-local integration policy; Compatibility Profiles remain the sole durable vector-space compatibility contract.
 46. **Provider secrets are separate encrypted config objects.** Model routes reference credentials by stable ID; API keys and OAuth tokens are not stored in model-route payloads or `.cva` state.

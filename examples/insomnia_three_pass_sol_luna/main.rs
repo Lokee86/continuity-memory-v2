@@ -1,8 +1,8 @@
 mod contract;
 
-use continuity_memory::{
-    ConfiguredGeneralEndpoint, ContinuityConfig, GeneralEndpoint, ModelProvider,
-    ModelReasoningEffort, ModelSwitchboard,
+use reliquary_memory::{
+    ConfiguredGeneralEndpoint, GeneralEndpoint, ModelProvider, ModelReasoningEffort,
+    ModelSwitchboard, ReliquaryConfig,
 };
 use serde_json::{Map, Value, json};
 use std::collections::{HashMap, HashSet};
@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     episodes.truncate(limit.min(episodes.len()));
     let episodes = Arc::new(episodes);
 
-    let config = ContinuityConfig::open(repo.join("continuity.cfg"))?;
+    let config = ReliquaryConfig::open(repo.join("reliquary.cfg"))?;
     let credentials = config.credentials.clone();
     let mut models = config.models.clone();
     if let Some(route) = models.insomnia.as_mut() {

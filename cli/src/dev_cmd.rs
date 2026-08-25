@@ -1,7 +1,7 @@
 use crate::args::DevCommand;
 use crate::util::{hex32, parse_normalization, parse_profile_id};
 use anyhow::Result;
-use continuity_memory::{
+use reliquary_memory::{
     Cva, DEFAULT_SEARCH_CANDIDATE_LIMIT, MAX_SEMANTIC_SEARCH_LIMIT, RetrievalConfig,
     SimulatedEmbeddingEndpoint,
 };

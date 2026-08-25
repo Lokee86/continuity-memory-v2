@@ -16,7 +16,7 @@ fn test_path(name: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let dir = std::env::temp_dir().join(format!("continuity-memory-vectors-{unique}"));
+    let dir = std::env::temp_dir().join(format!("reliquary-memory-vectors-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)
 }

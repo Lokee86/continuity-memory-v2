@@ -20,7 +20,7 @@ fn seeded_episode(cva: &mut Cva) -> crate::Episode {
         None,
         "user".into(),
         10,
-        "Remember that Continuity owns memory.",
+        "Remember that Reliquary owns memory.",
     )
     .unwrap();
     cva.append_node(
@@ -50,7 +50,7 @@ fn draft(episode: &crate::Episode, mutation_id: &str, content: &str) -> MemoryDr
     MemoryDraft {
         category: "decision".into(),
         memory_type: "project".into(),
-        title: "Continuity memory authority".into(),
+        title: "Reliquary memory authority".into(),
         content: content.into(),
         scope: "private".into(),
         lifecycle_state: "extracted".into(),

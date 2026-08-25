@@ -1,8 +1,8 @@
-# Continuity CLI
+# Reliquary CLI
 
-Repo-local bring-up CLI for Continuity Memory v2.
+Repo-local bring-up CLI for Reliquary Memory v2.
 
-This is a separate Cargo package, not a binary target of the `continuity-memory` library package and not installed by default. It depends only on the library's public Rust API through `continuity-memory = { path = ".." }`.
+This is a separate Cargo package, not a binary target of the `reliquary-memory` library package and not installed by default. It depends only on the library's public Rust API through `reliquary-memory = { path = ".." }`.
 
 Run it from the repository without installing it:
 
@@ -30,7 +30,7 @@ API keys are prompted without terminal echo by default:
 
 ```text
 cargo run --manifest-path cli/Cargo.toml -- \
-  --config ./continuity.cfg \
+  --config ./reliquary.cfg \
   config credential add-api-key ready
 ```
 
@@ -40,8 +40,8 @@ ChatGPT/Codex authentication uses device codes rather than pasted tokens:
 
 ```text
 cargo run --manifest-path cli/Cargo.toml -- \
-  --config ./continuity.cfg \
+  --config ./reliquary.cfg \
   config credential login-codex codex
 ```
 
-The command prints the OpenAI verification URL and one-time code, waits for authorization, then stores the returned OAuth credential encrypted in `continuity.cfg`.
+The command prints the OpenAI verification URL and one-time code, waits for authorization, then stores the returned OAuth credential encrypted in `reliquary.cfg`.

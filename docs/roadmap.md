@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document owns future implementation work for Continuity. Completed behavior does not belong here; current behavior is documented in [Architecture](architecture.md), [Rust API](api.md), [Repo-local CLI](cli.md), and [Current limitations](current-limitations.md).
+This document owns future implementation work for Reliquary. Completed behavior does not belong here; current behavior is documented in [Architecture](architecture.md), [Rust API](api.md), [Repo-local CLI](cli.md), and [Current limitations](current-limitations.md).
 
 ## Overview
 
@@ -12,9 +12,9 @@ Future work is organized around productization first, with intelligence quality 
 
 ## Product direction
 
-Continuity is moving from a storage/retrieval substrate toward the durable workspace/context layer of the broader Warlock product.
+Reliquary is moving from a storage/retrieval substrate toward the durable workspace/context layer of the broader Warlock product.
 
-One CVA maps to one Warlock workspace. Warlock owns the native application surface and long-lived application orchestration; Continuity remains the Rust semantic/storage subsystem linked into that application core. External agent protocols such as ACP remain interoperability adapters into the same normalized interaction seam and are not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
+One CVA maps to one Warlock workspace. Warlock owns the native application surface and long-lived application orchestration; Reliquary remains the Rust semantic/storage subsystem linked into that application core. External agent protocols such as ACP remain interoperability adapters into the same normalized interaction seam and are not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
 
 ## Near-term productization sequence
 
@@ -49,7 +49,7 @@ The management layer must remain an application/service surface over concrete ow
 
 ### 3. Warlock host integration
 
-Continuity is now linked directly into the Warlock v2 Rust application core. One CVA is the durable workspace file, and Warlock currently implements create/open/close/reopen plus durable conversation list/start/resume/user-turn/reopen through the public Continuity runtime seam.
+Reliquary is now linked directly into the Warlock v2 Rust application core. One CVA is the durable workspace file, and Warlock currently implements create/open/close/reopen plus durable conversation list/start/resume/user-turn/reopen through the public Reliquary runtime seam.
 
 Remaining host integration work includes:
 
@@ -62,7 +62,7 @@ Remaining host integration work includes:
 - background Episode/Insomnia execution; and
 - basic health/status visibility.
 
-The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Continuity lifecycle semantics directly.
+The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Reliquary lifecycle semantics directly.
 
 ### 4. ACP interoperability adapter
 
@@ -119,9 +119,11 @@ Add product-level file usability:
 Routine prompt tuning on the 11-Episode adversarial fixture is complete and frozen. Future work is implementation/validation rather than continued fixture optimization:
 
 1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
-2. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
-3. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/wording model mix;
-4. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
+2. design and fixture-test the `user | project` persistence-scope boundary described in [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md). Do not assume it belongs in the existing metadata pass: a dedicated narrow scope-classification pass may be the cleaner architecture and must be compared explicitly;
+3. define the separate **Phylactery** CVA-type contract, including optional rather than mandatory source provenance and Reliquary-controlled Memory/source export policy;
+4. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
+5. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/scope/wording model mix;
+6. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
 
 Do not resume benchmark-specific prompt squeezing or add a general semantic review/rewrite pass merely to chase stochastic misses on the tuning fixture. Any reliability architecture should be triggered by production-observed failure classes and should concentrate extra inference on ambiguous/high-risk cases rather than multiplying every Insomnia call by default.
 
@@ -175,6 +177,9 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 
 ## Open decisions
 
+- Phylactery storage shape and the exact boundary between user-global Phylactery Memory and project-local Reliquary Memory.
+- Whether `user | project` scope belongs in the existing metadata pass or a dedicated scope-classification pass; if dedicated, its ordering relative to metadata and synthesis.
+- Reliquary policy for exporting user Memories and optionally their source/provenance into Phylactery.
 - Normalized interaction vocabulary for tool/session/artifact events beyond completed user/agent turns.
 - Whether any future headless/remote product mode justifies adding a service/IPC boundary around the in-process Rust integration.
 - Which CVA mutations are safe to expose as direct user actions before whole-history retention semantics exist.

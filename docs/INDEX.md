@@ -1,4 +1,4 @@
-# Continuity Memory v2 Documentation
+# Reliquary Memory v2 Documentation
 
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
@@ -8,6 +8,7 @@
 - [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.
 - [Development](development.md) — repository workflow, tests, and smoke example.
 - [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md) — frozen semantic/metadata/wording tuning architecture, corrected evaluator scope, Sol/Ox/Luna comparison, and provider compatibility findings.
+- [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) — provisional two-layer persistence/retrieval architecture, Phylactery storage direction, provenance/export policy, and Insomnia scope-classification options.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.

@@ -8,7 +8,7 @@ This document owns the development CLI package boundary, invocation model, and c
 
 ## Overview
 
-`cli/` is a separate Cargo package named `continuity-cli`. It is intentionally not a binary target of the core `continuity-memory` package and is not installed by repository builds or tests.
+`cli/` is a separate Cargo package named `reliquary-cli`. It is intentionally not a binary target of the core `reliquary-memory` package and is not installed by repository builds or tests.
 
 Run it directly from the repository:
 
@@ -16,12 +16,12 @@ Run it directly from the repository:
 cargo run --manifest-path cli/Cargo.toml -- --help
 ```
 
-The package depends only on the public `continuity-memory` Rust API through a path dependency. Deleting or moving `cli/` does not change the core library package. A detached copy only needs its dependency source changed from `path = ".."` to the desired Git/package source.
+The package depends only on the public `reliquary-memory` Rust API through a path dependency. Deleting or moving `cli/` does not change the core library package. A detached copy only needs its dependency source changed from `path = ".."` to the desired Git/package source.
 
 ## Command surface
 
 ```text
-continuity
+reliquary
 ├── cva
 │   ├── create
 │   ├── info
@@ -57,7 +57,7 @@ continuity
 
 ## Configuration and credentials
 
-The global `--config` option defaults to `continuity.cfg` in the current directory. This is a CLI working-directory default, not a selected operating-system application-config location.
+The global `--config` option defaults to `reliquary.cfg` in the current directory. This is a CLI working-directory default, not a selected operating-system application-config location.
 
 `config credential add-api-key <id>` prompts for the API key without terminal echo. `--stdin` is available for automation and tests. Secrets are not accepted as command-line arguments so they are not placed directly into shell history/process arguments.
 

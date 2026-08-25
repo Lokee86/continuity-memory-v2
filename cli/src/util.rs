@@ -1,5 +1,5 @@
 use anyhow::{Result, anyhow};
-use continuity_memory::{
+use reliquary_memory::{
     CompatibilityProfileId, CredentialId, FragmentId, ModelProvider, ModelReasoningEffort,
     VectorNormalization,
 };

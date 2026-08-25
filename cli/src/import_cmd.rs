@@ -1,6 +1,6 @@
 use crate::args::ImportCommand;
 use anyhow::{Context, Result, anyhow};
-use continuity_memory::{Branch, Cva, FragmentConfig, IncomingAttachment, IncomingTurn};
+use reliquary_memory::{Branch, Cva, FragmentConfig, IncomingAttachment, IncomingTurn};
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};

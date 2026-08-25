@@ -1,6 +1,6 @@
 use serde_json::{Map, Value, json};
 
-pub const LEDGER_PROMPT: &str = r#"You are the authority-selection pass for Continuity Insomnia.
+pub const LEDGER_PROMPT: &str = r#"You are the authority-selection pass for Reliquary Insomnia.
 Given one complete authoritative conversation episode, produce a clause-level ledger. This pass decides WHAT durable user-authoritative state exists. It does not write Memories.
 Every user turn MUST be accounted for by at least one entry, in source order. Assistant turns never receive ledger entries. A mixed user turn may have multiple entries when one clause is durable and another is only a question, receipt, or transient metadata.
 
@@ -25,7 +25,7 @@ Disposition rules:
 
 For retain/superseded entries, source_quote must be an exact contiguous quote from the source user turn. For a wholly omitted turn, source_quote may be empty. For omitted entries use authority_kind/category/type/lifecycle = none and proposition = empty. Completeness is more important than brevity in this pass; retention count is not. When uncertain whether a clause is durable authority or conversational scaffolding, omit it unless the user clearly states durable state."#;
 
-pub const METADATA_PROMPT: &str = r#"You are the metadata-classification pass for Continuity Insomnia.
+pub const METADATA_PROMPT: &str = r#"You are the metadata-classification pass for Reliquary Insomnia.
 You receive one authoritative conversation episode plus fixed synthesis groups built deterministically from a validated semantic ledger. The ledger has already decided what durable state exists, and the groups already have final membership, propositions, authority kind, and provenance.
 
 Your ONLY job is to classify every supplied fixed group with category, type, and lifecycle metadata.
@@ -58,7 +58,7 @@ Lifecycle rules:
 
 Use the episode only to understand the propositions' subject and temporal framing. Do not import nearby facts into the classification. Return exactly one classification for every required group key."#;
 
-pub const SYNTHESIS_PROMPT: &str = r#"You are the wording pass for Continuity Insomnia.
+pub const SYNTHESIS_PROMPT: &str = r#"You are the wording pass for Reliquary Insomnia.
 You receive an authoritative episode plus deterministic synthesis groups built from a validated authority/disposition ledger. Every group already has final semantic ownership: source, authority kind, category, type, lifecycle, assistant-authority provenance, grounding provenance, and retained propositions.
 
 Your ONLY job is to write one concise durable Memory title and content body for every supplied group.

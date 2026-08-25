@@ -36,7 +36,7 @@ impl fmt::Display for MasterKeyError {
         match self {
             Self::Io(error) => write!(f, "master-key I/O error: {error}"),
             Self::Json(error) => write!(f, "invalid master-key JSON: {error}"),
-            Self::InvalidKey => write!(f, "invalid Continuity master key"),
+            Self::InvalidKey => write!(f, "invalid Reliquary master key"),
             Self::UnsupportedVersion(version) => {
                 write!(f, "unsupported master-key JSON version {version}")
             }

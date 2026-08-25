@@ -104,7 +104,7 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
         None,
         "user",
         10,
-        "Continuity should keep all working-memory generation in Insomnia.",
+        "Reliquary should keep all working-memory generation in Insomnia.",
     );
     append(&mut cva, "a0", Some("u0"), "assistant", 20, "Understood.");
     let episode = queue_episode(&mut cva, "a0");
@@ -121,14 +121,14 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
                     "decision",
                     "project",
                     "current",
-                    "Continuity uses Insomnia as the sole authoritative generator of working memory.",
+                    "Reliquary uses Insomnia as the sole authoritative generator of working memory.",
                     "",
                     ""
                 )]
             })),
             wording(
                 "Insomnia owns working-memory generation",
-                "Continuity uses Insomnia as the sole authoritative generator of working memory.",
+                "Reliquary uses Insomnia as the sole authoritative generator of working memory.",
             ),
         ],
     );

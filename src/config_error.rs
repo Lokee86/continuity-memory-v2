@@ -20,15 +20,15 @@ impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(f, "configuration I/O error: {error}"),
-            Self::InvalidMagic => write!(f, "not a Continuity configuration file"),
+            Self::InvalidMagic => write!(f, "not a Reliquary configuration file"),
             Self::UnsupportedVersion { major, minor } => {
                 write!(
                     f,
-                    "unsupported Continuity configuration format {major}.{minor}"
+                    "unsupported Reliquary configuration format {major}.{minor}"
                 )
             }
-            Self::Truncated => write!(f, "truncated Continuity configuration file"),
-            Self::InvalidObject => write!(f, "invalid Continuity configuration object"),
+            Self::Truncated => write!(f, "truncated Reliquary configuration file"),
+            Self::InvalidObject => write!(f, "invalid Reliquary configuration object"),
             Self::DuplicateObject(key) => write!(f, "duplicate configuration object: {key}"),
             Self::InvalidFragmentConfig => write!(f, "invalid fragment configuration"),
             Self::InvalidRetrievalConfig => write!(f, "invalid retrieval configuration"),

@@ -1,4 +1,4 @@
-# Continuity Memory v2 Documentation Procedure
+# Reliquary Memory v2 Documentation Procedure
 
 Parent index: [Documentation index](INDEX.md)
 

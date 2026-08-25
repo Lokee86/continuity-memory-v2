@@ -1,4 +1,4 @@
-use continuity_memory::{ContinuityConfig, ModelSwitchboard};
+use reliquary_memory::{ModelSwitchboard, ReliquaryConfig};
 use std::env;
 use std::path::PathBuf;
 use std::process::{Command, ExitCode};
@@ -15,7 +15,7 @@ fn main() -> ExitCode {
 
 fn run() -> Result<u8, Box<dyn std::error::Error>> {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let config = ContinuityConfig::open(repo.join("continuity.cfg"))?;
+    let config = ReliquaryConfig::open(repo.join("reliquary.cfg"))?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let auth = switchboard
         .embedding_auth()

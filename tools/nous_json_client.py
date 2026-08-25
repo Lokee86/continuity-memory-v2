@@ -121,7 +121,7 @@ def complete_json(
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
                 "Accept": "text/event-stream",
-                "User-Agent": "continuity-insomnia-tuning/1",
+                "User-Agent": "reliquary-insomnia-tuning/1",
             },
         )
         try:

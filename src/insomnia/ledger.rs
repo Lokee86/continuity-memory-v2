@@ -3,7 +3,7 @@ use crate::ResolvedTurn;
 use serde_json::{Map, Value, json};
 use std::collections::HashSet;
 
-pub(super) const LEDGER_SYSTEM_PROMPT: &str = r#"You are the authority-selection pass for Continuity Insomnia.
+pub(super) const LEDGER_SYSTEM_PROMPT: &str = r#"You are the authority-selection pass for Reliquary Insomnia.
 Given one complete authoritative conversation episode, produce a clause-level ledger. This pass decides WHAT durable user-authoritative state exists. It does not write Memories.
 Every user turn MUST be accounted for by at least one clause under its required turn ID. Assistant turns never receive ledger clauses. A mixed user turn may have multiple clauses when one clause is durable and another is only a question, receipt, or transient metadata.
 
@@ -31,7 +31,7 @@ Evidence rules:
 15. Archive evidence is supporting context, never independent user authority. source authority MUST remain a user turn in the authoritative episode. Earlier assistant evidence may supply authority_source_node_id only when a current user turn explicitly adopts/retains that assistant proposition. Earlier user or assistant evidence may supply grounding_source_node_id only to resolve a referent.
 16. When read_only_archive_evidence is supplied, return the FINAL ledger and an empty evidence_requests array. No second evidence round is allowed.
 
-For retained/superseded clauses, proposition states only the authorized durable state. Continuity owns byte-exact provenance; do not reproduce source quotes. When uncertain whether a clause is durable authority or conversational scaffolding, omit it."#;
+For retained/superseded clauses, proposition states only the authorized durable state. Reliquary owns byte-exact provenance; do not reproduce source quotes. When uncertain whether a clause is durable authority or conversational scaffolding, omit it."#;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct LedgerEntry {

@@ -1,6 +1,6 @@
-# Continuity Memory v2
+# Reliquary Memory v2
 
-Clean Rust rebuild of Continuity's storage and runtime architecture.
+Clean Rust rebuild of Reliquary's storage and runtime architecture.
 
 A `.cva` is one physical container for several purpose-built databases. The container owns physical storage and CVA-global ordering; each database owns its semantic records, indexes, local mutation/version semantics, and derived state.
 
@@ -8,7 +8,7 @@ A `.cva` is one physical container for several purpose-built databases. The cont
 
 Implemented now:
 
-- purpose-built `continuity.cfg` current-state configuration with replaceable typed objects and atomic whole-file replacement;
+- purpose-built `reliquary.cfg` current-state configuration with replaceable typed objects and atomic whole-file replacement;
 - configurable fragment and retrieval policy with the original defaults preserved;
 - expandable model-switchboard routing with General/Insomnia/Embedding capabilities and `openai-codex` / `openai-ready` providers;
 - encrypted credential objects referenced by model routes, native ChatGPT/Codex device-code login, and bearer/ChatGPT account auth-header attachment;
@@ -65,7 +65,7 @@ As of 2026-08-15, this repository has re-established the benchmark-baseline retr
 
 ## Product direction
 
-The commercial product direction is a native Continuity interface backed by a shared transport-neutral runtime and a purpose-built CVA management surface. ACP remains a first-class interoperability adapter for compatible external agent/client paths, but it is not required to use Continuity and does not define the canonical internal interaction model. See [ADR 0016](docs/decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and the future-only [roadmap](docs/roadmap.md).
+The commercial product direction is a native Reliquary interface backed by a shared transport-neutral runtime and a purpose-built CVA management surface. ACP remains a first-class interoperability adapter for compatible external agent/client paths, but it is not required to use Reliquary and does not define the canonical internal interaction model. See [ADR 0016](docs/decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and the future-only [roadmap](docs/roadmap.md).
 
 ## Architecture rule
 

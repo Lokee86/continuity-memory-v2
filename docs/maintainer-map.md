@@ -1,4 +1,4 @@
-# Continuity Memory v2 Maintainer Map
+# Reliquary Memory v2 Maintainer Map
 
 Parent index: [Documentation index](INDEX.md)
 
@@ -33,7 +33,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 | Memory Vector bindings / missing-only embedding | [Architecture](architecture.md), [Rust API](api.md), [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md) | `src/memory_vector_*.rs`, `src/cva_memory_vectors.rs` | `src/memory_vector_tests.rs`, `src/insomnia/worker_vector_tests.rs` |
 | Live interaction session / stream runtime | [Architecture](architecture.md), [Rust API](api.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) | `src/interaction_model.rs`, `src/interaction_error.rs`, `src/interaction_runtime.rs`, `src/interaction_session.rs`, `src/interaction_stream.rs` | `src/interaction_runtime_tests.rs`, `src/interaction_session_tests.rs`, `src/conversation_tests.rs` |
 | CVA workspace identity/type | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md) | `src/workspace_metadata*.rs`, `src/cva_workspace.rs` | `src/workspace_metadata_tests.rs` |
-| Warlock host integration / broader workspace-CVA application surface | [Architecture](architecture.md), [Roadmap](roadmap.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md), [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md) | Continuity public workspace + interaction APIs consumed by Warlock v2; broader host orchestration remains Warlock-owned | Continuity workspace/interaction/conversation suites plus Warlock v2 integration tests |
+| Warlock host integration / broader workspace-CVA application surface | [Architecture](architecture.md), [Roadmap](roadmap.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md), [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md) | Reliquary public workspace + interaction APIs consumed by Warlock v2; broader host orchestration remains Warlock-owned | Reliquary workspace/interaction/conversation suites plus Warlock v2 integration tests |
 | ACP interoperability adapter | [ADR 0015](decisions/0015-acp-inline-interaction-stream.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md), [Roadmap](roadmap.md) | not implemented | future adapter normalization/capture suites |
 | Fragment identity/windows/tails | [Architecture](architecture.md), [Storage format](storage-format.md) | `src/fragment_*` | `src/fragment_tests.rs` |
 | Packed-vector representation/storage | [Storage format](storage-format.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) | `src/packed_vector_*`, Lodestone `crates/packed` | `src/packed_vector_tests.rs`, Lodestone packed tests |
@@ -50,7 +50,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 ## Boundaries
 
 - `cli/` owns only operator argument/prompt/output composition and depends exclusively on public library APIs; removing it cannot change core library semantics.
-- `ContinuityConfig` owns machine-local current configuration separately from `.cva`; config changes do not enter semantic history.
+- `ReliquaryConfig` owns machine-local current configuration separately from `.cva`; config changes do not enter semantic history.
 - `CredentialsConfig` owns decrypted in-memory provider secrets; `credential.<id>` objects are independently authenticated/encrypted and route references use stable IDs.
 - `ModelSwitchboardConfig` owns provider/model/endpoint/credential selection; `ModelSwitchboard` validates matching credentials and attaches request auth. These choices cannot establish Compatibility Profile identity or vector compatibility.
 - `Cva` owns the single Container handle and explicit concrete-store scan dispatch; it owns no semantic dependency graph.

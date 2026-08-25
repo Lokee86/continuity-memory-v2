@@ -6,13 +6,13 @@ Date: 2026-08-14
 
 ## Context
 
-Continuity needs one runtime boundary for model selection without making CVA compatibility profiles depend on provider/model labels. The first concrete needs are one general-purpose model endpoint and one embedding endpoint.
+Reliquary needs one runtime boundary for model selection without making CVA compatibility profiles depend on provider/model labels. The first concrete needs are one general-purpose model endpoint and one embedding endpoint.
 
 Provider integration also needs distinct authentication mechanics. `openai-codex` is intended to use ChatGPT device-code authentication, while `openai-ready` is the generic OpenAI-compatible/API-key path.
 
 ## Decision
 
-Continuity will use a capability-oriented model switchboard. The initial capabilities are `General` and `Embedding`; later capabilities are added explicitly rather than encoded into one provider-specific abstraction.
+Reliquary will use a capability-oriented model switchboard. The initial capabilities are `General` and `Embedding`; later capabilities are added explicitly rather than encoded into one provider-specific abstraction.
 
 The initial providers are:
 
@@ -51,7 +51,7 @@ Rejected because general inference and embeddings have different capability cont
 
 ### Codex CLI subprocess integration
 
-Rejected as the runtime/provider boundary. Codex authentication and requests belong inside Continuity rather than depending on an installed CLI process.
+Rejected as the runtime/provider boundary. Codex authentication and requests belong inside Reliquary rather than depending on an installed CLI process.
 
 ## References
 

@@ -1,19 +1,19 @@
 # Rust API Reference
 Parent index: [Documentation index](INDEX.md)
 ## Purpose
-This document owns the current public Rust library surface exposed by `continuity_memory`.
+This document owns the current public Rust library surface exposed by `reliquary_memory`.
 ## Overview
-The public API exposes `ContinuityConfig` and model-switchboard types for machine-local runtime routing; `InteractionRuntime` for transport-neutral live session coordination, stream assembly, durable completed-turn acceptance, and explicit live Episode scheduling; `WorkspaceMetadata` for one CVA's durable workspace identity/type; and `Cva` for workspace lifecycle, semantic storage/retrieval, Archive history, Episodes, Memories, embedded files/source attachments, vector backing/publication, compatibility profiles, and hybrid retrieval. It remains development-stage.
+The public API exposes `ReliquaryConfig` and model-switchboard types for machine-local runtime routing; `InteractionRuntime` for transport-neutral live session coordination, stream assembly, durable completed-turn acceptance, and explicit live Episode scheduling; `WorkspaceMetadata` for one CVA's durable workspace identity/type; and `Cva` for workspace lifecycle, semantic storage/retrieval, Archive history, Episodes, Memories, embedded files/source attachments, vector backing/publication, compatibility profiles, and hybrid retrieval. It remains development-stage.
 ## Exact contract
 ### Local configuration
-`ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
+`ReliquaryConfig::new(path)` creates an in-memory default config, `ReliquaryConfig::open(path)` loads `reliquary.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `reliquary.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
 ### Workspace metadata
 
 Public types are `WorkspaceMetadata { id, name, workspace_type }`, `WorkspaceMetadataError`, and the field-size constants `MAX_WORKSPACE_ID_BYTES = 256`, `MAX_WORKSPACE_NAME_BYTES = 1024`, and `MAX_WORKSPACE_TYPE_BYTES = 256`.
 
-`WorkspaceMetadata::new(id, name, workspace_type)` validates non-blank bounded UTF-8 fields. The workspace type is an extensible string identifier rather than a closed enum; Continuity persists the type but does not own host capability composition.
+`WorkspaceMetadata::new(id, name, workspace_type)` validates non-blank bounded UTF-8 fields. The workspace type is an extensible string identifier rather than a closed enum; Reliquary persists the type but does not own host capability composition.
 
 `Cva::create_workspace(path, metadata)` creates a CVA and initializes its workspace metadata. `Cva::workspace_metadata()` returns the current metadata when present. `Cva::initialize_workspace_metadata(metadata)` upgrades an otherwise valid CVA exactly once; a second initialization is rejected. Ordinary `Cva::create` remains valid and returns a CVA with no workspace metadata so existing library workflows are not forced into a product workspace immediately.
 
@@ -119,7 +119,7 @@ Public types are `MasterKey`, `MasterKeyError`, `MasterKeyStore`, `JsonMasterKey
 ### Credentials
 Public types are `CredentialId`, `Credential`, `CredentialsConfig`, `CredentialError`, and redacting `SecretString`. `CredentialId::new` accepts non-empty ASCII alphanumeric/`.`/`_`/`-` IDs up to 128 bytes. `CredentialsConfig::insert_api_key` stores API-key auth in memory; `insert_chatgpt_oauth` stores ID/access/refresh tokens plus optional account ID. `get`, `remove`, and `ids` expose current credential inventory without exposing secret strings through `Debug`.
 
-Credential objects are persisted as AES-256-GCM encrypted `credential.<id>` config objects. Wrong master keys and modified ciphertext are rejected during `ContinuityConfig::open`.
+Credential objects are persisted as AES-256-GCM encrypted `credential.<id>` config objects. Wrong master keys and modified ciphertext are rejected during `ReliquaryConfig::open`.
 
 ### Model switchboard
 Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Insomnia, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `ModelReasoningEffort::{None, Minimal, Low, Medium, High, XHigh, Max}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, `ModelRequestAuth`, `ModelSwitchboard`, and `ConfiguredGeneralEndpoint`.
@@ -133,7 +133,7 @@ Public Insomnia surface includes `InsomniaExtractor`, `InsomniaWorkerConfig`, `I
 
 `Cva::finalize_canonical_imports_and_queue(EpisodeConfig, now_ns)` materializes uncovered deterministic import Episodes for canonical Archive branches and idempotently ensures all import-origin Episodes have Insomnia work. `Cva::drain_insomnia_backlog(extractor, embedding_endpoint, config)` runs a finite concurrent drain with 1–64 workers (default 48, calibrated against the current Luna/low corpus run). Claims, evidence reads, and authoritative Memory/attempt publication acquire the shared CVA owner; model calls execute outside that lock and therefore overlap across Episodes. Retryable extraction failures are requeued until `max_attempts`; invalid endpoint configuration is terminal. After all eligible Episode work is complete, the same core call establishes/reuses the embedding compatibility profile and automatically fills only missing `(CompatibilityProfileId, MemoryBodyId)` bindings. The result reports attempts, completed/terminal episodes, Memory outcomes, evidence volume, observed peak active worker count, and Memory-Vector fill details.
 
-This worker is a finite bring-up/runtime primitive, not the future persistent shared Continuity runtime. Memory publication remains authoritative before vectorization: if embedding/profile establishment fails, completed Memories and Insomnia outcomes remain in the CVA, and a later drain with no queued Episode work will retry the still-missing Memory Vectors. Reusing the same compatibility profile performs no re-embedding; a genuinely new profile creates new immutable bindings for the existing Memory bodies.
+This worker is a finite bring-up/runtime primitive, not the future persistent shared Reliquary runtime. Memory publication remains authoritative before vectorization: if embedding/profile establishment fails, completed Memories and Insomnia outcomes remain in the CVA, and a later drain with no queued Episode work will retry the still-missing Memory Vectors. Reusing the same compatibility profile performs no re-embedding; a genuinely new profile creates new immutable bindings for the existing Memory bodies.
 
 ### Embedding endpoint abstraction
 Public types:

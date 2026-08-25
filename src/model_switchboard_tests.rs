@@ -1,7 +1,7 @@
 use crate::{
-    ContinuityConfig, CredentialId, CredentialsConfig, EmbeddingModelEndpoint,
-    GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider, ModelSwitchboard,
-    ModelSwitchboardConfig, VectorNormalization,
+    CredentialId, CredentialsConfig, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
+    ModelCapability, ModelProvider, ModelSwitchboard, ModelSwitchboardConfig, ReliquaryConfig,
+    VectorNormalization,
 };
 use std::collections::BTreeMap;
 use std::fs;
@@ -42,12 +42,12 @@ fn provider_auth_and_capabilities_are_explicit() {
 #[test]
 fn routes_and_credentials_round_trip_and_attach_auth_headers() {
     let path = test_path("models.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let mut config = ReliquaryConfig::new(&path);
     config.models = configured_models();
     config.credentials = configured_credentials();
     config.save().unwrap();
 
-    let reopened = ContinuityConfig::open(&path).unwrap();
+    let reopened = ReliquaryConfig::open(&path).unwrap();
     assert_eq!(reopened.models, config.models);
     assert_eq!(reopened.credentials, config.credentials);
 
@@ -74,7 +74,7 @@ fn routes_and_credentials_round_trip_and_attach_auth_headers() {
 #[test]
 fn clearing_model_routes_removes_them_from_current_config() {
     let path = test_path("clear-models.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let mut config = ReliquaryConfig::new(&path);
     config.models = configured_models();
     config.save().unwrap();
     let configured_len = fs::metadata(&path).unwrap().len();
@@ -82,7 +82,7 @@ fn clearing_model_routes_removes_them_from_current_config() {
     config.save().unwrap();
     assert!(fs::metadata(&path).unwrap().len() < configured_len);
     assert_eq!(
-        ContinuityConfig::open(&path).unwrap().models,
+        ReliquaryConfig::open(&path).unwrap().models,
         ModelSwitchboardConfig::default()
     );
 }

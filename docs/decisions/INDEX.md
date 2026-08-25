@@ -15,5 +15,6 @@
 - [ADR 0013: Immutable Memory Vector bindings](0013-immutable-memory-vector-bindings.md) — **Accepted**, 2026-08-15.
 - [ADR 0014: Echo historical reasoning traces](0014-echo-historical-reasoning-traces.md) — **Accepted**, 2026-08-16.
 - [ADR 0015: ACP inline interaction stream](0015-acp-inline-interaction-stream.md) — **Accepted for ACP adapter capture semantics; amended by ADR 0016**, 2026-08-17.
-- [ADR 0016: Native product surface and shared interaction runtime](0016-native-product-surface-and-shared-interaction-runtime.md) — **Accepted for the shared interaction/runtime seam; standalone native-Continuity-UI direction superseded by ADR 0017**, 2026-08-24.
+- [ADR 0016: Native product surface and shared interaction runtime](0016-native-product-surface-and-shared-interaction-runtime.md) — **Accepted for the shared interaction/runtime seam; standalone native-Reliquary-UI direction superseded by ADR 0017**, 2026-08-24.
 - [ADR 0017: CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md) — **Accepted**, 2026-08-24.
+- [ADR 0018: Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md) — **Accepted**, 2026-08-24.

@@ -1,5 +1,5 @@
 use crate::config_codec::{decode_config, encode_config};
-use crate::{ContinuityConfig, Credential, CredentialId, JsonMasterKeyStore, MasterKeyStore};
+use crate::{Credential, CredentialId, JsonMasterKeyStore, MasterKeyStore, ReliquaryConfig};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,8 +20,8 @@ fn id(value: &str) -> CredentialId {
 
 #[test]
 fn encrypted_credentials_round_trip_without_plaintext_in_config() {
-    let path = test_path("continuity.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let path = test_path("reliquary.cfg");
+    let mut config = ReliquaryConfig::new(&path);
     config
         .credentials
         .insert_api_key(id("ready"), "super-secret-api-key")
@@ -48,7 +48,7 @@ fn encrypted_credentials_round_trip_without_plaintext_in_config() {
         assert!(!bytes.windows(secret.len()).any(|window| window == secret));
     }
 
-    let reopened = ContinuityConfig::open(&path).unwrap();
+    let reopened = ReliquaryConfig::open(&path).unwrap();
     assert_eq!(reopened.credentials, config.credentials);
     assert!(matches!(
         reopened.credentials.get(&id("ready")),
@@ -58,8 +58,8 @@ fn encrypted_credentials_round_trip_without_plaintext_in_config() {
 
 #[test]
 fn wrong_master_key_cannot_decrypt_credentials() {
-    let path = test_path("continuity.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let path = test_path("reliquary.cfg");
+    let mut config = ReliquaryConfig::new(&path);
     config
         .credentials
         .insert_api_key(id("ready"), "super-secret")
@@ -72,17 +72,17 @@ fn wrong_master_key_cannot_decrypt_credentials() {
         .unwrap();
     fs::copy(
         replacement_path,
-        path.with_file_name("continuity.master-key.json"),
+        path.with_file_name("reliquary.master-key.json"),
     )
     .unwrap();
 
-    assert!(ContinuityConfig::open(&path).is_err());
+    assert!(ReliquaryConfig::open(&path).is_err());
 }
 
 #[test]
 fn authenticated_encryption_rejects_tampering() {
-    let path = test_path("continuity.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let path = test_path("reliquary.cfg");
+    let mut config = ReliquaryConfig::new(&path);
     config
         .credentials
         .insert_api_key(id("ready"), "super-secret")
@@ -95,13 +95,13 @@ fn authenticated_encryption_rejects_tampering() {
     object.payload[last] ^= 0x01;
     fs::write(&path, encode_config(&objects).unwrap()).unwrap();
 
-    assert!(ContinuityConfig::open(&path).is_err());
+    assert!(ReliquaryConfig::open(&path).is_err());
 }
 
 #[test]
 fn clearing_credentials_removes_encrypted_objects() {
-    let path = test_path("continuity.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let path = test_path("reliquary.cfg");
+    let mut config = ReliquaryConfig::new(&path);
     config
         .credentials
         .insert_api_key(id("ready"), "super-secret")

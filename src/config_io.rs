@@ -40,7 +40,7 @@ fn temp_path(path: &Path) -> PathBuf {
     let name = path
         .file_name()
         .and_then(|name| name.to_str())
-        .unwrap_or("continuity.cfg");
+        .unwrap_or("reliquary.cfg");
     path.with_file_name(format!(".{name}.{}.{}.tmp", std::process::id(), stamp))
 }
 

@@ -1,4 +1,4 @@
-use continuity_memory::{
+use reliquary_memory::{
     Cva, EpisodeConfig, FragmentConfig, GeneralEndpoint, GeneralEndpointError, InsomniaExtractor,
     InsomniaWorkerConfig, SimulatedEmbeddingEndpoint, VectorNormalization,
 };

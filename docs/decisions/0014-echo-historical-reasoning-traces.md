@@ -8,7 +8,7 @@ Accepted — 2026-08-16. Refined from provider-export inspection on 2026-08-16/1
 
 Provider conversation/session exports can contain substantially more than the visible user/assistant transcript. In particular, some providers preserve assistant reasoning or reasoning-adjacent computational state that can be useful when resuming difficult work: hypotheses that were tested, why a direction was rejected, what uncertainty remained behind a terse progress update, which files or tools were inspected, and how a later conclusion was reached.
 
-That material is qualitatively different from both visible conversation history and Continuity Memories. A reasoning trace may contain abandoned hypotheses, contradictions, misunderstandings, speculative branches, incomplete inference, tool-planning, provider summaries, encrypted/opaque reasoning payloads, or only structural evidence that reasoning occurred. Treating it as ordinary Memory would incorrectly promote historical computation into durable truth. Injecting it routinely would waste context and allow stale reasoning to compete with canonical Memory state.
+That material is qualitatively different from both visible conversation history and Reliquary Memories. A reasoning trace may contain abandoned hypotheses, contradictions, misunderstandings, speculative branches, incomplete inference, tool-planning, provider summaries, encrypted/opaque reasoning payloads, or only structural evidence that reasoning occurred. Treating it as ordinary Memory would incorrectly promote historical computation into durable truth. Injecting it routinely would waste context and allow stale reasoning to compete with canonical Memory state.
 
 Provider inspection also shows that there is no universal native "CoT record" shape. ChatGPT, DeepSeek, Codex/Hermes, and Claude expose materially different topologies, granularities, and visibility levels. Echo therefore cannot be designed around any one provider's message schema.
 
@@ -24,7 +24,7 @@ The conceptual separation is:
 
 ```text
 Archive   = what was said / source history
-Memories  = what Continuity learned and retained
+Memories  = what Reliquary learned and retained
 Echo      = how prior model work reasoned, when that trace is available
 Ego       = what is synthesized into active context
 ```
@@ -118,7 +118,7 @@ EchoReasoningEvent
 └── provider/model metadata
 ```
 
-Opaque provider payloads are retained for provenance/round-trip value where appropriate but are not treated as semantically searchable plaintext. Echo search uses only text actually available to Continuity: raw reasoning when exposed, otherwise a provider-supplied summary/recap. It must not imply that a summary is equivalent to hidden/raw reasoning.
+Opaque provider payloads are retained for provenance/round-trip value where appropriate but are not treated as semantically searchable plaintext. Echo search uses only text actually available to Reliquary: raw reasoning when exposed, otherwise a provider-supplied summary/recap. It must not imply that a summary is equivalent to hidden/raw reasoning.
 
 ### Provider observations that drive the abstraction
 
@@ -321,7 +321,7 @@ Rejected. Global reasoning retrieval would allow stale hypotheses and incidental
 
 ### Search Echo by conversation or source set
 
-Rejected for the initial design. Conversation-wide and multi-source retrieval recreate the same context-pollution problem that Continuity avoids elsewhere: selecting one relevant historical item must not implicitly authorize importing a whole conversation or a candidate set of internal reasoning. Wider retrieval requires separate explicit source selections.
+Rejected for the initial design. Conversation-wide and multi-source retrieval recreate the same context-pollution problem that Reliquary avoids elsewhere: selecting one relevant historical item must not implicitly authorize importing a whole conversation or a candidate set of internal reasoning. Wider retrieval requires separate explicit source selections.
 
 ### Treat one provider-native reasoning object as one universal Echo record
 

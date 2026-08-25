@@ -2,28 +2,28 @@
 
 ## Status
 
-Accepted — 2026-08-24. The shared transport-neutral interaction/runtime decision remains accepted; the standalone native-Continuity-UI product direction is superseded by ADR 0017.
+Accepted — 2026-08-24. The shared transport-neutral interaction/runtime decision remains accepted; the standalone native-Reliquary-UI product direction is superseded by ADR 0017.
 
 ## Context
 
-Continuity now needs to become useful as a commercial product rather than only prove storage, retrieval, and agent-memory mechanics.
+Reliquary now needs to become useful as a commercial product rather than only prove storage, retrieval, and agent-memory mechanics.
 
 A developer-focused product can reasonably depend on an existing IDE, terminal agent, or protocol-capable host. A broader product cannot require a non-technical user to understand or install an agent protocol before they can use their own persistent project state.
 
-ACP remains valuable because it can expose a structured live interaction stream from compatible external agents and clients. It is not universal, however, and protocol-specific transport details should not define Continuity's internal semantic model.
+ACP remains valuable because it can expose a structured live interaction stream from compatible external agents and clients. It is not universal, however, and protocol-specific transport details should not define Reliquary's internal semantic model.
 
 The product also needs a coherent way to browse and administer conversations, files, Memories, provenance, configuration, and health. Exposing raw store APIs directly to a UI would make the product boundary brittle, while inventing a generalized semantic object store would violate the purpose-built ownership model.
 
 ## Decision
 
-Continuity will have a **native direct user interface as its primary product surface**, backed by a **shared long-lived interaction/runtime layer** and a **purpose-built management surface** over existing semantic owners.
+Reliquary will have a **native direct user interface as its primary product surface**, backed by a **shared long-lived interaction/runtime layer** and a **purpose-built management surface** over existing semantic owners.
 
 ACP, imports, APIs, and future provider/agent integrations are adapters into that shared runtime. ACP is a first-class interoperability path, not a prerequisite for product use and not the canonical ingestion schema.
 
 Conceptually:
 
 ```text
-                     Native Continuity UI
+                     Native Reliquary UI
                              |
                              v
                     shared live runtime
@@ -40,7 +40,7 @@ Conceptually:
 
 ### Native interface is primary
 
-The direct Continuity interface must be capable of ordinary product use without ACP, MCP, an IDE, or a terminal.
+The direct Reliquary interface must be capable of ordinary product use without ACP, MCP, an IDE, or a terminal.
 
 Its initial user model should expose useful concepts rather than storage internals:
 
@@ -69,8 +69,8 @@ ADR 0015 continues to govern the capture semantics of ACP-compatible sessions: o
 This ADR narrows ACP's product role:
 
 - ACP is preferred when interoperating with a compatible external agent/client path;
-- ACP is not the primary Continuity user interface;
-- Continuity's native interface does not need to speak ACP internally to use the runtime;
+- ACP is not the primary Reliquary user interface;
+- Reliquary's native interface does not need to speak ACP internally to use the runtime;
 - ACP protocol evolution must remain isolated behind the adapter;
 - non-ACP sources use equivalent adapters into the same normalized contract.
 
@@ -104,7 +104,7 @@ The shared runtime coordinates these owners but does not replace them.
 
 ## Consequences
 
-- Non-technical users can use Continuity directly without adopting developer-agent infrastructure.
+- Non-technical users can use Reliquary directly without adopting developer-agent infrastructure.
 - Developer and external-agent users can continue using preferred clients through adapters such as ACP.
 - Native and external interaction paths can produce equivalent internal source semantics.
 - Protocol churn is isolated from CVA storage semantics.
@@ -136,7 +136,7 @@ Rejected. It would discard interoperability and recreate client lock-in around a
 
 ### Make ACP the canonical internal event model
 
-Rejected. ACP is one transport and may evolve independently of Continuity's semantic requirements.
+Rejected. ACP is one transport and may evolve independently of Reliquary's semantic requirements.
 
 ### Let the UI mutate stores directly
 

@@ -1,4 +1,4 @@
-# Continuity Memory v2 Documentation Policy
+# Reliquary Memory v2 Documentation Policy
 
 Parent index: [Documentation index](INDEX.md)
 

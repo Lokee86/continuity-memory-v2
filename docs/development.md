@@ -46,7 +46,7 @@ examples/archive_open_profile.rs     allocator/open-time benchmark
 docs/                                current docs, plans, limits, decisions
 ```
 
-Do not copy large portions of previous Continuity implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
+Do not copy large portions of previous Reliquary implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
 
 ## Verification commands
 

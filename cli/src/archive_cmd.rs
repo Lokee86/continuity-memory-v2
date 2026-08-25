@@ -1,7 +1,7 @@
 use crate::args::ArchiveCommand;
 use crate::util::{hex32, parse_fragment_id};
 use anyhow::{Result, anyhow};
-use continuity_memory::Cva;
+use reliquary_memory::Cva;
 use std::collections::BTreeMap;
 
 pub fn run(command: ArchiveCommand) -> Result<()> {

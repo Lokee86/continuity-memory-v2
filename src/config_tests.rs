@@ -1,5 +1,5 @@
 use crate::config_codec::{RawConfigObject, decode_config, encode_config};
-use crate::{ContinuityConfig, FragmentConfig, RetrievalConfig};
+use crate::{FragmentConfig, ReliquaryConfig, RetrievalConfig};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
@@ -17,11 +17,11 @@ fn test_path(name: &str) -> PathBuf {
 
 #[test]
 fn default_config_saves_and_reopens() {
-    let path = test_path("continuity.cfg");
-    let config = ContinuityConfig::new(&path);
+    let path = test_path("reliquary.cfg");
+    let config = ReliquaryConfig::new(&path);
     config.save().unwrap();
 
-    let reopened = ContinuityConfig::open(&path).unwrap();
+    let reopened = ReliquaryConfig::open(&path).unwrap();
     assert_eq!(reopened.fragments, FragmentConfig::default());
     assert_eq!(reopened.retrieval, RetrievalConfig::default());
     assert_eq!(reopened.models, crate::ModelSwitchboardConfig::default());
@@ -32,7 +32,7 @@ fn default_config_saves_and_reopens() {
 #[test]
 fn replacing_config_does_not_accumulate_old_objects() {
     let path = test_path("replace.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let mut config = ReliquaryConfig::new(&path);
     config.save().unwrap();
     let first_len = fs::metadata(&path).unwrap().len();
 
@@ -51,7 +51,7 @@ fn replacing_config_does_not_accumulate_old_objects() {
     config.save().unwrap();
     let third_len = fs::metadata(&path).unwrap().len();
 
-    let reopened = ContinuityConfig::open(&path).unwrap();
+    let reopened = ReliquaryConfig::open(&path).unwrap();
     assert_eq!(reopened.fragments, config.fragments);
     assert_eq!(reopened.retrieval, config.retrieval);
     assert_eq!(second_len, third_len);
@@ -72,7 +72,7 @@ fn unknown_objects_survive_known_config_replacement() {
     );
     fs::write(&path, encode_config(&objects).unwrap()).unwrap();
 
-    let mut config = ContinuityConfig::open(&path).unwrap();
+    let mut config = ReliquaryConfig::open(&path).unwrap();
     config.fragments.turns = 10;
     config.save().unwrap();
 
@@ -86,7 +86,7 @@ fn unknown_objects_survive_known_config_replacement() {
 #[test]
 fn invalid_values_do_not_replace_existing_config() {
     let path = test_path("validation.cfg");
-    let mut config = ContinuityConfig::new(&path);
+    let mut config = ReliquaryConfig::new(&path);
     config.save().unwrap();
     let original = fs::read(&path).unwrap();
 
@@ -99,15 +99,15 @@ fn invalid_values_do_not_replace_existing_config() {
 fn invalid_magic_is_rejected() {
     let path = test_path("invalid.cfg");
     fs::write(&path, b"not a continuity config").unwrap();
-    assert!(ContinuityConfig::open(&path).is_err());
+    assert!(ReliquaryConfig::open(&path).is_err());
 }
 
 #[test]
 fn config_creates_temporary_master_key_beside_itself() {
-    let path = test_path("continuity.cfg");
-    let config = ContinuityConfig::new(&path);
+    let path = test_path("reliquary.cfg");
+    let config = ReliquaryConfig::new(&path);
     let first = config.load_or_create_master_key().unwrap();
     let second = config.load_or_create_master_key().unwrap();
     assert_eq!(first, second);
-    assert!(path.with_file_name("continuity.master-key.json").exists());
+    assert!(path.with_file_name("reliquary.master-key.json").exists());
 }

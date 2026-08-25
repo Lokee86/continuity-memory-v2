@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug)]
-pub struct ContinuityConfig {
+pub struct ReliquaryConfig {
     path: PathBuf,
     pub fragments: FragmentConfig,
     pub retrieval: RetrievalConfig,
@@ -28,7 +28,7 @@ pub struct ContinuityConfig {
     extra_objects: BTreeMap<String, RawConfigObject>,
 }
 
-impl ContinuityConfig {
+impl ReliquaryConfig {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),

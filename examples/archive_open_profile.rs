@@ -1,4 +1,4 @@
-use continuity_memory::Cva;
+use reliquary_memory::Cva;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};

@@ -1,9 +1,9 @@
 use crate::args::InsomniaCommand;
 use crate::util::hex32;
 use anyhow::Result;
-use continuity_memory::{
-    ConfiguredGeneralEndpoint, ContinuityConfig, Cva, EpisodeConfig, InsomniaExtractor,
-    InsomniaWorkState, InsomniaWorkerConfig, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint,
+use reliquary_memory::{
+    ConfiguredGeneralEndpoint, Cva, EpisodeConfig, InsomniaExtractor, InsomniaWorkState,
+    InsomniaWorkerConfig, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint, ReliquaryConfig,
 };
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -39,7 +39,7 @@ fn run_file(
     embedding_concurrency: usize,
     existing_queue_only: bool,
 ) -> Result<()> {
-    let config = ContinuityConfig::open(config_path)?;
+    let config = ReliquaryConfig::open(config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let general = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
     let embedding = OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard)?

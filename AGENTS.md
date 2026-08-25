@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository is the clean Continuity storage/runtime rebuild.
+This repository is the clean Reliquary storage/runtime rebuild.
 
 ## Required reading
 
@@ -30,7 +30,7 @@ For rollback/version-history work also read:
 - A normal database write must not require construction of a CVA-wide semantic publication manifest.
 - Derived indexes/checkpoints are acceleration state and must not become semantic authority.
 - Prefer concrete seams and small focused Rust modules; split responsibilities before files become difficult to review.
-- Reuse previous Continuity code only after its ownership model is shown to fit this repository.
+- Reuse previous Reliquary code only after its ownership model is shown to fit this repository.
 
 ## Verification
 

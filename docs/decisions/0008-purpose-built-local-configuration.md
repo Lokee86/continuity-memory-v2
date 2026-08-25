@@ -6,13 +6,13 @@ Date: 2026-08-14
 
 ## Context
 
-Continuity needs machine-local configuration for fragment/retrieval policy, the planned model switchboard, provider metadata, and credentials. A generalized embedded database such as SQLite would solve persistence, but it would add a database dependency for a tiny bounded settings domain and complicate the product's no-generalized-database architecture story.
+Reliquary needs machine-local configuration for fragment/retrieval policy, the planned model switchboard, provider metadata, and credentials. A generalized embedded database such as SQLite would solve persistence, but it would add a database dependency for a tiny bounded settings domain and complicate the product's no-generalized-database architecture story.
 
-Configuration also has different semantics from CVA data. A changed setting simply replaces the current setting. Continuity does not need configuration publication history, rollback generations, append-only revisions, or internal source control.
+Configuration also has different semantics from CVA data. A changed setting simply replaces the current setting. Reliquary does not need configuration publication history, rollback generations, append-only revisions, or internal source control.
 
 ## Decision
 
-Continuity will use a purpose-built local configuration file with a magic header, format version, and independently framed logical objects.
+Reliquary will use a purpose-built local configuration file with a magic header, format version, and independently framed logical objects.
 
 Objects use stable logical keys, not content-addressed identities. Saving configuration writes one complete current file image to a temporary file and atomically replaces the previous file. Superseded objects are not retained.
 
@@ -38,7 +38,7 @@ Rejected for current configuration because the domain does not need relational q
 
 ### TOML as authoritative storage
 
-Rejected as the primary store because Continuity will need encrypted credential payloads and GUI/runtime mutation. A text format can still be offered later as import/export without becoming a second source of truth.
+Rejected as the primary store because Reliquary will need encrypted credential payloads and GUI/runtime mutation. A text format can still be offered later as import/export without becoming a second source of truth.
 
 ### Append-only/CAM history
 

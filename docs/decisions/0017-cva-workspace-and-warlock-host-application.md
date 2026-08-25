@@ -2,23 +2,23 @@
 
 ## Status
 
-Accepted — 2026-08-24. Supersedes the standalone native-Continuity-UI product direction in ADR 0016; ADR 0016 remains authoritative for the shared transport-neutral interaction/runtime seam.
+Accepted — 2026-08-24. Supersedes the standalone native-Reliquary-UI product direction in ADR 0016; ADR 0016 remains authoritative for the shared transport-neutral interaction/runtime seam.
 
 ## Purpose
 
-Define Continuity's role inside the broader Warlock product and settle the user-facing workspace boundary.
+Define Reliquary's role inside the broader Warlock product and settle the user-facing workspace boundary.
 
 ## Overview
 
-One CVA is one durable Warlock workspace. Warlock is the user-facing application and runtime host. Continuity remains a Rust library/subsystem that owns CVA semantics, source history, files, Memories, provenance, retrieval, and its purpose-built semantic owners.
+One CVA is one durable Warlock workspace. Warlock is the user-facing application and runtime host. Reliquary remains a Rust library/subsystem that owns CVA semantics, source history, files, Memories, provenance, retrieval, and its purpose-built semantic owners.
 
-Warlock should link Continuity directly into its Rust application core when practical. A separate Continuity daemon, mandatory IPC layer, or standalone Continuity desktop application is not required.
+Warlock should link Reliquary directly into its Rust application core when practical. A separate Reliquary daemon, mandatory IPC layer, or standalone Reliquary desktop application is not required.
 
 ## Context
 
-ADR 0016 established a transport-neutral live interaction/runtime seam so native and external interaction paths could converge before semantic storage. It assumed Continuity itself would own the primary native product interface.
+ADR 0016 established a transport-neutral live interaction/runtime seam so native and external interaction paths could converge before semantic storage. It assumed Reliquary itself would own the primary native product interface.
 
-Subsequent Warlock design established a broader product model: Warlock manages multiple kinds of work, while Continuity supplies the durable context/state substrate. A separate Continuity application would duplicate workspace management and split one product into competing shells.
+Subsequent Warlock design established a broader product model: Warlock manages multiple kinds of work, while Reliquary supplies the durable context/state substrate. A separate Reliquary application would duplicate workspace management and split one product into competing shells.
 
 The workspace boundary also provides useful context isolation. Development, business, construction, research, and other contexts can remain separate by default while still being deliberately related later.
 
@@ -43,7 +43,7 @@ Workspace metadata must not become a generic property bag or generalized semanti
 
 `WorkspaceType` identifies the domain/capability composition expected by the host application.
 
-Examples include `software`, `construction`, and future types. Workspace type does not transfer semantic ownership into Continuity. Software repositories, accounting systems, email systems, domain adapters, and other resources keep their own authority.
+Examples include `software`, `construction`, and future types. Workspace type does not transfer semantic ownership into Reliquary. Software repositories, accounting systems, email systems, domain adapters, and other resources keep their own authority.
 
 ### External resources can remain external
 
@@ -62,7 +62,7 @@ The external system remains authoritative for its native records unless an expli
 
 ### Warlock is the native product surface
 
-Continuity does not require a standalone GUI. Warlock owns ordinary workspace creation/open/close, navigation, presentation, capability composition, and user interaction.
+Reliquary does not require a standalone GUI. Warlock owns ordinary workspace creation/open/close, navigation, presentation, capability composition, and user interaction.
 
 Conceptually:
 
@@ -71,17 +71,17 @@ Warlock application
 ├── TypeScript presentation
 └── Rust application core
     ├── workspace management
-    ├── Continuity library
+    ├── Reliquary library
     │   └── Workspace.cva
     ├── capabilities/tools
     └── external integrations
 ```
 
-The presentation layer must not parse CVAs, mutate semantic owners directly, own credentials, or implement Continuity lifecycle rules.
+The presentation layer must not parse CVAs, mutate semantic owners directly, own credentials, or implement Reliquary lifecycle rules.
 
 ### Direct library integration is preferred
 
-Continuity should be linked directly into the Warlock Rust core when the host and Continuity run in the same process. This avoids an unnecessary local daemon/HTTP/IPC boundary.
+Reliquary should be linked directly into the Warlock Rust core when the host and Reliquary run in the same process. This avoids an unnecessary local daemon/HTTP/IPC boundary.
 
 A service boundary remains valid for future headless, remote, multi-process, or interoperability use if a concrete requirement appears. It is not the default product topology.
 
@@ -89,7 +89,7 @@ A service boundary remains valid for future headless, remote, multi-process, or 
 
 The `InteractionRuntime` direction from ADR 0016 remains valid. Warlock-native interaction, ACP, imports, and future adapters normalize into the same source semantics before Archive publication.
 
-Warlock may provide the long-lived scheduling/execution loop around Continuity's library-level runtime without becoming the semantic owner of Archive, Memories, Insomnia, Dream, Echo, or Ego.
+Warlock may provide the long-lived scheduling/execution loop around Reliquary's library-level runtime without becoming the semantic owner of Archive, Memories, Insomnia, Dream, Echo, or Ego.
 
 ### Context isolation defaults to workspace scope
 
@@ -99,7 +99,7 @@ This permits, for example, development context and business context for the same
 
 ## Consequences
 
-- Continuity has one clear product role: durable workspace/context substrate.
+- Reliquary has one clear product role: durable workspace/context substrate.
 - Warlock has one clear product role: management application and capability host.
 - No second workspace manifest is required unless future requirements prove the CVA cannot own necessary workspace identity.
 - Workspace types can vary widely without changing CVA ownership rules.
@@ -116,7 +116,7 @@ This permits, for example, development context and business context for the same
 
 ## Rejected alternatives
 
-### Standalone Continuity desktop application
+### Standalone Reliquary desktop application
 
 Rejected. It duplicates the Warlock shell and fragments workspace ownership.
 
@@ -124,7 +124,7 @@ Rejected. It duplicates the Warlock shell and fragments workspace ownership.
 
 Rejected as the default. It creates two competing durable workspace identities without a demonstrated need.
 
-### Mandatory Continuity daemon
+### Mandatory Reliquary daemon
 
 Rejected. In-process Rust integration is simpler when Warlock is the local application host.
 
@@ -155,4 +155,4 @@ Focused tests now prove that workspace metadata survives reopen, initializes onl
 
 ## Notes
 
-This decision defines product/application composition. It does not make Warlock the owner of Continuity semantic data or require Continuity to depend on Warlock.
+This decision defines product/application composition. It does not make Warlock the owner of Reliquary semantic data or require Reliquary to depend on Warlock.

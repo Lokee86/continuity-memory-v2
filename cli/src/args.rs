@@ -4,12 +4,12 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "continuity",
+    name = "reliquary",
     version,
-    about = "Repo-local Continuity bring-up CLI"
+    about = "Repo-local Reliquary bring-up CLI"
 )]
 pub struct Cli {
-    #[arg(long, global = true, default_value = "continuity.cfg")]
+    #[arg(long, global = true, default_value = "reliquary.cfg")]
     pub config: PathBuf,
 
     #[command(subcommand)]
@@ -117,7 +117,7 @@ pub enum VectorsCommand {
 pub enum InsomniaCommand {
     Run {
         cva: PathBuf,
-        #[arg(long, default_value_t = continuity_memory::DEFAULT_INSOMNIA_WORKERS)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_INSOMNIA_WORKERS)]
         workers: usize,
         #[arg(long, default_value = "private")]
         scope: String,
