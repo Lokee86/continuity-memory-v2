@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The development format is one append-only CVA file containing Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
+The development format is one append-only CVA file containing Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Graph relationship state, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
 
 ## Planned product file-kind transition — not implemented
 
@@ -12,7 +12,6 @@ The current exact contract below remains `.cva`. ADR 0020 establishes the future
 The two future file kinds are expected to reuse common framing, recovery, versioning, Memory, vector, graph, and compaction primitives while enforcing different semantic validity rules and owner composition. Reliquary is project/workspace state; Phylactery is user-global Identity state and must remain valid without retained project source turns.
 
 The file kind must eventually be encoded in the physical format rather than inferred only from the extension. Existing `.cva` files are treated as legacy Reliquary data and should migrate to `.rel` without gratuitously changing deterministic IDs, existing record payloads, or semantic history. Exact header magic/versioning and migration mechanics remain future implementation work. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md).
-
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
 ### CVA header
@@ -228,6 +227,40 @@ u64       record payload length
 ```
 Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR2`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful Insomnia processing uses the `CVAINSC2` transaction described below instead: newly required Memory bodies, `CVAMEMR2` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it.
 
+### Graph
+Format marker:
+```text
+8 bytes   "CVAGFMT1"
+u32       schema = 1
+```
+Dense node mapping:
+```text
+8 bytes   "CVAGNODE"
+32 bytes  MemoryId
+u32       dense NodeId
+```
+Node mappings are structural index records and consume no semantic version. They are assigned monotonically from zero when a Memory first participates in Graph topology. Stable public identity remains `MemoryId`.
+
+Relationship mutation:
+```text
+8 bytes   "CVAGMUT1"
+32 bytes  source MemoryId
+32 bytes  target MemoryId
+u16       relationship kind
+u8        active: 0=retracted, 1=active
+```
+Relationship kind codes are `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`.
+
+Relationship version metadata:
+```text
+8 bytes   "CVAGVER1"
+u64       global version
+u64       graph version
+u64       mutation payload chunk offset
+u64       mutation payload length
+```
+Graph versions begin at `1` and are dense. A relationship mutation without valid version metadata is inert. The current state of one oriented `(source, target, kind)` identity is its latest versioned `active` value; retraction appends `active=0` rather than deleting history. Both Memory endpoints must exist on reopen. Pre-Graph CVAs with no Graph records open as Graph version `0`; the format marker is appended lazily before their first Graph mutation.
+
 ### Packed vectors
 Format marker:
 ```text
@@ -394,9 +427,9 @@ u32 byte_length
 N bytes UTF-8
 ```
 ## Historical semantics
-Archive, Memories, and Vector Generations have independent local watermarks. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
+Archive, Memories, Graph, and Vector Generations have independent local watermarks. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
-`Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Workspace metadata is the compatibility exception: pre-workspace CVAs may omit `CVAWKFM1`, while current `Cva::create` writes it exactly once. Earlier incompatible development formats for the existing required stores are rejected rather than migrated.
+`Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Workspace metadata is a compatibility exception: pre-workspace CVAs may omit `CVAWKFM1`, while current `Cva::create` writes it exactly once. Graph is another narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.

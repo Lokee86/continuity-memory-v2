@@ -174,9 +174,9 @@ Do not resume benchmark-specific prompt squeezing or add a general semantic revi
 
 Add Echo as the source-scoped historical reasoning owner defined by [ADR 0014](decisions/0014-echo-historical-reasoning-traces.md). Keep it cold by default, non-authoritative, and source-scoped rather than globally searchable.
 
-### Graph and Dream
+### Dream over Graph
 
-Add Graph as its own semantic owner and reconnect Dream with pair-oriented relationship evaluation. Processing direction must not determine semantic edge direction. Rebuild lifecycle handling around `extracted → knowledge → canonical`, with `archived` as retained inactive history for superseded and non-representative duplicate Memories.
+Graph persistence/topology is implemented as its own semantic owner. Reconnect Dream with pair-oriented relationship evaluation over that owner. Processing direction must not determine semantic edge direction. Add relationship evidence/provenance and reconsideration policy, then rebuild lifecycle handling around `extracted → knowledge → canonical`, with `archived` as retained inactive history for superseded and non-representative duplicate Memories.
 
 ### Ego
 

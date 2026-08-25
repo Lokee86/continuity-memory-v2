@@ -43,6 +43,7 @@ mod cva_conversation;
 mod cva_error;
 mod cva_file_memory;
 mod cva_global_validation;
+mod cva_graph;
 mod cva_lifecycle;
 mod cva_memory_publish;
 mod cva_memory_vectors;
@@ -77,6 +78,12 @@ mod fragment_model;
 mod fragment_store;
 mod fragmenter;
 mod general_endpoint;
+mod graph_codec;
+mod graph_error;
+mod graph_model;
+mod graph_query;
+mod graph_rebuild;
+mod graph_store;
 mod insomnia;
 mod interaction_error;
 mod interaction_model;
@@ -172,6 +179,11 @@ pub use file_memory_link_model::FileMemoryLink;
 pub use file_model::{FileId, FileSearchHit, StoredFile};
 pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
 pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
+pub use graph_error::GraphError;
+pub(crate) use graph_model::GraphNodeRecord;
+pub use graph_model::{
+    GraphDirection, GraphNeighbor, GraphRelation, GraphRelationKind, GraphStats, MemoryGraphPath,
+};
 pub use insomnia::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
     DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_WORKERS, EpisodeSchedulingResult,
@@ -282,6 +294,8 @@ mod file_memory_link_tests;
 mod file_tests;
 #[cfg(test)]
 mod fragment_tests;
+#[cfg(test)]
+mod graph_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]

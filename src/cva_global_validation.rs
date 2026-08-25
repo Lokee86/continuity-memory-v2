@@ -1,3 +1,4 @@
+use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, CvaError};
@@ -5,6 +6,7 @@ use crate::{Archive, CvaError};
 pub(crate) fn validate_semantic_global_versions(
     archive: &Archive,
     memories: &MemoryStore,
+    graph: &GraphStore,
     vector_generations: &VectorGenerationStore,
 ) -> Result<(), CvaError> {
     let mut versions: Vec<u64> = archive
@@ -16,6 +18,12 @@ pub(crate) fn validate_semantic_global_versions(
                 .records()
                 .iter()
                 .map(|record| record.global_version),
+        )
+        .chain(
+            graph
+                .mutations()
+                .iter()
+                .map(|relation| relation.global_version),
         )
         .chain(
             vector_generations

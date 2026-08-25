@@ -90,6 +90,14 @@ A Memory's semantic title/content is represented by one immutable `MemoryBodyId`
 
 `memory(id)`, `memory_revision(id, revision)`, `memory_stats()`, `memory_version()`, and `memory_body_id(id)` expose current/historical revision state and the dense Memory-local watermark. Memory publication consumes one CVA-global semantic version and one dense `memory_version`; Memory-body backing objects are content-addressed and clock-neutral.
 
+### Graph
+
+Public Graph models are `GraphRelationKind`, `GraphDirection`, `GraphRelation`, `GraphNeighbor`, `MemoryGraphPath`, `GraphStats`, and `GraphError`. Relationship kinds are `Topical`, `Factual`, `Causal`, `Recurrent`, `References`, `DuplicateOf`, `Supersedes`, and `StructuralParent`.
+
+`Cva::set_memory_relation(source, target, kind, active, expected_graph_version)` publishes or retracts one oriented Memory-to-Memory relationship. Both endpoints must already exist as Memories, self-relations are rejected, and the caller must supply the exact current `graph_version`. Repeating the already-visible state is an idempotent no-op. A real mutation consumes one CVA-global version and one dense Graph-local version.
+
+`graph_version()`, `graph_stats()`, `graph_relations()`, `graph_neighbors(memory_id, direction)`, and `shortest_memory_path(source, target, max_depth)` expose current topology. Dense topology IDs are internal; all public endpoints and results use stable `MemoryId` values. Traversal delegates to the pinned repository-agnostic `arcana-graph` kernel while CVA persistence/versioning remains Continuity-owned.
+
 `source_node_id` plus `source_episode_id` identify user authority inside an authoritative Episode. `content_source_*` identifies adopted/retained assistant authority when present; `grounding_source_*` identifies context used only to resolve a referent. Both external source tuples must resolve to real Archive nodes. Grounding never supplies semantic authority.
 
 ### Packed vectors

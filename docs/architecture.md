@@ -20,6 +20,10 @@ Cva
 │   └── immutable Episodes
 ├── Memories
 │   └── memory_version: u64 + immutable revisions
+├── Graph
+│   ├── graph_version: u64 + append-only relationship mutations
+│   ├── persistent MemoryId ↔ dense NodeId catalogue
+│   └── active topology/traversal via arcana-graph
 ├── InsomniaOperational
 │   └── queue / priority / leases / retries / compact completion receipt
 ├── PackedVectorStore
@@ -77,6 +81,11 @@ Episodes are contiguous ancestry ranges made from whole user-led response cycles
 
 ### Memories
 Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. A Memory's `MemoryBodyId` is immutable across revisions: metadata/classification/lifecycle may change, but semantic title/content cannot mutate in place. Semantic corrections create another Memory rather than rewriting an existing body. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Insomnia persists assistant-authored **authority provenance** in the existing `content_source_*` record fields only when the user adopts/retains that assistant proposition; separate `grounding_source_*` fields identify context used only to resolve a referent in a user-owned proposition. Grounding never supplies semantic authority. Memory authority does not depend on vector availability.
+
+### Graph
+Graph owns durable Memory-to-Memory semantic relationships. Stable `MemoryId` endpoints are mapped once to dense `arcana_graph::NodeId` values for topology operations; those dense IDs are an internal index and never replace Memory identity. Relationship mutations are oriented records with one of `topical`, `factual`, `causal`, `recurrent`, `references`, `duplicate-of`, `supersedes`, or `structural-parent`; each mutation advances dense `graph_version` and consumes one CVA-global ordering ticket. Retraction records the same oriented relationship identity with `active=false` rather than deleting history. Processing or scheduling order does not determine edge direction.
+
+Continuity owns Graph durability, versioning, Memory endpoint validation, and reopen reconstruction. The pinned `arcana-graph` crate supplies repository-agnostic graph primitives, adjacency/topology structures, and traversal algorithms. Arcana repository identities, relation vocabulary, repository snapshots, and protocol semantics are not part of the CVA Graph owner. Pre-Graph CVAs reopen with an empty Graph owner and acquire the Graph format marker lazily on the first relationship write.
 
 ### Insomnia operational state
 Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Pending, processing, lease-renewal, and retryable-failure transitions are runtime-only and are re-derived as Pending after reopen when no final outcome exists. A Terminal outcome remains durable as one final work record; a successful outcome atomically publishes all newly created Memory records together with one compact Episode-completion transaction. Prior failed-attempt history is not retained as active history after success. This owner consumes no semantic version clock.
@@ -186,6 +195,7 @@ one physical chunk scan
     └── Cva dispatches each payload
         ├── Archive (including Episodes)
         ├── Memories
+        ├── Graph
         ├── Insomnia operational state
         ├── PackedVectorStore
         ├── MemoryVectorStore
@@ -195,18 +205,19 @@ one physical chunk scan
 ```
 After the scan, cross-store references are validated in dependency order. Full packed matrices and Archive-Vector mappings are not retained in steady-state indexes.
 ## Ordering model
-Archive, Memories, and Vector Generations are independently mutable semantic domains:
+Archive, Memories, Graph, and Vector Generations are independently mutable semantic domains:
 ```text
 G100 / A700   Archive mutation
 G101 / M12    Memory revision
-G102 / V20    vector generation
-G103 / A701   Archive mutation
+G102 / R8     Graph relationship mutation
+G103 / V20    vector generation
+G104 / A701   Archive mutation
 ```
-`G`, `A`, `M`, and `V` are ordering/watermark integers, not parent relationships. Conversation ancestry remains node-local. Compatibility profiles, vector backing objects, and Insomnia operational coordination are not semantic timeline events.
+`G`, `A`, `M`, `R`, and `V` are ordering/watermark integers, not parent relationships. Conversation ancestry remains node-local. Compatibility profiles, vector backing objects, and Insomnia operational coordination are not semantic timeline events.
 ## Invariants and safety boundaries
 - one physical CVA owner and one shared reopen scan;
 - no generalized semantic database/root/dependency layer;
-- Archive and vector-generation local clocks remain independent;
+- Archive, Memory, Graph, and vector-generation local clocks remain independent;
 - each global version is claimed by at most one semantic mutation;
 - packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects;
 - Memory vectors bind immutable `MemoryBodyId` content per compatibility profile; Memory revision metadata cannot invalidate or refresh them;
