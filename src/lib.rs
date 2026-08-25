@@ -61,6 +61,14 @@ mod cva_reconcile_repack;
 mod cva_turn_ingest;
 mod cva_vector_generations;
 mod cva_workspace;
+mod dream_candidate_error;
+mod dream_candidate_model;
+mod dream_candidate_ranking;
+mod dream_candidates;
+mod dream_classifier;
+mod dream_classifier_error;
+mod dream_classifier_model;
+mod dream_classifier_schema;
 mod embedding_endpoint;
 mod episode_builder;
 mod episode_codec;
@@ -169,6 +177,19 @@ pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
+pub use dream_candidate_error::DreamCandidateError;
+pub use dream_candidate_model::{
+    DEFAULT_DREAM_CANDIDATE_LIMIT, DEFAULT_DREAM_LEXICAL_LIMIT, DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
+    DEFAULT_DREAM_SEMANTIC_LIMIT, DreamCandidate, DreamCandidateConfig, DreamCandidateSet,
+    DreamMemoryContext, MAX_DREAM_CANDIDATE_LIMIT,
+};
+pub use dream_classifier::DreamClassifier;
+pub use dream_classifier_error::DreamClassificationError;
+pub use dream_classifier_model::{
+    DREAM_CLASSIFIER_CONTRACT_VERSION, DreamEvidenceSide, DreamPairClassification,
+    DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
+};
+pub use dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
@@ -297,6 +318,11 @@ mod cva_reconcile_merge_tests;
 mod cva_reconcile_promotion_tests;
 #[cfg(test)]
 mod cva_reconcile_tests;
+mod dream_candidate_test_support;
+#[cfg(test)]
+mod dream_candidate_tests;
+#[cfg(test)]
+mod dream_classifier_tests;
 #[cfg(test)]
 mod episode_tests;
 #[cfg(test)]

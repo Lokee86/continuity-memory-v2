@@ -11,6 +11,7 @@ pub enum ModelProvider {
 pub enum ModelCapability {
     General,
     Insomnia,
+    Dream,
     Embedding,
 }
 
@@ -80,7 +81,9 @@ impl ModelProvider {
 
     pub fn supports(self, capability: ModelCapability) -> bool {
         match (self, capability) {
-            (_, ModelCapability::General | ModelCapability::Insomnia) => true,
+            (_, ModelCapability::General | ModelCapability::Insomnia | ModelCapability::Dream) => {
+                true
+            }
             (Self::OpenAiReady, ModelCapability::Embedding) => true,
             (Self::OpenAiCodex, ModelCapability::Embedding) => false,
         }
@@ -125,6 +128,7 @@ pub struct EmbeddingModelEndpoint {
 pub struct ModelSwitchboardConfig {
     pub general: Option<GeneralModelEndpoint>,
     pub insomnia: Option<GeneralModelEndpoint>,
+    pub dream: Option<GeneralModelEndpoint>,
     pub embedding: Option<EmbeddingModelEndpoint>,
 }
 
@@ -158,6 +162,10 @@ impl ModelSwitchboard {
             .or(self.config.general.as_ref())
     }
 
+    pub fn dream(&self) -> Option<&GeneralModelEndpoint> {
+        self.config.dream.as_ref().or(self.config.general.as_ref())
+    }
+
     pub fn embedding(&self) -> Option<&EmbeddingModelEndpoint> {
         self.config.embedding.as_ref()
     }
@@ -174,6 +182,16 @@ impl ModelSwitchboard {
 
     pub fn insomnia_auth(&self) -> Option<ModelRequestAuth> {
         self.insomnia().map(|endpoint| {
+            resolve_auth(
+                endpoint.provider,
+                &endpoint.credential_id,
+                &self.credentials,
+            )
+        })
+    }
+
+    pub fn dream_auth(&self) -> Option<ModelRequestAuth> {
+        self.dream().map(|endpoint| {
             resolve_auth(
                 endpoint.provider,
                 &endpoint.credential_id,
@@ -202,6 +220,9 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
         validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.insomnia {
+        validate_general_endpoint(endpoint)?;
+    }
+    if let Some(endpoint) = &config.dream {
         validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.embedding {

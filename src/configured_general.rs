@@ -46,6 +46,25 @@ impl ConfiguredGeneralEndpoint {
             )),
         }
     }
+
+    pub fn from_dream_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let provider = switchboard
+            .dream()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "dream and general routes are not configured",
+            ))?
+            .provider;
+        match provider {
+            ModelProvider::OpenAiCodex => Ok(Self::OpenAiCodex(
+                OpenAiCodexGeneralEndpoint::from_dream_switchboard(switchboard)?,
+            )),
+            ModelProvider::OpenAiReady => Ok(Self::OpenAiReady(
+                OpenAiReadyGeneralEndpoint::from_dream_switchboard(switchboard)?,
+            )),
+        }
+    }
 }
 
 impl GeneralEndpoint for ConfiguredGeneralEndpoint {

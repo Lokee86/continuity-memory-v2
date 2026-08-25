@@ -5,6 +5,7 @@ use crate::{
 
 pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
 pub(crate) const INSOMNIA_MODEL_KEY: &str = "models.insomnia";
+pub(crate) const DREAM_MODEL_KEY: &str = "models.dream";
 pub(crate) const EMBEDDING_MODEL_KEY: &str = "models.embedding";
 pub(crate) const GENERAL_MODEL_SCHEMA_V3: u16 = 3;
 pub(crate) const EMBEDDING_MODEL_SCHEMA_V2: u16 = 2;

@@ -7,9 +7,9 @@ use crate::config_object::{
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
-    EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2, GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3,
-    INSOMNIA_MODEL_KEY, decode_embedding, decode_general_v2, decode_general_v3, encode_embedding,
-    encode_general,
+    DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2, GENERAL_MODEL_KEY,
+    GENERAL_MODEL_SCHEMA_V3, INSOMNIA_MODEL_KEY, decode_embedding, decode_general_v2,
+    decode_general_v3, encode_embedding, encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
@@ -60,6 +60,10 @@ impl ReliquaryConfig {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
         };
+        let dream = match objects.remove(DREAM_MODEL_KEY) {
+            Some(object) => Some(decode_known_general(object)?),
+            None => None,
+        };
         let embedding = match objects.remove(EMBEDDING_MODEL_KEY) {
             Some(object) => Some(decode_known_embedding(object)?),
             None => None,
@@ -67,6 +71,7 @@ impl ReliquaryConfig {
         let models = ModelSwitchboardConfig {
             general,
             insomnia,
+            dream,
             embedding,
         };
         validate_switchboard(&models)?;
@@ -119,6 +124,12 @@ impl ReliquaryConfig {
         if let Some(endpoint) = &self.models.insomnia {
             objects.insert(
                 INSOMNIA_MODEL_KEY.to_owned(),
+                general_model_object(encode_general(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.dream {
+            objects.insert(
+                DREAM_MODEL_KEY.to_owned(),
                 general_model_object(encode_general(endpoint)?),
             );
         }

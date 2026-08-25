@@ -1,7 +1,7 @@
 use crate::{
-    CredentialId, CredentialsConfig, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
-    ModelCapability, ModelProvider, ModelSwitchboard, ModelSwitchboardConfig, ReliquaryConfig,
-    VectorNormalization,
+    ConfiguredGeneralEndpoint, CredentialId, CredentialsConfig, EmbeddingModelEndpoint,
+    GeneralEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
+    ModelSwitchboard, ModelSwitchboardConfig, ReliquaryConfig, VectorNormalization,
 };
 use std::collections::BTreeMap;
 use std::fs;
@@ -34,8 +34,10 @@ fn provider_auth_and_capabilities_are_explicit() {
     );
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::General));
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Insomnia));
+    assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Dream));
     assert!(!ModelProvider::OpenAiCodex.supports(ModelCapability::Embedding));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Insomnia));
+    assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Dream));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Embedding));
 }
 
@@ -61,6 +63,11 @@ fn routes_and_credentials_round_trip_and_attach_auth_headers() {
     switchboard.insomnia_auth().unwrap().apply_to(&mut insomnia);
     assert_eq!(insomnia["Authorization"], "Bearer ready-key");
     assert!(!insomnia.contains_key("ChatGPT-Account-ID"));
+
+    let mut dream = BTreeMap::new();
+    switchboard.dream_auth().unwrap().apply_to(&mut dream);
+    assert_eq!(dream["Authorization"], "Bearer ready-key");
+    assert!(!dream.contains_key("ChatGPT-Account-ID"));
 
     let mut embedding = BTreeMap::new();
     switchboard
@@ -92,6 +99,7 @@ fn invalid_provider_routes_are_rejected() {
     let codex_embedding = ModelSwitchboardConfig {
         general: None,
         insomnia: None,
+        dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiCodex,
             model: "codex".into(),
@@ -112,6 +120,7 @@ fn invalid_provider_routes_are_rejected() {
             reasoning_effort: None,
         }),
         insomnia: None,
+        dream: None,
         embedding: None,
     };
     assert!(ModelSwitchboard::new(missing_url, CredentialsConfig::default()).is_err());
@@ -128,6 +137,26 @@ fn insomnia_route_falls_back_to_general_when_unset() {
     switchboard.insomnia_auth().unwrap().apply_to(&mut auth);
     assert_eq!(auth["Authorization"], "Bearer codex-access");
     assert_eq!(auth["ChatGPT-Account-ID"], "account-123");
+}
+
+#[test]
+fn dream_route_falls_back_to_general_when_unset() {
+    let mut models = configured_models();
+    models.dream = None;
+    let switchboard = ModelSwitchboard::new(models, configured_credentials()).unwrap();
+    assert_eq!(switchboard.dream(), switchboard.general());
+
+    let mut auth = BTreeMap::new();
+    switchboard.dream_auth().unwrap().apply_to(&mut auth);
+    assert_eq!(auth["Authorization"], "Bearer codex-access");
+    assert_eq!(auth["ChatGPT-Account-ID"], "account-123");
+}
+
+#[test]
+fn configured_dream_endpoint_uses_dedicated_route() {
+    let switchboard = ModelSwitchboard::new(configured_models(), configured_credentials()).unwrap();
+    let endpoint = ConfiguredGeneralEndpoint::from_dream_switchboard(&switchboard).unwrap();
+    assert_eq!(endpoint.model(), "dream-model");
 }
 
 #[test]
@@ -166,6 +195,13 @@ fn configured_models() -> ModelSwitchboardConfig {
         insomnia: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "insomnia-model".into(),
+            url: Some("https://example.test/v1/chat/completions".into()),
+            credential_id: id("ready"),
+            reasoning_effort: None,
+        }),
+        dream: Some(GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: "dream-model".into(),
             url: Some("https://example.test/v1/chat/completions".into()),
             credential_id: id("ready"),
             reasoning_effort: None,

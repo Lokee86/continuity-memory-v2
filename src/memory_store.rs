@@ -148,6 +148,12 @@ impl MemoryStore {
         self.bodies.contains_key(&id)
     }
 
+    pub(crate) fn current_ids(&self) -> Vec<MemoryId> {
+        let mut ids: Vec<_> = self.current.keys().copied().collect();
+        ids.sort_by_key(|id| id.0);
+        ids
+    }
+
     pub(crate) fn current_body_ids(&self) -> Vec<MemoryBodyId> {
         let mut ids: Vec<_> = self
             .current

@@ -100,6 +100,22 @@ Public Graph models are `GraphRelationKind`, `GraphDirection`, `GraphRelationCha
 
 `source_node_id` plus `source_episode_id` identify user authority inside an authoritative Episode. `content_source_*` identifies adopted/retained assistant authority when present; `grounding_source_*` identifies context used only to resolve a referent. Both external source tuples must resolve to real Archive nodes. Grounding never supplies semantic authority.
 
+### Dream candidate retrieval
+
+Public types are `DreamCandidateConfig`, `DreamMemoryContext`, `DreamCandidate`, `DreamCandidateSet`, `DreamCandidateError`, and the `DEFAULT_DREAM_*` / `MAX_DREAM_CANDIDATE_LIMIT` constants.
+
+`Cva::dream_candidates(profile_id, source_id, config)` performs bounded read-only candidate discovery for one existing Memory. The source Memory must already have a Memory-Vector binding under the selected compatibility profile. Its stored Document vector is compared directly with other stored Memory-body vectors, so this API performs no embedding endpoint or model call. A candidate without a vector may still enter through deterministic lexical/metadata matching.
+
+The current default limits are 12 final candidates, 24 primary semantic candidates, 3 prior-semantic reservations, and 8 lexical candidates. Prior-semantic coverage uses authoritative source timestamps rather than Memory creation timestamps. Archived Memories are excluded. Every returned source/candidate context includes the immutable `MemoryBodyId`, resolved authoritative source timestamp when available, and all active Graph relations touching that Memory. Candidate discovery is deterministic for unchanged CVA state and configuration and does not mutate Graph, Memories, or semantic clocks.
+
+### Dream pair classification
+
+Public types are `DreamClassifier<E>`, `DreamPairClassification`, `DreamPairEvidence`, `DreamRelationKind`, `DreamRelationDirection`, `DreamEvidenceSide`, `DreamClassificationError`, `DREAM_CLASSIFIER_CONTRACT_VERSION`, `DREAM_CLASSIFIER_SYSTEM_PROMPT`, and `dream_classifier_schema()`.
+
+`DreamClassifier::classify_pair(left, right)` canonicalizes the two distinct Memory contexts into stable MemoryId A/B order, submits the canonical pair through `GeneralEndpoint::complete_json`, and validates the structured result. `classify_candidates(set)` evaluates every candidate in the already-bounded `DreamCandidateSet`; the classifier does not discover additional candidates.
+
+The v1 classifier returns one primary proposal: `None`, `Topical`, `Factual`, `Causal`, `Recurrent`, `DuplicateOf`, or `Supersedes`. `Topical`, `Recurrent`, and `DuplicateOf` are semantically undirected; `Factual`, `Causal`, and `Supersedes` require an explicit A→B or B→A direction. Every non-none result requires exactly two verbatim evidence quotes, one from each Memory; invalid direction combinations or invented evidence are rejected. `None` requires no evidence. The result records the endpoint model name but is transient: classification does not write Graph state or change Memory lifecycle.
+
 ### Packed vectors
 Public types:
 
@@ -144,11 +160,11 @@ Public types are `CredentialId`, `Credential`, `CredentialsConfig`, `CredentialE
 Credential objects are persisted as AES-256-GCM encrypted `credential.<id>` config objects. Wrong master keys and modified ciphertext are rejected during `ReliquaryConfig::open`.
 
 ### Model switchboard
-Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Insomnia, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `ModelReasoningEffort::{None, Minimal, Low, Medium, High, XHigh, Max}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, `ModelRequestAuth`, `ModelSwitchboard`, and `ConfiguredGeneralEndpoint`.
+Public types are `ModelProvider::{OpenAiCodex, OpenAiReady}`, `ModelCapability::{General, Insomnia, Dream, Embedding}`, `ModelAuthKind::{ChatGptDeviceCode, ApiKey}`, `ModelReasoningEffort::{None, Minimal, Low, Medium, High, XHigh, Max}`, `GeneralModelEndpoint`, `EmbeddingModelEndpoint`, `ModelSwitchboardConfig`, `ModelRequestAuth`, `ModelSwitchboard`, and `ConfiguredGeneralEndpoint`.
 
-Each route includes a `CredentialId`. `ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` supports General/Insomnia routing, uses provider-owned routing, requires ChatGPT OAuth material, and requires an explicit `ModelReasoningEffort`; `OpenAiReady` supports General/Insomnia/Embedding, requires explicit HTTP(S) URLs and API-key material, and currently leaves General reasoning unset. Embedding routes also require non-zero dimensions and explicit normalization. `models.insomnia` is optional and resolves to the General route/credential when absent.
+Each route includes a `CredentialId`. `ModelProvider::supports(capability)` exposes provider capability. `OpenAiCodex` supports General/Insomnia/Dream routing, uses provider-owned routing, requires ChatGPT OAuth material, and requires an explicit `ModelReasoningEffort`; `OpenAiReady` supports General/Insomnia/Dream/Embedding, requires explicit HTTP(S) URLs and API-key material, and currently leaves General-model reasoning unset. Embedding routes also require non-zero dimensions and explicit normalization. `models.insomnia` and `models.dream` are optional and independently resolve to the General route/credential when absent.
 
-`ModelSwitchboard::new(config, credentials)` validates route structure and credential availability/auth kind. `general_auth()`, `insomnia_auth()`, and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. `OpenAiCodexDeviceAuth` implements ChatGPT device-code acquisition against `auth.openai.com`, including authorization polling, OAuth code exchange, account-ID extraction, and insertion into `CredentialsConfig`. `ConfiguredGeneralEndpoint` dispatches the selected General/Insomnia route to either `OpenAiReadyGeneralEndpoint` or `OpenAiCodexGeneralEndpoint`; the latter uses the ChatGPT Codex Responses backend, structured JSON-schema output, SSE streaming, and the route's reasoning effort. OAuth token refresh remains future work.
+`ModelSwitchboard::new(config, credentials)` validates route structure and credential availability/auth kind. `general_auth()`, `insomnia_auth()`, `dream_auth()`, and `embedding_auth()` return redacting `ModelRequestAuth` values. `ModelRequestAuth::apply_to` adds `Authorization: Bearer ...` and, for ChatGPT auth when available, `ChatGPT-Account-ID`. `OpenAiCodexDeviceAuth` implements ChatGPT device-code acquisition against `auth.openai.com`, including authorization polling, OAuth code exchange, account-ID extraction, and insertion into `CredentialsConfig`. `ConfiguredGeneralEndpoint` dispatches the selected General/Insomnia/Dream route to either `OpenAiReadyGeneralEndpoint` or `OpenAiCodexGeneralEndpoint`; the latter uses the ChatGPT Codex Responses backend, structured JSON-schema output, SSE streaming, and the route's reasoning effort. OAuth token refresh remains future work.
 
 ### Insomnia extraction and backlog worker
 Public Insomnia surface includes `InsomniaExtractor`, `InsomniaWorkerConfig`, `InsomniaDrainResult`, `InsomniaWorkerError`, queue/work/attempt models, and the extraction contract constants. `ConfiguredGeneralEndpoint::from_insomnia_switchboard` constructs the effective dedicated-Insomnia-or-General-fallback endpoint and dispatches it to the selected provider transport.

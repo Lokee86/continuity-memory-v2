@@ -35,6 +35,7 @@ fn live_endpoint_is_constructed_from_validated_switchboard() {
     let config = ModelSwitchboardConfig {
         general: None,
         insomnia: None,
+        dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "qwen/qwen3-embedding-8b".into(),
@@ -58,6 +59,7 @@ fn zero_batching_limits_are_rejected() {
     let config = ModelSwitchboardConfig {
         general: None,
         insomnia: None,
+        dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "model".into(),

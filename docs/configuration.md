@@ -110,6 +110,12 @@ Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibili
 
 This route is optional. When configured, Insomnia uses it for extraction. When absent, `ModelSwitchboard::insomnia()` and `insomnia_auth()` fall back to the configured `models.general` route and credential. This keeps General as the default model path while allowing Insomnia to be independently routed when desired.
 
+### `models.dream`
+
+Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibility as `models.general`.
+
+This route is optional. When configured, Dream pair classification uses it. When absent, `ModelSwitchboard::dream()` and `dream_auth()` fall back to the configured `models.general` route and credential. Dream and Insomnia routing are independent; configuring one does not affect the other.
+
 ### `models.embedding`
 
 Schema `2`, flags `0`:
@@ -169,7 +175,7 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
-- General/Insomnia/embedding routes, encrypted credentials, credential references, request-auth attachment, direct `openai-ready` embedding/General HTTP execution, and provider-native `openai-codex` General/Insomnia Responses execution are implemented. Insomnia falls back to General when its dedicated route is unset.
+- General/Insomnia/Dream/embedding routes, encrypted credentials, credential references, request-auth attachment, direct `openai-ready` embedding/General HTTP execution, and provider-native `openai-codex` General/Insomnia/Dream Responses execution are implemented. Insomnia and Dream independently fall back to General when their dedicated routes are unset.
 - `openai-codex` ChatGPT device-code acquisition stores the returned ID/access/refresh tokens plus ChatGPT account ID as an encrypted credential object. OAuth token refresh is not implemented yet.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.

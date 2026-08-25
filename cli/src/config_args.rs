@@ -61,6 +61,19 @@ pub enum ModelCommand {
         reasoning: Option<ReasoningArg>,
     },
     ClearInsomnia,
+    SetDream {
+        #[arg(long, value_enum)]
+        provider: ProviderArg,
+        #[arg(long)]
+        model: String,
+        #[arg(long)]
+        credential: String,
+        #[arg(long)]
+        url: Option<String>,
+        #[arg(long, value_enum)]
+        reasoning: Option<ReasoningArg>,
+    },
+    ClearDream,
     SetEmbedding {
         #[arg(long, value_enum, default_value = "openai-ready")]
         provider: ProviderArg,

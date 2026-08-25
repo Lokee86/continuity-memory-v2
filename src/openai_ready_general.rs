@@ -48,6 +48,22 @@ impl OpenAiReadyGeneralEndpoint {
         Self::from_route(route, auth)
     }
 
+    pub fn from_dream_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route = switchboard
+            .dream()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "dream and general routes are not configured",
+            ))?;
+        let auth = switchboard
+            .dream_auth()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "dream auth is missing",
+            ))?;
+        Self::from_route(route, auth)
+    }
+
     fn from_route(
         route: &crate::GeneralModelEndpoint,
         auth: ModelRequestAuth,

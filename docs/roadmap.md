@@ -180,7 +180,9 @@ Add Echo as the source-scoped historical reasoning owner defined by [ADR 0014](d
 
 ### Dream over Graph
 
-Graph persistence/topology is implemented as its own semantic owner. Reconnect Dream with pair-oriented relationship evaluation over that owner. Processing direction must not determine semantic edge direction. Add relationship evidence/provenance and reconsideration policy, then rebuild lifecycle handling around `extracted → knowledge → canonical`, with `archived` as retained inactive history for superseded and non-representative duplicate Memories.
+Build independent verification and accepted Graph publication over the implemented pair-oriented Dream candidate retrieval and classifier seams. Processing direction is already canonicalized away before classification and must remain irrelevant to semantic edge direction. Then add duplicate/supersession handling, deterministic temporal interpretation, and lifecycle handling around `extracted → knowledge → canonical`, with `archived` as retained inactive history for superseded and non-representative duplicate Memories.
+
+The remaining redesign and implementation sequence are owned by [Dream implementation plan](dream-implementation-plan.md). That plan also records the indexed duplicate predecessor-chain design, independent verification pass, and source-turn-timestamp-based temporal determinism.
 
 ### Ego
 

@@ -46,6 +46,7 @@ ReliquaryConfig
     ├── retrieval.default
     ├── models.general
     ├── models.insomnia (optional; falls back to general)
+    ├── models.dream (optional; falls back to general)
     ├── models.embedding
     └── credential.<id> (AES-256-GCM)
 ```
@@ -62,7 +63,7 @@ ReliquaryConfig
 ### Repo-local CLI
 `cli/` is a separate, non-installed Cargo package that depends only on the public library API. It owns argument parsing, secret prompting, and human-readable command composition; it owns no CVA/config/auth/retrieval semantics and can be removed or detached without changing the core package.
 ### Model switchboard
-`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The current capabilities are `General`, `Insomnia`, and `Embedding`; the providers are `OpenAiCodex` and `OpenAiReady`. Insomnia may have its own route and otherwise resolves to General. Each configured route carries a stable `CredentialId`. `OpenAiCodex` supports General/Insomnia routing and uses provider-owned routing; `OpenAiReady` supports General/Insomnia/Embedding and requires an explicit HTTP(S) endpoint URL.
+`ModelSwitchboardConfig` owns machine-local endpoint selection for explicit model capabilities. The current capabilities are `General`, `Insomnia`, `Dream`, and `Embedding`; the providers are `OpenAiCodex` and `OpenAiReady`. Insomnia and Dream may each have dedicated routes and otherwise resolve to General. Each configured route carries a stable `CredentialId`. `OpenAiCodex` supports General/Insomnia/Dream routing and uses provider-owned routing; `OpenAiReady` supports General/Insomnia/Dream/Embedding and requires an explicit HTTP(S) endpoint URL.
 
 `CredentialsConfig` owns decrypted in-memory credentials loaded from encrypted `credential.<id>` config objects. Constructing `ModelSwitchboard` validates that every selected route resolves to a credential of the provider's required auth kind. The switchboard can then produce request auth: bearer API key for `OpenAiReady`, or bearer ChatGPT access token plus optional `ChatGPT-Account-ID` for `OpenAiCodex`. `OpenAiReadyEmbeddingEndpoint` consumes the validated embedding route/auth, performs direct OpenAI-compatible HTTP embedding requests, preserves input order across concurrent batches, and normalizes output according to the declared route contract. `OpenAiReadyGeneralEndpoint` consumes the General route/auth and performs strict JSON-schema chat completions for subsystems such as Insomnia. Provider/model/URL/credential choices remain routing policy and do not enter Compatibility Profile identity or decide vector compatibility.
 ### Master key
@@ -107,6 +108,24 @@ Packed vectors do not know which Archive fragments or Memory bodies rows represe
 Memory Vectors are immutable derived bindings over shared `PackedVectorStore` matrices. Their durable identity is `(CompatibilityProfileId, MemoryBodyId)`, not Memory revision. Each profile/body pair may bind to exactly one packed row; metadata-only Memory revisions therefore require no vector work. A genuinely new compatibility profile may add another immutable vector for the same Memory body. Memory Vectors consume no semantic/global version clock and have no update/regeneration path.
 
 The high-level `build_missing_memory_vectors` path verifies the endpoint against the selected profile, finds current Memory bodies without a binding for that profile, embeds only those bodies in Document mode, appends one `f32` packed matrix, and records the row bindings. Re-running it after metadata-only revisions creates nothing.
+
+### Dream candidate retrieval
+
+The first Dream implementation seam is read-only bounded Memory candidate discovery. `Cva::dream_candidates` takes an existing source Memory plus one Compatibility Profile and reuses the source Memory's already-stored Document vector; candidate discovery performs no new embedding or model call.
+
+The current lanes are exact cosine similarity over current Memory-body vectors, a bounded prior-semantic quota keyed to authoritative source chronology, and deterministic lexical/metadata overlap. Archived Memories are excluded. Candidates missing a vector under the selected profile may still enter through the lexical/metadata lane. Lane ranks are fused deterministically, with stable `MemoryId` tie-breaking.
+
+The source and every returned candidate are materialized as `DreamMemoryContext`: current Memory metadata/body identity, authoritative source timestamp when provenance resolves one, and all active Graph relationships touching that Memory. Source chronology resolves adopted assistant content provenance first, then the exact user-authority turn through Episode provenance, with the Episode source boundary only as a fallback. `Memory.created_at_ns` and grounding-only provenance do not define semantic source time.
+
+Candidate retrieval owns no durable Dream state, publishes no Graph relationship, and changes no Memory lifecycle.
+
+### Dream pair classification
+
+`DreamClassifier` is the implemented Milestone B inference seam. It consumes `DreamMemoryContext` pairs or an entire bounded `DreamCandidateSet` and calls a strict structured-output `GeneralEndpoint`. Before the model call, each pair is canonicalized by stable `MemoryId` into A/B order; invoking the same pair from the opposite processing endpoint therefore produces the same model payload and cannot redefine semantic direction.
+
+The current classifier proposes exactly one primary relation per evaluation from `none`, `topical`, `factual`, `causal`, `recurrent`, `duplicate_of`, or `supersedes`. `topical`, `recurrent`, and `duplicate_of` require `undirected`; `factual`, `causal`, and `supersedes` require `a_to_b` or `b_to_a`; `none` requires direction `none`. This one-proposal classifier contract does not yet settle whether persistent Graph state may later carry additional orthogonal relationship kinds for the same pair.
+
+Every non-`none` proposal must contain exactly one short verbatim quote from each Memory. Continuity rejects relation/direction mismatches, duplicate/missing evidence sides, and evidence that is not literal Memory title/content text. Source timestamps are supplied as chronology context but are explicitly not proof of causality or supersession; attached Graph context is supplemental, not proof. Classification is transient and read-only: there is still no verifier, accepted-relationship publication, duplicate-chain mutation, or lifecycle side effect.
 
 ### ArchiveVectorStore
 Archive Vectors own one relationship only:

@@ -90,6 +90,33 @@ fn insomnia_model_route_is_configurable() {
 }
 
 #[test]
+fn dream_model_route_is_configurable() {
+    let cli = Cli::try_parse_from([
+        "continuity",
+        "config",
+        "model",
+        "set-dream",
+        "--provider",
+        "openai-codex",
+        "--model",
+        "gpt-5.6-luna",
+        "--credential",
+        "codex",
+        "--reasoning",
+        "low",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Config {
+            command: ConfigCommand::Model {
+                command: ModelCommand::SetDream { .. }
+            }
+        }
+    ));
+}
+
+#[test]
 fn codex_general_route_accepts_low_reasoning() {
     let cli = Cli::try_parse_from([
         "reliquary",

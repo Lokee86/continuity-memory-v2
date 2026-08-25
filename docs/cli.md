@@ -63,7 +63,7 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 `config credential login-codex <id>` performs the ChatGPT/Codex device-code flow directly. It requests a one-time code, prints the verification URL and code, waits for authorization, exchanges the resulting authorization code for OAuth ID/access/refresh tokens, extracts the ChatGPT account ID, and saves the credential under the requested ID. Manual token copy/paste is not part of the CLI. OAuth token refresh is not implemented yet.
 
-`config model set-general` and `set-insomnia` persist General-model route selection and accept `--reasoning` for `openai-codex` routes. For example, `config model set-general --provider openai-codex --model gpt-5.6-luna --credential codex --reasoning low` selects Luna at low reasoning; if `models.insomnia` is unset, Insomnia inherits that General route. `set-embedding` persists the separate embedding route. `config verify` performs route/credential compatibility validation without sending network requests.
+`config model set-general`, `set-insomnia`, and `set-dream` persist General-model route selection and accept `--reasoning` for `openai-codex` routes. For example, `config model set-general --provider openai-codex --model gpt-5.6-luna --credential codex --reasoning low` selects Luna at low reasoning; if `models.insomnia` is unset, Insomnia inherits that General route. `set-embedding` persists the separate embedding route. `config verify` performs route/credential compatibility validation without sending network requests.
 
 ## CVA and import behavior
 
