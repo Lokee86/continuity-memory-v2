@@ -1,5 +1,6 @@
 use crate::{
-    ArchiveError, CompatibilityProfileError, ContainerError, CvaError, InsomniaError, MemoryError,
+    ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
+    InsomniaError, MemoryError,
 };
 use std::fmt;
 use std::io;
@@ -19,8 +20,8 @@ pub enum CvaReconcileError {
     UnsupportedSemanticOwner(&'static str),
     InvalidInsomniaCompletion(&'static str),
     InvalidMemoryVersionRecord,
-    ConflictingInsomniaCompletion,
     MissingCompletionMemory,
+    Conflict(CvaReconcileConflict),
     PromotionPathsMustDiffer,
     CanonicalChangedDuringPromotion,
     PromotionFinalizationFailed(String),
@@ -53,11 +54,15 @@ impl fmt::Display for CvaReconcileError {
             Self::InvalidMemoryVersionRecord => {
                 write!(f, "memory version points at a non-memory record")
             }
-            Self::ConflictingInsomniaCompletion => {
-                write!(f, "divergent Insomnia completions conflict")
-            }
             Self::MissingCompletionMemory => {
                 write!(f, "Insomnia completion references a missing Memory")
+            }
+            Self::Conflict(conflict) => {
+                write!(
+                    f,
+                    "CVA reconciliation conflict ({}): {conflict:?}",
+                    conflict.kind()
+                )
             }
             Self::PromotionPathsMustDiffer => {
                 write!(f, "canonical and conflicted CVA paths must differ")
@@ -85,6 +90,15 @@ impl fmt::Display for CvaReconcileError {
 }
 
 impl std::error::Error for CvaReconcileError {}
+
+impl CvaReconcileError {
+    pub fn conflict(&self) -> Option<&CvaReconcileConflict> {
+        match self {
+            Self::Conflict(conflict) => Some(conflict),
+            _ => None,
+        }
+    }
+}
 
 impl From<CvaError> for CvaReconcileError {
     fn from(value: CvaError) -> Self {

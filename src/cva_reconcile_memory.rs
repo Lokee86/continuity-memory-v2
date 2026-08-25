@@ -1,8 +1,12 @@
+use crate::cva_reconcile_conflict_map::memory_replay_error;
 use crate::insomnia::completion::{InsomniaCompletion, decode_completion, encode_completion};
 use crate::memory_codec::{
     decode_record as decode_memory_record, decode_version as decode_memory_version,
 };
-use crate::{Cva, CvaReconcileError, InsomniaAttempt, InsomniaWorkState, Memory, MemoryDraft};
+use crate::{
+    Cva, CvaReconcileConflict, CvaReconcileError, InsomniaAttempt, InsomniaWorkState, Memory,
+    MemoryDraft,
+};
 use std::collections::HashSet;
 
 pub(crate) struct MemoryTail {
@@ -58,11 +62,15 @@ pub(crate) fn replay_memory_tail(
     let mut replayed = 0;
     let mut duplicates = 0;
     for memory in tail.revisions {
-        let (_, created) = destination.publish_memory(
+        let draft = memory_draft(memory.clone());
+        let (_, created) = match destination.publish_memory(
             Some(memory.id),
             memory.revision.saturating_sub(1),
-            memory_draft(memory),
-        )?;
+            draft,
+        ) {
+            Ok(value) => value,
+            Err(error) => return Err(memory_replay_error(destination, &memory, error)),
+        };
         if created {
             replayed += 1;
         } else {
@@ -105,7 +113,16 @@ fn replay_completion(
         if existing.len() == 1 && same_completion(&existing[0], &completion) {
             return Ok(false);
         }
-        return Err(CvaReconcileError::ConflictingInsomniaCompletion);
+        let existing = &existing[0];
+        return Err(CvaReconcileError::Conflict(
+            CvaReconcileConflict::InsomniaCompletion {
+                episode_id: completion.episode_id,
+                existing_model: existing.extractor_model.clone(),
+                existing_version: existing.extractor_version.clone(),
+                incoming_model: completion.extractor_model.clone(),
+                incoming_version: completion.extractor_version.clone(),
+            },
+        ));
     }
     if completion
         .memory_ids

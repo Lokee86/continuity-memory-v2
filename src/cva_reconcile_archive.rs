@@ -1,5 +1,6 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::decode_record_version;
+use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{
     ArchiveError, Branch, Cva, CvaReconcileError, Episode, FileMemoryLink, Fragment,
     IncomingAttachment, IncomingTurn, StoredFile,
@@ -100,31 +101,49 @@ pub(crate) fn replay_archive_tail(
     for record in &tail.records {
         match record {
             ArchiveReplayRecord::Node(turn) => {
-                destination.append_node(
+                if let Err(error) = destination.append_node(
                     turn.id.clone(),
                     turn.conversation_id.clone(),
                     turn.parent_id.clone(),
                     turn.role.clone(),
                     turn.timestamp_ns,
                     &turn.content,
-                )?;
+                ) {
+                    return Err(archive_replay_error(destination, record, error));
+                }
             }
             ArchiveReplayRecord::IngestedTurn(turn) => {
-                destination.ingest_turn(turn.clone())?;
+                if let Err(error) = destination.ingest_turn(turn.clone()) {
+                    return Err(archive_replay_error(destination, record, error));
+                }
             }
-            ArchiveReplayRecord::Branch(branch) => destination.append_branch(branch.clone())?,
+            ArchiveReplayRecord::Branch(branch) => {
+                if let Err(error) = destination.append_branch(branch.clone()) {
+                    return Err(archive_replay_error(destination, record, error));
+                }
+            }
             ArchiveReplayRecord::Episode(episode) => {
-                destination
+                if let Err(error) = destination
                     .archive
-                    .put_episode(&mut destination.container, episode.clone())?;
+                    .put_episode(&mut destination.container, episode.clone())
+                {
+                    return Err(archive_replay_error(destination, record, error));
+                }
             }
             ArchiveReplayRecord::Fragment(fragment) => {
-                destination
+                if let Err(error) = destination
                     .archive
-                    .put_fragment(&mut destination.container, fragment.clone())?;
+                    .put_fragment(&mut destination.container, fragment.clone())
+                {
+                    return Err(archive_replay_error(destination, record, error));
+                }
             }
             ArchiveReplayRecord::File(file, bytes) => {
-                destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)?;
+                if let Err(error) =
+                    destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)
+                {
+                    return Err(archive_replay_error(destination, record, error));
+                }
             }
         }
     }

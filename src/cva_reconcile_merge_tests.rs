@@ -1,4 +1,7 @@
-use crate::{Branch, Cva, CvaReconcileError, IncomingAttachment, IncomingTurn, WorkspaceMetadata};
+use crate::{
+    Branch, Cva, CvaReconcileConflict, CvaReconcileError, IncomingAttachment, IncomingTurn,
+    WorkspaceMetadata,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -127,9 +130,15 @@ fn reconcile_surfaces_conflicting_branch_revisions() {
 
     assert!(matches!(
         Cva::reconcile(&left, &right, &output),
-        Err(CvaReconcileError::Archive(
-            crate::ArchiveError::InvalidBranchRevision
-        ))
+        Err(CvaReconcileError::Conflict(CvaReconcileConflict::Branch {
+            ref conversation_id,
+            ref branch_id,
+            ref existing_leaf_node_id,
+            ref incoming_leaf_node_id,
+        })) if conversation_id == "c"
+            && branch_id == "main"
+            && existing_leaf_node_id == "left"
+            && incoming_leaf_node_id == "right"
     ));
     assert!(!output.exists());
 }

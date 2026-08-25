@@ -1,0 +1,62 @@
+use crate::{EpisodeId, FileId, FragmentId, MemoryId};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CvaReconcileConflict {
+    SourceTurn {
+        conversation_id: String,
+        node_id: String,
+    },
+    Branch {
+        conversation_id: String,
+        branch_id: String,
+        existing_leaf_node_id: String,
+        incoming_leaf_node_id: String,
+    },
+    Episode {
+        episode_id: EpisodeId,
+    },
+    Fragment {
+        fragment_id: FragmentId,
+    },
+    File {
+        file_id: FileId,
+    },
+    MemoryRevision {
+        memory_id: MemoryId,
+        expected_revision: u64,
+        current_revision: u64,
+        incoming_revision: u64,
+    },
+    MemoryMutation {
+        memory_id: MemoryId,
+        mutation_id: String,
+        incoming_revision: u64,
+    },
+    MemorySemanticMutation {
+        memory_id: MemoryId,
+        incoming_revision: u64,
+    },
+    InsomniaCompletion {
+        episode_id: EpisodeId,
+        existing_model: String,
+        existing_version: String,
+        incoming_model: String,
+        incoming_version: String,
+    },
+}
+
+impl CvaReconcileConflict {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::SourceTurn { .. } => "source_turn",
+            Self::Branch { .. } => "branch",
+            Self::Episode { .. } => "episode",
+            Self::Fragment { .. } => "fragment",
+            Self::File { .. } => "file",
+            Self::MemoryRevision { .. } => "memory_revision",
+            Self::MemoryMutation { .. } => "memory_mutation",
+            Self::MemorySemanticMutation { .. } => "memory_semantic_mutation",
+            Self::InsomniaCompletion { .. } => "insomnia_completion",
+        }
+    }
+}

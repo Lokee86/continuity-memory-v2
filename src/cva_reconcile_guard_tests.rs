@@ -1,6 +1,6 @@
 use crate::{
-    Cva, CvaReconcileError, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority,
-    WorkspaceMetadata,
+    Cva, CvaReconcileConflict, CvaReconcileError, EpisodeBoundary, EpisodeConfig, EpisodeOrigin,
+    InsomniaPriority, WorkspaceMetadata,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -102,7 +102,16 @@ fn reconcile_refuses_conflicting_insomnia_completions() {
 
     assert!(matches!(
         Cva::reconcile(&left, &right, &output),
-        Err(CvaReconcileError::ConflictingInsomniaCompletion)
+        Err(CvaReconcileError::Conflict(
+            CvaReconcileConflict::InsomniaCompletion {
+                episode_id,
+                ref existing_model,
+                ref incoming_model,
+                ..
+            }
+        )) if episode_id == episode.id
+            && existing_model == "left-model"
+            && incoming_model == "right-model"
     ));
     assert!(!output.exists());
 }

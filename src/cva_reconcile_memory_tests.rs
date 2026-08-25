@@ -1,6 +1,6 @@
 use crate::{
-    Cva, CvaReconcileError, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority,
-    InsomniaWorkState, MemoryDraft, MemoryError, WorkspaceMetadata,
+    Cva, CvaReconcileConflict, CvaReconcileError, EpisodeBoundary, EpisodeConfig, EpisodeOrigin,
+    InsomniaPriority, InsomniaWorkState, MemoryDraft, WorkspaceMetadata,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -164,7 +164,14 @@ fn reconcile_surfaces_conflicting_memory_revisions() {
 
     assert!(matches!(
         Cva::reconcile(&left, &right, &output),
-        Err(CvaReconcileError::Memories(MemoryError::RevisionConflict))
+        Err(CvaReconcileError::Conflict(
+            CvaReconcileConflict::MemoryRevision {
+                memory_id,
+                expected_revision: 1,
+                current_revision: 2,
+                incoming_revision: 2,
+            }
+        )) if memory_id == first.id
     ));
     assert!(!output.exists());
 }

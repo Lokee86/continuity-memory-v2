@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Insomnia replay, file-to-Memory reconciliation, and safe path-based canonical promotion are implemented; provider discovery/integration remains in progress.
+Accepted — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Insomnia replay, file-to-Memory reconciliation, structured semantic conflict reporting, and safe path-based canonical promotion are implemented; provider discovery/integration remains in progress.
 
 ## Purpose
 
@@ -138,15 +138,16 @@ They currently:
 12. omit packed vectors, Memory/Archive vector bindings, and Vector Generations from the repack, while reporting whether a vector rebuild is required;
 13. rely on the disposable lexical index to rebuild lazily from replayed merged Fragments/Files;
 14. sync and reopen the new output for validation, removing it if reconciliation fails;
-15. when `reconcile_and_promote` is used, fingerprint the canonical input before/after candidate preparation, write a synced recovery copy, atomically replace the canonical path, reopen/sync the promoted CVA, restore and revalidate the recovery copy if any post-replacement finalization step fails, and clean hidden sibling artifacts after ordinary success/failure.
+15. normalize known semantic replay collisions into public `CvaReconcileConflict` variants carrying stable owner identity and competing state, while leaving corruption/I/O/format failures as ordinary errors;
+16. when `reconcile_and_promote` is used, fingerprint the canonical input before/after candidate preparation, write a synced recovery copy, atomically replace the canonical path, reopen/sync the promoted CVA, restore and revalidate the recovery copy if any post-replacement finalization step fails, and clean hidden sibling artifacts after ordinary success/failure.
 
 This is now a functional semantic merge, derived-state cleanup, and safe path-based promotion path for current Archive/Memory/Insomnia/vector ownership, but not yet a complete product-level cloud-conflict workflow.
 
 ## Next implementation slices
 
-1. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation rather than exposing owner errors directly.
-2. Add provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
-3. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
+1. Add provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
+2. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
+3. Add Warlock-side presentation/resolution flows for the structured conflicts; Continuity remains responsible only for typed conflict semantics.
 4. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, repeated conflict/reconciliation cycles, and provider-mediated file replacement.
 
 ## Non-goals
@@ -172,7 +173,7 @@ This decision does not introduce:
 
 Tests now prove that comparison recognizes identical copies, strict extensions, independent divergent tails, and different workspace IDs. Reconciliation tests additionally prove unrelated source Nodes and attachments merge, immutable Episodes preserve Memory provenance, standalone and grouped Insomnia-produced Memory revisions are re-ticketed correctly, file-to-Memory links replay after their targets, identical completion receipts deduplicate, incompatible Branch/Memory/completion revisions fail closed, and failed merge output is removed. Derived-state coverage proves a divergent result is a fresh repack, preserves/revalidates Fragments and compatibility profiles from both sides, rebuilds lexical retrieval from merged Fragments, removes packed/Memory/Archive vector state and Vector Generations, and reports that vector rebuilding is required.
 
-Remaining work is richer conflict reporting, provider-level conflicted-copy discovery/fixtures, host-triggered vector rebuilding, repeated reconciliation-cycle testing, and eventual stronger writer coordination if real multi-process/cloud races require it.
+Remaining work is provider-level conflicted-copy discovery/fixtures, host-triggered vector rebuilding, Warlock-side conflict presentation/resolution, repeated reconciliation-cycle testing, and eventual stronger writer coordination if real multi-process/cloud races require it.
 
 ## Related docs
 

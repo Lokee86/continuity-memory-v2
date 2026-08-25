@@ -49,6 +49,8 @@ mod cva_memory_vectors;
 mod cva_packed_vectors;
 mod cva_reconcile;
 mod cva_reconcile_archive;
+mod cva_reconcile_conflict;
+mod cva_reconcile_conflict_map;
 mod cva_reconcile_error;
 mod cva_reconcile_memory;
 mod cva_reconcile_promote;
@@ -150,6 +152,7 @@ pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfi
 pub use cva::Cva;
 pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
+pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
@@ -244,6 +247,8 @@ mod container_tests;
 mod conversation_tests;
 #[cfg(test)]
 mod credential_tests;
+#[cfg(test)]
+mod cva_reconcile_conflict_tests;
 #[cfg(test)]
 mod cva_reconcile_derived_tests;
 #[cfg(test)]
