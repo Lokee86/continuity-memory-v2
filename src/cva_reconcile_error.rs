@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
-    InsomniaError, MemoryError,
+    GraphError, InsomniaError, MemoryError,
 };
 use std::fmt;
 use std::io;
@@ -11,6 +11,7 @@ pub enum CvaReconcileError {
     Container(ContainerError),
     Archive(ArchiveError),
     Memories(MemoryError),
+    Graph(GraphError),
     Insomnia(InsomniaError),
     CompatibilityProfile(CompatibilityProfileError),
     Io(io::Error),
@@ -20,6 +21,7 @@ pub enum CvaReconcileError {
     UnsupportedSemanticOwner(&'static str),
     InvalidInsomniaCompletion(&'static str),
     InvalidMemoryVersionRecord,
+    InvalidGraphVersionRecord,
     MissingCompletionMemory,
     Conflict(CvaReconcileConflict),
     PromotionPathsMustDiffer,
@@ -35,6 +37,7 @@ impl fmt::Display for CvaReconcileError {
             Self::Container(error) => write!(f, "{error}"),
             Self::Archive(error) => write!(f, "{error}"),
             Self::Memories(error) => write!(f, "{error}"),
+            Self::Graph(error) => write!(f, "{error}"),
             Self::Insomnia(error) => write!(f, "{error}"),
             Self::CompatibilityProfile(error) => write!(f, "{error}"),
             Self::Io(error) => write!(f, "{error}"),
@@ -53,6 +56,9 @@ impl fmt::Display for CvaReconcileError {
             }
             Self::InvalidMemoryVersionRecord => {
                 write!(f, "memory version points at a non-memory record")
+            }
+            Self::InvalidGraphVersionRecord => {
+                write!(f, "graph version points at a non-graph mutation record")
             }
             Self::MissingCompletionMemory => {
                 write!(f, "Insomnia completion references a missing Memory")
@@ -121,6 +127,12 @@ impl From<ArchiveError> for CvaReconcileError {
 impl From<MemoryError> for CvaReconcileError {
     fn from(value: MemoryError) -> Self {
         Self::Memories(value)
+    }
+}
+
+impl From<GraphError> for CvaReconcileError {
+    fn from(value: GraphError) -> Self {
+        Self::Graph(value)
     }
 }
 

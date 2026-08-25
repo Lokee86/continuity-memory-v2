@@ -53,6 +53,7 @@ mod cva_reconcile_archive;
 mod cva_reconcile_conflict;
 mod cva_reconcile_conflict_map;
 mod cva_reconcile_error;
+mod cva_reconcile_graph;
 mod cva_reconcile_interaction;
 mod cva_reconcile_memory;
 mod cva_reconcile_promote;
@@ -182,7 +183,8 @@ pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGener
 pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
 pub use graph_model::{
-    GraphDirection, GraphNeighbor, GraphRelation, GraphRelationKind, GraphStats, MemoryGraphPath,
+    GraphDirection, GraphNeighbor, GraphRelation, GraphRelationChange, GraphRelationKind,
+    GraphStats, MemoryGraphPath,
 };
 pub use insomnia::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
@@ -272,6 +274,12 @@ mod credential_tests;
 mod cva_reconcile_conflict_tests;
 #[cfg(test)]
 mod cva_reconcile_derived_tests;
+#[cfg(test)]
+mod cva_reconcile_graph_policy_tests;
+#[cfg(test)]
+mod cva_reconcile_graph_test_support;
+#[cfg(test)]
+mod cva_reconcile_graph_tests;
 #[cfg(test)]
 mod cva_reconcile_grouped_tests;
 #[cfg(test)]

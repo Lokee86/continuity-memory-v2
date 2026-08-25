@@ -1,6 +1,6 @@
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
-    GraphRelationKind, MemoryDraft, MemoryId,
+    GraphRelationChange, GraphRelationKind, MemoryDraft, MemoryId,
 };
 use std::{
     fs,
@@ -154,6 +154,68 @@ fn graph_enforces_version_and_endpoint_rules() {
         cva.set_memory_relation(a, a, GraphRelationKind::Factual, true, 1),
         Err(GraphError::SelfRelation)
     ));
+}
+
+#[test]
+fn relation_batch_is_one_versioned_transaction_and_reopens_atomically() {
+    let file = path("batch.cva");
+    let mut cva = Cva::create(&file).unwrap();
+    let ep = episode(&mut cva);
+    let a = memory(&mut cva, &ep, "a");
+    let b = memory(&mut cva, &ep, "b");
+
+    let published = cva
+        .set_memory_relations(
+            &[
+                GraphRelationChange {
+                    source: a,
+                    target: b,
+                    kind: GraphRelationKind::Topical,
+                    active: true,
+                },
+                GraphRelationChange {
+                    source: b,
+                    target: a,
+                    kind: GraphRelationKind::Topical,
+                    active: true,
+                },
+            ],
+            0,
+        )
+        .unwrap();
+    assert_eq!(published.len(), 2);
+    assert_eq!(published[0].graph_version, 1);
+    assert_eq!(published[1].graph_version, 1);
+    assert_eq!(published[0].global_version, published[1].global_version);
+    assert_eq!(cva.graph_version(), 1);
+    assert_eq!(cva.graph_stats().relation_mutations, 2);
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(&file).unwrap();
+    assert_eq!(reopened.graph_version(), 1);
+    assert_eq!(reopened.graph_relations().len(), 2);
+    assert_eq!(reopened.graph_stats().relation_mutations, 2);
+}
+
+#[test]
+fn relation_batch_rejects_duplicate_relationship_identity() {
+    let file = path("batch-duplicate.cva");
+    let mut cva = Cva::create(&file).unwrap();
+    let ep = episode(&mut cva);
+    let a = memory(&mut cva, &ep, "a");
+    let b = memory(&mut cva, &ep, "b");
+    let change = GraphRelationChange {
+        source: a,
+        target: b,
+        kind: GraphRelationKind::Factual,
+        active: true,
+    };
+    assert!(matches!(
+        cva.set_memory_relations(&[change, change], 0),
+        Err(GraphError::DuplicateRelationChange)
+    ));
+    assert_eq!(cva.graph_version(), 0);
 }
 
 #[test]

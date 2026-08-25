@@ -1,6 +1,6 @@
 use crate::{
-    Cva, GraphDirection, GraphError, GraphNeighbor, GraphRelation, GraphRelationKind, GraphStats,
-    MemoryGraphPath, MemoryId,
+    Cva, GraphDirection, GraphError, GraphNeighbor, GraphRelation, GraphRelationChange,
+    GraphRelationKind, GraphStats, MemoryGraphPath, MemoryId,
 };
 
 impl Cva {
@@ -19,6 +19,19 @@ impl Cva {
             target,
             kind,
             active,
+            expected_graph_version,
+        )
+    }
+
+    pub fn set_memory_relations(
+        &mut self,
+        changes: &[GraphRelationChange],
+        expected_graph_version: u64,
+    ) -> Result<Vec<GraphRelation>, GraphError> {
+        self.graph.set_relations(
+            &mut self.container,
+            &self.memories,
+            changes,
             expected_graph_version,
         )
     }

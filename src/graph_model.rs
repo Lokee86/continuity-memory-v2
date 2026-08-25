@@ -52,6 +52,14 @@ pub enum GraphDirection {
     Incoming,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct GraphRelationChange {
+    pub source: MemoryId,
+    pub target: MemoryId,
+    pub kind: GraphRelationKind,
+    pub active: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct GraphRelation {
     pub source: MemoryId,

@@ -241,7 +241,7 @@ u32       dense NodeId
 ```
 Node mappings are structural index records and consume no semantic version. They are assigned monotonically from zero when a Memory first participates in Graph topology. Stable public identity remains `MemoryId`.
 
-Relationship mutation:
+Single relationship mutation:
 ```text
 8 bytes   "CVAGMUT1"
 32 bytes  source MemoryId
@@ -249,7 +249,19 @@ Relationship mutation:
 u16       relationship kind
 u8        active: 0=retracted, 1=active
 ```
-Relationship kind codes are `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`.
+
+Atomic relationship batch:
+```text
+8 bytes   "CVAGBAT1"
+u32       relationship change count
+repeated changes:
+    32 bytes  source MemoryId
+    32 bytes  target MemoryId
+    u16       relationship kind
+    u8        active: 0=retracted, 1=active
+```
+
+Relationship kind codes are `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`. One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before a new transaction is written.
 
 Relationship version metadata:
 ```text
@@ -259,7 +271,7 @@ u64       graph version
 u64       mutation payload chunk offset
 u64       mutation payload length
 ```
-Graph versions begin at `1` and are dense. A relationship mutation without valid version metadata is inert. The current state of one oriented `(source, target, kind)` identity is its latest versioned `active` value; retraction appends `active=0` rather than deleting history. Both Memory endpoints must exist on reopen. Pre-Graph CVAs with no Graph records open as Graph version `0`; the format marker is appended lazily before their first Graph mutation.
+Graph versions begin at `1` and are dense. `CVAGVER1` may reference either one `CVAGMUT1` or one non-empty `CVAGBAT1`; the complete referenced payload is one atomic Graph transaction and consumes one CVA-global version plus one Graph-local version regardless of change count. A relationship payload without valid version metadata is inert. The current state of one oriented `(source, target, kind)` identity is its latest versioned `active` value; retraction appends `active=0` rather than deleting history. Both Memory endpoints must exist on reopen. Pre-Graph CVAs with no Graph records open as Graph version `0`; the format marker is appended lazily before their first Graph mutation.
 
 ### Packed vectors
 Format marker:

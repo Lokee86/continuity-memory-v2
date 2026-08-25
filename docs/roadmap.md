@@ -195,7 +195,7 @@ Keep these measurement-driven and independent from product-surface work:
 - whole-CVA historical views and restore-and-continue;
 - retention, reachability, compaction, and vacuum;
 - concurrent append/version reservation;
-- owner-explicit reconciliation support for each new persisted semantic owner as it lands, beginning with Dream Graph state; derived indexes should rebuild instead of becoming CVA synchronization state.
+- owner-explicit reconciliation support for each later persisted semantic owner as it lands; Graph is now covered, while derived indexes such as Dream's duplicate index rebuild instead of becoming CVA synchronization state.
 
 Whole-CVA historical recovery has its own future-only plan in [Versioning, historical cuts, and rollback](version-history-plan.md).
 

@@ -14,6 +14,7 @@ pub enum GraphError {
     ConflictingFormat,
     CorruptRecord(&'static str),
     InvalidNodeMapping,
+    DuplicateRelationChange,
     InvalidGraphVersion,
     UnknownRelationKind(u16),
     Topology(String),
@@ -38,6 +39,9 @@ impl fmt::Display for GraphError {
             Self::ConflictingFormat => f.write_str("graph format marker is duplicated"),
             Self::CorruptRecord(label) => write!(f, "corrupt graph {label}"),
             Self::InvalidNodeMapping => f.write_str("graph node mapping is invalid"),
+            Self::DuplicateRelationChange => {
+                f.write_str("graph relation batch contains the same relationship more than once")
+            }
             Self::InvalidGraphVersion => f.write_str("graph version history is invalid"),
             Self::UnknownRelationKind(kind) => write!(f, "unknown graph relation kind {kind}"),
             Self::Topology(message) => write!(f, "graph topology error: {message}"),

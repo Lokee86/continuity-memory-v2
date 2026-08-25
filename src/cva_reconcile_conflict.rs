@@ -1,4 +1,4 @@
-use crate::{EpisodeId, FileId, FragmentId, MemoryId};
+use crate::{EpisodeId, FileId, FragmentId, GraphRelationKind, MemoryId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CvaReconcileConflict {
@@ -43,6 +43,13 @@ pub enum CvaReconcileConflict {
         incoming_model: String,
         incoming_version: String,
     },
+    GraphRelation {
+        source: MemoryId,
+        target: MemoryId,
+        relation_kind: GraphRelationKind,
+        left_states: Vec<bool>,
+        right_states: Vec<bool>,
+    },
 }
 
 impl CvaReconcileConflict {
@@ -57,6 +64,7 @@ impl CvaReconcileConflict {
             Self::MemoryMutation { .. } => "memory_mutation",
             Self::MemorySemanticMutation { .. } => "memory_semantic_mutation",
             Self::InsomniaCompletion { .. } => "insomnia_completion",
+            Self::GraphRelation { .. } => "graph_relation",
         }
     }
 }

@@ -5,6 +5,7 @@ const FORMAT_MAGIC: &[u8; 8] = b"CVAGFMT1";
 const FORMAT_SCHEMA: u32 = 1;
 const NODE_MAGIC: &[u8; 8] = b"CVAGNODE";
 const MUTATION_MAGIC: &[u8; 8] = b"CVAGMUT1";
+const BATCH_MAGIC: &[u8; 8] = b"CVAGBAT1";
 const VERSION_MAGIC: &[u8; 8] = b"CVAGVER1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -83,14 +84,72 @@ pub(crate) fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayloa
     if bytes.len() != 75 || bytes[74] > 1 {
         return Err(GraphError::CorruptRecord("relationship mutation"));
     }
-    let code = read_u16(bytes, 72)?;
+    Ok(Some(decode_mutation_body(bytes, 8)?))
+}
+
+pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(12 + mutations.len() * 67);
+    out.extend_from_slice(BATCH_MAGIC);
+    out.extend_from_slice(&(mutations.len() as u32).to_le_bytes());
+    for mutation in mutations {
+        out.extend_from_slice(&mutation.source.0);
+        out.extend_from_slice(&mutation.target.0);
+        out.extend_from_slice(&mutation.kind.code().to_le_bytes());
+        out.push(u8::from(mutation.active));
+    }
+    out
+}
+
+pub(crate) fn decode_batch(bytes: &[u8]) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
+    if !bytes.starts_with(BATCH_MAGIC) {
+        return Ok(None);
+    }
+    if bytes.len() < 12 {
+        return Err(GraphError::CorruptRecord("relationship batch"));
+    }
+    let count = read_u32(bytes, 8)? as usize;
+    let expected = 12_usize
+        .checked_add(
+            count
+                .checked_mul(67)
+                .ok_or(GraphError::CorruptRecord("relationship batch"))?,
+        )
+        .ok_or(GraphError::CorruptRecord("relationship batch"))?;
+    if count == 0 || bytes.len() != expected {
+        return Err(GraphError::CorruptRecord("relationship batch"));
+    }
+    let mut mutations = Vec::with_capacity(count);
+    for index in 0..count {
+        mutations.push(decode_mutation_body(bytes, 12 + index * 67)?);
+    }
+    Ok(Some(mutations))
+}
+
+fn decode_mutation_body(bytes: &[u8], offset: usize) -> Result<GraphMutationPayload, GraphError> {
+    let active_offset = offset + 66;
+    if bytes
+        .get(active_offset)
+        .copied()
+        .is_none_or(|active| active > 1)
+    {
+        return Err(GraphError::CorruptRecord("relationship mutation"));
+    }
+    let code = read_u16(bytes, offset + 64)?;
     let kind = GraphRelationKind::from_code(code).ok_or(GraphError::UnknownRelationKind(code))?;
-    Ok(Some(GraphMutationPayload {
-        source: MemoryId(bytes[8..40].try_into().expect("source memory id width")),
-        target: MemoryId(bytes[40..72].try_into().expect("target memory id width")),
+    Ok(GraphMutationPayload {
+        source: MemoryId(
+            bytes[offset..offset + 32]
+                .try_into()
+                .map_err(|_| GraphError::CorruptRecord("relationship mutation"))?,
+        ),
+        target: MemoryId(
+            bytes[offset + 32..offset + 64]
+                .try_into()
+                .map_err(|_| GraphError::CorruptRecord("relationship mutation"))?,
+        ),
         kind,
-        active: bytes[74] != 0,
-    }))
+        active: bytes[active_offset] != 0,
+    })
 }
 
 pub(crate) fn encode_version(version: GraphVersionPayload) -> [u8; 40] {

@@ -1,14 +1,18 @@
 use crate::graph_codec::{
-    GraphMutationPayload, GraphNodePayload, GraphVersionPayload, encode_format, encode_mutation,
-    encode_node, encode_version,
+    GraphMutationPayload, GraphNodePayload, GraphVersionPayload, encode_batch, encode_format,
+    encode_mutation, encode_node, encode_version,
 };
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, GraphError, GraphNodeRecord, GraphRelation, GraphRelationKind, GraphStats, MemoryId,
+    Container, GraphError, GraphNodeRecord, GraphRelation, GraphRelationChange, GraphRelationKind,
+    MemoryId,
 };
 use arcana_graph::storage::InMemoryGraph;
-use arcana_graph::{Edge, GraphDataset, NodeId};
-use std::collections::HashMap;
+use arcana_graph::{GraphDataset, NodeId};
+use std::collections::{HashMap, HashSet};
+
+#[path = "graph_store_read.rs"]
+mod read;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct RelationKey {
@@ -22,6 +26,7 @@ pub(crate) struct GraphStore {
     node_by_memory: HashMap<MemoryId, NodeId>,
     states: HashMap<RelationKey, GraphRelation>,
     mutations: Vec<GraphRelation>,
+    transaction_global_versions: Vec<u64>,
     topology: InMemoryGraph,
     next_graph_version: u64,
     format_initialized: bool,
@@ -34,6 +39,7 @@ impl GraphStore {
             node_by_memory: HashMap::new(),
             states: HashMap::new(),
             mutations: Vec::new(),
+            transaction_global_versions: Vec::new(),
             topology: empty_topology(),
             next_graph_version: 1,
             format_initialized: false,
@@ -58,6 +64,29 @@ impl GraphStore {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        Ok(self
+            .set_relations(
+                container,
+                memories,
+                &[GraphRelationChange {
+                    source,
+                    target,
+                    kind,
+                    active,
+                }],
+                expected_graph_version,
+            )?
+            .into_iter()
+            .next())
+    }
+
+    pub(crate) fn set_relations(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        changes: &[GraphRelationChange],
+        expected_graph_version: u64,
+    ) -> Result<Vec<GraphRelation>, GraphError> {
         let current_version = self.graph_version();
         if expected_graph_version != current_version {
             return Err(GraphError::RevisionConflict {
@@ -65,30 +94,52 @@ impl GraphStore {
                 actual: current_version,
             });
         }
-        self.validate_endpoints(memories, source, target)?;
-        let key = RelationKey {
-            source,
-            target,
-            kind,
-        };
-        if self
-            .states
-            .get(&key)
-            .is_some_and(|state| state.active == active)
-            || (!active && !self.states.contains_key(&key))
-        {
-            return Ok(None);
+        let mut keys = HashSet::with_capacity(changes.len());
+        let mut effective = Vec::new();
+        for change in changes {
+            self.validate_endpoints(memories, change.source, change.target)?;
+            let key = RelationKey {
+                source: change.source,
+                target: change.target,
+                kind: change.kind,
+            };
+            if !keys.insert(key) {
+                return Err(GraphError::DuplicateRelationChange);
+            }
+            let current = self
+                .states
+                .get(&key)
+                .map(|state| state.active)
+                .unwrap_or(false);
+            if current != change.active {
+                effective.push(*change);
+            }
         }
+        if effective.is_empty() {
+            return Ok(Vec::new());
+        }
+        effective.sort_by_key(|change| (change.source.0, change.target.0, change.kind.code()));
 
         self.ensure_format(container)?;
-        self.ensure_node(container, source)?;
-        self.ensure_node(container, target)?;
-        let mutation = container.append(&encode_mutation(GraphMutationPayload {
-            source,
-            target,
-            kind,
-            active,
-        }))?;
+        for change in &effective {
+            self.ensure_node(container, change.source)?;
+            self.ensure_node(container, change.target)?;
+        }
+        let payloads: Vec<_> = effective
+            .iter()
+            .map(|change| GraphMutationPayload {
+                source: change.source,
+                target: change.target,
+                kind: change.kind,
+                active: change.active,
+            })
+            .collect();
+        let payload = if payloads.len() == 1 {
+            encode_mutation(payloads[0]).to_vec()
+        } else {
+            encode_batch(&payloads)
+        };
+        let mutation = container.append(&payload)?;
         let graph_version = self.next_graph_version;
         let next_graph_version = graph_version
             .checked_add(1)
@@ -99,18 +150,21 @@ impl GraphStore {
             graph_version,
             mutation,
         }))?;
-        let relation = GraphRelation {
-            source,
-            target,
-            kind,
-            active,
-            global_version,
-            graph_version,
-        };
-        self.insert_relation(relation)?;
+        let relations: Vec<_> = effective
+            .into_iter()
+            .map(|change| GraphRelation {
+                source: change.source,
+                target: change.target,
+                kind: change.kind,
+                active: change.active,
+                global_version,
+                graph_version,
+            })
+            .collect();
+        self.insert_transaction(&relations)?;
         self.next_graph_version = next_graph_version;
         self.rebuild_topology()?;
-        Ok(Some(relation))
+        Ok(relations)
     }
 
     pub(crate) fn insert_node_rebuilt(&mut self, node: GraphNodeRecord) -> Result<(), GraphError> {
@@ -123,14 +177,18 @@ impl GraphStore {
         Ok(())
     }
 
-    pub(crate) fn insert_relation_rebuilt(
+    pub(crate) fn insert_transaction_rebuilt(
         &mut self,
-        relation: GraphRelation,
+        relations: &[GraphRelation],
     ) -> Result<(), GraphError> {
-        if relation.graph_version != self.next_graph_version {
+        if relations.is_empty()
+            || relations
+                .iter()
+                .any(|relation| relation.graph_version != self.next_graph_version)
+        {
             return Err(GraphError::InvalidGraphVersion);
         }
-        self.insert_relation(relation)?;
+        self.insert_transaction(relations)?;
         self.next_graph_version = self
             .next_graph_version
             .checked_add(1)
@@ -153,57 +211,6 @@ impl GraphStore {
             }
         }
         self.rebuild_topology()
-    }
-
-    pub(crate) fn graph_version(&self) -> u64 {
-        self.next_graph_version.saturating_sub(1)
-    }
-
-    pub(crate) fn stats(&self) -> GraphStats {
-        GraphStats {
-            nodes: self.nodes.len(),
-            active_relations: self
-                .states
-                .values()
-                .filter(|relation| relation.active)
-                .count(),
-            relation_mutations: self.mutations.len(),
-            graph_version: self.graph_version(),
-        }
-    }
-
-    pub(crate) fn active_relations(&self) -> Vec<GraphRelation> {
-        let mut relations: Vec<_> = self
-            .states
-            .values()
-            .filter(|relation| relation.active)
-            .copied()
-            .collect();
-        relations
-            .sort_by_key(|relation| (relation.source.0, relation.target.0, relation.kind.code()));
-        relations
-    }
-
-    pub(crate) fn mutations(&self) -> &[GraphRelation] {
-        &self.mutations
-    }
-
-    pub(crate) fn node_id(&self, memory_id: MemoryId) -> Result<NodeId, GraphError> {
-        self.node_by_memory
-            .get(&memory_id)
-            .copied()
-            .ok_or(GraphError::MissingNode(memory_id))
-    }
-
-    pub(crate) fn memory_id(&self, node_id: NodeId) -> Result<MemoryId, GraphError> {
-        self.nodes
-            .get(node_id.0 as usize)
-            .map(|node| node.memory_id)
-            .ok_or_else(|| GraphError::Topology(format!("unknown dense node {}", node_id.0)))
-    }
-
-    pub(crate) fn topology(&self) -> &InMemoryGraph {
-        &self.topology
     }
 
     fn validate_endpoints(
@@ -247,37 +254,39 @@ impl GraphStore {
         Ok(node_id)
     }
 
-    fn insert_relation(&mut self, relation: GraphRelation) -> Result<(), GraphError> {
-        let key = RelationKey {
-            source: relation.source,
-            target: relation.target,
-            kind: relation.kind,
-        };
-        if let Some(previous) = self.mutations.last()
-            && previous.global_version >= relation.global_version
+    fn insert_transaction(&mut self, relations: &[GraphRelation]) -> Result<(), GraphError> {
+        let first = relations.first().ok_or(GraphError::InvalidGraphVersion)?;
+        if relations.iter().any(|relation| {
+            relation.global_version != first.global_version
+                || relation.graph_version != first.graph_version
+        }) || self
+            .transaction_global_versions
+            .last()
+            .is_some_and(|previous| *previous >= first.global_version)
         {
             return Err(GraphError::InvalidGraphVersion);
         }
-        self.states.insert(key, relation);
-        self.mutations.push(relation);
-        Ok(())
-    }
-
-    fn rebuild_topology(&mut self) -> Result<(), GraphError> {
-        let mut edges = Vec::new();
-        for relation in self.states.values().filter(|relation| relation.active) {
-            edges.push(Edge {
-                source: self.node_id(relation.source)?,
-                target: self.node_id(relation.target)?,
-                kind: relation.kind.edge_kind(),
-            });
+        let mut keys = HashSet::with_capacity(relations.len());
+        for relation in relations {
+            let key = RelationKey {
+                source: relation.source,
+                target: relation.target,
+                kind: relation.kind,
+            };
+            if !keys.insert(key) {
+                return Err(GraphError::DuplicateRelationChange);
+            }
         }
-        edges.sort_unstable();
-        self.topology = InMemoryGraph::new(&GraphDataset {
-            node_count: u32::try_from(self.nodes.len()).map_err(|_| GraphError::NodeIdExhausted)?,
-            edges,
-        })
-        .map_err(|error| GraphError::Topology(error.to_string()))?;
+        for relation in relations {
+            let key = RelationKey {
+                source: relation.source,
+                target: relation.target,
+                kind: relation.kind,
+            };
+            self.states.insert(key, *relation);
+            self.mutations.push(*relation);
+        }
+        self.transaction_global_versions.push(first.global_version);
         Ok(())
     }
 }

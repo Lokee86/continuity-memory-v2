@@ -2,6 +2,7 @@ use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::cva_reconcile_archive::{
     read_archive_tail, replay_archive_tail, replay_file_memory_links,
 };
+use crate::cva_reconcile_graph::{read_graph_tail, reconcile_right_graph_tail, replay_graph_tail};
 use crate::cva_reconcile_interaction::{merge_interaction_streams, replay_interaction_streams};
 use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
 use crate::{CompatibilityProfile, Cva, CvaReconcileError};
@@ -27,6 +28,9 @@ pub(crate) fn reconcile_diverged(
     let right_archive = read_archive_tail(&mut right, comparison.common_chunk_count)?;
     let left_memory = read_memory_tail(&mut left, 0)?;
     let right_memory = read_memory_tail(&mut right, comparison.common_chunk_count)?;
+    let left_graph = read_graph_tail(&mut left, 0)?;
+    let left_graph_divergent = read_graph_tail(&mut left, comparison.common_chunk_count)?;
+    let right_graph_divergent = read_graph_tail(&mut right, comparison.common_chunk_count)?;
     let left_profiles = left.compatibility_profiles();
     let right_profiles = right.compatibility_profiles();
     let (interaction_streams, right_stream_change) = merge_interaction_streams(
@@ -40,12 +44,15 @@ pub(crate) fn reconcile_diverged(
         replay_interaction_streams(&mut output, interaction_streams)?;
         replay_archive_tail(&mut output, &left_archive)?;
         replay_memory_tail(&mut output, left_memory)?;
+        replay_graph_tail(&mut output, &left_graph)?;
         replay_file_memory_links(&mut output, &left_archive.file_memory_links)?;
 
         let before_right = output.container.chunks()?.len();
         replay_profiles(&mut output, right_profiles)?;
         let archive_records = replay_archive_tail(&mut output, &right_archive)?;
         let memory_result = replay_memory_tail(&mut output, right_memory)?;
+        let graph_result =
+            reconcile_right_graph_tail(&mut output, &left_graph_divergent, &right_graph_divergent)?;
         let file_memory_links =
             replay_file_memory_links(&mut output, &right_archive.file_memory_links)?;
         let canonical_change_required =
@@ -57,19 +64,25 @@ pub(crate) fn reconcile_diverged(
         Ok((
             archive_records,
             memory_result,
+            graph_result,
             file_memory_links,
             canonical_change_required,
         ))
     })();
 
-    let (archive_records, memory_result, file_memory_links, canonical_change_required) =
-        match merge_result {
-            Ok(value) => value,
-            Err(error) => {
-                let _ = fs::remove_file(output_path);
-                return Err(error);
-            }
-        };
+    let (
+        archive_records,
+        memory_result,
+        graph_result,
+        file_memory_links,
+        canonical_change_required,
+    ) = match merge_result {
+        Ok(value) => value,
+        Err(error) => {
+            let _ = fs::remove_file(output_path);
+            return Err(error);
+        }
+    };
 
     if !canonical_change_required {
         replace_with_left(left_path, output_path)?;
@@ -81,6 +94,9 @@ pub(crate) fn reconcile_diverged(
         replayed_memory_revisions: memory_result.revisions,
         duplicate_memory_revisions: memory_result.duplicate_revisions,
         replayed_insomnia_completions: memory_result.completions,
+        replayed_graph_transactions: graph_result.transactions,
+        replayed_graph_mutations: graph_result.mutations,
+        duplicate_graph_mutations: graph_result.duplicate_mutations,
         replayed_file_memory_links: file_memory_links,
         canonical_change_required,
         vector_rebuild_required: canonical_change_required && derived_vectors_present,

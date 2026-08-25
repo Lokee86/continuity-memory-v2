@@ -1,6 +1,6 @@
 use crate::graph_codec::{
-    GraphMutationPayload, GraphNodePayload, decode_format, decode_mutation, decode_node,
-    decode_version,
+    GraphMutationPayload, GraphNodePayload, decode_batch, decode_format, decode_mutation,
+    decode_node, decode_version,
 };
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
@@ -9,9 +9,9 @@ use std::collections::{HashMap, HashSet};
 
 pub(crate) struct GraphOpenState {
     nodes: Vec<GraphNodePayload>,
-    pending: HashMap<ChunkRef, GraphMutationPayload>,
+    pending: HashMap<ChunkRef, Vec<GraphMutationPayload>>,
     versioned: HashSet<ChunkRef>,
-    relations: Vec<GraphRelation>,
+    transactions: Vec<Vec<GraphRelation>>,
     next_graph_version: u64,
     format_seen: bool,
 }
@@ -22,7 +22,7 @@ impl GraphOpenState {
             nodes: Vec::new(),
             pending: HashMap::new(),
             versioned: HashSet::new(),
-            relations: Vec::new(),
+            transactions: Vec::new(),
             next_graph_version: 1,
             format_seen: false,
         }
@@ -49,8 +49,12 @@ impl GraphOpenState {
             self.ingest_version(chunk, version, latest_global)?;
             return Ok(());
         }
+        if let Some(batch) = decode_batch(payload)? {
+            self.pending.insert(chunk, batch);
+            return Ok(());
+        }
         if let Some(mutation) = decode_mutation(payload)? {
-            self.pending.insert(chunk, mutation);
+            self.pending.insert(chunk, vec![mutation]);
         }
         Ok(())
     }
@@ -60,7 +64,7 @@ impl GraphOpenState {
             if self.nodes.is_empty()
                 && self.pending.is_empty()
                 && self.versioned.is_empty()
-                && self.relations.is_empty()
+                && self.transactions.is_empty()
             {
                 return Ok(GraphStore::empty());
             }
@@ -74,8 +78,8 @@ impl GraphOpenState {
                 node_id: node.node_id,
             })?;
         }
-        for relation in self.relations {
-            store.insert_relation_rebuilt(relation)?;
+        for transaction in self.transactions {
+            store.insert_transaction_rebuilt(&transaction)?;
         }
         store.finish_rebuild(memories)?;
         Ok(store)
@@ -91,30 +95,39 @@ impl GraphOpenState {
             || version.global_version == 0
             || version.global_version > latest_global
             || self
-                .relations
+                .transactions
                 .last()
+                .and_then(|transaction| transaction.first())
                 .is_some_and(|last| last.global_version >= version.global_version)
             || version.mutation.offset >= chunk.offset
         {
             return Err(GraphError::InvalidGraphVersion);
         }
-        let mutation = if let Some(mutation) = self.pending.remove(&version.mutation) {
+        let mutations = if let Some(mutations) = self.pending.remove(&version.mutation) {
             self.versioned.insert(version.mutation);
-            mutation
+            mutations
         } else {
             return Err(GraphError::InvalidGraphVersion);
         };
-        if mutation.source == mutation.target {
-            return Err(GraphError::SelfRelation);
+        let mut keys = HashSet::with_capacity(mutations.len());
+        let mut transaction = Vec::with_capacity(mutations.len());
+        for mutation in mutations {
+            if mutation.source == mutation.target {
+                return Err(GraphError::SelfRelation);
+            }
+            if !keys.insert((mutation.source, mutation.target, mutation.kind)) {
+                return Err(GraphError::DuplicateRelationChange);
+            }
+            transaction.push(GraphRelation {
+                source: mutation.source,
+                target: mutation.target,
+                kind: mutation.kind,
+                active: mutation.active,
+                global_version: version.global_version,
+                graph_version: version.graph_version,
+            });
         }
-        self.relations.push(GraphRelation {
-            source: mutation.source,
-            target: mutation.target,
-            kind: mutation.kind,
-            active: mutation.active,
-            global_version: version.global_version,
-            graph_version: version.graph_version,
-        });
+        self.transactions.push(transaction);
         self.next_graph_version = self
             .next_graph_version
             .checked_add(1)

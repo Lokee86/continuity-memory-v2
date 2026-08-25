@@ -19,12 +19,7 @@ pub(crate) fn validate_semantic_global_versions(
                 .iter()
                 .map(|record| record.global_version),
         )
-        .chain(
-            graph
-                .mutations()
-                .iter()
-                .map(|relation| relation.global_version),
-        )
+        .chain(graph.transaction_global_versions().iter().copied())
         .chain(
             vector_generations
                 .generations()
