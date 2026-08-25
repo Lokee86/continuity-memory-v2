@@ -31,7 +31,9 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 | Memories / revision authority / provenance | [Architecture](architecture.md), [Rust API](api.md), [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md) | `src/memory_*.rs`, `src/cva_memory_publish.rs` | `src/memory_tests.rs` |
 | Insomnia extraction / evidence / queue / finite worker | [Architecture](architecture.md), [Current limitations](current-limitations.md), [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md) | `src/insomnia.rs`, `src/insomnia/**/*.rs` | `src/insomnia/**/*tests.rs` |
 | Memory Vector bindings / missing-only embedding | [Architecture](architecture.md), [Rust API](api.md), [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md) | `src/memory_vector_*.rs`, `src/cva_memory_vectors.rs` | `src/memory_vector_tests.rs`, `src/insomnia/worker_vector_tests.rs` |
-| Live interaction runtime / CVA management / native product UI | [Roadmap](roadmap.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) | not implemented | future runtime/management/UI integration suites |
+| Live interaction session / stream runtime | [Architecture](architecture.md), [Rust API](api.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) | `src/interaction_model.rs`, `src/interaction_error.rs`, `src/interaction_runtime.rs`, `src/interaction_session.rs`, `src/interaction_stream.rs` | `src/interaction_runtime_tests.rs`, `src/interaction_session_tests.rs` |
+| CVA workspace identity/type | [Architecture](architecture.md), [Storage format](storage-format.md), [Rust API](api.md), [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md) | `src/workspace_metadata*.rs`, `src/cva_workspace.rs` | `src/workspace_metadata_tests.rs` |
+| Warlock host orchestration / broader workspace-CVA application surface | [Roadmap](roadmap.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md), [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md) | not implemented beyond CVA workspace metadata | future workspace/host integration suites |
 | ACP interoperability adapter | [ADR 0015](decisions/0015-acp-inline-interaction-stream.md), [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md), [Roadmap](roadmap.md) | not implemented | future adapter normalization/capture suites |
 | Fragment identity/windows/tails | [Architecture](architecture.md), [Storage format](storage-format.md) | `src/fragment_*` | `src/fragment_tests.rs` |
 | Packed-vector representation/storage | [Storage format](storage-format.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md) | `src/packed_vector_*`, Lodestone `crates/packed` | `src/packed_vector_tests.rs`, Lodestone packed tests |
@@ -52,6 +54,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 - `CredentialsConfig` owns decrypted in-memory provider secrets; `credential.<id>` objects are independently authenticated/encrypted and route references use stable IDs.
 - `ModelSwitchboardConfig` owns provider/model/endpoint/credential selection; `ModelSwitchboard` validates matching credentials and attaches request auth. These choices cannot establish Compatibility Profile identity or vector compatibility.
 - `Cva` owns the single Container handle and explicit concrete-store scan dispatch; it owns no semantic dependency graph.
+- `WorkspaceMetadataStore` owns the optional singleton CVA workspace ID/name/type. It is clock-neutral, initialize-once in the current slice, and cannot become a generic metadata/property store.
 - Container owns physical storage and global ordering only.
 - Archive owns Archive-local ordering and conversation/session semantics.
 - Packed-vector storage owns immutable matrix identity/shape only.
@@ -61,7 +64,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 - Archive and vector-local version adjacency do not imply ancestry or cross-store dependency identity.
 - Node parent links and branch/session revisions own local conversation history.
 - Source attachments are intrinsic to source-turn ingestion; later file-to-Memory links remain explicit cross-owner references.
-- Future live runtimes and product surfaces normalize transport events above semantic owners; ACP/native UI/import details do not define Archive semantics.
+- `InteractionRuntime` owns transport-neutral session coordination, completed-message stream assembly, durable acknowledgement, and explicit live Episode scheduling above Archive ingestion; future adapters and product surfaces must converge through that boundary rather than defining Archive semantics.
 - A future CVA management surface composes concrete owner APIs and cannot become a generalized semantic store.
 - Future stores retain independent authority even when they share the CVA global clock.
 

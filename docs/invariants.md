@@ -65,9 +65,14 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 51. **Source attachments are intrinsic source-event data.** Importers/runtimes submit a turn and its attachments together; they do not persist a file and then separately reconstruct its source-turn provenance.
 52. **A source turn and its attachments publish together.** The node, attached file manifests, and source-to-file relationship become visible through one Archive semantic mutation; unversioned staged content or turn payloads are inert.
 53. **Later file relationships remain explicit.** A file-to-Memory relationship crosses owners by stable `FileId`/`MemoryId` and does not transfer file authority into Memories.
-54. **Interaction transports do not define semantic storage.** Native UI, ACP, imports, APIs, and future provider adapters must normalize above concrete semantic owners; protocol-specific message models cannot become Archive authority by convenience.
+54. **Interaction transports do not define semantic storage.** Warlock-native interaction, ACP, imports, APIs, and future provider adapters must normalize above concrete semantic owners; protocol-specific message models cannot become Archive authority by convenience.
 55. **Product management is not a generalized semantic store.** A CVA management surface may compose explicit owner operations, but it cannot bypass owner validation or introduce a generic mutable object/root/dependency model.
-56. **External protocols are optional product integrations.** The native product surface cannot require ACP, MCP, an IDE, or another external agent host merely to use customer-owned CVA state.
+56. **External protocols are optional product integrations.** Warlock-native use of customer-owned CVA state cannot require ACP, MCP, an IDE, or another external agent host.
+57. **Incomplete live messages are runtime state, not source history.** Text/attachment buffers become Archive authority only when one completed message crosses the durable turn-ingestion boundary.
+58. **Live session continuation is explicit.** Reopening a session that already has durable Archive history requires an explicit durable resume message; the session runtime cannot silently create an unrelated second root for that history.
+59. **Source acknowledgement does not depend on background scheduling.** A completed live turn is durably acknowledged before Episode/Insomnia scheduling, and a scheduling failure cannot revoke or obscure that receipt.
+60. **Workspace identity has one explicit owner.** A CVA may contain at most one initialized `WorkspaceMetadata` record; workspace identity/type cannot be represented through a generic metadata map or inferred from unrelated stores.
+61. **Workspace metadata is clock-neutral.** Initializing workspace ID, name, and type consumes no Archive, Memory, Vector Generation, or CVA-global semantic version.
 
 ## Safety boundaries
 

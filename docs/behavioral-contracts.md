@@ -29,6 +29,8 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Independent key stores produce different keys and debug output redacts key material | `master_key_tests::separately_created_stores_get_different_keys`, `master_key_tests::debug_output_never_contains_key_material` |
 | `ContinuityConfig` places the temporary JSON master key beside the config | `config_tests::config_creates_temporary_master_key_beside_itself` |
 | New CVA header reopens | `container_tests::create_then_reopen_cva` |
+| Workspace ID/name/type initialize once and survive reopen | `workspace_metadata_tests::workspace_metadata_round_trips`, `workspace_metadata_tests::ordinary_cva_can_be_initialized_as_workspace_once` |
+| Workspace metadata is bounded and consumes no semantic version clock | `workspace_metadata_tests::workspace_metadata_rejects_blank_or_oversized_fields`, `workspace_metadata_tests::workspace_metadata_does_not_advance_semantic_versions` |
 | Opaque chunks retain stable references | `container_tests::append_then_read_chunks` |
 | Global versions survive reopen | `container_tests::global_versions_survive_reopen` |
 | Truncated/non-CVA files are rejected | `container_tests::*truncated*`, `reject_non_cva_file` |
@@ -48,6 +50,14 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | One turn ingestion publishes the source node, attached file manifests, and native source provenance together under one Archive mutation | `turn_ingest_tests::turn_ingestion_publishes_node_and_attachments_together` |
 | Repeated identical turn ingestion is idempotent while attachment drift conflicts | `turn_ingest_tests::turn_ingestion_is_idempotent_and_rejects_attachment_drift` |
 | Unversioned native turn-ingestion records are inert after reopen | `turn_ingest_tests::unversioned_ingested_turn_is_inert_on_reopen` |
+| Normalized completed turns are acknowledged only after durable CVA sync and survive reopen | `interaction_runtime_tests::normalized_turn_is_durably_acknowledged` |
+| Replayed normalized turns remain idempotent at the runtime boundary | `interaction_runtime_tests::replayed_normalized_turn_is_idempotent` |
+| Normalized agent role maps to the stable Archive assistant role rather than preserving transport vocabulary | `interaction_runtime_tests::normalized_agent_role_maps_to_archive_assistant_role` |
+| Streamed text plus complete attachments remain runtime-only until one completed durable source publication | `interaction_session_tests::streamed_message_assembles_before_one_durable_publication` |
+| Existing durable sessions require an explicit valid resume message and the next completed message chains from that leaf | `interaction_session_tests::session_chains_messages_and_resumes_from_durable_leaf_after_reopen` |
+| Cancelled or incomplete runtime streams never become Archive source history | `interaction_session_tests::incomplete_or_cancelled_stream_never_becomes_source_history` |
+| Live Episode scheduling occurs only after source acknowledgement and can finalize/queue the durable session path independently | `interaction_session_tests::live_episode_scheduling_is_explicitly_after_turn_acknowledgement` |
+| A live completion preserves its durable source receipt even when the subsequent scheduling attempt fails | `interaction_session_tests::live_completion_preserves_durable_receipt_when_scheduling_fails` |
 | File-to-Memory links are explicit, idempotent, cross-owner validated, and reopenable | `file_memory_link_tests::file_memory_links_are_explicit_idempotent_and_reopenable`, `file_memory_link_tests::reopen_rejects_file_link_to_missing_memory` |
 | Fragment windows/tails remain append-only and branch-neutral | `fragment_tests::*` |
 | Packed-vector matrices round-trip beside Archive data in one CVA | `packed_vector_tests::packed_vectors_round_trip_inside_same_cva_as_archive` |

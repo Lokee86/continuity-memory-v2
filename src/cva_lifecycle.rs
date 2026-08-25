@@ -16,6 +16,8 @@ use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
+use crate::workspace_metadata_rebuild::WorkspaceMetadataOpenState;
+use crate::workspace_metadata_store::WorkspaceMetadataStore;
 use crate::{Archive, Container, Cva, CvaError};
 use std::path::Path;
 
@@ -31,6 +33,7 @@ impl Cva {
         let archive_vectors = ArchiveVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
         let vector_generations = VectorGenerationStore::empty();
+        let mut workspace_metadata = WorkspaceMetadataStore::empty();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         insomnia.initialize(&mut container)?;
@@ -39,6 +42,7 @@ impl Cva {
         archive_vectors.initialize(&mut container)?;
         compatibility_profiles.initialize(&mut container)?;
         vector_generations.initialize(&mut container)?;
+        workspace_metadata.initialize_format(&mut container)?;
         container.sync()?;
         Ok(Self {
             container,
@@ -51,6 +55,7 @@ impl Cva {
             archive_vectors,
             compatibility_profiles,
             vector_generations,
+            workspace_metadata,
         })
     }
 
@@ -63,6 +68,7 @@ impl Cva {
         let mut archive_vector_state = ArchiveVectorOpenState::new();
         let mut profile_state = CompatibilityProfileOpenState::new();
         let mut generation_state = VectorGenerationOpenState::new();
+        let mut workspace_state = WorkspaceMetadataOpenState::new();
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -72,6 +78,7 @@ impl Cva {
             archive_vector_state.ingest(chunk, payload)?;
             profile_state.ingest(chunk, payload)?;
             generation_state.ingest(chunk, payload, latest_global)?;
+            workspace_state.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
         let archive = archive_state.finish()?;
@@ -95,6 +102,7 @@ impl Cva {
             &compatibility_profiles,
         )?;
         validate_semantic_global_versions(&archive, &memories, &vector_generations)?;
+        let workspace_metadata = workspace_state.finish();
         Ok(Self {
             container,
             archive,
@@ -106,6 +114,7 @@ impl Cva {
             archive_vectors,
             compatibility_profiles,
             vector_generations,
+            workspace_metadata,
         })
     }
 }

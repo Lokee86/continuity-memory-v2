@@ -159,7 +159,7 @@ If ACP proxy mechanics change, the product requirement and Archive/Memory owners
 - exact ACP proxy/conductor integration if/when the Draft proxy-chain RFD stabilizes;
 - exact hosting/proxy shape for external ACP agents inside or alongside the native Continuity product surface;
 - mapping ACP session/message identifiers onto Archive conversation/node identity across reconnect/resume;
-- chunk assembly and durable publication boundaries for streamed messages;
+- mapping ACP stream/update semantics onto the shared runtime's completed-message assembly and durable acknowledgement boundary;
 - treatment of edits/replacements/replays when protocol-level message identity is available;
 - failure policy when the inline Continuity component is unavailable: fail-open, fail-closed, or user-selectable;
 - context-injection policy and ownership between the live runtime, retrieval controller, and future Ego;

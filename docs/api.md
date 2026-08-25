@@ -3,12 +3,22 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document owns the current public Rust library surface exposed by `continuity_memory`.
 ## Overview
-The public API exposes `ContinuityConfig` and model-switchboard types for machine-local runtime routing plus `Cva` for semantic storage/retrieval; Archive history; Episodes; Memories; embedded files and source attachments; vector backing/publication; compatibility profiles; hybrid retrieval; simulated and direct provider capabilities; chunk references; and errors. It remains development-stage.
+The public API exposes `ContinuityConfig` and model-switchboard types for machine-local runtime routing; `InteractionRuntime` for transport-neutral live session coordination, stream assembly, durable completed-turn acceptance, and explicit live Episode scheduling; `WorkspaceMetadata` for one CVA's durable workspace identity/type; and `Cva` for workspace lifecycle, semantic storage/retrieval, Archive history, Episodes, Memories, embedded files/source attachments, vector backing/publication, compatibility profiles, and hybrid retrieval. It remains development-stage.
 ## Exact contract
 ### Local configuration
 `ContinuityConfig::new(path)` creates an in-memory default config, `ContinuityConfig::open(path)` loads `continuity.cfg`, and `save()` validates and atomically replaces the current file. Public fields are `fragments: FragmentConfig`, `retrieval: RetrievalConfig`, `models: ModelSwitchboardConfig`, and `credentials: CredentialsConfig`; `path()` reports the configured path. `load_or_create_master_key()` generates or reloads a 256-bit local master key from temporary sibling `continuity.master-key.json`. Credential objects are encrypted/decrypted automatically on save/open. Unknown framed objects are preserved across saves. Configuration is separate from `.cva` and has no semantic history.
 ### Container
 Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, and `FormatVersion`. Container exposes create/open, opaque append/read/chunk enumeration, sync, path/format inspection, and `latest_version()` for the CVA-global clock.
+### Workspace metadata
+
+Public types are `WorkspaceMetadata { id, name, workspace_type }`, `WorkspaceMetadataError`, and the field-size constants `MAX_WORKSPACE_ID_BYTES = 256`, `MAX_WORKSPACE_NAME_BYTES = 1024`, and `MAX_WORKSPACE_TYPE_BYTES = 256`.
+
+`WorkspaceMetadata::new(id, name, workspace_type)` validates non-blank bounded UTF-8 fields. The workspace type is an extensible string identifier rather than a closed enum; Continuity persists the type but does not own host capability composition.
+
+`Cva::create_workspace(path, metadata)` creates a CVA and initializes its workspace metadata. `Cva::workspace_metadata()` returns the current metadata when present. `Cva::initialize_workspace_metadata(metadata)` upgrades an otherwise valid CVA exactly once; a second initialization is rejected. Ordinary `Cva::create` remains valid and returns a CVA with no workspace metadata so existing library workflows are not forced into a product workspace immediately.
+
+Workspace metadata is clock-neutral: initialization consumes no Archive, Memory, Vector Generation, or CVA-global semantic version. Rename/type-change lifecycle is not exposed in this first slice.
+
 ### Archive
 Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, `IncomingAttachment`, `IncomingTurn`, `IngestedTurn`, `FileMemoryLink`, and:
 
@@ -24,11 +34,29 @@ Core operations through `Cva` include `append_node`, native `ingest_turn`, `appe
 
 `ingest_turn(IncomingTurn)` is the source-ingestion boundary. `IncomingTurn` carries the source node plus zero or more `IncomingAttachment { filename, mime_type, bytes }` values. The node, attachment manifests, and source-to-file provenance are published as one Archive semantic mutation; callers do not store an attachment and then separately link it back to the turn. `files_for_source(conversation_id, node_id)` resolves those native attachments. Repeating the identical source event is idempotent; changing the attachment set for an existing node is a conflict.
 
-This is currently a synchronous Rust library operation, not a continuously running capture service. The development importer calls it once per normalized input node; no live protocol/runtime endpoint invokes it automatically yet.
+`Cva::ingest_turn` remains the lower-level synchronous Archive-facing operation. `InteractionRuntime::accept_turn` is the current transport-neutral completed-turn runtime boundary described below. The development graph importer still calls `Cva::ingest_turn` directly because it is a batch import path rather than a live interaction adapter.
 
 `store_file` remains the lower-level path for a file that is not being introduced as part of a source turn. `link_file_to_memory` is intentionally separate: a later Memory relationship is a real cross-owner semantic link, not source-ingestion provenance. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary binary CAM bytes. One `CVACONT1` content object uses a `u32` byte-length field, so one stored file/content body must be smaller than 4 GiB. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
 
 Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
+
+### Normalized interaction runtime
+
+Public interaction types are `InteractionRole::{User, Agent}`, `InteractionAttachment`, `InteractionTurn`, `InteractionSession`, `InteractionReceipt`, `InteractionCompletion`, `InteractionError`, and `InteractionRuntime`.
+
+`InteractionTurn` is the first transport-neutral completed-turn contract above Archive ingestion. It carries `message_id`, `session_id`, optional `parent_message_id`, normalized role, timestamp, content, and zero-or-more byte-bearing attachments. `session_id` maps to Archive `conversation_id`; message IDs map to node IDs; `User` maps to Archive role `user`; `Agent` maps to Archive role `assistant`. Protocol/provider-specific fields are intentionally absent from this contract.
+
+`InteractionRuntime::new(cva)` takes ownership of one `Cva`. `open_session(session_id, resume_from)` establishes runtime session state. A new session uses `resume_from = None`; if durable Archive nodes already exist for that session ID, an explicit durable resume message is required. The resume message must exist in that same Archive conversation. `session()` reports the current durable leaf and any in-flight message; `close_session()` rejects closure while a message remains in progress.
+
+`begin_message` starts one in-flight message whose parent is the session's current durable leaf. `append_text` appends text deltas, `attach` adds a complete attachment, `cancel_message` discards the in-flight buffer, and `complete_message` converts the assembled buffer into one `InteractionTurn`. In-flight buffers are runtime-only: they consume no Archive version and disappear if cancelled or if the runtime is lost before completion. A session permits only one in-flight message at a time.
+
+`accept_turn(turn)` remains the direct completed-turn path. Both it and `complete_message` use the existing atomic source-turn ingestion semantics and call `Cva::sync()` before returning `InteractionReceipt { turn, archive_version }`. A successful receipt therefore means the source turn has crossed the current durability boundary. Identical completed-turn replay remains idempotent and does not advance the Archive watermark.
+
+`complete_live_message(session_id, message_id, policy, now_ns)` is the normal live completion helper. It first performs `complete_message` and obtains the durable receipt, then attempts size-driven live Episode scheduling. It returns `InteractionCompletion { receipt, scheduling }`, where `scheduling` is an independent `Result`. A scheduling failure therefore cannot revoke or obscure an already-durable source receipt.
+
+`schedule_session(policy, now_ns)` and `finalize_inactive_session(policy, now_ns)` also expose the existing live Episode/Insomnia scheduling paths from the current durable session leaf and sync any resulting semantic Episode publication. `finalize_inactive_session` remains an explicit call until a long-lived timer/service loop exists.
+
+`cva()` provides read-only access to the owned CVA and `into_cva()` transfers ownership back to the caller. Automatic adapter reconnect/resume, process/service persistence, continuous timers, background Memory/vector execution, tool/session-event normalization, and IPC/API exposure remain future runtime work.
 
 ### Episodes
 
