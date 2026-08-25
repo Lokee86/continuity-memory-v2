@@ -6,11 +6,11 @@ Parent index: [Documentation index](INDEX.md)
 
 This document owns the current implementation plan for Dream over the implemented Graph owner. It records the redesign derived from review of CTX Dream, the previous Continuity Dream implementation, the current Graph foundation, and the August 2026 planning discussion.
 
-Dream's bounded candidate-retrieval and pair-classification seams are now implemented; independent verification, accepted Graph publication, and lifecycle behavior remain planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
+Dream's bounded candidate-retrieval, pair-classification, and independent-verification seams are now implemented; accepted Graph publication and lifecycle behavior remain planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
 
 ## Overview
 
-Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval and transient pair classification are implemented. Remaining work proceeds through independent verification, Graph publication, duplicate/supersession handling, deterministic temporal interpretation, lifecycle policy, and only then long-lived scheduling/runtime integration.
+Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, and transient independent verification are implemented. Remaining work proceeds through Graph publication, duplicate/supersession handling, deterministic temporal interpretation, lifecycle policy, and only then long-lived scheduling/runtime integration.
 
 ## Responsibility
 
@@ -117,30 +117,28 @@ The previous implementation became complicated because it combined durable concu
 
 Do not treat model self-reported numeric confidence as semantic authority.
 
-The preferred staged design is:
+The implemented staged design is:
 
 ```text
 Pass 1: classify the pair
     -> proposed relation + direction + evidence
 
 Pass 2: independently verify the proposed conclusion
-    -> accept / uncertain / reject
+    -> relation supported: yes / no / uncertain
+    -> direction supported: yes / no / uncertain
+    -> evidence supported: yes / no / uncertain
+
+Continuity derives:
+    any no        -> reject
+    else uncertain -> uncertain
+    else           -> accept
 ```
 
-The verifier should receive the Memory pair, the proposed relation/direction, and the relevant evidence. It should not need the first pass's numeric confidence.
+The verifier receives the same canonical Memory pair plus the proposed relation/direction and classifier evidence. It receives no classifier confidence value and is explicitly instructed not to defer to the classifier or its model identity. Reverse processing order produces the same verifier payload just as it does for classification.
 
-Raw model confidence may be retained for diagnostics, but lifecycle-changing decisions must not depend on an apparently precise value such as `0.91`.
+The default `DreamVerificationPolicy` pays the second model call only for `duplicate_of` and `supersedes`, because those conclusions will drive duplicate/supersession lifecycle behavior. `broad_semantic()` additionally verifies factual, causal, and recurrent relationships so corpus/live measurement can determine whether their error reduction justifies permanent second-pass cost. Topical and `none` remain single-pass/non-verifiable by default.
 
-A second pass may be selectively applied rather than paid for universally. Initial expectation:
-
-- topical: likely one pass;
-- factual: verification useful and should be measured;
-- causal: verification useful and should be measured;
-- recurrent: verification useful and should be measured;
-- duplicate: verify before duplicate/lifecycle mutation;
-- supersedes: verify before supersession/lifecycle mutation.
-
-Whether all non-trivial relationships eventually use two passes should be decided from fixture/corpus results rather than assumed in advance.
+No numeric confidence participates in the verifier contract or derived verdict. Whether factual, causal, and recurrent eventually use verification by default remains measurement-driven.
 
 ## Temporal determinism
 
@@ -225,7 +223,7 @@ The strict v1 output proposes one relation from `none`, `topical`, `factual`, `c
 
 Every non-none proposal must include exactly one verbatim evidence quote from each Memory. Continuity validates relation/direction compatibility, unique A/B evidence coverage, and literal quote membership after the model call. Invalid structured conclusions are rejected before any downstream stage can observe them as accepted semantics.
 
-The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification, Graph publication, pair replacement/retraction, and lifecycle mutation remain later stages.
+The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification is now implemented as the next transient seam; Graph publication, pair replacement/retraction, and lifecycle mutation remain later stages.
 
 ## Lifecycle
 
@@ -328,11 +326,19 @@ Milestone B currently provides:
 - deterministic rejection of invalid direction combinations and non-verbatim evidence;
 - no Graph or lifecycle side effects.
 
-### Phase 4 — verification pass
+### Phase 4 — verification pass — implemented
 
-- add independent second-pass verification, at minimum for duplicate and supersedes;
-- measure whether factual, causal, and recurrent materially benefit from universal verification;
-- preserve raw confidence only as diagnostic information.
+Milestone C currently provides:
+
+- a separate verifier call over the same canonical pair, proposal, and verbatim classifier evidence;
+- three categorical checks (`relation_supported`, `direction_supported`, `evidence_supported`) rather than numeric model confidence;
+- deterministic derivation of `accept`, `reject`, or `uncertain` from those checks;
+- default verification for `duplicate_of` and `supersedes` only;
+- opt-in broad verification for factual, causal, and recurrent measurement;
+- pair/classification identity validation and reverse-processing-order invariance;
+- no Graph or lifecycle side effects.
+
+Representative live/corpus measurement must decide whether factual, causal, and recurrent should move into the default verification policy.
 
 ### Phase 5 — first complete Dream pass
 
@@ -419,7 +425,7 @@ The review has not yet frozen:
 6. exact temporal index representation and whether it is persisted or cheaply rebuilt;
 7. precise semantics for `references`.
 
-The next implementation milestone is the independent verification pass, beginning with duplicate and supersedes and measuring whether factual, causal, and recurrent warrant universal verification.
+The next implementation milestone is accepted Graph publication: translate accepted classifier/verifier conclusions into Graph relationships while preserving semantic direction, defining safe pair replacement/retraction, and preventing contradictory intermediate pair state.
 
 ## Related docs
 

@@ -69,6 +69,11 @@ mod dream_classifier;
 mod dream_classifier_error;
 mod dream_classifier_model;
 mod dream_classifier_schema;
+mod dream_pair_context;
+mod dream_verifier;
+mod dream_verifier_error;
+mod dream_verifier_model;
+mod dream_verifier_schema;
 mod embedding_endpoint;
 mod episode_builder;
 mod episode_codec;
@@ -190,6 +195,13 @@ pub use dream_classifier_model::{
     DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
 };
 pub use dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use dream_verifier::DreamVerifier;
+pub use dream_verifier_error::DreamVerificationError;
+pub use dream_verifier_model::{
+    DREAM_VERIFIER_CONTRACT_VERSION, DreamPairVerification, DreamVerificationPolicy,
+    DreamVerificationSignal, DreamVerificationVerdict,
+};
+pub use dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
@@ -323,6 +335,8 @@ mod dream_candidate_test_support;
 mod dream_candidate_tests;
 #[cfg(test)]
 mod dream_classifier_tests;
+#[cfg(test)]
+mod dream_verifier_tests;
 #[cfg(test)]
 mod episode_tests;
 #[cfg(test)]

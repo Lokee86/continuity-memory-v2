@@ -116,6 +116,14 @@ Public types are `DreamClassifier<E>`, `DreamPairClassification`, `DreamPairEvid
 
 The v1 classifier returns one primary proposal: `None`, `Topical`, `Factual`, `Causal`, `Recurrent`, `DuplicateOf`, or `Supersedes`. `Topical`, `Recurrent`, and `DuplicateOf` are semantically undirected; `Factual`, `Causal`, and `Supersedes` require an explicit A→B or B→A direction. Every non-none result requires exactly two verbatim evidence quotes, one from each Memory; invalid direction combinations or invented evidence are rejected. `None` requires no evidence. The result records the endpoint model name but is transient: classification does not write Graph state or change Memory lifecycle.
 
+### Dream independent verification
+
+Public types are `DreamVerifier<E>`, `DreamPairVerification`, `DreamVerificationPolicy`, `DreamVerificationSignal::{Yes, No, Uncertain}`, `DreamVerificationVerdict::{Accept, Reject, Uncertain}`, `DreamVerificationError`, `DREAM_VERIFIER_CONTRACT_VERSION`, `DREAM_VERIFIER_SYSTEM_PROMPT`, and `dream_verifier_schema()`.
+
+`DreamVerifier::verify_pair(classification, left, right)` requires a non-`None` classification, canonicalizes the supplied contexts with the same MemoryId ordering used by the classifier, verifies that the classification identifies that exact pair, and submits the pair plus proposal/evidence through a separate strict structured-output call. The verifier returns categorical support for the proposed relation, direction, and classifier evidence. Any `No` deterministically yields `Reject`; otherwise any `Uncertain` yields `Uncertain`; three `Yes` signals yield `Accept`.
+
+`verify_if_required(policy, ...)` skips the model call when the selected policy does not require verification. `DreamVerificationPolicy::default()` verifies `DuplicateOf` and `Supersedes`; `broad_semantic()` additionally verifies `Factual`, `Causal`, and `Recurrent` for measurement. Neither policy verifies `None`, and topical remains single-pass. Verification exposes no numeric confidence and remains transient: it writes no Graph state and changes no Memory lifecycle.
+
 ### Packed vectors
 Public types:
 

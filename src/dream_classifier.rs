@@ -1,8 +1,9 @@
 use crate::dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+use crate::dream_pair_context::{canonical_pair, context_json, memory_text};
 use crate::{
     DreamCandidateSet, DreamClassificationError, DreamEvidenceSide, DreamMemoryContext,
     DreamPairClassification, DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
-    GeneralEndpoint, GraphRelationKind,
+    GeneralEndpoint,
 };
 use serde_json::{Value, json};
 
@@ -34,7 +35,7 @@ impl<E: GeneralEndpoint> DreamClassifier<E> {
         left: &DreamMemoryContext,
         right: &DreamMemoryContext,
     ) -> Result<DreamPairClassification, DreamClassificationError> {
-        let (a, b) = canonical_pair(left, right)?;
+        let (a, b) = canonical_pair(left, right).ok_or(DreamClassificationError::InvalidPair)?;
         let payload = serde_json::to_string(&json!({
             "contract_version": crate::DREAM_CLASSIFIER_CONTRACT_VERSION,
             "a": context_json(a),
@@ -49,45 +50,6 @@ impl<E: GeneralEndpoint> DreamClassifier<E> {
         )?;
         parse_output(self.endpoint.model(), a, b, &output)
     }
-}
-
-fn canonical_pair<'a>(
-    left: &'a DreamMemoryContext,
-    right: &'a DreamMemoryContext,
-) -> Result<(&'a DreamMemoryContext, &'a DreamMemoryContext), DreamClassificationError> {
-    if left.memory.id == right.memory.id {
-        return Err(DreamClassificationError::InvalidPair);
-    }
-    Ok(if left.memory.id.0 < right.memory.id.0 {
-        (left, right)
-    } else {
-        (right, left)
-    })
-}
-
-fn context_json(context: &DreamMemoryContext) -> Value {
-    let relations: Vec<_> = context
-        .graph_relations
-        .iter()
-        .map(|relation| {
-            json!({
-                "source": hex(&relation.source.0),
-                "target": hex(&relation.target.0),
-                "kind": relation_name(relation.kind),
-            })
-        })
-        .collect();
-    json!({
-        "memory_id": hex(&context.memory.id.0),
-        "body_id": hex(&context.body_id.0),
-        "category": context.memory.category,
-        "memory_type": context.memory.memory_type,
-        "lifecycle_state": context.memory.lifecycle_state,
-        "title": context.memory.title,
-        "content": context.memory.content,
-        "source_timestamp_ns": context.source_timestamp_ns,
-        "graph_relations": relations,
-    })
 }
 
 fn parse_output(
@@ -207,27 +169,6 @@ fn required_string<'a>(value: &'a Value, key: &str) -> Result<&'a str, DreamClas
         .get(key)
         .and_then(Value::as_str)
         .ok_or_else(|| invalid(&format!("missing string field {key}")))
-}
-
-fn memory_text(context: &DreamMemoryContext) -> String {
-    format!("{}\n{}", context.memory.title, context.memory.content)
-}
-
-fn relation_name(kind: GraphRelationKind) -> &'static str {
-    match kind {
-        GraphRelationKind::Topical => "topical",
-        GraphRelationKind::Factual => "factual",
-        GraphRelationKind::Causal => "causal",
-        GraphRelationKind::Recurrent => "recurrent",
-        GraphRelationKind::References => "references",
-        GraphRelationKind::DuplicateOf => "duplicate_of",
-        GraphRelationKind::Supersedes => "supersedes",
-        GraphRelationKind::StructuralParent => "structural_parent",
-    }
-}
-
-fn hex(bytes: &[u8; 32]) -> String {
-    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn invalid(message: &str) -> DreamClassificationError {

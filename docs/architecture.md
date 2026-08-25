@@ -125,7 +125,15 @@ Candidate retrieval owns no durable Dream state, publishes no Graph relationship
 
 The current classifier proposes exactly one primary relation per evaluation from `none`, `topical`, `factual`, `causal`, `recurrent`, `duplicate_of`, or `supersedes`. `topical`, `recurrent`, and `duplicate_of` require `undirected`; `factual`, `causal`, and `supersedes` require `a_to_b` or `b_to_a`; `none` requires direction `none`. This one-proposal classifier contract does not yet settle whether persistent Graph state may later carry additional orthogonal relationship kinds for the same pair.
 
-Every non-`none` proposal must contain exactly one short verbatim quote from each Memory. Continuity rejects relation/direction mismatches, duplicate/missing evidence sides, and evidence that is not literal Memory title/content text. Source timestamps are supplied as chronology context but are explicitly not proof of causality or supersession; attached Graph context is supplemental, not proof. Classification is transient and read-only: there is still no verifier, accepted-relationship publication, duplicate-chain mutation, or lifecycle side effect.
+Every non-`none` proposal must contain exactly one short verbatim quote from each Memory. Continuity rejects relation/direction mismatches, duplicate/missing evidence sides, and evidence that is not literal Memory title/content text. Source timestamps are supplied as chronology context but are explicitly not proof of causality or supersession; attached Graph context is supplemental, not proof. Classification is transient and read-only.
+
+### Dream independent verification
+
+`DreamVerifier` is the implemented Milestone C second-pass seam. It receives the same canonical Memory pair plus one non-`none` `DreamPairClassification`, including the proposed relation/direction and the classifier's verbatim evidence. Pair identity is revalidated before the model call, and reverse processing order produces the same verifier payload.
+
+The strict verifier returns three categorical signals: whether the relation is supported, whether its direction/undirected form is supported, and whether the classifier evidence supports the proposal. Each signal is `yes`, `no`, or `uncertain`; Continuity deterministically derives `reject` if any signal is `no`, otherwise `uncertain` if any signal is uncertain, otherwise `accept`. No numeric classifier/model confidence enters the verifier contract.
+
+`DreamVerificationPolicy::default()` verifies only `duplicate_of` and `supersedes`. `broad_semantic()` additionally verifies factual, causal, and recurrent proposals for measurement; topical remains single-pass. Verification uses the Dream model route, remains transient/read-only, and does not publish Graph relationships or mutate Memory lifecycle.
 
 ### ArchiveVectorStore
 Archive Vectors own one relationship only:

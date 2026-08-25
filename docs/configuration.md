@@ -114,7 +114,7 @@ This route is optional. When configured, Insomnia uses it for extraction. When a
 
 Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibility as `models.general`.
 
-This route is optional. When configured, Dream pair classification uses it. When absent, `ModelSwitchboard::dream()` and `dream_auth()` fall back to the configured `models.general` route and credential. Dream and Insomnia routing are independent; configuring one does not affect the other.
+This route is optional. When configured, Dream pair classification and independent verification use it. When absent, `ModelSwitchboard::dream()` and `dream_auth()` fall back to the configured `models.general` route and credential. Dream and Insomnia routing are independent; configuring one does not affect the other.
 
 ### `models.embedding`
 
