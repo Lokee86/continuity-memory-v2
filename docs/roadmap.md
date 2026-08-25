@@ -180,7 +180,7 @@ Add Echo as the source-scoped historical reasoning owner defined by [ADR 0014](d
 
 ### Dream over Graph
 
-Build lifecycle/supersession handling over the implemented pair-oriented Dream candidate retrieval, classifier, independent verifier, atomic Graph publication, and indexed chronological duplicate predecessor chain. Processing direction is already canonicalized away before classification/verification and remains irrelevant to semantic edge direction. Add the first successful `extracted → knowledge` completion transition, duplicate/supersession archival consequences, deterministic temporal interpretation beyond duplicate source chronology, and later measured `knowledge → canonical` policy, with `archived` as retained inactive history.
+Build the deterministic temporal layer over the implemented pair-oriented Dream pipeline, which now includes candidate retrieval, classification, independent verification, atomic Graph publication, indexed chronological duplicate chains, supersession/duplicate lifecycle projection, and successful `extracted → knowledge` completion. Add source-turn/Episode anchored content-time interpretation, temporal candidate lookup, and deterministic verification of any model-enriched temporal result. Keep `knowledge → canonical` as later measured policy, with `archived` as retained inactive history.
 
 The remaining redesign and implementation sequence are owned by [Dream implementation plan](dream-implementation-plan.md). That plan also records the indexed duplicate predecessor-chain design, implemented verification policy, and source-turn-timestamp-based temporal determinism.
 

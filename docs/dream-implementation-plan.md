@@ -6,11 +6,11 @@ Parent index: [Documentation index](INDEX.md)
 
 This document owns the current implementation plan for Dream over the implemented Graph owner. It records the redesign derived from review of CTX Dream, the previous Continuity Dream implementation, the current Graph foundation, and the August 2026 planning discussion.
 
-Dream's bounded candidate-retrieval, pair-classification, independent-verification, accepted Graph-publication, and chronological duplicate-chain seams are now implemented; lifecycle behavior remains planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
+Dream's bounded candidate-retrieval, pair-classification, independent-verification, accepted Graph-publication, chronological duplicate-chain, and first lifecycle/end-to-end processing seams are now implemented. This document freezes the intended semantic shape and tracks the remaining staged implementation.
 
 ## Overview
 
-Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, and chronological duplicate-chain publication are implemented. Remaining work proceeds through lifecycle/supersession handling, deterministic temporal interpretation, canonical policy, and only then long-lived scheduling/runtime integration.
+Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, and the first bounded end-to-end processor are implemented. Remaining work proceeds through deterministic temporal interpretation, measured canonical policy, bounded reconsideration if demonstrated, and only then long-lived scheduling/runtime integration.
 
 ## Responsibility
 
@@ -223,31 +223,28 @@ The strict v1 output proposes one relation from `none`, `topical`, `factual`, `c
 
 Every non-none proposal must include exactly one verbatim evidence quote from each Memory. Continuity validates relation/direction compatibility, unique A/B evidence coverage, and literal quote membership after the model call. Invalid structured conclusions are rejected before any downstream stage can observe them as accepted semantics.
 
-The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification remains transient; accepted conclusions, including verified duplicates through the predecessor-chain seam, can now be reconciled into Graph atomically. Lifecycle mutation remains a later stage.
+The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification remains transient; accepted conclusions, including verified duplicates through the predecessor-chain seam, are reconciled into Graph before lifecycle projection. Milestone F now applies lifecycle consequences only after the complete bounded pair pass succeeds.
 
 ## Lifecycle
 
-Current planned lifecycle remains:
+The implemented baseline lifecycle is:
 
 ```text
 extracted
     -> knowledge
-    -> canonical
+    -> canonical   (future measured policy)
 
-any active state
+active Memory
     -> archived
 ```
 
-`archived` is retained inactive history, especially for superseded Memories and non-representative duplicates. It is not a replacement for historical storage and does not delete evidence.
+`archived` is retained inactive history and does not delete evidence. Milestone F advances an active `extracted` source to `knowledge` only after candidate retrieval and every bounded classification/verification/publication operation succeeds. A failed inference/publication pass leaves the source lifecycle unchanged.
 
-Initial expectation:
+Verified supersession is authoritative in Graph first; the superseded target is then revised to `lifecycle_state = archived`, `archived = true`, with `superseded_by` projected when exactly one active incoming superseder exists. Removing/replacing Graph state does not automatically reactivate an archived Memory.
 
-- successful bounded first Dream processing may move `extracted -> knowledge`, even if no relationship is found;
-- `knowledge -> canonical` must be driven by semantic authority/current-representation policy, not an arbitrary scalar quality threshold;
-- duplicate and supersession graph conclusions may drive archival only after required verification;
-- canonical remains supersedable and duplicatable.
+Duplicate representative policy remains deliberately conservative. An `extracted` source is archived as redundant only when its duplicate component already contains another non-archived Memory. Existing `knowledge` or `canonical` Memories are not demoted merely because a later historical backfill changes duplicate-chain chronology. The chronological predecessor chain and the active representative decision are therefore separate concerns.
 
-Exact canonical-promotion policy requires representative fixtures/corpus evidence before implementation.
+`knowledge -> canonical` remains future policy and must be driven by semantic authority/current-representation evidence rather than an arbitrary scalar score. Canonical Memories remain supersedable and duplicatable.
 
 ## Supersession
 
@@ -362,15 +359,20 @@ Milestone E currently provides:
 - explicit failure when a duplicate Memory has no authoritative source timestamp;
 - tests proving `Memory.created_at` bookkeeping cannot change duplicate order.
 
-The next end-to-end milestone adds lifecycle consequences and the `extracted -> knowledge` completion transition around the now-working inference/publication pipeline.
+### Phase 7 — lifecycle and first end-to-end processor — implemented
 
-### Phase 7 — duplicate/supersession lifecycle
+Milestone F currently provides:
 
-- derive duplicate observation/history information from the chain;
-- archive non-representative duplicate Memories according to policy;
-- reconcile supersession lifecycle projections;
-- implement the first successful Dream completion transition `extracted -> knowledge`;
-- begin measured canonical-promotion policy only after representative validation.
+- `DreamProcessor` orchestration across candidate retrieval, pair classification, required verification, Graph publication/duplicate-chain handling, and lifecycle completion;
+- no lifecycle completion until every bounded pair has completed successfully;
+- active `extracted -> knowledge` completion, including the zero-candidate case;
+- verified supersession archival with `superseded_by` projected from active Graph authority;
+- conservative duplicate archival: only an `extracted` source with another active representative is automatically archived;
+- no automatic reactivation of previously archived Memories;
+- metadata-only Memory revisions that preserve immutable `MemoryBodyId` semantics;
+- idempotent lifecycle reconciliation.
+
+Graph and Memories retain separate semantic clocks. Graph relationship publication occurs first; lifecycle is a recoverable projection stage. If a later Memory revision fails, retrying lifecycle reconciliation derives the remaining projection from current Graph state, while the source is not marked `knowledge` until reconciliation completes.
 
 ### Phase 8 — deterministic temporal layer
 
@@ -434,7 +436,7 @@ The review has not yet frozen:
 5. exact general temporal index representation beyond the implemented duplicate-chain source-time index;
 6. precise semantics for `references`.
 
-The next implementation milestone is lifecycle completion: apply duplicate/supersession consequences and the first `extracted -> knowledge` Dream completion transition without changing the settled pair-oriented classifier/verifier/publication and duplicate-chain contracts.
+The next implementation milestone is the deterministic temporal layer: source-turn/Episode chronology plus deterministic content-time parsing, relative-time resolution, temporal candidate lookup, and deterministic verification of any later model enrichment.
 
 ## Related docs
 

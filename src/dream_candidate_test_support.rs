@@ -35,6 +35,32 @@ pub(crate) fn memory(
     )
 }
 
+pub(crate) fn memory_extracted(
+    cva: &mut Cva,
+    mutation_id: &str,
+    title: &str,
+    content: &str,
+    timestamp_ns: i64,
+) -> MemoryId {
+    let id = memory_with_created_at(cva, mutation_id, title, content, timestamp_ns, false, 999);
+    let current = cva.memory(id).unwrap();
+    let mut next = draft(
+        mutation_id,
+        title,
+        content,
+        &format!("node-{mutation_id}"),
+        false,
+    );
+    next.lifecycle_state = "extracted".into();
+    next.mutation_id = format!("{mutation_id}-extracted");
+    next.created_at_ns = current.created_at_ns;
+    next.updated_at_ns = current.updated_at_ns + 1;
+    cva.publish_memory(Some(id), current.revision, next)
+        .unwrap()
+        .0
+        .id
+}
+
 pub(crate) fn memory_with_created_at(
     cva: &mut Cva,
     mutation_id: &str,
