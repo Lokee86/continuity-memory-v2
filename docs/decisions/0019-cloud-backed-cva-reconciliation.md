@@ -92,6 +92,8 @@ Examples:
 
 Each purpose-built store remains responsible for deciding whether an imported/replayed record is valid.
 
+This is intentionally owner-explicit rather than a generic store registry. When a new persisted semantic owner is added to the CVA, reconciliation must gain a corresponding decode/replay/validation path before divergent files containing that owner are considered safely mergeable. Derived runtime indexes do not need such a path when they can be rebuilt from authoritative merged state. This keeps reconciliation semantics aligned with each owner's invariants and prevents new systems such as Dream/Graph from being silently dropped during a fresh repack.
+
 ### Derived state should be rebuilt or retired when cheaper and safer
 
 Indexes, vector bindings, caches, and similar derived structures do not need byte-for-byte reconciliation when they can be regenerated from authoritative merged state.
@@ -146,10 +148,11 @@ This is now a functional semantic merge, derived-state cleanup, and safe path-ba
 
 ## Next implementation slices
 
-1. Add provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
-2. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
-3. Add Warlock-side presentation/resolution flows for the structured conflicts; Reliquary remains responsible only for typed conflict semantics.
-4. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, repeated conflict/reconciliation cycles, and provider-mediated file replacement.
+1. Extend owner-explicit replay as new persisted semantic owners land; the immediate incoming case is Dream's Graph state, while Dream's duplicate index remains derived/rebuildable state.
+2. Complete provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
+3. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
+4. Add Warlock-side presentation/resolution flows for the structured conflicts; Reliquary remains responsible only for typed conflict semantics.
+5. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, repeated conflict/reconciliation cycles, and provider-mediated file replacement.
 
 ## Non-goals
 
