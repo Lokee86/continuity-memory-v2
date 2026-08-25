@@ -21,6 +21,7 @@ Implemented now:
 - dual `(global_version, archive_version)` metadata for every semantic Archive mutation;
 - Archive content bodies addressed by SHA-256;
 - synchronous per-turn source ingestion through `Cva::ingest_turn`, with zero-or-more attached files published together with their source-turn provenance;
+- transport-neutral live interaction ingestion through `InteractionRuntime`, with explicit session open/resume, one in-flight streamed message per session, text/attachment assembly, stable parent chaining, user/agent role normalization, idempotent durable replay, and acknowledgement only after `Cva::sync()`;
 - standalone embedded binary files, filename-only lexical search, exact file-byte reads, native source attachment lookup, and explicit file-to-Memory links;
 - generic graph-JSONL development import that drives the per-turn ingestion boundary and can embed filesystem attachments;
 - immutable branch-aware Archive nodes with conversation-local parent ancestry;
@@ -53,7 +54,7 @@ Not implemented yet:
 - ANN search, reranking, search filters, or a broader retrieval-controller policy;
 - quantization metadata/alternate generation-builder encodings;
 - Graph, Dream, Echo, or Ego;
-- the shared long-lived Continuity runtime and continuous live turn capture;
+- long-lived live-session service orchestration, automatic adapter reconnect/resume, continuous inactivity scheduling, and background Memory/vector work;
 - a coherent CVA management API/service or native product UI;
 - ACP/live external interaction adapters and production provider/session importers;
 - product-level file organization, export/management surfaces, and file-content extraction/indexing.

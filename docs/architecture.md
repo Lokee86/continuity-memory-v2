@@ -6,6 +6,10 @@ This document owns the current Continuity Memory v2 implementation boundaries, s
 A `.cva` is one physical file containing explicit concrete owners:
 ```text
 Cva
+├── WorkspaceMetadata
+│   ├── stable workspace ID
+│   ├── display name
+│   └── workspace type
 ├── Container
 │   └── global_version: u64
 ├── Archive
@@ -43,6 +47,9 @@ ContinuityConfig
 ```
 `continuity.cfg` is current-state configuration only. It is not contained in a `.cva`, consumes no semantic clocks, and has no append-only/history semantics.
 ## Responsibilities
+### Workspace metadata
+`WorkspaceMetadataStore` owns one optional singleton workspace identity inside the CVA: stable ID, display name, and extensible workspace-type identifier. `Cva::create_workspace` initializes the record at creation; an ordinary CVA may be initialized exactly once later. Current workspace metadata is clock-neutral and does not participate in Archive, Memory, Vector Generation, or CVA-global semantic ordering. The owner is deliberately not a generic metadata/property store. Rename/type-change history and external-resource bindings are not part of this first slice.
+
 ### Local configuration
 `ContinuityConfig` owns one purpose-built replaceable config file. Logical objects have stable keys and typed payload schemas; replacing a setting rewrites one complete current file image through a temporary-file + atomic-replace lifecycle. Unknown objects are preserved so the object vocabulary can expand. Ordinary objects are unencrypted; credential objects are authenticated encrypted payloads.
 ### Repo-local CLI
@@ -59,7 +66,7 @@ Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file
 Archive owns source-history semantics: content-addressed content bytes, immutable conversation nodes, native source-turn attachments, standalone embedded file manifests, conversation-local parent ancestry, branch/session-head revisions, fragments, immutable deterministic Episodes, explicit file-to-Memory links, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes. A source turn with attachments enters through one `IncomingTurn` ingestion boundary: body and attachment bytes may be staged as content-addressed backing objects, but the node, attached file manifests, and source provenance become semantically visible together under one Archive publication. Source attachment provenance is therefore part of the source event, not a generic association operation. Later file-to-Memory relationships remain explicit stable-ID links and do not transfer file ownership to Memories.
 `archive_version` is a whole-Archive mutation cut. It is not conversation ancestry.
 
-The current source-ingestion execution boundary is synchronous and library-level: callers can submit one complete source turn at a time, and the repo-local graph-JSONL importer drives that boundary once per node. No long-lived live-ingestion service, transport adapter, CVA management service, or native product UI exists in the current implementation; those gaps are owned by [Current limitations](current-limitations.md) and future work by [Roadmap](roadmap.md).
+The current source-ingestion execution boundary has two library-level seams. `Cva::ingest_turn` is the Archive-facing primitive. `InteractionRuntime` is the transport-neutral product/runtime seam: callers explicitly open a new session or resume an existing one from a durable message ID, assemble one in-flight user/agent message from text deltas plus complete attachments, and complete it into one durable `InteractionTurn`. Session identity maps to Archive conversation identity, message identity maps to node identity, the current durable session leaf becomes the next message parent, normalized `User`/`Agent` roles map to Archive `user`/`assistant`, and success is returned only after `Cva::sync()` completes. In-flight message buffers are runtime-only and never become source history until completion. Existing Archive history requires an explicit resume cursor rather than silently creating another conversation root. Episode scheduling remains outside the acknowledgement transaction. `complete_live_message` returns the durable source receipt first and carries size-driven scheduling as an independent result; inactivity finalization remains a separate runtime scheduling operation. No long-lived host loop, automatic adapter reconnect/resume coordinator, external adapter, workspace management surface, or Warlock product integration exists yet; those gaps are owned by [Current limitations](current-limitations.md) and future work by [Roadmap](roadmap.md). The intended product composition is one CVA per Warlock workspace with Continuity linked into the Warlock Rust application core; see [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
 
 Episodes are contiguous ancestry ranges made from whole user-led response cycles. They are finalized by size, 15-minute configurable inactivity, finite-import end, or the narrow `create_memory` request. Finalizing an Episode never closes its conversation. No semantic topic detector participates in Episode identity.
 
@@ -220,9 +227,11 @@ G103 / A701   Archive mutation
 | model switchboard/provider capabilities/auth binding | `src/model_switchboard*.rs`, `src/model_auth.rs` |
 | master key / temporary key store | `src/master_key*.rs` |
 | CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
+| workspace identity/type | `src/workspace_metadata*.rs`, `src/cva_workspace.rs` |
 | physical Container/global clock | `src/container*.rs` |
 | Archive/history/fragments/Episodes | `src/archive*.rs`, `src/fragment*.rs`, `src/episode*.rs` |
 | native turn/file ingestion | `src/turn_ingest_*.rs`, `src/source_attachment_index.rs`, `src/file*.rs`, `src/cva_turn_ingest.rs`, `src/cva_file_memory.rs` |
+| normalized interaction/runtime seam | `src/interaction_model.rs`, `src/interaction_error.rs`, `src/interaction_runtime.rs`, `src/interaction_session.rs`, `src/interaction_stream.rs` |
 | Memories | `src/memory*.rs` |
 | Insomnia extraction/processing/operational scheduling | `src/insomnia.rs`, `src/insomnia/**/*.rs` |
 | packed matrices | `src/packed_vector_*.rs` |
@@ -243,5 +252,6 @@ G103 / A701   Archive mutation
 - [ADR 0011](decisions/0011-detachable-repo-local-cli.md)
 - [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
 - [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
+- [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md)
 ## Notes
 Unimplemented behavior is tracked in [Current limitations](current-limitations.md); future implementation sequencing is tracked only in [Roadmap](roadmap.md).

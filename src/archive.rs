@@ -123,6 +123,12 @@ impl Archive {
         self.nodes.get(conversation_id, node_id).is_some()
     }
 
+    pub(crate) fn has_conversation(&self, conversation_id: &str) -> bool {
+        self.nodes
+            .iter()
+            .any(|node| node.conversation_id == conversation_id)
+    }
+
     pub fn stats(&self) -> ArchiveStats {
         ArchiveStats {
             content_objects: self.contents.len(),

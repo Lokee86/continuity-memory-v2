@@ -12,33 +12,31 @@ Future work is organized around productization first, with intelligence quality 
 
 ## Product direction
 
-Continuity is moving from a storage/retrieval substrate toward a usable commercial product for both technical and non-technical users.
+Continuity is moving from a storage/retrieval substrate toward the durable workspace/context layer of the broader Warlock product.
 
-The primary user experience will be a native Continuity interface backed by a shared long-lived runtime. External agent protocols such as ACP are interoperability adapters into that runtime, not prerequisites for using the product and not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
+One CVA maps to one Warlock workspace. Warlock owns the native application surface and long-lived application orchestration; Continuity remains the Rust semantic/storage subsystem linked into that application core. External agent protocols such as ACP remain interoperability adapters into the same normalized interaction seam and are not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
 
 ## Near-term productization sequence
 
 ### 1. Shared live interaction runtime
 
-Build one long-lived runtime that owns live session execution and normalizes incoming interaction events before they reach semantic storage owners.
+Deliver long-lived live-session execution and orchestration above the normalized interaction boundary.
 
 Required behavior:
 
-- accept individual live user/agent interaction events rather than requiring batch import;
-- preserve stable session/conversation identity across reconnect/resume;
-- normalize completed messages, attachments/artifacts, and supported tool/session events without making any transport protocol semantically authoritative;
-- assemble streamed messages into one documented durable publication boundary;
-- schedule inactivity/size-driven Episode work continuously;
+- automate adapter reconnect/resume and adapter migration around the explicit durable session/message cursor;
+- define normalization/ownership for supported tool events, session events, and generated artifacts without making any transport protocol semantically authoritative;
+- wake and finalize inactivity-driven Episode work continuously;
 - run Memory/vector work continuously in the background;
 - cache verified model/embedding capabilities safely;
 - expose the narrow explicit memory-control operations needed by hosts;
 - define heartbeat, cancellation, retry, and shutdown behavior for long-running inference work.
 
-### 2. CVA management API
+### 2. Workspace/CVA application API
 
-Expose coherent user-facing administration without introducing a generalized database abstraction.
+Expose the concrete Rust operations Warlock needs to manage one CVA-backed workspace without introducing a generalized database abstraction or mandatory service layer.
 
-The management surface should compose explicit owner operations for:
+The application surface should compose explicit owner operations for:
 
 - conversation/session inventory and inspection;
 - file inventory, import, export, source provenance, and later organization;
@@ -49,32 +47,31 @@ The management surface should compose explicit owner operations for:
 
 The management layer must remain an application/service surface over concrete owners, not a new semantic owner or generic mutable object store.
 
-### 3. Native Continuity interface
+### 3. Warlock host integration
 
-Build the first direct product surface over the shared runtime and management API.
+Integrate Continuity directly into the Warlock Rust application core and make the CVA the durable workspace file.
 
-The initial interface should make a CVA useful without exposing storage internals:
+Purpose-built workspace metadata (stable ID, display name, and workspace type) is now implemented in Continuity. Remaining initial host work should provide:
 
-- workspace/project selection;
-- conversational agent surface;
-- conversation/history browser;
-- file browser;
-- Memory/knowledge browser;
+- create/open/close/reopen Warlock workspace lifecycle around that CVA identity;
+- conversation/session access;
+- file/artifact access;
+- Memory/knowledge access;
 - provenance/history inspection;
-- agent/model selection and configuration;
+- model/agent configuration seams required by the host; and
 - basic health/status visibility.
 
-The interface should be useful to a non-developer without requiring ACP, MCP, a terminal, an IDE, or knowledge of CVA internals.
+The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Continuity lifecycle semantics directly.
 
 ### 4. ACP interoperability adapter
 
-Implement ACP as a first-class external agent/client adapter over the same live runtime used by the native interface.
+Implement ACP as a first-class external agent/client adapter over the same live runtime used by the Warlock-native interaction path.
 
 Required work includes:
 
 - map ACP session/message identity onto the normalized interaction/session contract;
 - capture supported observable messages, attachments, tool events, and surfaced reasoning without treating ACP metadata as semantic authority;
-- define streamed-message assembly and acknowledgement durability;
+- map ACP stream/update semantics onto the shared runtime's completed-message assembly and durable acknowledgement boundary;
 - support retrieval/context injection without rewriting authoritative source events;
 - define reconnect/resume and fail-open/fail-closed behavior;
 - isolate Draft/protocol churn inside the adapter;
@@ -120,11 +117,10 @@ Add product-level file usability:
 
 Continue Insomnia quality work independently from product-surface construction:
 
-1. integrate the two-pass authority/disposition architecture into the authoritative runtime so pass 1 owns disposition, authority, lifecycle, provenance, and other selected semantic metadata while pass 2 is restricted to faithful wording/consolidation;
-2. verify the integrated runtime against the focused tuning fixture, including mixed-turn omission/retention and provenance ownership boundaries;
-3. run the large corpus only as a milestone confirmation after the integrated path is stable;
-4. tune synthesis-model/reasoning cost and throughput only after the ownership split is verified;
-5. recalibrate worker concurrency for the selected production model mix rather than carrying forward an older optimum by assumption.
+1. verify the integrated two-pass runtime against the focused tuning fixture, including mixed-turn omission/retention and provenance ownership boundaries;
+2. run the large corpus only as a milestone confirmation after the integrated path is stable;
+3. tune synthesis-model/reasoning cost and throughput only after the ownership split is verified;
+4. recalibrate worker concurrency for the selected production model mix rather than carrying forward an older optimum by assumption.
 
 Do not add a general third semantic-review pass or broader retrieval unless a measured failure demonstrates a distinct need.
 
@@ -162,11 +158,11 @@ Whole-CVA historical recovery has its own future-only plan in [Versioning, histo
 
 ### Usable local product
 
-A non-developer can create/open a user-owned CVA, converse through the native interface, add/view/export files, browse conversations and durable knowledge, and understand basic provenance without CLI use.
+A non-developer can create/open a Warlock workspace backed by a user-owned CVA, converse through Warlock, add/view/export files, browse conversations and durable knowledge, and understand basic provenance without CLI use.
 
 ### Interoperable product
 
-The same CVA can receive equivalent normalized interaction history from the native interface and at least one external agent protocol adapter without protocol-specific semantic records.
+The same CVA can receive equivalent normalized interaction history from the Warlock-native interaction path and at least one external agent protocol adapter without protocol-specific semantic records.
 
 ### Durable live product
 
@@ -178,11 +174,9 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 
 ## Open decisions
 
-- User-facing workspace/project model and whether one CVA maps one-to-one to that concept.
-- Exact normalized interaction/session event vocabulary above Archive ingestion.
-- Native UI/runtime process topology and local IPC boundary.
+- Normalized interaction vocabulary for tool/session/artifact events beyond completed user/agent turns.
+- Whether any future headless/remote product mode justifies adding a service/IPC boundary around the in-process Rust integration.
 - Which CVA mutations are safe to expose as direct user actions before whole-history retention semantics exist.
-- Streaming acknowledgement point: before or after durable source publication.
 - Adapter failure policy and privacy controls for automatic capture.
 - File path/tree ownership and rename/move identity semantics.
 - Artifact provenance vocabulary across uploaded, generated, imported, and provider-managed artifacts.
@@ -197,6 +191,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - [ADR 0014](decisions/0014-echo-historical-reasoning-traces.md)
 - [ADR 0015](decisions/0015-acp-inline-interaction-stream.md)
 - [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
+- [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md)
 
 ## Notes
 

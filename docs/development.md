@@ -25,6 +25,7 @@ src/cva*.rs                         composition/public CVA lifecycle
 src/container*.rs                   physical CVA substrate/global ordering
 src/archive*.rs / fragment*.rs      Archive semantics/history/fragments
 src/turn_ingest*.rs / file*.rs      native source-turn attachments + embedded files
+src/interaction_*.rs                normalized live session/stream runtime seam
 src/episode*.rs                     deterministic Archive Episodes
 src/memory*.rs                      authoritative Memory bodies/revisions
 src/insomnia.rs / insomnia/**       extraction, evidence, scheduling, finite worker
@@ -385,4 +386,4 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 
 ## Notes
 
-The current library has a synchronous per-turn ingestion primitive and the development graph importer can drive it, but no long-lived live-ingestion runtime, CVA management service, native product UI, ACP adapter, or production provider/session importer exists yet. Additional provider-native/local adapters and Codex OAuth token refresh are also absent; future sequencing is owned by [Roadmap](roadmap.md).
+The current library has a synchronous per-turn ingestion primitive and transport-neutral interaction seam, but no long-lived Warlock host loop, workspace/CVA application surface, Warlock product integration, ACP adapter, or production provider/session importer exists yet. Additional provider-native/local adapters and Codex OAuth token refresh are also absent; future sequencing is owned by [Roadmap](roadmap.md).

@@ -47,6 +47,7 @@ mod cva_memory_vectors;
 mod cva_packed_vectors;
 mod cva_turn_ingest;
 mod cva_vector_generations;
+mod cva_workspace;
 mod embedding_endpoint;
 mod episode_builder;
 mod episode_codec;
@@ -66,6 +67,11 @@ mod fragment_store;
 mod fragmenter;
 mod general_endpoint;
 mod insomnia;
+mod interaction_error;
+mod interaction_model;
+mod interaction_runtime;
+mod interaction_session;
+mod interaction_stream;
 mod lexical_index;
 mod lexical_search;
 mod master_key;
@@ -109,6 +115,10 @@ mod vector_generation_model;
 mod vector_generation_rebuild;
 mod vector_generation_store;
 mod vector_generation_validation;
+mod workspace_metadata;
+mod workspace_metadata_codec;
+mod workspace_metadata_rebuild;
+mod workspace_metadata_store;
 
 pub use archive::Archive;
 pub use archive_error::ArchiveError;
@@ -156,6 +166,11 @@ pub use insomnia::{
     MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS, MAX_INSOMNIA_WORKERS,
     insomnia_schema,
 };
+pub use interaction_error::InteractionError;
+pub use interaction_model::{
+    InteractionAttachment, InteractionRole, InteractionSession, InteractionTurn,
+};
+pub use interaction_runtime::{InteractionCompletion, InteractionReceipt, InteractionRuntime};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
     JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,
@@ -198,6 +213,10 @@ pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
 pub use turn_ingest_model::{IncomingAttachment, IncomingTurn, IngestedTurn};
 pub use vector_generation_error::VectorGenerationError;
 pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
+pub use workspace_metadata::{
+    MAX_WORKSPACE_ID_BYTES, MAX_WORKSPACE_NAME_BYTES, MAX_WORKSPACE_TYPE_BYTES, WorkspaceMetadata,
+    WorkspaceMetadataError,
+};
 
 #[cfg(test)]
 mod archive_inventory_tests;
@@ -223,6 +242,10 @@ mod file_tests;
 mod fragment_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod interaction_runtime_tests;
+#[cfg(test)]
+mod interaction_session_tests;
 #[cfg(test)]
 mod lexical_index_tests;
 #[cfg(test)]
@@ -253,3 +276,5 @@ mod turn_ingest_tests;
 mod vector_generation_tests;
 #[cfg(test)]
 mod vector_generation_validation_tests;
+#[cfg(test)]
+mod workspace_metadata_tests;

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24.
+Accepted — 2026-08-24. The shared transport-neutral interaction/runtime decision remains accepted; the standalone native-Continuity-UI product direction is superseded by ADR 0017.
 
 ## Context
 
@@ -115,10 +115,9 @@ The shared runtime coordinates these owners but does not replace them.
 
 ## Open implementation decisions
 
-- exact normalized interaction/session event vocabulary;
+- normalized interaction vocabulary beyond completed user/agent turns, especially tool/session/artifact events;
 - process topology for native UI, runtime, and local IPC;
-- durable acknowledgement point for streamed interactions;
-- session identity across reconnect/resume and adapter migration;
+- automatic adapter reconnect/resume and adapter migration around the explicit durable resume cursor;
 - which tool/session events belong in source history versus separate future owners;
 - native project/workspace semantics and their relationship to one or more CVAs;
 - management mutation permissions before full historical retention/rollback exists;

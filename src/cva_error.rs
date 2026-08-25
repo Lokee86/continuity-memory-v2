@@ -1,6 +1,7 @@
 use crate::{
     ArchiveError, ArchiveVectorError, CompatibilityProfileError, ContainerError, InsomniaError,
     MemoryError, MemoryVectorError, PackedVectorError, VectorGenerationError,
+    WorkspaceMetadataError,
 };
 use std::fmt;
 
@@ -15,6 +16,7 @@ pub enum CvaError {
     ArchiveVectors(ArchiveVectorError),
     CompatibilityProfiles(CompatibilityProfileError),
     VectorGenerations(VectorGenerationError),
+    WorkspaceMetadata(WorkspaceMetadataError),
     SemanticGlobalVersionConflict(u64),
 }
 
@@ -30,6 +32,7 @@ impl fmt::Display for CvaError {
             Self::ArchiveVectors(error) => write!(f, "{error}"),
             Self::CompatibilityProfiles(error) => write!(f, "{error}"),
             Self::VectorGenerations(error) => write!(f, "{error}"),
+            Self::WorkspaceMetadata(error) => write!(f, "{error}"),
             Self::SemanticGlobalVersionConflict(version) => {
                 write!(
                     f,
@@ -61,3 +64,4 @@ from_error!(MemoryVectorError, MemoryVectors);
 from_error!(ArchiveVectorError, ArchiveVectors);
 from_error!(CompatibilityProfileError, CompatibilityProfiles);
 from_error!(VectorGenerationError, VectorGenerations);
+from_error!(WorkspaceMetadataError, WorkspaceMetadata);

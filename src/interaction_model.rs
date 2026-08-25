@@ -1,0 +1,65 @@
+use crate::{IncomingAttachment, IncomingTurn};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InteractionRole {
+    User,
+    Agent,
+}
+
+impl InteractionRole {
+    pub(crate) fn archive_role(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Agent => "assistant",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InteractionAttachment {
+    pub filename: String,
+    pub mime_type: Option<String>,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InteractionTurn {
+    pub message_id: String,
+    pub session_id: String,
+    pub parent_message_id: Option<String>,
+    pub role: InteractionRole,
+    pub timestamp_ns: i64,
+    pub content: String,
+    pub attachments: Vec<InteractionAttachment>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InteractionSession {
+    pub session_id: String,
+    pub leaf_message_id: Option<String>,
+    pub message_in_progress: Option<String>,
+}
+
+impl From<InteractionAttachment> for IncomingAttachment {
+    fn from(value: InteractionAttachment) -> Self {
+        Self {
+            filename: value.filename,
+            mime_type: value.mime_type,
+            bytes: value.bytes,
+        }
+    }
+}
+
+impl From<InteractionTurn> for IncomingTurn {
+    fn from(value: InteractionTurn) -> Self {
+        Self {
+            id: value.message_id,
+            conversation_id: value.session_id,
+            parent_id: value.parent_message_id,
+            role: value.role.archive_role().into(),
+            timestamp_ns: value.timestamp_ns,
+            content: value.content,
+            attachments: value.attachments.into_iter().map(Into::into).collect(),
+        }
+    }
+}

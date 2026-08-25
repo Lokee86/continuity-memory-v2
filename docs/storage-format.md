@@ -25,6 +25,23 @@ N bytes payload
 u64       global version
 ```
 Global versions begin at `1` and are semantically consecutive. Ordinary semantic owners persist one `CVAVERS1` ticket per version. `CVAINSC2` is the exception: it owns a contiguous embedded global-version range for the Memory records inside that completion transaction, so those versions do not require standalone ticket chunks. Global versions order semantic mutations across concrete databases; immutable backing objects do not independently consume versions.
+
+### Workspace metadata
+Format marker:
+```text
+8 bytes   "CVAWKFM1"
+```
+
+Optional singleton metadata record:
+```text
+8 bytes   "CVAWKSP1"
+string    stable workspace ID
+string    display name
+string    workspace type
+```
+
+A current-format CVA created by `Cva::create` contains the workspace format marker even when no metadata record has been initialized. `Cva::create_workspace` appends exactly one metadata record. Existing CVAs that predate this owner may reopen without the marker; initializing workspace metadata on such a CVA first appends the marker and then the singleton record. Duplicate metadata records are rejected. Workspace metadata is purpose-built current workspace identity, not a generic property bag, and consumes no semantic/global version ticket.
+
 ### Archive records
 Format marker:
 ```text
@@ -349,7 +366,7 @@ N bytes UTF-8
 ## Historical semantics
 Archive, Memories, and Vector Generations have independent local watermarks. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
-`Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Earlier development formats are rejected rather than migrated.
+`Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Workspace metadata is the compatibility exception: pre-workspace CVAs may omit `CVAWKFM1`, while current `Cva::create` writes it exactly once. Earlier incompatible development formats for the existing required stores are rejected rather than migrated.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
