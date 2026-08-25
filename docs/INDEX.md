@@ -2,7 +2,7 @@
 
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
-- [Storage format](storage-format.md) — exact current CVA and Archive record format.
+- [Storage format](storage-format.md) — exact current CVA/Archive record format plus the planned `.rel`/`.phy` transition boundary.
 - [Local configuration](configuration.md) — replaceable local config format, durability, and security boundary.
 - [Rust API](api.md) — current public library surface and behavior.
 - [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.

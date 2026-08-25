@@ -3,7 +3,16 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The development format is one append-only CVA file containing Archive source/history records, embedded files, Memories, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
+The development format is one append-only CVA file containing Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
+
+## Planned product file-kind transition — not implemented
+
+The current exact contract below remains `.cva`. ADR 0020 establishes the future user-facing file identities **Reliquary `.rel`** and **Phylactery `.phy`** without changing the current bytes yet.
+
+The two future file kinds are expected to reuse common framing, recovery, versioning, Memory, vector, graph, and compaction primitives while enforcing different semantic validity rules and owner composition. Reliquary is project/workspace state; Phylactery is user-global Identity state and must remain valid without retained project source turns.
+
+The file kind must eventually be encoded in the physical format rather than inferred only from the extension. Existing `.cva` files are treated as legacy Reliquary data and should migrate to `.rel` without gratuitously changing deterministic IDs, existing record payloads, or semantic history. Exact header magic/versioning and migration mechanics remain future implementation work. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md).
+
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
 ### CVA header
@@ -41,6 +50,27 @@ string    workspace type
 ```
 
 A current-format CVA created by `Cva::create` contains the workspace format marker even when no metadata record has been initialized. `Cva::create_workspace` appends exactly one metadata record. Existing CVAs that predate this owner may reopen without the marker; initializing workspace metadata on such a CVA first appends the marker and then the singleton record. Duplicate metadata records are rejected. Workspace metadata is purpose-built current workspace identity, not a generic property bag, and consumes no semantic/global version ticket.
+
+### Interaction-stream checkpoints
+
+Interaction-stream checkpoint:
+```text
+8 bytes   "CVAISTR1"
+string    message ID
+string    session/conversation ID
+u8        parent present: 0=false, 1=true
+optional  string parent message ID
+u8        role: 0=User, 1=Agent
+i64       timestamp_ns
+u8        status: 0=Streaming, 1=Interrupted
+string    cumulative UTF-8 content
+```
+
+Strings in this record use `u32 byte_length + UTF-8 bytes`. Interaction-stream records are append-only checkpoint revisions keyed by message ID; reopening keeps the latest valid revision for each message. Metadata is immutable across revisions and content must be append-only. `Interrupted` is terminal within one physical history.
+
+These records are durable transcript state, not Archive semantic records. They consume no `CVAVERS1`, Archive version, Memory version, or Vector Generation version. A live runtime may expose the latest `Streaming` checkpoint as streaming only while the matching in-memory message is still active; after restart that same on-disk record is interpreted as interrupted. If the same message ID later exists as a completed Archive node, transcript resolution suppresses the checkpoint copy and uses the completed Archive turn.
+
+Divergent CVA reconciliation retains and merges interaction-stream records independently of Archive semantic history. Compatible prefix histories keep the longest visible content and retain `Interrupted` if either side recorded interruption; non-prefix text or immutable-metadata divergence is rejected rather than silently discarding user-visible output.
 
 ### Archive records
 Format marker:

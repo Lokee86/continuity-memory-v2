@@ -2,6 +2,7 @@ use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::cva_reconcile_archive::{
     read_archive_tail, replay_archive_tail, replay_file_memory_links,
 };
+use crate::cva_reconcile_interaction::{merge_interaction_streams, replay_interaction_streams};
 use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
 use crate::{CompatibilityProfile, Cva, CvaReconcileError};
 use std::fs;
@@ -28,10 +29,15 @@ pub(crate) fn reconcile_diverged(
     let right_memory = read_memory_tail(&mut right, comparison.common_chunk_count)?;
     let left_profiles = left.compatibility_profiles();
     let right_profiles = right.compatibility_profiles();
+    let (interaction_streams, right_stream_change) = merge_interaction_streams(
+        left.interaction_stream_records(),
+        right.interaction_stream_records(),
+    )?;
 
     let merge_result = (|| {
         let mut output = Cva::create_workspace(output_path, metadata)?;
         replay_profiles(&mut output, left_profiles)?;
+        replay_interaction_streams(&mut output, interaction_streams)?;
         replay_archive_tail(&mut output, &left_archive)?;
         replay_memory_tail(&mut output, left_memory)?;
         replay_file_memory_links(&mut output, &left_archive.file_memory_links)?;
@@ -42,7 +48,8 @@ pub(crate) fn reconcile_diverged(
         let memory_result = replay_memory_tail(&mut output, right_memory)?;
         let file_memory_links =
             replay_file_memory_links(&mut output, &right_archive.file_memory_links)?;
-        let canonical_change_required = output.container.chunks()?.len() > before_right;
+        let canonical_change_required =
+            output.container.chunks()?.len() > before_right || right_stream_change;
 
         output.sync()?;
         drop(output);

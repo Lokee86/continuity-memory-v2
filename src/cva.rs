@@ -2,6 +2,7 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::insomnia::store::InsomniaStore;
+use crate::interaction_stream_store::InteractionStreamStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
@@ -27,6 +28,7 @@ pub struct Cva {
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
     pub(crate) vector_generations: VectorGenerationStore,
     pub(crate) workspace_metadata: WorkspaceMetadataStore,
+    pub(crate) interaction_streams: InteractionStreamStore,
 }
 
 impl Cva {
@@ -254,6 +256,24 @@ impl Cva {
 
     pub fn file_bytes(&mut self, id: FileId) -> Result<Vec<u8>, ArchiveError> {
         self.archive.file_bytes(&mut self.container, id)
+    }
+
+    pub(crate) fn put_interaction_stream(
+        &mut self,
+        record: crate::InteractionStreamRecord,
+    ) -> Result<(), CvaError> {
+        self.interaction_streams.put(&mut self.container, record)
+    }
+
+    pub(crate) fn interaction_streams_for_session(
+        &self,
+        session_id: &str,
+    ) -> Vec<crate::InteractionStreamRecord> {
+        self.interaction_streams.records_for_session(session_id)
+    }
+
+    pub(crate) fn interaction_stream_records(&self) -> Vec<crate::InteractionStreamRecord> {
+        self.interaction_streams.all_records()
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

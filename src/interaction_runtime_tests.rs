@@ -1,4 +1,7 @@
-use crate::{Cva, InteractionAttachment, InteractionRole, InteractionRuntime, InteractionTurn};
+use crate::{
+    Cva, InteractionAttachment, InteractionRole, InteractionRuntime, InteractionTurn,
+    InteractionTurnStatus,
+};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -88,4 +91,74 @@ fn normalized_agent_role_maps_to_archive_assistant_role() {
     assert_eq!(receipt.turn.node.role, "assistant");
     assert_eq!(receipt.turn.node.parent_id.as_deref(), Some("message-1"));
     assert_eq!(receipt.archive_version, 2);
+}
+
+#[test]
+fn checkpointed_stream_survives_reopen_as_interrupted() {
+    let path = test_path();
+    let cva = Cva::create(&path).unwrap();
+    let mut runtime = InteractionRuntime::new(cva);
+    runtime.open_session("session-1".into(), None).unwrap();
+    runtime
+        .begin_message("session-1", "message-1".into(), InteractionRole::User, 1)
+        .unwrap();
+    runtime
+        .append_text("session-1", "message-1", "Start")
+        .unwrap();
+    runtime.complete_message("session-1", "message-1").unwrap();
+    runtime
+        .begin_message("session-1", "message-2".into(), InteractionRole::Agent, 2)
+        .unwrap();
+    runtime
+        .append_checkpointed_text("session-1", "message-2", "Partial answer")
+        .unwrap();
+
+    let live = runtime
+        .conversation_transcript("session-1", "message-1")
+        .unwrap();
+    assert_eq!(live.len(), 2);
+    assert_eq!(live[1].content, "Partial answer");
+    assert_eq!(live[1].status, InteractionTurnStatus::Streaming);
+    drop(runtime);
+
+    let cva = Cva::open(path).unwrap();
+    let mut reopened = InteractionRuntime::new(cva);
+    reopened
+        .open_session("session-1".into(), Some("message-1".into()))
+        .unwrap();
+    let recovered = reopened
+        .conversation_transcript("session-1", "message-1")
+        .unwrap();
+    assert_eq!(recovered.len(), 2);
+    assert_eq!(recovered[1].content, "Partial answer");
+    assert_eq!(recovered[1].status, InteractionTurnStatus::Interrupted);
+}
+
+#[test]
+fn completed_stream_replaces_checkpoint_without_duplicate_transcript_turn() {
+    let path = test_path();
+    let cva = Cva::create(path).unwrap();
+    let mut runtime = InteractionRuntime::new(cva);
+    runtime.open_session("session-1".into(), None).unwrap();
+    runtime
+        .begin_message("session-1", "message-1".into(), InteractionRole::User, 1)
+        .unwrap();
+    runtime
+        .append_text("session-1", "message-1", "Start")
+        .unwrap();
+    runtime.complete_message("session-1", "message-1").unwrap();
+    runtime
+        .begin_message("session-1", "message-2".into(), InteractionRole::Agent, 2)
+        .unwrap();
+    runtime
+        .append_checkpointed_text("session-1", "message-2", "Complete answer")
+        .unwrap();
+    runtime.complete_message("session-1", "message-2").unwrap();
+
+    let transcript = runtime
+        .conversation_transcript("session-1", "message-2")
+        .unwrap();
+    assert_eq!(transcript.len(), 2);
+    assert_eq!(transcript[1].content, "Complete answer");
+    assert_eq!(transcript[1].status, InteractionTurnStatus::Complete);
 }

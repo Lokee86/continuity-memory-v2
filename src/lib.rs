@@ -52,6 +52,7 @@ mod cva_reconcile_archive;
 mod cva_reconcile_conflict;
 mod cva_reconcile_conflict_map;
 mod cva_reconcile_error;
+mod cva_reconcile_interaction;
 mod cva_reconcile_memory;
 mod cva_reconcile_promote;
 mod cva_reconcile_repack;
@@ -82,6 +83,10 @@ mod interaction_model;
 mod interaction_runtime;
 mod interaction_session;
 mod interaction_stream;
+mod interaction_stream_codec;
+mod interaction_stream_persistence;
+mod interaction_stream_record;
+mod interaction_stream_store;
 mod lexical_index;
 mod lexical_search;
 mod master_key;
@@ -184,6 +189,10 @@ pub use interaction_model::{
     InteractionAttachment, InteractionRole, InteractionSession, InteractionTurn,
 };
 pub use interaction_runtime::{InteractionCompletion, InteractionReceipt, InteractionRuntime};
+pub use interaction_stream_record::{
+    InteractionStreamRecord, InteractionStreamStatus, InteractionTurnStatus,
+    ResolvedInteractionTurn,
+};
 pub use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 pub use master_key::{
     JsonMasterKeyStore, MASTER_KEY_BYTES, MasterKey, MasterKeyError, MasterKeyStore,

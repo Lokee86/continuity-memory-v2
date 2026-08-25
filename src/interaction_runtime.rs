@@ -1,7 +1,8 @@
 use crate::interaction_session::SessionState;
 use crate::{
     ArchiveError, ConversationSummary, Cva, CvaError, EpisodePolicy, EpisodeSchedulingResult,
-    IngestedTurn, InteractionError, InteractionTurn, ResolvedTurn,
+    IngestedTurn, InteractionError, InteractionStreamStatus, InteractionTurn,
+    InteractionTurnStatus, ResolvedInteractionTurn, ResolvedTurn,
 };
 use std::collections::HashMap;
 
@@ -79,6 +80,60 @@ impl InteractionRuntime {
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
         self.cva.conversation_turns(conversation_id, leaf_node_id)
+    }
+
+    pub fn conversation_transcript(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<ResolvedInteractionTurn>, ArchiveError> {
+        let durable = self.cva.conversation_turns(conversation_id, leaf_node_id)?;
+        let path_ids = durable
+            .iter()
+            .map(|turn| turn.node_id.clone())
+            .collect::<std::collections::HashSet<_>>();
+        let mut transcript = durable
+            .into_iter()
+            .map(|turn| ResolvedInteractionTurn {
+                message_id: turn.node_id,
+                role: turn.role,
+                timestamp_ns: turn.timestamp_ns,
+                content: turn.content,
+                status: InteractionTurnStatus::Complete,
+            })
+            .collect::<Vec<_>>();
+        for record in self.cva.interaction_streams_for_session(conversation_id) {
+            if self
+                .cva
+                .archive()
+                .has_node(conversation_id, &record.message_id)
+            {
+                continue;
+            }
+            if let Some(parent) = record.parent_message_id.as_deref() {
+                if !path_ids.contains(parent) {
+                    continue;
+                }
+            }
+            let actively_streaming = self
+                .sessions
+                .get(conversation_id)
+                .and_then(|state| state.in_flight.as_ref())
+                .is_some_and(|message| message.message_id == record.message_id);
+            let status = match (record.status, actively_streaming) {
+                (InteractionStreamStatus::Streaming, true) => InteractionTurnStatus::Streaming,
+                _ => InteractionTurnStatus::Interrupted,
+            };
+            transcript.push(ResolvedInteractionTurn {
+                message_id: record.message_id,
+                role: record.role.archive_role().into(),
+                timestamp_ns: record.timestamp_ns,
+                content: record.content,
+                status,
+            });
+        }
+        transcript.sort_by_key(|turn| turn.timestamp_ns);
+        Ok(transcript)
     }
 
     pub fn cva(&self) -> &Cva {

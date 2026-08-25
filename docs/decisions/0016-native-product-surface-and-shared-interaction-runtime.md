@@ -62,6 +62,21 @@ Native UI events, ACP events, historical imports, and future protocol/provider a
 
 The runtime is responsible for live concerns such as session identity, stream assembly, acknowledgement/durability policy, adapter lifecycle, background work orchestration, capability caching, and context-injection coordination. It does not become a new semantic database.
 
+### User-visible streaming crosses a durability boundary
+
+The shared runtime distinguishes **transcript durability** from **semantic completion authority**.
+
+Assistant text that has already been exposed to a user must not disappear merely because provider execution later fails or the host process exits. The runtime therefore supports append-only interaction-stream checkpoints inside the same CVA. A host must synchronize a checkpoint before exposing its corresponding text.
+
+A checkpointed stream is not an Archive source turn. While the matching in-memory message is active it is `Streaming`; explicit provider failure records `Interrupted`; a persisted `Streaming` checkpoint recovered without its live runtime is also interpreted as interrupted. Only successful message completion publishes the same stable message ID into Archive and makes the response eligible for ordinary Episode/Insomnia/Dream semantics.
+
+This preserves both required truths:
+
+- the transcript accurately retains text the user actually saw; and
+- incomplete model output does not become completed semantic authority merely because it was durable.
+
+The journal is clock-neutral with respect to Archive/Memory/Vector semantic versions and participates in CVA reconciliation so cloud conflict handling cannot silently erase already-visible partial output.
+
 ### ACP is an interoperability adapter
 
 ADR 0015 continues to govern the capture semantics of ACP-compatible sessions: observable events can be captured automatically, hidden provider state cannot be fabricated, and ordinary transcript persistence must not depend on model tool use.

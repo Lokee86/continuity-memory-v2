@@ -19,3 +19,4 @@
 - [ADR 0017: CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md) — **Accepted**, 2026-08-24.
 - [ADR 0018: Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md) — **Accepted**, 2026-08-24.
 - [ADR 0019: Cloud-backed CVA reconciliation](0019-cloud-backed-cva-reconciliation.md) — **Accepted; implementation in progress**, 2026-08-24.
+- [ADR 0020: Reliquary and Phylactery file kinds](0020-reliquary-and-phylactery-file-kinds.md) — **Accepted for product file identity and semantic separation; physical details provisional**, 2026-08-24.

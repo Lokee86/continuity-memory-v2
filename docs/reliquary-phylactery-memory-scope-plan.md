@@ -23,9 +23,13 @@ Inactive project memories do not participate in ordinary retrieval. Mothballing 
 
 ## Storage direction
 
-Project memory remains the provenance-rich CVA-backed system already being built. It can retain Archive turns, Episodes, authoritative source/grounding relationships, Memories, vectors, and later graph/Dream state.
+Project memory remains the provenance-rich container system already being built. Its long-term product file identity is **Reliquary `.rel`**. It can retain Archive turns, Episodes, authoritative source/grounding relationships, Memories, vectors, and later graph/Dream state.
 
-User memory is **Phylactery**, a separate purpose-built CVA-type storage profile rather than a Reliquary with fields removed. It is not merely a project CVA with missing fields. Its expected core is the durable user Memory web plus the indexes/graph/vector structures required to retrieve and maintain it.
+User memory is **Phylactery `.phy`**, a distinct semantic file kind rather than a Reliquary with fields removed. It is not merely a project container with missing fields. Its expected core is the durable user Memory web plus the indexes/graph/vector structures required to retrieve and maintain it.
+
+Reliquary and Phylactery should share the same low-level container/storage machinery wherever the mechanics are genuinely common. Their semantic file kind, validity rules, and permitted owner composition remain distinct. The physical file must eventually encode `Reliquary | Phylactery` authoritatively; the `.rel` or `.phy` extension alone is not sufficient type evidence.
+
+The current implementation still uses `.cva`. Existing `.cva` files are treated as **legacy Reliquary data** for migration purposes. The `.rel`/`.phy` direction is accepted under ADR 0020, but the exact header migration, owner sets, and physical schema transition remain unimplemented.
 
 A user-profile Memory does **not** require source turns or project provenance in order to be valid. Source/provenance should be retained when it can legally and operationally cross the project boundary, but the profile format must remain valid when no source is available.
 
@@ -56,12 +60,29 @@ Phylactery Memories need a lighter contract. Candidate fields include user-globa
 
 The final Phylactery schema should be defined from user-memory requirements rather than by copying the Reliquary Memory record and making provenance nullable everywhere.
 
+## Governed scopes outside the memory pipeline
+
+The broader Warlock context model also includes **Organization** and **Relationship** scopes. These are not additional Insomnia Memory destinations.
+
+They are explicitly governed, authoritative instruction scopes:
+
+- **Organization** records how an organization intentionally operates: policy, procedure, approval rules, institutional defaults, security/compliance rules, terminology, and other explicitly managed instructions.
+- **Relationship** records how parties intentionally operate with one another: negotiated exceptions, client/vendor-specific rules, standing communication or approval paths, contractual operating constraints, and other explicitly managed relationship instructions.
+
+Insomnia and Dream must **not automatically create, infer, promote, supersede, or otherwise mutate Organization or Relationship state**. Repeated observed behaviour is not sufficient evidence that a policy, permission, contract term, or standing exception exists.
+
+Those scopes may be edited directly by users or by agents acting under explicit user authorization. Automation may consume their contents as applicable context, but normal memory maintenance does not own them.
+
+Conceptually, Organization and Relationship scopes behave like persistent, structured system/developer instruction addendums that Warlock composes into the active context. They should not be reduced to opaque prompt blobs merely because their runtime effect is instruction-like.
+
+This leaves Insomnia/Dream responsible for learned contextual state, principally **Identity** and **Work**, while explicitly governed instruction state remains outside the autonomous memory pipeline.
+
 ## Insomnia scope classification
 
-Insomnia's semantic extraction should remain concerned first with **what durable state exists**. The new persistence boundary is a later classification problem: each retained Memory must eventually be classified as either:
+Insomnia's semantic extraction should remain concerned first with **what durable learned state exists**. The new memory persistence boundary is a later classification problem: each retained Memory must eventually be classified as either:
 
-- `user`: durable state that should follow the user across projects; or
-- `project`: durable state belonging to the active project/workspace.
+- `user`: durable Identity state that should follow the user across projects; or
+- `project`: durable Work state belonging to the active project/workspace.
 
 Examples of likely user state include stable identity/name conventions, general communication preferences, durable developer/working preferences, and other cross-project habits or constraints. Project implementation decisions, architecture, project facts, local constraints, project entities, and project history remain project state.
 
@@ -154,7 +175,11 @@ Evaluate scope accuracy separately from extraction coverage, ordinary metadata a
 
 ## Open decisions
 
-- exact Phylactery CVA-type storage shape and its minimum required owners;
+- physical/storage representation of explicitly governed Organization and Relationship instruction scopes, including how Warlock references and composes them without making Insomnia/Dream their owners;
+- explicit mutation/authorization surface for user- or agent-directed Organization and Relationship edits;
+- exact `.phy` Phylactery owner set, including required, optional, and forbidden owners;
+- exact `.rel`/`.phy` header discriminator and legacy `.cva` migration mechanics;
+- whether `CVA` survives only as a private generic-container implementation term or is renamed entirely;
 - exact user-memory metadata schema;
 - whether scope classification belongs inside the existing metadata pass or in a dedicated pass;
 - if dedicated, whether it runs before ordinary metadata, after ordinary metadata, or after synthesis;
@@ -172,3 +197,4 @@ Evaluate scope accuracy separately from extraction coverage, ordinary metadata a
 - [Architecture](architecture.md)
 - [ADR 0012 — deterministic Episodes and Insomnia Memory authority](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
 - [ADR 0017 — CVA workspace and Warlock host application](decisions/0017-cva-workspace-and-warlock-host-application.md)
+- [ADR 0020 — Reliquary and Phylactery file kinds](decisions/0020-reliquary-and-phylactery-file-kinds.md)

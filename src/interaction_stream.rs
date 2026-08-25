@@ -125,7 +125,7 @@ impl InteractionRuntime {
         }
     }
 
-    fn take_message(
+    pub(crate) fn take_message(
         &mut self,
         session_id: &str,
         message_id: &str,
@@ -147,7 +147,7 @@ impl InteractionRuntime {
             .ok_or(InteractionError::NoMessageInProgress)
     }
 
-    fn message_mut(
+    pub(crate) fn message_mut(
         &mut self,
         session_id: &str,
         message_id: &str,

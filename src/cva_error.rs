@@ -17,6 +17,7 @@ pub enum CvaError {
     CompatibilityProfiles(CompatibilityProfileError),
     VectorGenerations(VectorGenerationError),
     WorkspaceMetadata(WorkspaceMetadataError),
+    InteractionStream(String),
     SemanticGlobalVersionConflict(u64),
 }
 
@@ -33,6 +34,7 @@ impl fmt::Display for CvaError {
             Self::CompatibilityProfiles(error) => write!(f, "{error}"),
             Self::VectorGenerations(error) => write!(f, "{error}"),
             Self::WorkspaceMetadata(error) => write!(f, "{error}"),
+            Self::InteractionStream(error) => write!(f, "interaction stream error: {error}"),
             Self::SemanticGlobalVersionConflict(version) => {
                 write!(
                     f,

@@ -68,11 +68,15 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 54. **Interaction transports do not define semantic storage.** Warlock-native interaction, ACP, imports, APIs, and future provider adapters must normalize above concrete semantic owners; protocol-specific message models cannot become Archive authority by convenience.
 55. **Product management is not a generalized semantic store.** A CVA management surface may compose explicit owner operations, but it cannot bypass owner validation or introduce a generic mutable object/root/dependency model.
 56. **External protocols are optional product integrations.** Warlock-native use of customer-owned CVA state cannot require ACP, MCP, an IDE, or another external agent host.
-57. **Incomplete live messages are runtime state, not source history.** Text/attachment buffers become Archive authority only when one completed message crosses the durable turn-ingestion boundary.
+57. **Incomplete live messages may be durable transcript state without becoming source history.** User-visible assistant text may be checkpointed into the interaction-stream journal, but text/attachments become Archive authority only when one completed message crosses the durable turn-ingestion boundary.
 58. **Live session continuation is explicit.** Reopening a session that already has durable Archive history requires an explicit durable resume message; the session runtime cannot silently create an unrelated second root for that history.
 59. **Source acknowledgement does not depend on background scheduling.** A completed live turn is durably acknowledged before Episode/Insomnia scheduling, and a scheduling failure cannot revoke or obscure that receipt.
 60. **Workspace identity has one explicit owner.** A CVA may contain at most one initialized `WorkspaceMetadata` record; workspace identity/type cannot be represented through a generic metadata map or inferred from unrelated stores.
 61. **Workspace metadata is clock-neutral.** Initializing workspace ID, name, and type consumes no Archive, Memory, Vector Generation, or CVA-global semantic version.
+62. **Displayed streamed text must already be durable.** A host must not expose an assistant delta as committed presentation state until the corresponding interaction-stream checkpoint has synchronized successfully.
+63. **Recovered streaming state is interrupted state.** A persisted `Streaming` checkpoint is considered actively streaming only while the matching in-memory message exists; after runtime loss it is recovered as `Interrupted`.
+64. **Completion supersedes the stream journal by stable message ID.** Once a checkpointed message is published as a completed Archive node, transcript resolution uses the Archive turn and must not duplicate the journal copy.
+65. **Interaction-stream checkpoints are clock-neutral.** They consume physical append-only chunks but no Archive, Memory, Vector Generation, or CVA-global semantic version.
 
 ## Safety boundaries
 

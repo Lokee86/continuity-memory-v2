@@ -7,6 +7,7 @@ use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::insomnia::store::InsomniaStore;
+use crate::interaction_stream_store::InteractionStreamStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
@@ -34,6 +35,7 @@ impl Cva {
         let compatibility_profiles = CompatibilityProfileStore::default();
         let vector_generations = VectorGenerationStore::empty();
         let mut workspace_metadata = WorkspaceMetadataStore::empty();
+        let interaction_streams = InteractionStreamStore::default();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         insomnia.initialize(&mut container)?;
@@ -56,6 +58,7 @@ impl Cva {
             compatibility_profiles,
             vector_generations,
             workspace_metadata,
+            interaction_streams,
         })
     }
 
@@ -69,6 +72,7 @@ impl Cva {
         let mut profile_state = CompatibilityProfileOpenState::new();
         let mut generation_state = VectorGenerationOpenState::new();
         let mut workspace_state = WorkspaceMetadataOpenState::new();
+        let mut interaction_streams = InteractionStreamStore::default();
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -79,6 +83,7 @@ impl Cva {
             profile_state.ingest(chunk, payload)?;
             generation_state.ingest(chunk, payload, latest_global)?;
             workspace_state.ingest(payload)?;
+            interaction_streams.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
         let archive = archive_state.finish()?;
@@ -115,6 +120,7 @@ impl Cva {
             compatibility_profiles,
             vector_generations,
             workspace_metadata,
+            interaction_streams,
         })
     }
 }
