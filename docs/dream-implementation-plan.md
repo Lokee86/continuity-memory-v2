@@ -10,7 +10,7 @@ Dream's bounded candidate-retrieval, pair-classification, independent-verificati
 
 ## Overview
 
-Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, the first bounded end-to-end processor, and deterministic temporal interpretation/retrieval are implemented. Initial representative retrieval/classifier/verifier validation is complete; remaining validation should target live publication/lifecycle behavior and temporal-specific cases before measured canonical policy, bounded reconsideration if demonstrated, and only then long-lived scheduling/runtime integration.
+Dream is implemented as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, deterministic canonical promotion, the bounded end-to-end processor, deterministic temporal interpretation/retrieval, and bounded integration into the shared `InteractionRuntime` are implemented. Remaining Dream sophistication is measurement-driven; continuous wakeup/backoff belongs to the Warlock host loop rather than a separate Dream runtime.
 
 ## Responsibility
 
@@ -414,13 +414,15 @@ Together the two live validations exercise candidate recall, temporal-only retri
 
 Only add cases demonstrated by tests/production evidence. Do not blindly reproduce the previous reverse-trigger architecture.
 
-### Phase 10 — long-lived runtime integration
+### Phase 10 — shared runtime integration — bounded coordinator implemented
 
-After semantic behavior is correct:
+Dream is now integrated into the same `InteractionRuntime` boundary used for live interaction and Insomnia. `process_background_work` drains queued Insomnia work, establishes/reuses the Memory-vector profile and fills missing vectors, then derives Dream work from active current Memories still in `extracted` and processes a bounded batch on the same owned CVA. Successful lifecycle projection removes work from the derived backlog; failed Dream inference remains `extracted`, is reported, and does not block later Memories in that cycle. No separate Dream runtime, durable Dream queue, Container handle, daemon, or process is introduced.
 
-- continuous scheduling;
-- retry/backoff;
-- concurrency;
+The remaining long-lived host work is operational rather than another Dream semantic owner:
+
+- repeated wakeup/continuous scheduling from the Warlock host loop;
+- retry/backoff across cycles and inference heartbeat/cancellation;
+- measured concurrency beyond the existing internal Insomnia worker pool;
 - resumable explicit rescans/migrations;
 - status and control surfaces.
 
@@ -461,7 +463,7 @@ The review has not yet frozen:
 3. whether temporal retrieval eventually needs a derived persistent/cache index after scale measurement;
 4. precise semantics for `references`.
 
-Independent-observation and canonical-promotion policy are now frozen at the conservative first implementation: distinct user authority anchors are required for duplicate corroboration, direct/correction authoritative current-state classes may promote immediately, and canonical supersession inherits through the unique verified successor. Broader reconsideration remains deferred. The next guaranteed implementation stage is Phase 10 long-lived runtime integration; it is intentionally outside this policy milestone.
+Independent-observation and canonical-promotion policy are now frozen at the conservative first implementation: distinct user authority anchors are required for duplicate corroboration, direct/correction authoritative current-state classes may promote immediately, and canonical supersession inherits through the unique verified successor. Broader reconsideration remains deferred. Phase 10 now has its bounded shared-runtime coordinator; the remaining long-lived work is the Warlock host wakeup/backoff/control loop rather than another Dream runtime.
 
 ## Related docs
 

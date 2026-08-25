@@ -121,6 +121,7 @@ mod graph_query;
 mod graph_rebuild;
 mod graph_store;
 mod insomnia;
+mod interaction_background;
 mod interaction_error;
 mod interaction_model;
 mod interaction_runtime;
@@ -268,6 +269,10 @@ pub use insomnia::{
     MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS, MAX_INSOMNIA_WORKERS,
     insomnia_schema,
 };
+pub use interaction_background::{
+    DEFAULT_RUNTIME_DREAM_BATCH, RuntimeBackgroundConfig, RuntimeBackgroundError,
+    RuntimeBackgroundResult, RuntimeDreamCompletion, RuntimeDreamFailure,
+};
 pub use interaction_error::InteractionError;
 pub use interaction_model::{
     InteractionAttachment, InteractionRole, InteractionSession, InteractionTurn,
@@ -398,6 +403,8 @@ mod fragment_tests;
 mod graph_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod interaction_background_tests;
 #[cfg(test)]
 mod interaction_runtime_tests;
 #[cfg(test)]
