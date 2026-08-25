@@ -5,5 +5,6 @@ pub struct DreamLifecycleResult {
     pub source: Memory,
     pub revised: Vec<Memory>,
     pub archived: Vec<MemoryId>,
+    pub canonicalized: Vec<MemoryId>,
     pub promoted_to_knowledge: bool,
 }

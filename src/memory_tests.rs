@@ -50,6 +50,7 @@ fn draft(episode: &crate::Episode, mutation_id: &str, content: &str) -> MemoryDr
     MemoryDraft {
         category: "decision".into(),
         memory_type: "project".into(),
+        authority_kind: "direct".into(),
         title: "Reliquary memory authority".into(),
         content: content.into(),
         scope: "private".into(),

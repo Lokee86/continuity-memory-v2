@@ -25,6 +25,7 @@ fn draft(mutation_id: &str, lifecycle: &str, title: &str, content: &str) -> Memo
     MemoryDraft {
         category: "preference".into(),
         memory_type: "project".into(),
+        authority_kind: "unknown".into(),
         title: title.into(),
         content: content.into(),
         scope: "private".into(),

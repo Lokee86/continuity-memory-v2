@@ -245,7 +245,7 @@ Verified supersession is authoritative in Graph first; the superseded target is 
 
 Duplicate representative policy remains deliberately conservative. An `extracted` source is archived as redundant only when its duplicate component already contains another non-archived Memory. Existing `knowledge` or `canonical` Memories are not demoted merely because a later historical backfill changes duplicate-chain chronology. The chronological predecessor chain and the active representative decision are therefore separate concerns.
 
-`knowledge -> canonical` remains future policy and must be driven by semantic authority/current-representation evidence rather than an arbitrary scalar score. Canonical Memories remain supersedable and duplicatable.
+`knowledge -> canonical` is now implemented as deterministic evidence policy rather than a scalar score. Direct/correction authority immediately canonicalizes decisions, preferences, instructions, constraints, corrections, commitments, and operational facts (`project`, `process`, `product`, `schedule`). Other facts promote only when one duplicate component contains at least two distinct user authority anchors, in which case the active representative becomes canonical. A unique verified successor of an active canonical Memory inherits canonical status as the old representative is archived. Age, model confidence, topical/causal/recurrent relations, graph degree, repeated processing, and same-anchor duplicates are not promotion evidence. Canonical Memories remain supersedable and duplicatable.
 
 ## Supersession
 
@@ -408,7 +408,7 @@ The real fixture contains 103 Insomnia-generated Memories and one 1024-dimension
 
 A follow-up write-enabled validation used three controlled disposable CVAs with the same live Ox route. A temporal-only pair was retrieved with semantic/lexical lanes disabled and an unvectorized candidate, then classified, published, lifecycle-completed, replayed idempotently, and reopened successfully. A verified supersession published `NEW -> OLD`, archived OLD with `superseded_by = NEW`, promoted NEW to active knowledge, replayed as a no-op, and survived reopen. Two verified duplicate observations inserted around an existing older representative rewired to `newest -> middle -> oldest`, archived the redundant extracted observations, replayed as a no-op, and survived reopen.
 
-Together the two live validations now exercise candidate recall, temporal-only retrieval, strict classifier/verifier transport, accepted Graph publication, duplicate-chain rewiring, supersession lifecycle projection, successful `extracted -> knowledge`, idempotent replay, and reopen recovery. They remain small targeted fixtures rather than population-level semantic-quality measurements. No observed case requires bounded reverse reconsideration, so Phase 9 remains intentionally unimplemented until a concrete failure justifies it.
+Together the two live validations exercise candidate recall, temporal-only retrieval, strict classifier/verifier transport, accepted Graph publication, duplicate-chain rewiring, supersession lifecycle projection, successful `extracted -> knowledge`, idempotent replay, and reopen recovery. The measured follow-up policy now also implements deterministic canonical promotion from persisted authority, independent duplicate corroboration, and canonical supersession inheritance. These remain targeted seam validations rather than population-level semantic-quality measurements. No observed case requires bounded reverse reconsideration, so Phase 9 remains intentionally unimplemented until a concrete failure justifies it.
 
 ### Phase 9 — bounded reconsideration if required
 
@@ -432,7 +432,7 @@ Only when measurements justify it:
 - LLM candidate triage;
 - broader verifier voting;
 - mature-memory periodic re-evaluation;
-- more elaborate canonical policy;
+- more elaborate canonical policy beyond the current deterministic authority/corroboration/inheritance rules;
 - graph clustering/community signals.
 
 ## Deliberately rejected carry-over
@@ -457,13 +457,11 @@ Do not reproduce these CTX/previous-Dream mechanisms by default:
 The review has not yet frozen:
 
 1. persistent Graph coexistence/cardinality policy beyond the classifier's one-primary-proposal contract;
-2. exact independent-observation/corroboration policy across duplicate chains;
-3. exact canonical-promotion rules;
-4. whether second-pass verification becomes universal for all non-topical semantic relations after measurement;
-5. whether temporal retrieval eventually needs a derived persistent/cache index after scale measurement;
-6. precise semantics for `references`.
+2. whether second-pass verification becomes universal for all non-topical semantic relations after measurement;
+3. whether temporal retrieval eventually needs a derived persistent/cache index after scale measurement;
+4. precise semantics for `references`.
 
-The next validation milestone should exercise accepted Graph publication, duplicate/supersession lifecycle consequences, and temporal-only retrieval on representative live/corpus cases. Canonical-promotion policy should follow those measurements rather than adding more inference machinery speculatively.
+Independent-observation and canonical-promotion policy are now frozen at the conservative first implementation: distinct user authority anchors are required for duplicate corroboration, direct/correction authoritative current-state classes may promote immediately, and canonical supersession inherits through the unique verified successor. Broader reconsideration remains deferred. The next guaranteed implementation stage is Phase 10 long-lived runtime integration; it is intentionally outside this policy milestone.
 
 ## Related docs
 

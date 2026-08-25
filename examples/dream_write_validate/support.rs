@@ -42,6 +42,7 @@ pub fn memory(
     let draft = MemoryDraft {
         category: "validation".into(),
         memory_type: "fact".into(),
+        authority_kind: "unknown".into(),
         title: title.into(),
         content: content.into(),
         scope: "private".into(),

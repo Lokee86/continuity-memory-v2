@@ -243,6 +243,7 @@ fn unprovenanced_draft(mutation_id: &str) -> MemoryDraft {
     MemoryDraft {
         category: "project".into(),
         memory_type: "fact".into(),
+        authority_kind: "unknown".into(),
         title: "Untimed".into(),
         content: "same".into(),
         scope: "private".into(),

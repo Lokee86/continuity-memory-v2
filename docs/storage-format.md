@@ -194,7 +194,7 @@ N bytes   content UTF-8
 ```
 Memory record:
 ```text
-8 bytes   "CVAMEMR2"
+8 bytes   "CVAMEMR3"
 32 bytes  MemoryId
 u64       revision
 32 bytes  MemoryBodyId
@@ -206,6 +206,7 @@ i64       created_at_ns
 i64       updated_at_ns
 string    category
 string    memory_type
+string    authority_kind
 string    scope
 string    lifecycle_state
 optional  string source_node_id
@@ -215,7 +216,9 @@ optional  string grounding_source_conversation_id
 optional  string grounding_source_node_id
 string    mutation_id
 ```
-Optional fixed IDs and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+Optional fixed IDs and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+
+Legacy `CVAMEMR2` records remain decodable. They have the same layout except that `authority_kind` is absent; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted.
 
 Standalone Memory publication metadata:
 ```text
@@ -225,7 +228,7 @@ u64       Memory version
 u64       record chunk offset
 u64       record payload length
 ```
-Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR2`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful Insomnia processing uses the `CVAINSC2` transaction described below instead: newly required Memory bodies, `CVAMEMR2` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it.
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR3`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful Insomnia processing uses the `CVAINSC2` transaction described below instead: newly required Memory bodies, `CVAMEMR3` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it.
 
 ### Graph
 Format marker:
@@ -419,7 +422,7 @@ repeated newly published records:
     u64   global version
     u64   memory version
     u32   encoded Memory-record length
-    N     complete "CVAMEMR2" record payload
+    N     complete "CVAMEMR3" record payload
 ```
 The embedded global-version count must equal the newly published Memory-record count. For a non-empty publication, record global versions are contiguous beginning at the stored first version. A zero-Memory completion consumes no global versions.
 

@@ -241,6 +241,7 @@ fn synthetic_context(
             revision: 1,
             category: "validation".into(),
             memory_type: "synthetic".into(),
+            authority_kind: "unknown".into(),
             title: title.into(),
             content: content.into(),
             scope: "validation".into(),

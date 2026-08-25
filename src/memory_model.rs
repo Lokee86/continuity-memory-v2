@@ -17,6 +17,7 @@ pub struct MemoryRevisionId {
 pub struct MemoryDraft {
     pub category: String,
     pub memory_type: String,
+    pub authority_kind: String,
     pub title: String,
     pub content: String,
     pub scope: String,
@@ -41,6 +42,7 @@ pub struct Memory {
     pub revision: u64,
     pub category: String,
     pub memory_type: String,
+    pub authority_kind: String,
     pub title: String,
     pub content: String,
     pub scope: String,
@@ -76,6 +78,7 @@ pub(crate) struct MemoryRecord {
     pub body_id: MemoryBodyId,
     pub category: String,
     pub memory_type: String,
+    pub authority_kind: String,
     pub scope: String,
     pub lifecycle_state: String,
     pub archived: bool,

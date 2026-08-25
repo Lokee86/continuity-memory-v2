@@ -86,6 +86,11 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 72. **A Graph batch is one semantic transaction.** A non-empty single-edge or multi-edge Graph publication consumes one CVA-global version and one Graph-local version; callers cannot observe an intermediate subset of an atomic relationship change set.
 73. **Divergent Graph reconciliation follows owner dependencies.** Memories are replayed before Graph endpoints, relationship authority is republished through Graph with fresh clocks, and topology/duplicate indexes rebuild from merged authority instead of becoming synchronization metadata.
 
+74. **Duplicate history is a chronological predecessor chain.** Active Dream `duplicate-of` edges point `newer -> previous equivalent`; ordering uses authoritative source chronology, never Memory creation bookkeeping, and any lookup/index structure remains derived from Graph state.
+75. **Dream lifecycle is a Graph-derived Memory projection.** Accepted Graph state is published before lifecycle metadata; lifecycle revisions do not redefine relationship authority or mutate Memory bodies, failed bounded inference does not advance `extracted` sources, and archived Memories are never automatically reactivated by reconciliation.
+76. **Canonical promotion is evidence-driven and deterministic.** Direct/correction authority promotes only configured current-state classes, duplicate corroboration requires distinct user authority anchors, canonical supersession transfers only through a unique active superseder, and age/model confidence/graph degree/reprocessing are never promotion evidence.
+77. **Dream temporal semantics are body/source-time derived.** Content-time anchors and recurrence patterns derive from immutable Memory text plus authoritative source chronology; `Memory.created_at_ns` is never semantic time, source-time proximity alone is not a relationship signal, and derived temporal analysis owns no semantic clock.
+
 ## Safety boundaries
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.

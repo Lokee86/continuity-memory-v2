@@ -125,6 +125,7 @@ fn draft(
     MemoryDraft {
         category: "project".into(),
         memory_type: "fact".into(),
+        authority_kind: "unknown".into(),
         title: title.into(),
         content: content.into(),
         scope: "private".into(),

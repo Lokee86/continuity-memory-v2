@@ -78,6 +78,7 @@ impl MemoryStore {
             body_id,
             category: draft.category.clone(),
             memory_type: draft.memory_type.clone(),
+            authority_kind: draft.authority_kind.clone(),
             scope: draft.scope.clone(),
             lifecycle_state: draft.lifecycle_state.clone(),
             archived: draft.archived,
@@ -348,6 +349,7 @@ impl MemoryStore {
             revision: record.revision,
             category: record.category.clone(),
             memory_type: record.memory_type.clone(),
+            authority_kind: record.authority_kind.clone(),
             title,
             content,
             scope: record.scope.clone(),
@@ -403,6 +405,7 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
     for (value, field) in [
         (&draft.category, "category"),
         (&draft.memory_type, "memory type"),
+        (&draft.authority_kind, "authority kind"),
         (&draft.title, "title"),
         (&draft.content, "content"),
         (&draft.scope, "scope"),
@@ -413,6 +416,12 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
             return Err(MemoryError::InvalidField(field));
         }
     }
+    if !matches!(
+        draft.authority_kind.as_str(),
+        "direct" | "correction" | "adoption" | "retention" | "unknown"
+    ) {
+        return Err(MemoryError::InvalidField("authority kind"));
+    }
     if draft.updated_at_ns < draft.created_at_ns {
         return Err(MemoryError::InvalidField("updated_at_ns"));
     }
@@ -422,6 +431,7 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
 fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
     memory.category == draft.category
         && memory.memory_type == draft.memory_type
+        && memory.authority_kind == draft.authority_kind
         && memory.title == draft.title
         && memory.content == draft.content
         && memory.scope == draft.scope

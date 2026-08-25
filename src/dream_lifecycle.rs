@@ -1,8 +1,11 @@
+use crate::dream_canonical::{
+    canonical_superseders, corroborated_representative, duplicate_component_has_active_peer,
+    explicit_authority_promotes,
+};
 use crate::{
     Cva, DreamLifecycleError, DreamLifecycleResult, GraphRelation, GraphRelationKind, Memory,
     MemoryDraft, MemoryId,
 };
-use std::collections::{HashSet, VecDeque};
 
 impl Cva {
     pub fn reconcile_dream_lifecycle(
@@ -12,6 +15,7 @@ impl Cva {
         let relations = self.graph_relations();
         let mut revised = Vec::new();
         let mut archived = Vec::new();
+        let mut canonicalized = canonical_superseders(self, source_id, &relations)?;
 
         let mut superseded_targets: Vec<_> = relations
             .iter()
@@ -44,6 +48,30 @@ impl Cva {
         }
 
         let source = self.memory(source_id)?;
+        if !source.archived && explicit_authority_promotes(&source) {
+            canonicalized.push(source_id);
+        }
+        if let Some(representative) = corroborated_representative(self, source_id, &relations)? {
+            canonicalized.push(representative);
+        }
+        canonicalized.sort_by_key(|id| id.0);
+        canonicalized.dedup();
+
+        let mut promoted = Vec::new();
+        for id in canonicalized {
+            let current = self.memory(id)?;
+            if current.archived || current.lifecycle_state == "canonical" {
+                continue;
+            }
+            if let Some(memory) =
+                self.revise_lifecycle(id, "canonical", false, current.superseded_by)?
+            {
+                revised.push(memory);
+                promoted.push(id);
+            }
+        }
+
+        let source = self.memory(source_id)?;
         let promoted_to_knowledge = if !source.archived && source.lifecycle_state == "extracted" {
             if let Some(memory) =
                 self.revise_lifecycle(source_id, "knowledge", false, source.superseded_by)?
@@ -59,10 +87,12 @@ impl Cva {
 
         archived.sort_by_key(|id| id.0);
         archived.dedup();
+        promoted.sort_by_key(|id| id.0);
         Ok(DreamLifecycleResult {
             source: self.memory(source_id)?,
             revised,
             archived,
+            canonicalized: promoted,
             promoted_to_knowledge,
         })
     }
@@ -110,36 +140,6 @@ fn unique_superseder(relations: &[GraphRelation], target: MemoryId) -> Option<Me
     }
 }
 
-fn duplicate_component_has_active_peer(
-    cva: &mut Cva,
-    source_id: MemoryId,
-    relations: &[GraphRelation],
-) -> Result<bool, DreamLifecycleError> {
-    let mut visited = HashSet::from([source_id]);
-    let mut queue = VecDeque::from([source_id]);
-    while let Some(current) = queue.pop_front() {
-        for relation in relations.iter().filter(|relation| {
-            relation.kind == GraphRelationKind::DuplicateOf
-                && (relation.source == current || relation.target == current)
-        }) {
-            let neighbor = if relation.source == current {
-                relation.target
-            } else {
-                relation.source
-            };
-            if visited.insert(neighbor) {
-                queue.push_back(neighbor);
-            }
-        }
-    }
-    for id in visited.into_iter().filter(|id| *id != source_id) {
-        if !cva.memory(id)?.archived {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
 fn lifecycle_draft(
     memory: &Memory,
     lifecycle_state: &str,
@@ -150,6 +150,7 @@ fn lifecycle_draft(
     MemoryDraft {
         category: memory.category.clone(),
         memory_type: memory.memory_type.clone(),
+        authority_kind: memory.authority_kind.clone(),
         title: memory.title.clone(),
         content: memory.content.clone(),
         scope: memory.scope.clone(),

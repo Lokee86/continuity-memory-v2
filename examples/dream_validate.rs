@@ -3,8 +3,7 @@ mod support;
 
 use continuity_memory::{
     ContinuityConfig, DreamClassifier, DreamRelationDirection, DreamRelationKind,
-    DreamVerificationVerdict, DreamVerifier, GeneralEndpoint, ModelSwitchboard,
-    OpenAiReadyGeneralEndpoint,
+    DreamVerificationVerdict, DreamVerifier, ModelSwitchboard, OpenAiReadyGeneralEndpoint,
 };
 use std::env;
 use std::error::Error;

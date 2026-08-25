@@ -103,6 +103,9 @@ fn backlog_drain_automatically_vectorizes_created_memories() {
     assert!(result.memory_vector_set_id.is_some());
     assert_eq!(cva.memory_stats().memories, 1);
     assert_eq!(cva.memory_vector_stats().bindings, 1);
+    let episode = cva.episodes().into_iter().next().unwrap();
+    let memory_id = cva.insomnia_attempts(episode.id)[0].memory_ids[0];
+    assert_eq!(cva.memory(memory_id).unwrap().authority_kind, "direct");
 }
 
 #[test]

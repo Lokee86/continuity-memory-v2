@@ -65,6 +65,7 @@ mod dream_candidate_error;
 mod dream_candidate_model;
 mod dream_candidate_ranking;
 mod dream_candidates;
+mod dream_canonical;
 mod dream_classifier;
 mod dream_classifier_error;
 mod dream_classifier_model;
@@ -134,6 +135,7 @@ mod lexical_search;
 mod master_key;
 mod master_key_entropy;
 mod memory_codec;
+mod memory_codec_scalar;
 mod memory_error;
 mod memory_model;
 mod memory_rebuild;
@@ -367,6 +369,10 @@ mod dream_candidate_test_support;
 #[cfg(test)]
 mod dream_candidate_tests;
 #[cfg(test)]
+mod dream_canonical_test_support;
+#[cfg(test)]
+mod dream_canonical_tests;
+#[cfg(test)]
 mod dream_classifier_tests;
 #[cfg(test)]
 mod dream_duplicate_tests;
@@ -400,6 +406,8 @@ mod interaction_session_tests;
 mod lexical_index_tests;
 #[cfg(test)]
 mod master_key_tests;
+#[cfg(test)]
+mod memory_codec_tests;
 #[cfg(test)]
 mod memory_tests;
 #[cfg(test)]

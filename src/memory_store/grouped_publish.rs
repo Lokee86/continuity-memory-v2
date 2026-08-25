@@ -69,6 +69,7 @@ impl MemoryStore {
                 body_id,
                 category: draft.category,
                 memory_type: draft.memory_type,
+                authority_kind: draft.authority_kind,
                 scope: draft.scope,
                 lifecycle_state: draft.lifecycle_state,
                 archived: draft.archived,

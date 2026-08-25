@@ -19,6 +19,7 @@ fn memory_draft() -> MemoryDraft {
     MemoryDraft {
         category: "reference".into(),
         memory_type: "project".into(),
+        authority_kind: "unknown".into(),
         title: "Framing reference".into(),
         content: "Use the attached framing plan.".into(),
         scope: "private".into(),

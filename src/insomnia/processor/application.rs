@@ -45,6 +45,7 @@ pub(crate) fn prepare_application(
         drafts.push(MemoryDraft {
             category: candidate.category,
             memory_type: candidate.memory_type,
+            authority_kind: candidate.authority_kind,
             title: candidate.title,
             content: candidate.content,
             scope: scope.trim().to_owned(),

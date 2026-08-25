@@ -58,6 +58,7 @@ fn memory(cva: &mut Cva, episode: &crate::Episode, id: &str) -> MemoryId {
         MemoryDraft {
             category: "fact".into(),
             memory_type: "project".into(),
+            authority_kind: "unknown".into(),
             title: id.into(),
             content: format!("memory {id}"),
             scope: "private".into(),
