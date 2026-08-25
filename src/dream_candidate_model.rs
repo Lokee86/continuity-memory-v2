@@ -1,9 +1,10 @@
-use crate::{GraphRelation, Memory, MemoryBodyId};
+use crate::{DreamTemporalAnalysis, DreamTemporalMatch, GraphRelation, Memory, MemoryBodyId};
 
 pub const DEFAULT_DREAM_CANDIDATE_LIMIT: usize = 12;
 pub const DEFAULT_DREAM_SEMANTIC_LIMIT: usize = 24;
 pub const DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA: usize = 3;
 pub const DEFAULT_DREAM_LEXICAL_LIMIT: usize = 8;
+pub const DEFAULT_DREAM_TEMPORAL_LIMIT: usize = 8;
 pub const MAX_DREAM_CANDIDATE_LIMIT: usize = 128;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -12,6 +13,7 @@ pub struct DreamCandidateConfig {
     pub semantic_limit: usize,
     pub prior_semantic_quota: usize,
     pub lexical_limit: usize,
+    pub temporal_limit: usize,
 }
 
 impl Default for DreamCandidateConfig {
@@ -21,6 +23,7 @@ impl Default for DreamCandidateConfig {
             semantic_limit: DEFAULT_DREAM_SEMANTIC_LIMIT,
             prior_semantic_quota: DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
             lexical_limit: DEFAULT_DREAM_LEXICAL_LIMIT,
+            temporal_limit: DEFAULT_DREAM_TEMPORAL_LIMIT,
         }
     }
 }
@@ -31,6 +34,7 @@ pub struct DreamMemoryContext {
     pub body_id: MemoryBodyId,
     pub source_timestamp_ns: Option<i64>,
     pub graph_relations: Vec<GraphRelation>,
+    pub temporal: DreamTemporalAnalysis,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +45,9 @@ pub struct DreamCandidate {
     pub prior_semantic_rank: Option<usize>,
     pub lexical_score: f64,
     pub lexical_rank: Option<usize>,
+    pub temporal_score: f64,
+    pub temporal_rank: Option<usize>,
+    pub temporal_matches: Vec<DreamTemporalMatch>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

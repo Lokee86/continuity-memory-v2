@@ -1,0 +1,93 @@
+{
+  "fixture": "dream-validation-v1",
+  "source": "Insomnia v27 control run; 103 current Memories with Qwen3 1024-d Memory vectors",
+  "related_pairs": [
+    {
+      "left": "68f3ec0017e6fe1bdf618f0fdefc7de61190b9cb753952590f740f714cc09559",
+      "right": "69e2d6ace50416481a0533d937f825d68c4fdf1d898a783f39ff6adf884c6ed7",
+      "note": "default response-length preference and concise-answer preference"
+    },
+    {
+      "left": "3bc73e39333473631fe503c3db5e69c1880b52ac6849267f6eafb71040f231c6",
+      "right": "ea0ade305d8b1eb3fcd5011cfeab2384410e1f383e9922fe461418e68b6d06df",
+      "note": "general step-by-step guidance and concise step-by-step layout guidance"
+    },
+    {
+      "left": "0be30481786492ffbbc3ddb0fe574880c0717fdc9c1dc63cc0af6fe6604526b3",
+      "right": "ea90191e92c49b3b82d506ce135c08b58b7d88f6ee982a65f98b32afaa513bc6",
+      "note": "plan-vs-prompt preference and detailed preferred plan format"
+    },
+    {
+      "left": "0ae16f623eec9de8cbadae09d550d2b7c2f681bf191f79cf7553a1b3c2f0abe8",
+      "right": "ad4fb2533e553fbf4ea203d9c81f51ff6f8f82461b971aa68746791d54672ecc",
+      "note": "narrow implementation prompts and roughly two-minute prompts"
+    },
+    {
+      "left": "742a12b66d478e0dd0a4e2c34d74e8e19d8d839eeafb70bccfb36f32a912a90d",
+      "right": "a72b9a9e3dcf7617906b53d6aef39375bf06bf9607bb9d42514902e6f1bfe7ef",
+      "note": "bounded productive micro-prompts and productive token-efficient prompts"
+    },
+    {
+      "left": "9e53a58ecb57b0f214c421127ec4789882924c747e01ff7a99b17b7b82833604",
+      "right": "c1f666c7f48faccea8e872d23fe156b2a46ef3c022d667342f81f4d960733dcd",
+      "note": "player-freeze architecture decision and concrete implementation design"
+    },
+    {
+      "left": "9e53a58ecb57b0f214c421127ec4789882924c747e01ff7a99b17b7b82833604",
+      "right": "e933c54c76b669e9c4b392338baa2a7e131c1d05f1b7baabca10478124c27ac4",
+      "note": "separate freeze/pause causes with shared suspension helpers"
+    },
+    {
+      "left": "38af593896f9319e15a9264219b37cff6402e3eaa82a9e0bb7b576279c85eae7",
+      "right": "9064ea03a6a86a3ef70a3573f6710f8316e5fae4d71505fa99fd3dd266a12d06",
+      "note": "retire old JSON pipeline after migration and richer packet migration constraints"
+    },
+    {
+      "left": "b75a1b318e90c8fb9451a96f4c1e118b207b2cdf5e315f8e1261926a5cc5c2e0",
+      "right": "4831eec1f1dc544aafa87dbce2f03a994821ff14032b55eda52bc416b6d6b1d5",
+      "note": "TOML synchronization pipeline and explicit CLI direction/language/domain flags"
+    },
+    {
+      "left": "7d525daa4f5860d4a186e5e9c97efc982959bfaee7ab411bbd4a911a14c6c87a",
+      "right": "a19de6cd71584f021a7158e9763b874a74fd93621811c2c04cbddccba4e1fd4f",
+      "note": "current multiplayer project state and observed player visibility"
+    },
+    {
+      "left": "54bf61a9366f9e7af04f03e336e2a1d273183d3906ef04464aaee9ccb02f312c",
+      "right": "f0f8b3c81ea7307ef41316b279cbca30ee328b629771e2362ae0ff7ba4f5840f",
+      "note": "asteroid spawning requirements and Godot-first asteroid prototype workflow"
+    },
+    {
+      "left": "2bb04f59d4eb6434295e73b4d6a3e79387db26f6ba2f49ad06abcadc3056ed8d",
+      "right": "efdadcaacfcddd7423fa0ebe2fa9989415503e4c1240cdd8650eae997a8c1782",
+      "note": "leave-flow logs and multiplayer lobby leave-handler/fake-data state"
+    },
+    {
+      "left": "811aee38a6142e57d21529bf0421118e0bca9d5a5471ef48992d5fa0bf6f20e0",
+      "right": "081ed114ce627a5592899a35182d9afcf8e97ae4ff008ccd236aace784e055de",
+      "note": "commitment to build entity scenes and later Bullet/Asteroid completion state"
+    }
+  ],
+  "negative_pairs": [
+    {
+      "left": "7e7813e957eed3a80c8f1e8c6adf2538e5e06d568431b80055de9d673446fe84",
+      "right": "54bf61a9366f9e7af04f03e336e2a1d273183d3906ef04464aaee9ccb02f312c",
+      "note": "trades experience versus asteroid spawning"
+    },
+    {
+      "left": "0e2d13ef140f71f127596ba56d8e7027d644ff9664c2706adb660f111c0b753b",
+      "right": "93497f1f2728b6babfe7633fe04ed93e5b1a1af6ecffecbe3c367e7cdfd4d2a3",
+      "note": "learning style versus multiplayer login failure"
+    },
+    {
+      "left": "c6a71d960c9ca43515dfe6b857b45c000a99a701db3ccd15ca57912914e852f9",
+      "right": "fdc9b487211316ac08a4648a27bf89552e0c8784a27ebb6785a972447e0b3520",
+      "note": "Deep Research availability versus C-family calibration"
+    },
+    {
+      "left": "606b039d0c2a73b30307664c2a19d005eb0d7b8e1f09f640badc1be00d295ba2",
+      "right": "815d57bb33d8826262ceed4ac4ae651682e5513e107476bfa3c60f48da0e5e04",
+      "note": "Bash preference versus remote-player shader colours"
+    }
+  ]
+}

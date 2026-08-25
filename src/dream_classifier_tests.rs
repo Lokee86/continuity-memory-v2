@@ -80,6 +80,7 @@ fn pair_contexts() -> (crate::DreamMemoryContext, crate::DreamMemoryContext) {
                 semantic_limit: 1,
                 prior_semantic_quota: 0,
                 lexical_limit: 0,
+                temporal_limit: 0,
             },
         )
         .unwrap();
@@ -114,12 +115,15 @@ fn classifier_uses_strict_pair_schema_and_dream_contract_prompt() {
     classifier.classify_pair(&left, &right).unwrap();
 
     let calls = calls.lock().unwrap();
-    let (prompt, _, schema_name, schema) = &calls[0];
+    let (prompt, payload, schema_name, schema) = &calls[0];
     assert!(prompt.contains("canonical MemoryId order as A and B"));
     assert_eq!(schema_name, "dream_pair_classification");
     assert_eq!(schema["additionalProperties"], false);
     assert_eq!(schema["properties"]["relation"]["type"], "string");
     assert_eq!(schema["properties"]["evidence"]["maxItems"], 2);
+    let payload: Value = serde_json::from_str(payload).unwrap();
+    assert!(payload["a"]["temporal"].is_object());
+    assert!(payload["b"]["temporal"].is_object());
 }
 
 #[test]
@@ -218,6 +222,7 @@ fn none_requires_no_evidence_and_candidate_sets_remain_bounded() {
                 semantic_limit: 2,
                 prior_semantic_quota: 0,
                 lexical_limit: 0,
+                temporal_limit: 0,
             },
         )
         .unwrap();

@@ -82,6 +82,15 @@ mod dream_publisher;
 mod dream_publisher_error;
 mod dream_publisher_model;
 mod dream_source_time;
+mod dream_temporal;
+mod dream_temporal_absolute;
+mod dream_temporal_absolute_calendar;
+mod dream_temporal_calendar;
+mod dream_temporal_match;
+mod dream_temporal_model;
+mod dream_temporal_parser;
+mod dream_temporal_recurrence;
+mod dream_temporal_relative;
 mod dream_verifier;
 mod dream_verifier_error;
 mod dream_verifier_model;
@@ -197,8 +206,8 @@ pub use cva_reconcile_error::CvaReconcileError;
 pub use dream_candidate_error::DreamCandidateError;
 pub use dream_candidate_model::{
     DEFAULT_DREAM_CANDIDATE_LIMIT, DEFAULT_DREAM_LEXICAL_LIMIT, DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
-    DEFAULT_DREAM_SEMANTIC_LIMIT, DreamCandidate, DreamCandidateConfig, DreamCandidateSet,
-    DreamMemoryContext, MAX_DREAM_CANDIDATE_LIMIT,
+    DEFAULT_DREAM_SEMANTIC_LIMIT, DEFAULT_DREAM_TEMPORAL_LIMIT, DreamCandidate,
+    DreamCandidateConfig, DreamCandidateSet, DreamMemoryContext, MAX_DREAM_CANDIDATE_LIMIT,
 };
 pub use dream_classifier::DreamClassifier;
 pub use dream_classifier_error::DreamClassificationError;
@@ -214,6 +223,11 @@ pub use dream_processor_error::DreamProcessError;
 pub use dream_processor_model::{DreamProcessResult, DreamProcessedPair};
 pub use dream_publisher_error::DreamPublicationError;
 pub use dream_publisher_model::DreamPublicationOutcome;
+pub use dream_temporal_model::{
+    DreamTemporalAnalysis, DreamTemporalAnchor, DreamTemporalFrequency, DreamTemporalGranularity,
+    DreamTemporalMatch, DreamTemporalMatchKind, DreamTemporalOrigin, DreamTemporalPattern,
+    DreamTemporalWeekday,
+};
 pub use dream_verifier::DreamVerifier;
 pub use dream_verifier_error::DreamVerificationError;
 pub use dream_verifier_model::{
@@ -363,6 +377,8 @@ mod dream_processor_tests;
 #[cfg(test)]
 mod dream_publisher_tests;
 #[cfg(test)]
+mod dream_temporal_tests;
+#[cfg(test)]
 mod dream_verifier_tests;
 #[cfg(test)]
 mod episode_tests;
@@ -396,6 +412,8 @@ mod openai_codex_device_auth_tests;
 mod openai_codex_general_tests;
 #[cfg(test)]
 mod openai_ready_embedding_tests;
+#[cfg(test)]
+mod openai_ready_general_tests;
 #[cfg(test)]
 mod packed_vector_tests;
 #[cfg(test)]

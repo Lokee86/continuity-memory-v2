@@ -68,6 +68,7 @@ fn contexts() -> (crate::DreamMemoryContext, crate::DreamMemoryContext) {
                 semantic_limit: 1,
                 prior_semantic_quota: 0,
                 lexical_limit: 0,
+                temporal_limit: 0,
             },
         )
         .unwrap();

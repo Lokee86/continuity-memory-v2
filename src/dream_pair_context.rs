@@ -1,4 +1,7 @@
-use crate::{DreamMemoryContext, GraphRelationKind};
+use crate::{
+    DreamMemoryContext, DreamTemporalFrequency, DreamTemporalGranularity, DreamTemporalOrigin,
+    DreamTemporalWeekday, GraphRelationKind,
+};
 use serde_json::{Value, json};
 
 pub(crate) fn canonical_pair<'a>(
@@ -36,8 +39,42 @@ pub(crate) fn context_json(context: &DreamMemoryContext) -> Value {
         "title": context.memory.title,
         "content": context.memory.content,
         "source_timestamp_ns": context.source_timestamp_ns,
+        "temporal": temporal_json(context),
         "graph_relations": relations,
     })
+}
+
+fn temporal_json(context: &DreamMemoryContext) -> Value {
+    let anchors: Vec<_> = context
+        .temporal
+        .anchors
+        .iter()
+        .map(|anchor| {
+            json!({
+                "start_ns": anchor.start_ns,
+                "end_ns": anchor.end_ns,
+                "granularity": granularity_name(anchor.granularity),
+                "origin": origin_name(anchor.origin),
+                "evidence": anchor.evidence,
+            })
+        })
+        .collect();
+    let patterns: Vec<_> = context
+        .temporal
+        .patterns
+        .iter()
+        .map(|pattern| {
+            json!({
+                "frequency": frequency_name(pattern.frequency),
+                "interval": pattern.interval,
+                "weekday": pattern.weekday.map(weekday_name),
+                "month_day": pattern.month_day,
+                "month": pattern.month,
+                "evidence": pattern.evidence,
+            })
+        })
+        .collect();
+    json!({"anchors": anchors, "patterns": patterns})
 }
 
 pub(crate) fn memory_text(context: &DreamMemoryContext) -> String {
@@ -46,6 +83,47 @@ pub(crate) fn memory_text(context: &DreamMemoryContext) -> String {
 
 pub(crate) fn hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn granularity_name(value: DreamTemporalGranularity) -> &'static str {
+    match value {
+        DreamTemporalGranularity::Instant => "instant",
+        DreamTemporalGranularity::Day => "day",
+        DreamTemporalGranularity::Week => "week",
+        DreamTemporalGranularity::Month => "month",
+        DreamTemporalGranularity::Quarter => "quarter",
+        DreamTemporalGranularity::Year => "year",
+        DreamTemporalGranularity::Range => "range",
+    }
+}
+
+fn origin_name(value: DreamTemporalOrigin) -> &'static str {
+    match value {
+        DreamTemporalOrigin::Explicit => "explicit",
+        DreamTemporalOrigin::Relative => "relative",
+    }
+}
+
+fn frequency_name(value: DreamTemporalFrequency) -> &'static str {
+    match value {
+        DreamTemporalFrequency::Daily => "daily",
+        DreamTemporalFrequency::Weekly => "weekly",
+        DreamTemporalFrequency::Monthly => "monthly",
+        DreamTemporalFrequency::Quarterly => "quarterly",
+        DreamTemporalFrequency::Yearly => "yearly",
+    }
+}
+
+fn weekday_name(value: DreamTemporalWeekday) -> &'static str {
+    match value {
+        DreamTemporalWeekday::Monday => "monday",
+        DreamTemporalWeekday::Tuesday => "tuesday",
+        DreamTemporalWeekday::Wednesday => "wednesday",
+        DreamTemporalWeekday::Thursday => "thursday",
+        DreamTemporalWeekday::Friday => "friday",
+        DreamTemporalWeekday::Saturday => "saturday",
+        DreamTemporalWeekday::Sunday => "sunday",
+    }
 }
 
 fn graph_relation_name(kind: GraphRelationKind) -> &'static str {

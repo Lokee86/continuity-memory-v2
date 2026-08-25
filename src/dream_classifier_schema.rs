@@ -18,7 +18,7 @@ Direction rules:
 - topical, recurrent, duplicate_of -> direction undirected.
 - factual, causal, supersedes -> direction a_to_b or b_to_a according to meaning.
 
-Source timestamps are chronology context only. They are not proof of causality or supersession. Existing Graph relations are supplemental context only and are not proof of the pair conclusion.
+Source timestamps are chronology context only. Deterministic temporal anchors/patterns are evidence about dates, ranges, and recurrence, but are not by themselves proof of causality, supersession, or recurrence between the two Memories. Existing Graph relations are supplemental context only and are not proof of the pair conclusion.
 
 For every non-none conclusion, provide exactly two short verbatim evidence quotes: one copied from A title/content and one copied from B title/content. For none, evidence must be empty. Do not paraphrase evidence."#;
 

@@ -13,6 +13,8 @@ aes-gcm = "0.10"
 zeroize = "1"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 base64 = "0.22"
+regex = "1"
+time = { version = "0.3", features = ["parsing"] }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -9,6 +9,9 @@ pub(crate) struct ScoredCandidate {
     pub(crate) semantic_rank: Option<usize>,
     pub(crate) prior_rank: Option<usize>,
     pub(crate) lexical_rank: Option<usize>,
+    pub(crate) temporal_score: f64,
+    pub(crate) temporal_rank: Option<usize>,
+    pub(crate) temporal_matches: Vec<crate::DreamTemporalMatch>,
     pub(crate) fused_score: f64,
 }
 
@@ -78,10 +81,31 @@ pub(crate) fn rank_lanes(
         candidates[*index].lexical_rank = Some(rank + 1);
     }
 
+    let mut temporal: Vec<_> = candidates
+        .iter()
+        .enumerate()
+        .filter(|(_, candidate)| candidate.temporal_score > 0.0)
+        .map(|(index, candidate)| (index, candidate.temporal_score))
+        .collect();
+    temporal.sort_by(|a, b| {
+        b.1.total_cmp(&a.1).then_with(|| {
+            candidates[a.0]
+                .context
+                .memory
+                .id
+                .0
+                .cmp(&candidates[b.0].context.memory.id.0)
+        })
+    });
+    for (rank, (index, _)) in temporal.iter().take(config.temporal_limit).enumerate() {
+        candidates[*index].temporal_rank = Some(rank + 1);
+    }
+
     for candidate in candidates {
         candidate.fused_score = rrf(candidate.semantic_rank, 1.0)
             + rrf(candidate.prior_rank, 0.6)
-            + rrf(candidate.lexical_rank, 0.35);
+            + rrf(candidate.lexical_rank, 0.35)
+            + rrf(candidate.temporal_rank, 1.0);
     }
 }
 
@@ -98,6 +122,7 @@ pub(crate) fn select_candidates(
         candidate.semantic_rank.is_some()
             || candidate.prior_rank.is_some()
             || candidate.lexical_rank.is_some()
+            || candidate.temporal_rank.is_some()
     });
     candidates.sort_by(|a, b| {
         b.fused_score
@@ -160,6 +185,9 @@ fn to_public_candidate(candidate: ScoredCandidate) -> DreamCandidate {
         prior_semantic_rank: candidate.prior_rank,
         lexical_score: candidate.lexical_score,
         lexical_rank: candidate.lexical_rank,
+        temporal_score: candidate.temporal_score,
+        temporal_rank: candidate.temporal_rank,
+        temporal_matches: candidate.temporal_matches,
     }
 }
 

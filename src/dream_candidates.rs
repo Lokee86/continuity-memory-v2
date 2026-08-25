@@ -2,6 +2,8 @@ use crate::dream_candidate_ranking::{
     ScoredCandidate, lexical_score, rank_lanes, select_candidates,
 };
 use crate::dream_source_time::source_timestamp_ns;
+use crate::dream_temporal::analyze_memory_temporal;
+use crate::dream_temporal_match::temporal_matches;
 use crate::{
     CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
     DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
@@ -41,13 +43,19 @@ impl Cva {
                 .map(|candidate| cosine(source_vector, candidate))
                 .transpose()?;
             let lexical_score = lexical_score(&source_context.memory, &memory);
+            let context = self.dream_memory_context(memory, body_id, &relations);
+            let (temporal_matches, temporal_score) =
+                temporal_matches(&source_context.temporal, &context.temporal);
             scored.push(ScoredCandidate {
-                context: self.dream_memory_context(memory, body_id, &relations),
+                context,
                 semantic_score,
                 lexical_score,
                 semantic_rank: None,
                 prior_rank: None,
                 lexical_rank: None,
+                temporal_score,
+                temporal_rank: None,
+                temporal_matches,
                 fused_score: 0.0,
             });
         }
@@ -70,11 +78,13 @@ impl Cva {
             .copied()
             .filter(|relation| relation.source == memory.id || relation.target == memory.id)
             .collect();
+        let temporal = analyze_memory_temporal(&memory, source_timestamp_ns);
         DreamMemoryContext {
             memory,
             body_id,
             source_timestamp_ns,
             graph_relations,
+            temporal,
         }
     }
 
@@ -120,6 +130,7 @@ fn validate_config(config: DreamCandidateConfig) -> Result<(), DreamCandidateErr
         || config.limit > MAX_DREAM_CANDIDATE_LIMIT
         || config.semantic_limit > MAX_DREAM_CANDIDATE_LIMIT
         || config.lexical_limit > MAX_DREAM_CANDIDATE_LIMIT
+        || config.temporal_limit > MAX_DREAM_CANDIDATE_LIMIT
         || config.prior_semantic_quota > config.limit
     {
         return Err(DreamCandidateError::InvalidConfig);

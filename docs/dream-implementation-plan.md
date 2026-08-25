@@ -6,11 +6,11 @@ Parent index: [Documentation index](INDEX.md)
 
 This document owns the current implementation plan for Dream over the implemented Graph owner. It records the redesign derived from review of CTX Dream, the previous Continuity Dream implementation, the current Graph foundation, and the August 2026 planning discussion.
 
-Dream's bounded candidate-retrieval, pair-classification, independent-verification, accepted Graph-publication, chronological duplicate-chain, and first lifecycle/end-to-end processing seams are now implemented. This document freezes the intended semantic shape and tracks the remaining staged implementation.
+Dream's bounded candidate-retrieval, pair-classification, independent-verification, accepted Graph-publication, chronological duplicate-chain, first lifecycle/end-to-end processing, and deterministic temporal seams are now implemented. This document freezes the intended semantic shape and tracks the remaining staged implementation.
 
 ## Overview
 
-Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, and the first bounded end-to-end processor are implemented. Remaining work proceeds through deterministic temporal interpretation, measured canonical policy, bounded reconsideration if demonstrated, and only then long-lived scheduling/runtime integration.
+Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, the first bounded end-to-end processor, and deterministic temporal interpretation/retrieval are implemented. Initial representative retrieval/classifier/verifier validation is complete; remaining validation should target live publication/lifecycle behavior and temporal-specific cases before measured canonical policy, bounded reconsideration if demonstrated, and only then long-lived scheduling/runtime integration.
 
 ## Responsibility
 
@@ -207,11 +207,12 @@ Current lanes:
 
 1. exact semantic comparison of the source Memory's stored vector against current Memory-body vectors under one Compatibility Profile;
 2. a bounded prior/older semantic quota based on authoritative source timestamps so old duplicates or corrections are not hidden by newer high-similarity results;
-3. deterministic lexical/metadata overlap over Memory title/content/category/type/parent.
+3. deterministic lexical/metadata overlap over Memory title/content/category/type/parent;
+4. deterministic temporal matching from overlapping content-time anchors or identical recurrence-pattern identity.
 
-The source and candidates are returned with immutable body identity, authoritative source timestamp when available, and all active Graph relations touching each Memory. Archived Memories are excluded. Candidates without vectors may still enter through the lexical/metadata lane. Retrieval performs no new embedding or model call and is deterministic for unchanged CVA state/configuration.
+The source and candidates are returned with immutable body identity, authoritative source timestamp when available, deterministic temporal analysis, and all active Graph relations touching each Memory. Archived Memories are excluded. Candidates without vectors may still enter through lexical/metadata or temporal lanes. Retrieval performs no new embedding or model call and is deterministic for unchanged CVA state/configuration.
 
-Existing Graph context is attached for later pair evaluation rather than used as a separate ranking lane in the initial implementation. A dedicated temporal candidate lane remains deferred until deterministic temporal indexing exists. Recurrence should be treated as temporal evidence/candidate discovery rather than a completely separate LLM pipeline.
+Existing Graph context is attached for later pair evaluation rather than used as a separate ranking lane. The temporal lane is derived during the same current-Memory scan and adds no persistent index/owner. Source timestamps resolve relative language but source-time proximity alone is not a temporal candidate signal. Recurrence is temporal evidence/candidate discovery rather than a separate LLM pipeline.
 
 Do not restore CTX LLM-generated search keywords or add LLM candidate triage until candidate-recall measurements demonstrate a need.
 
@@ -306,7 +307,7 @@ Milestone A currently provides:
 - archived exclusion and attached Graph context;
 - focused synthetic tests for semantic ranking, prior coverage, deterministic repeatability, lexical fallback, archival filtering, and Graph-context attachment.
 
-The next validation step is candidate-recall inspection on representative real Insomnia-generated Memories. Do not add an LLM triage stage unless that measurement demonstrates a need.
+The first representative candidate-recall inspection used 13 hand-selected related pairs from a 103-Memory Insomnia-generated corpus with 1024-dimensional Memory vectors. All 13 related counterparts appeared within the default top 12, at ranks 1–12. This small fixture does not justify an LLM triage stage; broader recall measurement should be added only if production misses demonstrate a need.
 
 ### Phase 3 — pair classifier — implemented
 
@@ -331,7 +332,7 @@ Milestone C currently provides:
 - pair/classification identity validation and reverse-processing-order invariance;
 - no Graph or lifecycle side effects.
 
-Representative live/corpus measurement must decide whether factual, causal, and recurrent should move into the default verification policy.
+The first Ox Alpha/OpenRouter validation run applied independent verification to all 13 selected related real-Memory pairs and accepted all 13; the 9-case synthetic relation/direction contract was 9/9 exact with 8/8 non-none verifier accepts. Because this fixture produced no classifier proposal that the verifier corrected or rejected, it demonstrates verifier compatibility but not enough quality gain to justify moving factual, causal, or recurrent into the default verification policy.
 
 ### Phase 5 — accepted Graph publication — implemented
 
@@ -374,14 +375,36 @@ Milestone F currently provides:
 
 Graph and Memories retain separate semantic clocks. Graph relationship publication occurs first; lifecycle is a recoverable projection stage. If a later Memory revision fails, retrying lifecycle reconciliation derives the remaining projection from current Graph state, while the source is not marked `knowledge` until reconciliation completes.
 
-### Phase 8 — deterministic temporal layer
+### Phase 8 — deterministic temporal layer — implemented
 
-- obtain source turn/Episode timestamps through provenance;
-- deterministically parse content-time expressions;
-- resolve relative expressions against source timestamps;
-- retain anchors/ranges and recurrence patterns;
-- add temporal candidate lookup/indexing;
-- require deterministic verification for any later model enrichment.
+Milestone G currently provides:
+
+- authoritative source turn/Episode timestamps as the sole reference frame for relative expressions;
+- deterministic parsing of RFC3339 timestamps, ISO/natural dates, inclusive date ranges, months, quarters, contextual years, and recurrence patterns;
+- deterministic resolution of `today`/`yesterday`/`tomorrow`, next/last weekdays, this/next/last week/month/quarter/year, and bounded day/week offsets;
+- half-open anchors/ranges plus recurrence-pattern identities retained separately from source chronology;
+- a bounded temporal candidate lane based on anchor overlap or exact recurrence identity, including unvectorized candidates;
+- temporal context attached to classifier/verifier payloads as evidence, not semantic proof;
+- no `Memory.created_at` participation, no temporal model call, no persistent temporal record family, and no temporal semantic clock.
+
+Current source provenance has no timezone field, so calendar interpretation is UTC. A future source-timezone extension may refine that without changing the ownership model. Any later model enrichment must remain optional and deterministically verified.
+
+### Initial live retrieval/inference validation — completed
+
+On 2026-08-25, `stealth/ox-alpha` through OpenRouter was run against the strict Dream classifier/verifier contracts using the existing encrypted OpenRouter credential. OpenRouter/Ox did not reliably honor `response_format` schema shape, so the OpenAI-compatible Dream transport now forces one exact named function call with the requested JSON schema as function parameters and parses only that function's arguments. No alternate classifier schema is normalized after the call.
+
+The validation harness produced:
+
+```text
+synthetic relation/direction: 9/9 exact
+synthetic non-none verifier:   8/8 accept
+real related-pair recall@12:  13/13
+real related classification:  13/13 non-none
+real related verifier:        13/13 accept
+real unrelated negatives:      4/4 none
+```
+
+The real fixture contains 103 Insomnia-generated Memories and one 1024-dimensional compatibility profile. It is an initial seam validation, not a population accuracy claim. It exercises candidate retrieval plus classifier/verifier behavior; it does not yet measure live Graph publication/lifecycle precision, canonical promotion, or a purpose-built temporal-only corpus.
 
 ### Phase 9 — bounded reconsideration if required
 
@@ -433,10 +456,10 @@ The review has not yet frozen:
 2. exact independent-observation/corroboration policy across duplicate chains;
 3. exact canonical-promotion rules;
 4. whether second-pass verification becomes universal for all non-topical semantic relations after measurement;
-5. exact general temporal index representation beyond the implemented duplicate-chain source-time index;
+5. whether temporal retrieval eventually needs a derived persistent/cache index after scale measurement;
 6. precise semantics for `references`.
 
-The next implementation milestone is the deterministic temporal layer: source-turn/Episode chronology plus deterministic content-time parsing, relative-time resolution, temporal candidate lookup, and deterministic verification of any later model enrichment.
+The next validation milestone should exercise accepted Graph publication, duplicate/supersession lifecycle consequences, and temporal-only retrieval on representative live/corpus cases. Canonical-promotion policy should follow those measurements rather than adding more inference machinery speculatively.
 
 ## Related docs
 

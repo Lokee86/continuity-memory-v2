@@ -122,6 +122,64 @@ fn complete_supersession_pass_archives_replaced_memory_and_advances_source() {
 }
 
 #[test]
+fn temporal_only_candidate_flows_through_complete_dream_processing() {
+    let mut cva = Cva::create(test_path("processor-temporal.cva")).unwrap();
+    let candidate = memory(
+        &mut cva,
+        "candidate",
+        "Field event",
+        "Inspection scheduled for 2026-08-25.",
+        1,
+        false,
+    );
+    let source = memory_extracted(
+        &mut cva,
+        "source",
+        "Upcoming inspection",
+        "Inspection is tomorrow.",
+        1_787_572_800_000_000_000,
+    );
+    let profile = install_vectors(&mut cva, &[source], &[&[1.0, 0.0]]);
+    let classifier = SimulatedGeneralEndpoint::new(
+        "classifier",
+        vec![json!({
+            "relation": "topical",
+            "direction": "undirected",
+            "evidence": [
+                {"side": "a", "quote": "Inspection"},
+                {"side": "b", "quote": "Inspection"}
+            ]
+        })],
+    );
+    let processor = DreamProcessor::new(
+        classifier,
+        SimulatedGeneralEndpoint::new("verifier", vec![]),
+    );
+
+    let result = processor
+        .process_memory(
+            &mut cva,
+            profile,
+            source,
+            DreamCandidateConfig {
+                limit: 1,
+                semantic_limit: 0,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 1,
+            },
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+
+    assert_eq!(result.candidate_count, 1);
+    assert_eq!(result.pairs.len(), 1);
+    assert_eq!(result.source.lifecycle_state, "knowledge");
+    assert_eq!(cva.graph_relations().len(), 2);
+    assert_eq!(cva.memory(candidate).unwrap().lifecycle_state, "knowledge");
+}
+
+#[test]
 fn inference_failure_does_not_advance_source_lifecycle() {
     let mut cva = Cva::create(test_path("processor-failure.cva")).unwrap();
     let candidate = memory(

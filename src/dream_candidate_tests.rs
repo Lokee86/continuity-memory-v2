@@ -38,6 +38,7 @@ fn semantic_lane_finds_the_known_nearest_memory_without_embedding_calls() {
         semantic_limit: 2,
         prior_semantic_quota: 0,
         lexical_limit: 0,
+        temporal_limit: 0,
     };
     let result = cva.dream_candidates(profile, source, config).unwrap();
     let repeated = cva.dream_candidates(profile, source, config).unwrap();
@@ -89,6 +90,7 @@ fn prior_semantic_quota_uses_source_timestamps_and_survives_top_n_pressure() {
                 semantic_limit: 2,
                 prior_semantic_quota: 1,
                 lexical_limit: 0,
+                temporal_limit: 0,
             },
         )
         .unwrap();
@@ -145,6 +147,7 @@ fn lexical_lane_can_recover_an_unembedded_candidate_and_excludes_archived_memori
                 semantic_limit: 0,
                 prior_semantic_quota: 0,
                 lexical_limit: 4,
+                temporal_limit: 0,
             },
         )
         .unwrap();
@@ -199,6 +202,7 @@ fn source_and_candidates_arrive_with_their_active_graph_context() {
                 semantic_limit: 1,
                 prior_semantic_quota: 0,
                 lexical_limit: 0,
+                temporal_limit: 0,
             },
         )
         .unwrap();

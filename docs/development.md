@@ -162,6 +162,25 @@ A live default hybrid search over that published generation for `compatibility p
 
 The configured ChatGPT/Codex route was set to `gpt-5.6-luna` with `low` reasoning and the existing device-code credential. A disposable one-conversation/two-turn CVA was imported and processed through the ordinary `insomnia run` path with one worker. The first backend probe exposed an invalid `reasoning.summary = none` request; the transport was corrected to `auto`. The fresh rerun completed one Episode in one claim with zero retries, zero terminal failures, zero Memories, and no embedding work, confirming live authentication, account routing, Luna model selection, low reasoning, structured Responses output, SSE parsing, and Insomnia provider dispatch.
 
+### Live Dream Ox Alpha validation — 2026-08-25
+
+The first representative Dream retrieval/inference validation used `stealth/ox-alpha` through OpenRouter against a disposable copy of an Insomnia-generated CVA containing 103 current Memories and one 1024-dimensional Memory-vector compatibility profile. The validation fixture contains nine unambiguous synthetic relation/direction cases, thirteen hand-selected related real-Memory pairs, and four unrelated negative pairs.
+
+Initial `response_format` calls exposed provider-structure drift: Ox returned semantically plausible JSON but did not preserve the required evidence-array shape. The OpenAI-compatible Dream transport was therefore changed to force exactly one named function call with the Dream JSON schema as function parameters and to parse only that function's arguments. The temporary alternate-shape normalization used during diagnosis was removed. The transport also performs bounded retry/backoff for retryable connection/timeouts and HTTP 408/409/429/5xx responses because the OpenRouter shared Ox pool produced intermittent upstream 429s during bring-up.
+
+The unchanged validation fixture then completed with:
+
+```text
+synthetic relation/direction: 9/9 exact
+synthetic non-none verifier:   8/8 accept
+real related-pair recall@12:  13/13
+real related classification:  13/13 non-none
+real related verifier:        13/13 accept
+real unrelated negatives:      4/4 none
+```
+
+The related-pair candidate ranks were `2, 4, 4, 6, 1, 5, 1, 12, 4, 1, 6, 1, 4`. This is a small seam-validation fixture, not a population-level accuracy estimate. It supports the current candidate retrieval and strict classifier/verifier transport contracts, but does not yet measure Graph publication/lifecycle precision, canonical promotion, or purpose-built temporal-only cases. Because the broad verifier accepted every selected related proposal and corrected none, this run does not justify enabling factual/causal/recurrent verification by default.
+
 ### Live Insomnia worker concurrency — 2026-08-15
 
 The prepared 12-conversation ChatGPT corpus was converted to the current canonical graph-JSONL development format without adding a production importer. It produced 1,441 canonical text nodes and 66 deterministic import Episodes. Each concurrency point used a fresh copy of the same pre-Insomnia CVA, the configured `gpt-5.6-luna` Codex route at `low` reasoning, and the configured Qwen3 embedding route. Episode-processing time and Memory-Vector time were measured separately so embedding latency did not contaminate the worker scaling curve.
