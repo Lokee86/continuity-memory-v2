@@ -1,4 +1,6 @@
-use crate::{ArchiveError, ContainerError, CvaError, InsomniaError, MemoryError};
+use crate::{
+    ArchiveError, CompatibilityProfileError, ContainerError, CvaError, InsomniaError, MemoryError,
+};
 use std::fmt;
 use std::io;
 
@@ -9,6 +11,7 @@ pub enum CvaReconcileError {
     Archive(ArchiveError),
     Memories(MemoryError),
     Insomnia(InsomniaError),
+    CompatibilityProfile(CompatibilityProfileError),
     Io(io::Error),
     MissingWorkspaceMetadata(&'static str),
     WorkspaceMismatch { left: String, right: String },
@@ -28,6 +31,7 @@ impl fmt::Display for CvaReconcileError {
             Self::Archive(error) => write!(f, "{error}"),
             Self::Memories(error) => write!(f, "{error}"),
             Self::Insomnia(error) => write!(f, "{error}"),
+            Self::CompatibilityProfile(error) => write!(f, "{error}"),
             Self::Io(error) => write!(f, "{error}"),
             Self::MissingWorkspaceMetadata(side) => {
                 write!(f, "{side} CVA has no workspace metadata")
@@ -84,6 +88,12 @@ impl From<MemoryError> for CvaReconcileError {
 impl From<InsomniaError> for CvaReconcileError {
     fn from(value: InsomniaError) -> Self {
         Self::Insomnia(value)
+    }
+}
+
+impl From<CompatibilityProfileError> for CvaReconcileError {
+    fn from(value: CompatibilityProfileError) -> Self {
+        Self::CompatibilityProfile(value)
     }
 }
 

@@ -51,6 +51,7 @@ mod cva_reconcile;
 mod cva_reconcile_archive;
 mod cva_reconcile_error;
 mod cva_reconcile_memory;
+mod cva_reconcile_repack;
 mod cva_turn_ingest;
 mod cva_vector_generations;
 mod cva_workspace;
@@ -242,6 +243,8 @@ mod container_tests;
 mod conversation_tests;
 #[cfg(test)]
 mod credential_tests;
+#[cfg(test)]
+mod cva_reconcile_derived_tests;
 #[cfg(test)]
 mod cva_reconcile_grouped_tests;
 #[cfg(test)]

@@ -1,9 +1,6 @@
 use crate::Cva;
-use crate::cva_reconcile_archive::{
-    read_archive_tail, replay_archive_tail, replay_file_memory_links,
-};
 use crate::cva_reconcile_error::CvaReconcileError;
-use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
+use crate::cva_reconcile_repack::reconcile_diverged;
 use std::fs;
 use std::path::Path;
 
@@ -32,7 +29,7 @@ pub struct CvaReconcileResult {
     pub duplicate_memory_revisions: usize,
     pub replayed_insomnia_completions: usize,
     pub replayed_file_memory_links: usize,
-    pub skipped_derived_archive_records: usize,
+    pub vector_rebuild_required: bool,
 }
 
 impl Cva {
@@ -94,37 +91,7 @@ impl Cva {
             return Ok(empty_result(comparison));
         }
 
-        let mut right = Self::open(right_path)?;
-        let archive_tail = read_archive_tail(&mut right, comparison.common_chunk_count)?;
-        let memory_tail = read_memory_tail(&mut right, comparison.common_chunk_count)?;
-        fs::copy(left_path, output_path)?;
-        let merge_result = (|| {
-            let mut output = Self::open(output_path)?;
-            let archive_records = replay_archive_tail(&mut output, &archive_tail)?;
-            let memory_result = replay_memory_tail(&mut output, memory_tail)?;
-            let file_memory_links =
-                replay_file_memory_links(&mut output, &archive_tail.file_memory_links)?;
-            output.sync()?;
-            drop(output);
-            Self::open(output_path)?;
-            Ok((archive_records, memory_result, file_memory_links))
-        })();
-        let (archive_records, memory_result, file_memory_links) = match merge_result {
-            Ok(value) => value,
-            Err(error) => {
-                let _ = fs::remove_file(output_path);
-                return Err(error);
-            }
-        };
-        Ok(CvaReconcileResult {
-            comparison,
-            replayed_archive_records: archive_records,
-            replayed_memory_revisions: memory_result.revisions,
-            duplicate_memory_revisions: memory_result.duplicate_revisions,
-            replayed_insomnia_completions: memory_result.completions,
-            replayed_file_memory_links: file_memory_links,
-            skipped_derived_archive_records: archive_tail.skipped_derived,
-        })
+        reconcile_diverged(left_path, right_path, output_path, comparison)
     }
 }
 
@@ -136,7 +103,7 @@ fn empty_result(comparison: CvaComparison) -> CvaReconcileResult {
         duplicate_memory_revisions: 0,
         replayed_insomnia_completions: 0,
         replayed_file_memory_links: 0,
-        skipped_derived_archive_records: 0,
+        vector_rebuild_required: false,
     }
 }
 

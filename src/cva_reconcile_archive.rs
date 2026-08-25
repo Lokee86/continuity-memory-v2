@@ -1,8 +1,8 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::decode_record_version;
 use crate::{
-    ArchiveError, Branch, Cva, CvaReconcileError, Episode, FileMemoryLink, IncomingAttachment,
-    IncomingTurn, StoredFile,
+    ArchiveError, Branch, Cva, CvaReconcileError, Episode, FileMemoryLink, Fragment,
+    IncomingAttachment, IncomingTurn, StoredFile,
 };
 
 pub(crate) enum ArchiveReplayRecord {
@@ -10,13 +10,13 @@ pub(crate) enum ArchiveReplayRecord {
     IngestedTurn(IncomingTurn),
     Branch(Branch),
     Episode(Episode),
+    Fragment(Fragment),
     File(StoredFile, Vec<u8>),
 }
 
 pub(crate) struct ArchiveTail {
     pub(crate) records: Vec<ArchiveReplayRecord>,
     pub(crate) file_memory_links: Vec<FileMemoryLink>,
-    pub(crate) skipped_derived: usize,
 }
 
 pub(crate) fn read_archive_tail(
@@ -26,7 +26,6 @@ pub(crate) fn read_archive_tail(
     let chunks = cva.container.chunks()?;
     let mut records = Vec::new();
     let mut file_memory_links = Vec::new();
-    let mut skipped_derived = 0;
 
     for chunk in chunks.iter().skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
@@ -77,7 +76,9 @@ pub(crate) fn read_archive_tail(
                 records.push(ArchiveReplayRecord::File(file, bytes));
             }
             ArchiveRecord::FileMemoryLink(link) => file_memory_links.push(link),
-            ArchiveRecord::Fragment(_) => skipped_derived += 1,
+            ArchiveRecord::Fragment(fragment) => {
+                records.push(ArchiveReplayRecord::Fragment(fragment))
+            }
             ArchiveRecord::Content(_, _) | ArchiveRecord::Other => {
                 return Err(CvaReconcileError::Archive(
                     ArchiveError::InvalidArchiveRecordVersion,
@@ -89,7 +90,6 @@ pub(crate) fn read_archive_tail(
     Ok(ArchiveTail {
         records,
         file_memory_links,
-        skipped_derived,
     })
 }
 
@@ -117,6 +117,11 @@ pub(crate) fn replay_archive_tail(
                 destination
                     .archive
                     .put_episode(&mut destination.container, episode.clone())?;
+            }
+            ArchiveReplayRecord::Fragment(fragment) => {
+                destination
+                    .archive
+                    .put_fragment(&mut destination.container, fragment.clone())?;
             }
             ArchiveReplayRecord::File(file, bytes) => {
                 destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)?;

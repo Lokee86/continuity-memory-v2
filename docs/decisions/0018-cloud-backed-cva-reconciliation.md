@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Comparison plus Archive, Memory, Insomnia-completion, and file-to-Memory semantic replay implemented; derived-state/provider integration remains in progress.
+Accepted — 2026-08-24. Comparison plus fresh semantic repacking, derived-state cleanup, Archive/Memory/Insomnia replay, and file-to-Memory reconciliation are implemented; provider integration and canonical promotion remain in progress.
 
 ## Purpose
 
@@ -92,11 +92,11 @@ Examples:
 
 Each purpose-built store remains responsible for deciding whether an imported/replayed record is valid.
 
-### Derived state should be rebuilt when cheaper and safer
+### Derived state should be rebuilt or retired when cheaper and safer
 
 Indexes, vector bindings, caches, and similar derived structures do not need byte-for-byte reconciliation when they can be regenerated from authoritative merged state.
 
-The initial implementation should prioritize correctness of authoritative source/history and rebuild derived owners afterward where practical.
+Current divergent reconciliation creates a fresh CVA. Immutable Fragment ranges are revalidated and replayed because they remain valid references to merged Archive nodes. The lexical index is process-local/disposable and therefore rebuilds lazily from those merged Fragments and Files after reopen. Compatibility profiles are immutable vector-space contracts and are preserved. Packed vector matrices, Memory-Vector bindings, Archive-Vector bindings, and Vector Generations are deliberately omitted from the fresh repack because they describe a pre-merge population cut; the result reports `vector_rebuild_required` when either source contained such state. Re-embedding remains an explicit follow-up because reconciliation itself has no embedding endpoint and must not fabricate vector data.
 
 ### Reconciliation writes a new file
 
@@ -129,23 +129,24 @@ They currently:
 3. reject mismatched workspace IDs;
 4. compare physical chunk histories and identify the common prefix;
 5. copy the complete side directly for identical/strict-extension cases;
-6. for true divergence, use the left CVA as a valid base and decode the right divergent semantic tail;
-7. replay source Nodes, attachment-bearing ingested turns, standalone Files, Branch revisions, and immutable Episodes through ordinary Archive APIs;
-8. decode standalone and grouped Insomnia-produced Memory revisions, then replay them through `publish_memory` so stable IDs/mutation IDs are preserved while destination clocks are newly allocated;
-9. re-emit durable Insomnia completion-only receipts after their Memory IDs exist, deduplicating identical receipts and rejecting incompatible completions for the same Episode;
-10. replay file-to-Memory links after both endpoint owners exist;
-11. omit rebuildable Fragment records from the replay;
-12. sync and reopen the new output for validation, removing it if reconciliation fails.
+6. for true divergence, create a fresh workspace CVA rather than copying either physical branch;
+7. decode and replay the complete left semantic history plus the right divergent semantic tail, allocating fresh destination clocks;
+8. replay source Nodes, attachment-bearing ingested turns, standalone Files, Branch revisions, immutable Episodes, and immutable Fragments through ordinary Archive APIs;
+9. decode standalone and grouped Insomnia-produced Memory revisions, then replay them through `publish_memory` so stable IDs/mutation IDs are preserved while destination clocks are newly allocated;
+10. re-emit durable Insomnia completion-only receipts after their Memory IDs exist, deduplicating identical receipts and rejecting incompatible completions for the same Episode;
+11. replay file-to-Memory links after both endpoint owners exist and preserve compatibility profiles from both copies;
+12. omit packed vectors, Memory/Archive vector bindings, and Vector Generations from the repack, while reporting whether a vector rebuild is required;
+13. rely on the disposable lexical index to rebuild lazily from replayed merged Fragments/Files;
+14. sync and reopen the new output for validation, removing it if reconciliation fails.
 
-This is now a functional semantic merge path for current authoritative Archive/Memory/Insomnia state, but not yet a complete product-level cloud-conflict workflow.
+This is now a functional semantic merge and derived-state cleanup path for current Archive/Memory/Insomnia/vector ownership, but not yet a complete product-level cloud-conflict workflow.
 
 ## Next implementation slices
 
-1. Rebuild omitted Fragment state where required rather than copying stale derived records.
-2. Rebuild or intentionally retire stale vector/index generations affected by merged Archive/Memory state.
-3. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation rather than exposing owner errors directly.
-4. Add provider-facing conflicted-copy discovery and safe canonical-file promotion around the library operation.
-5. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, and repeated conflict/reconciliation cycles.
+1. Add explicit unresolved-conflict reporting suitable for Warlock UI presentation rather than exposing owner errors directly.
+2. Add provider-facing conflicted-copy discovery and safe canonical-file promotion around the library operation.
+3. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
+4. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, and repeated conflict/reconciliation cycles.
 
 ## Non-goals
 
@@ -168,9 +169,9 @@ This decision does not introduce:
 
 ## Verification
 
-Tests now prove that comparison recognizes identical copies, strict extensions, independent divergent tails, and different workspace IDs. Reconciliation tests additionally prove unrelated source Nodes and attachments merge, immutable Episodes preserve Memory provenance, standalone and grouped Insomnia-produced Memory revisions are re-ticketed correctly, file-to-Memory links replay after their targets, identical completion receipts deduplicate, incompatible Branch/Memory/completion revisions fail closed, and failed merge output is removed.
+Tests now prove that comparison recognizes identical copies, strict extensions, independent divergent tails, and different workspace IDs. Reconciliation tests additionally prove unrelated source Nodes and attachments merge, immutable Episodes preserve Memory provenance, standalone and grouped Insomnia-produced Memory revisions are re-ticketed correctly, file-to-Memory links replay after their targets, identical completion receipts deduplicate, incompatible Branch/Memory/completion revisions fail closed, and failed merge output is removed. Derived-state coverage proves a divergent result is a fresh repack, preserves/revalidates Fragments and compatibility profiles from both sides, rebuilds lexical retrieval from merged Fragments, removes packed/Memory/Archive vector state and Vector Generations, and reports that vector rebuilding is required.
 
-Remaining work is derived Fragment/vector/index rebuild or retirement, richer conflict reporting, provider-level conflicted-copy discovery/fixtures, repeated reconciliation-cycle testing, and canonical-file promotion.
+Remaining work is richer conflict reporting, provider-level conflicted-copy discovery/fixtures, host-triggered vector rebuilding, repeated reconciliation-cycle testing, and canonical-file promotion.
 
 ## Related docs
 
