@@ -1,7 +1,7 @@
 use crate::interaction_session::SessionState;
 use crate::{
-    Cva, CvaError, EpisodePolicy, EpisodeSchedulingResult, IngestedTurn, InteractionError,
-    InteractionTurn,
+    ArchiveError, ConversationSummary, Cva, CvaError, EpisodePolicy, EpisodeSchedulingResult,
+    IngestedTurn, InteractionError, InteractionTurn, ResolvedTurn,
 };
 use std::collections::HashMap;
 
@@ -67,6 +67,18 @@ impl InteractionRuntime {
             self.cva.sync()?;
         }
         Ok(result)
+    }
+
+    pub fn conversation_summaries(&self) -> Vec<ConversationSummary> {
+        self.cva.conversation_summaries()
+    }
+
+    pub fn conversation_turns(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.cva.conversation_turns(conversation_id, leaf_node_id)
     }
 
     pub fn cva(&self) -> &Cva {

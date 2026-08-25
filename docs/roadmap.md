@@ -38,7 +38,7 @@ Expose the concrete Rust operations Warlock needs to manage one CVA-backed works
 
 The application surface should compose explicit owner operations for:
 
-- conversation/session inventory and inspection;
+- broader conversation/session management beyond the implemented derived conversation summaries and exact-leaf transcript reads;
 - file inventory, import, export, source provenance, and later organization;
 - Memory inventory, provenance, lifecycle inspection, and permitted manual lifecycle actions;
 - health, verification, statistics, and diagnostics;
@@ -49,16 +49,17 @@ The management layer must remain an application/service surface over concrete ow
 
 ### 3. Warlock host integration
 
-Integrate Continuity directly into the Warlock Rust application core and make the CVA the durable workspace file.
+Continuity is now linked directly into the Warlock v2 Rust application core. One CVA is the durable workspace file, and Warlock currently implements create/open/close/reopen plus durable conversation list/start/resume/user-turn/reopen through the public Continuity runtime seam.
 
-Purpose-built workspace metadata (stable ID, display name, and workspace type) is now implemented in Continuity. Remaining initial host work should provide:
+Remaining host integration work includes:
 
-- create/open/close/reopen Warlock workspace lifecycle around that CVA identity;
-- conversation/session access;
+- provider/agent execution and durable assistant turns;
+- interaction attachments and explicit multi-leaf branch selection;
 - file/artifact access;
 - Memory/knowledge access;
 - provenance/history inspection;
-- model/agent configuration seams required by the host; and
+- model/agent configuration seams required by the host;
+- background Episode/Insomnia execution; and
 - basic health/status visibility.
 
 The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Continuity lifecycle semantics directly.

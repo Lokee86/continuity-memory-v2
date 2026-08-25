@@ -20,7 +20,7 @@ Public types are `WorkspaceMetadata { id, name, workspace_type }`, `WorkspaceMet
 Workspace metadata is clock-neutral: initialization consumes no Archive, Memory, Vector Generation, or CVA-global semantic version. Rename/type-change lifecycle is not exposed in this first slice.
 
 ### Archive
-Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, `IncomingAttachment`, `IncomingTurn`, `IngestedTurn`, `FileMemoryLink`, and:
+Public Archive models include `ContentId`, `Node`, `Branch`, `ResolvedTurn`, `ConversationSummary`, `ArchiveStats`, `FragmentId`, `Fragment`, `FragmentConfig`, `FileId`, `StoredFile`, `IncomingAttachment`, `IncomingTurn`, `IngestedTurn`, `FileMemoryLink`, and:
 
 ```text
 ArchiveRecordVersion {
@@ -30,13 +30,15 @@ ArchiveRecordVersion {
 }
 ```
 
-Core operations through `Cva` include `append_node`, native `ingest_turn`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, fragment materialization/read methods, `store_file`, `file`, `files`, `file_bytes`, `search_files`, `files_for_source`, `link_file_to_memory`, `file_memory_links`, `files_for_memory`, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
+Core operations through `Cva` include `append_node`, native `ingest_turn`, `append_branch`, `branch_turns`, `branch_at`, current `branches()`, derived `conversation_summaries()`, exact-leaf `conversation_turns(conversation_id, leaf_node_id)`, fragment materialization/read methods, `store_file`, `file`, `files`, `file_bytes`, `search_files`, `files_for_source`, `link_file_to_memory`, `file_memory_links`, `files_for_memory`, `stats`, `archive_version`, `record_versions`, `record_version`, deterministic `fragments()`, and `sync()`.
 
 `ingest_turn(IncomingTurn)` is the source-ingestion boundary. `IncomingTurn` carries the source node plus zero or more `IncomingAttachment { filename, mime_type, bytes }` values. The node, attachment manifests, and source-to-file provenance are published as one Archive semantic mutation; callers do not store an attachment and then separately link it back to the turn. `files_for_source(conversation_id, node_id)` resolves those native attachments. Repeating the identical source event is idempotent; changing the attachment set for an existing node is a conflict.
 
 `Cva::ingest_turn` remains the lower-level synchronous Archive-facing operation. `InteractionRuntime::accept_turn` is the current transport-neutral completed-turn runtime boundary described below. The development graph importer still calls `Cva::ingest_turn` directly because it is a batch import path rather than a live interaction adapter.
 
 `store_file` remains the lower-level path for a file that is not being introduced as part of a source turn. `link_file_to_memory` is intentionally separate: a later Memory relationship is a real cross-owner semantic link, not source-ingestion provenance. File manifests carry filename, optional MIME type, byte length, and a content-addressed reference to arbitrary binary CAM bytes. One `CVACONT1` content object uses a `u32` byte-length field, so one stored file/content body must be smaller than 4 GiB. `search_files(query, limit)` uses the disposable incremental lexical index over filenames only; punctuation such as `-` and `.` separates terms, so extensions are searchable. File-tree operations and file-content indexing are not part of this surface yet.
+
+`conversation_summaries()` derives one summary per conversation from current Archive nodes without publishing any record or choosing one branch. Each summary contains the conversation ID, all current durable leaf node IDs, turn count, and latest source timestamp. Leaf IDs are ordered newest-timestamp first with node ID as a deterministic tie-break. `conversation_turns` requires an explicit leaf and resolves exactly that ancestry path; callers must not silently collapse a multi-leaf conversation to one branch.
 
 Global/Archive versions are ordering and watermarks only. Conversation ancestry remains node-parent based.
 
@@ -56,7 +58,7 @@ Public interaction types are `InteractionRole::{User, Agent}`, `InteractionAttac
 
 `schedule_session(policy, now_ns)` and `finalize_inactive_session(policy, now_ns)` also expose the existing live Episode/Insomnia scheduling paths from the current durable session leaf and sync any resulting semantic Episode publication. `finalize_inactive_session` remains an explicit call until a long-lived timer/service loop exists.
 
-`cva()` provides read-only access to the owned CVA and `into_cva()` transfers ownership back to the caller. Automatic adapter reconnect/resume, process/service persistence, continuous timers, background Memory/vector execution, tool/session-event normalization, and IPC/API exposure remain future runtime work.
+`conversation_summaries()` and `conversation_turns(conversation_id, leaf_node_id)` expose the same derived Archive inventory/path reads through the live runtime without giving hosts mutable CVA access. `cva()` provides read-only access to the owned CVA and `into_cva()` transfers ownership back to the caller. Automatic adapter reconnect/resume, process/service persistence, continuous timers, background Memory/vector execution, tool/session-event normalization, and IPC/API exposure remain future runtime work.
 
 ### Episodes
 

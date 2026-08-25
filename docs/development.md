@@ -390,4 +390,4 @@ A current-format cold-cache sample has not yet been recorded. Larger-population 
 
 ## Notes
 
-The current library has a synchronous per-turn ingestion primitive and transport-neutral interaction seam, but no long-lived Warlock host loop, workspace/CVA application surface, Warlock product integration, ACP adapter, or production provider/session importer exists yet. Additional provider-native/local adapters and Codex OAuth token refresh are also absent; future sequencing is owned by [Roadmap](roadmap.md).
+The current library has a synchronous per-turn ingestion primitive, transport-neutral interaction seam, derived conversation/leaf inventory, and exact-leaf transcript reads. Warlock v2 now consumes those APIs directly for workspace lifecycle and durable user-turn chat, but no long-lived inference/background host loop, full workspace/CVA management surface, ACP adapter, or production provider/session importer exists yet. Additional provider-native/local adapters and Codex OAuth token refresh are also absent; future sequencing is owned by [Roadmap](roadmap.md).

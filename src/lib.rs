@@ -1,5 +1,6 @@
 pub mod archive;
 mod archive_codec;
+mod archive_conversation;
 mod archive_error;
 mod archive_history;
 mod archive_history_codec;
@@ -38,6 +39,7 @@ mod credential_crypto;
 pub mod cva;
 mod cva_archive_vectors;
 mod cva_compatibility_profiles;
+mod cva_conversation;
 mod cva_error;
 mod cva_file_memory;
 mod cva_global_validation;
@@ -123,7 +125,7 @@ mod workspace_metadata_store;
 pub use archive::Archive;
 pub use archive_error::ArchiveError;
 pub use archive_history_model::ArchiveRecordVersion;
-pub use archive_model::{ArchiveStats, Branch, ContentId, Node, ResolvedTurn};
+pub use archive_model::{ArchiveStats, Branch, ContentId, ConversationSummary, Node, ResolvedTurn};
 pub use archive_vector_error::ArchiveVectorError;
 pub use archive_vector_model::{
     ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet, ArchiveVectorStats,
@@ -230,6 +232,8 @@ mod compatibility_profile_tests;
 mod config_tests;
 #[cfg(test)]
 mod container_tests;
+#[cfg(test)]
+mod conversation_tests;
 #[cfg(test)]
 mod credential_tests;
 #[cfg(test)]
