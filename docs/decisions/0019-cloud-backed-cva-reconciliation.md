@@ -1,4 +1,4 @@
-# ADR 0018: Cloud-backed CVA reconciliation
+# ADR 0019: Cloud-backed CVA reconciliation
 
 ## Status
 
@@ -14,13 +14,13 @@ Construction makes desktop/phone/tablet access a first-class requirement. Common
 
 A cloud provider cannot, however, understand the internal semantics of an arbitrary `.cva`. If two devices independently modify copies of the same workspace, the provider may preserve both files but cannot safely merge their logical records.
 
-Continuity can perform that last step because it owns the CVA format and semantic stores.
+Reliquary can perform that last step because it owns the CVA format and semantic stores.
 
 ## Decision
 
 ### Cloud storage owns transport
 
-Warlock and Continuity do not implement a general cloud synchronization service for the first multi-device architecture.
+Warlock and Reliquary do not implement a general cloud synchronization service for the first multi-device architecture.
 
 The user's selected provider remains responsible for:
 
@@ -31,7 +31,7 @@ The user's selected provider remains responsible for:
 - server-side file version history; and
 - detection/preservation of conflicting physical copies.
 
-Continuity owns only CVA-specific comparison and reconciliation.
+Reliquary owns only CVA-specific comparison and reconciliation.
 
 ### Workspace identity is the reconciliation boundary
 
@@ -148,7 +148,7 @@ This is now a functional semantic merge, derived-state cleanup, and safe path-ba
 
 1. Add provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
 2. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
-3. Add Warlock-side presentation/resolution flows for the structured conflicts; Continuity remains responsible only for typed conflict semantics.
+3. Add Warlock-side presentation/resolution flows for the structured conflicts; Reliquary remains responsible only for typed conflict semantics.
 4. Test realistic multi-device fixtures, including offline source capture, independent Memory production, attachments, derived-state rebuild, repeated conflict/reconciliation cycles, and provider-mediated file replacement.
 
 ## Non-goals
@@ -158,7 +158,7 @@ This decision does not introduce:
 - a Warlock cloud account requirement;
 - a Warlock-hosted canonical database;
 - multi-master network replication;
-- CRDT semantics for every Continuity store;
+- CRDT semantics for every Reliquary store;
 - provider-specific synchronization protocols; or
 - automatic semantic conflict resolution where two edits are genuinely incompatible.
 
@@ -166,7 +166,7 @@ This decision does not introduce:
 
 - Multi-device use can rely on OneDrive, Google Drive, iCloud Drive, Dropbox, SharePoint-backed files, or equivalent storage transports.
 - The CVA remains user-owned and portable.
-- Continuity gains one bounded responsibility: understanding divergent copies of its own format.
+- Reliquary gains one bounded responsibility: understanding divergent copies of its own format.
 - Automatic reconciliation can improve incrementally without coupling the storage format to any cloud vendor.
 - True simultaneous semantic conflicts remain explicit rather than being silently overwritten.
 

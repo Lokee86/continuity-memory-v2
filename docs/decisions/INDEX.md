@@ -18,4 +18,4 @@
 - [ADR 0016: Native product surface and shared interaction runtime](0016-native-product-surface-and-shared-interaction-runtime.md) — **Accepted for the shared interaction/runtime seam; standalone native-Reliquary-UI direction superseded by ADR 0017**, 2026-08-24.
 - [ADR 0017: CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md) — **Accepted**, 2026-08-24.
 - [ADR 0018: Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md) — **Accepted**, 2026-08-24.
-- [ADR 0018: Cloud-backed CVA reconciliation](0018-cloud-backed-cva-reconciliation.md) — **Accepted; implementation in progress**, 2026-08-24.
+- [ADR 0019: Cloud-backed CVA reconciliation](0019-cloud-backed-cva-reconciliation.md) — **Accepted; implementation in progress**, 2026-08-24.
