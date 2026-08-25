@@ -6,11 +6,11 @@ Parent index: [Documentation index](INDEX.md)
 
 This document owns the current implementation plan for Dream over the implemented Graph owner. It records the redesign derived from review of CTX Dream, the previous Continuity Dream implementation, the current Graph foundation, and the August 2026 planning discussion.
 
-Dream's bounded candidate-retrieval, pair-classification, and independent-verification seams are now implemented; accepted Graph publication and lifecycle behavior remain planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
+Dream's bounded candidate-retrieval, pair-classification, independent-verification, and accepted Graph-publication seams are now implemented; duplicate-chain and lifecycle behavior remain planned. This document freezes the intended semantic shape and tracks the remaining staged implementation.
 
 ## Overview
 
-Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, and transient independent verification are implemented. Remaining work proceeds through Graph publication, duplicate/supersession handling, deterministic temporal interpretation, lifecycle policy, and only then long-lived scheduling/runtime integration.
+Dream is being rebuilt as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, and atomic accepted-relation publication are implemented. Remaining work proceeds through duplicate/supersession handling, deterministic temporal interpretation, lifecycle policy, and only then long-lived scheduling/runtime integration.
 
 ## Responsibility
 
@@ -223,7 +223,7 @@ The strict v1 output proposes one relation from `none`, `topical`, `factual`, `c
 
 Every non-none proposal must include exactly one verbatim evidence quote from each Memory. Continuity validates relation/direction compatibility, unique A/B evidence coverage, and literal quote membership after the model call. Invalid structured conclusions are rejected before any downstream stage can observe them as accepted semantics.
 
-The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification is now implemented as the next transient seam; Graph publication, pair replacement/retraction, and lifecycle mutation remain later stages.
+The classifier is transient and read-only. It records the model identity in the returned result but persists nothing. Independent verification remains transient; accepted non-duplicate conclusions can now be reconciled into Graph atomically. Lifecycle mutation remains a later stage.
 
 ## Lifecycle
 
@@ -290,17 +290,13 @@ The Memory being processed should be presented with the same context. Dream can 
 
 Classification and verification outputs may remain transient until an accepted relationship is published. Graph remains the authoritative durable owner of accepted Memory-to-Memory relationships. Model identity, policy version, raw confidence, verifier traces, or other evaluation diagnostics should not be added to Graph merely because they could be recorded; add such persistence only when a concrete reproducibility, migration, audit, or invalidation requirement demonstrates the need.
 
-Before inference, only the Graph publication behavior actually required by pair-oriented semantics needs to be settled: correct relationship direction independent of processing direction, safe replacement/retraction of an existing pair conclusion, and atomic publication where changing a pair would otherwise expose a contradictory intermediate state.
+Milestone D settles the required Graph publication behavior for primary Dream relations. `Cva::set_memory_relations` publishes one or several edge changes as a single Graph semantic transaction; `publish_dream_pair` uses that boundary to preserve semantic direction, retract replaced primary pair relations, and activate the new conclusion without exposing contradictory intermediate state. Topical/recurrent use reciprocal edges; factual/causal/supersedes preserve classifier direction; `none` clears primary Dream state. Duplicate persistence is deliberately deferred to the chronological predecessor-chain milestone.
 
 ## Implementation sequence
 
-### Phase 1 — candidate context and Graph publication seam
+### Phase 1 — candidate context and Graph publication seam — implemented
 
-Candidate context and evaluator-facing pair direction semantics are implemented: Memory/body identity, relevant metadata/provenance/source chronology, attached active Graph data, canonical MemoryId A/B ordering, and tests proving reverse processing order produces the same classifier payload. Remaining work in this phase is publication-facing:
-
-- define safe pair replacement/retraction and atomic publication where required;
-- preserve classifier direction when translating an accepted proposal into Graph semantics;
-- do not introduce a separate durable pair-evaluation store without a demonstrated requirement.
+Candidate context, evaluator-facing pair direction semantics, and publication mechanics are implemented: Memory/body identity, relevant metadata/provenance/source chronology, attached active Graph data, canonical MemoryId A/B ordering, atomic Graph relation batches, safe primary-pair replacement/retraction, and classifier-direction preservation. No separate durable pair-evaluation store was introduced.
 
 ### Phase 2 — Memory candidate retrieval — implemented
 
@@ -340,19 +336,20 @@ Milestone C currently provides:
 
 Representative live/corpus measurement must decide whether factual, causal, and recurrent should move into the default verification policy.
 
-### Phase 5 — first complete Dream pass
+### Phase 5 — accepted Graph publication — implemented
 
-```text
-extracted Memory
-    -> candidate discovery
-    -> pair classification
-    -> required verification
-    -> Graph publication
-    -> successful completion
-    -> knowledge
-```
+Milestone D currently provides:
 
-This is the first useful end-to-end Dream milestone.
+- one atomic Graph transaction for multi-edge pair reconciliation;
+- reciprocal Graph edges for topical/recurrent semantic symmetry;
+- exact classifier direction for factual/causal/supersedes;
+- `none` reconciliation that removes only Dream-owned primary semantic relations;
+- preservation of structural-parent/references Graph state;
+- verification gating before publication;
+- idempotent no-op publication when the pair is already in the desired state;
+- verified duplicate publication deferred until predecessor-chain semantics are implemented.
+
+The next end-to-end milestone adds duplicate/supersession lifecycle behavior and the `extracted -> knowledge` completion transition around the now-working inference/publication pipeline.
 
 ### Phase 6 — duplicate and supersession lifecycle
 
@@ -425,7 +422,7 @@ The review has not yet frozen:
 6. exact temporal index representation and whether it is persisted or cheaply rebuilt;
 7. precise semantics for `references`.
 
-The next implementation milestone is accepted Graph publication: translate accepted classifier/verifier conclusions into Graph relationships while preserving semantic direction, defining safe pair replacement/retraction, and preventing contradictory intermediate pair state.
+The next implementation milestone is duplicate/supersession handling: implement the chronological duplicate predecessor chain and lifecycle consequences without changing the already-settled pair-oriented classifier/verifier/publication contract.
 
 ## Related docs
 

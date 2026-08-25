@@ -70,6 +70,9 @@ mod dream_classifier_error;
 mod dream_classifier_model;
 mod dream_classifier_schema;
 mod dream_pair_context;
+mod dream_publisher;
+mod dream_publisher_error;
+mod dream_publisher_model;
 mod dream_verifier;
 mod dream_verifier_error;
 mod dream_verifier_model;
@@ -195,6 +198,8 @@ pub use dream_classifier_model::{
     DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
 };
 pub use dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use dream_publisher_error::DreamPublicationError;
+pub use dream_publisher_model::DreamPublicationOutcome;
 pub use dream_verifier::DreamVerifier;
 pub use dream_verifier_error::DreamVerificationError;
 pub use dream_verifier_model::{
@@ -335,6 +340,8 @@ mod dream_candidate_test_support;
 mod dream_candidate_tests;
 #[cfg(test)]
 mod dream_classifier_tests;
+#[cfg(test)]
+mod dream_publisher_tests;
 #[cfg(test)]
 mod dream_verifier_tests;
 #[cfg(test)]
