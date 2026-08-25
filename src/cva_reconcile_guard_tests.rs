@@ -1,6 +1,6 @@
 use crate::{
     Cva, CvaReconcileError, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority,
-    MemoryDraft, WorkspaceMetadata,
+    WorkspaceMetadata,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -55,22 +55,37 @@ fn seed_episode(cva: &mut Cva) -> crate::Episode {
         .clone()
 }
 
-fn diverge_left(path: &Path) {
+fn complete(path: &Path, episode: crate::EpisodeId, model: &str) {
     let mut cva = Cva::open(path).unwrap();
-    cva.append_node(
-        "left".into(),
-        "other".into(),
-        None,
-        "user".into(),
-        4,
-        "left",
+    cva.queue_insomnia_episode(episode, InsomniaPriority::Live, 4)
+        .unwrap();
+    let claim = cva
+        .claim_insomnia_episode("worker", 5, 100)
+        .unwrap()
+        .unwrap();
+    cva.complete_insomnia_episode(
+        episode,
+        claim.lease_token.unwrap(),
+        5,
+        6,
+        model.into(),
+        "v1".into(),
+        Vec::new(),
+        0,
     )
     .unwrap();
     cva.sync().unwrap();
 }
 
+fn append_divergence(path: &Path, id: &str) {
+    let mut cva = Cva::open(path).unwrap();
+    cva.append_node(id.into(), format!("{id}-c"), None, "user".into(), 7, id)
+        .unwrap();
+    cva.sync().unwrap();
+}
+
 #[test]
-fn reconcile_refuses_divergent_memories_until_memory_replay_exists() {
+fn reconcile_refuses_conflicting_insomnia_completions() {
     let dir = test_dir();
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
@@ -81,47 +96,19 @@ fn reconcile_refuses_divergent_memories_until_memory_replay_exists() {
     base.sync().unwrap();
     drop(base);
     fs::copy(&left, &right).unwrap();
-    diverge_left(&left);
 
-    let mut right_cva = Cva::open(&right).unwrap();
-    right_cva
-        .publish_memory(
-            None,
-            0,
-            MemoryDraft {
-                category: "decision".into(),
-                memory_type: "project".into(),
-                title: "Decision".into(),
-                content: "Keep this".into(),
-                scope: "private".into(),
-                lifecycle_state: "extracted".into(),
-                archived: false,
-                superseded_by: None,
-                parent_id: None,
-                source_node_id: Some("u".into()),
-                content_source_conversation_id: None,
-                content_source_node_id: None,
-                grounding_source_conversation_id: None,
-                grounding_source_node_id: None,
-                source_episode_id: Some(episode.id),
-                mutation_id: "merge-memory".into(),
-                created_at_ns: 4,
-                updated_at_ns: 4,
-            },
-        )
-        .unwrap();
-    right_cva.sync().unwrap();
-    drop(right_cva);
+    complete(&left, episode.id, "left-model");
+    complete(&right, episode.id, "right-model");
 
     assert!(matches!(
         Cva::reconcile(&left, &right, &output),
-        Err(CvaReconcileError::UnsupportedSemanticOwner("Memories"))
+        Err(CvaReconcileError::ConflictingInsomniaCompletion)
     ));
     assert!(!output.exists());
 }
 
 #[test]
-fn reconcile_refuses_divergent_insomnia_completion() {
+fn reconcile_deduplicates_identical_completion_on_divergent_copies() {
     let dir = test_dir();
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
@@ -129,38 +116,18 @@ fn reconcile_refuses_divergent_insomnia_completion() {
     create_workspace(&left);
     let mut base = Cva::open(&left).unwrap();
     let episode = seed_episode(&mut base);
-    base.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 4)
-        .unwrap();
     base.sync().unwrap();
     drop(base);
     fs::copy(&left, &right).unwrap();
-    diverge_left(&left);
 
-    let mut right_cva = Cva::open(&right).unwrap();
-    let claimed = right_cva
-        .claim_insomnia_episode("worker", 5, 100)
-        .unwrap()
-        .unwrap();
-    right_cva
-        .complete_insomnia_episode(
-            episode.id,
-            claimed.lease_token.unwrap(),
-            5,
-            6,
-            "test".into(),
-            "v1".into(),
-            Vec::new(),
-            0,
-        )
-        .unwrap();
-    right_cva.sync().unwrap();
-    drop(right_cva);
+    append_divergence(&left, "left");
+    append_divergence(&right, "right");
+    complete(&left, episode.id, "same-model");
+    complete(&right, episode.id, "same-model");
 
-    assert!(matches!(
-        Cva::reconcile(&left, &right, &output),
-        Err(CvaReconcileError::UnsupportedSemanticOwner(
-            "Insomnia completions"
-        ))
-    ));
-    assert!(!output.exists());
+    let result = Cva::reconcile(&left, &right, &output).unwrap();
+    assert_eq!(result.replayed_insomnia_completions, 0);
+    let merged = Cva::open(output).unwrap();
+    assert_eq!(merged.insomnia_attempts(episode.id).len(), 1);
+    assert_eq!(merged.stats().nodes, 4);
 }

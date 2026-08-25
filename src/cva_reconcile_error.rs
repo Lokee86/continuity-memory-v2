@@ -1,4 +1,4 @@
-use crate::{ArchiveError, ContainerError, CvaError, MemoryError};
+use crate::{ArchiveError, ContainerError, CvaError, InsomniaError, MemoryError};
 use std::fmt;
 use std::io;
 
@@ -8,12 +8,16 @@ pub enum CvaReconcileError {
     Container(ContainerError),
     Archive(ArchiveError),
     Memories(MemoryError),
+    Insomnia(InsomniaError),
     Io(io::Error),
     MissingWorkspaceMetadata(&'static str),
     WorkspaceMismatch { left: String, right: String },
     OutputExists,
     UnsupportedSemanticOwner(&'static str),
     InvalidInsomniaCompletion(&'static str),
+    InvalidMemoryVersionRecord,
+    ConflictingInsomniaCompletion,
+    MissingCompletionMemory,
 }
 
 impl fmt::Display for CvaReconcileError {
@@ -23,6 +27,7 @@ impl fmt::Display for CvaReconcileError {
             Self::Container(error) => write!(f, "{error}"),
             Self::Archive(error) => write!(f, "{error}"),
             Self::Memories(error) => write!(f, "{error}"),
+            Self::Insomnia(error) => write!(f, "{error}"),
             Self::Io(error) => write!(f, "{error}"),
             Self::MissingWorkspaceMetadata(side) => {
                 write!(f, "{side} CVA has no workspace metadata")
@@ -36,6 +41,15 @@ impl fmt::Display for CvaReconcileError {
             }
             Self::InvalidInsomniaCompletion(message) => {
                 write!(f, "invalid Insomnia completion: {message}")
+            }
+            Self::InvalidMemoryVersionRecord => {
+                write!(f, "memory version points at a non-memory record")
+            }
+            Self::ConflictingInsomniaCompletion => {
+                write!(f, "divergent Insomnia completions conflict")
+            }
+            Self::MissingCompletionMemory => {
+                write!(f, "Insomnia completion references a missing Memory")
             }
         }
     }
@@ -64,6 +78,12 @@ impl From<ArchiveError> for CvaReconcileError {
 impl From<MemoryError> for CvaReconcileError {
     fn from(value: MemoryError) -> Self {
         Self::Memories(value)
+    }
+}
+
+impl From<InsomniaError> for CvaReconcileError {
+    fn from(value: InsomniaError) -> Self {
+        Self::Insomnia(value)
     }
 }
 

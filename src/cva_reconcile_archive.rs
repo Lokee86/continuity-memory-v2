@@ -1,20 +1,21 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::decode_record_version;
-use crate::insomnia::completion::decode_completion;
-use crate::memory_codec::decode_version as decode_memory_version;
 use crate::{
-    ArchiveError, Branch, Cva, CvaReconcileError, IncomingAttachment, IncomingTurn, StoredFile,
+    ArchiveError, Branch, Cva, CvaReconcileError, Episode, FileMemoryLink, IncomingAttachment,
+    IncomingTurn, StoredFile,
 };
 
 pub(crate) enum ArchiveReplayRecord {
     Node(IncomingTurn),
     IngestedTurn(IncomingTurn),
     Branch(Branch),
+    Episode(Episode),
     File(StoredFile, Vec<u8>),
 }
 
 pub(crate) struct ArchiveTail {
     pub(crate) records: Vec<ArchiveReplayRecord>,
+    pub(crate) file_memory_links: Vec<FileMemoryLink>,
     pub(crate) skipped_derived: usize,
 }
 
@@ -24,11 +25,11 @@ pub(crate) fn read_archive_tail(
 ) -> Result<ArchiveTail, CvaReconcileError> {
     let chunks = cva.container.chunks()?;
     let mut records = Vec::new();
+    let mut file_memory_links = Vec::new();
     let mut skipped_derived = 0;
 
     for chunk in chunks.iter().skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
-        reject_unmerged_memories(&payload)?;
         let Some(version) = decode_record_version(&payload)? else {
             continue;
         };
@@ -70,16 +71,13 @@ pub(crate) fn read_archive_tail(
                 }));
             }
             ArchiveRecord::Branch(branch) => records.push(ArchiveReplayRecord::Branch(branch)),
+            ArchiveRecord::Episode(episode) => records.push(ArchiveReplayRecord::Episode(episode)),
             ArchiveRecord::File(file) => {
                 let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
                 records.push(ArchiveReplayRecord::File(file, bytes));
             }
-            ArchiveRecord::Fragment(_) | ArchiveRecord::Episode(_) => skipped_derived += 1,
-            ArchiveRecord::FileMemoryLink(_) => {
-                return Err(CvaReconcileError::UnsupportedSemanticOwner(
-                    "Archive file-to-Memory links",
-                ));
-            }
+            ArchiveRecord::FileMemoryLink(link) => file_memory_links.push(link),
+            ArchiveRecord::Fragment(_) => skipped_derived += 1,
             ArchiveRecord::Content(_, _) | ArchiveRecord::Other => {
                 return Err(CvaReconcileError::Archive(
                     ArchiveError::InvalidArchiveRecordVersion,
@@ -90,50 +88,50 @@ pub(crate) fn read_archive_tail(
 
     Ok(ArchiveTail {
         records,
+        file_memory_links,
         skipped_derived,
     })
 }
 
 pub(crate) fn replay_archive_tail(
     destination: &mut Cva,
-    tail: ArchiveTail,
-) -> Result<(usize, usize), CvaReconcileError> {
-    let replayed = tail.records.len();
-    for record in tail.records {
+    tail: &ArchiveTail,
+) -> Result<usize, CvaReconcileError> {
+    for record in &tail.records {
         match record {
             ArchiveReplayRecord::Node(turn) => {
                 destination.append_node(
-                    turn.id,
-                    turn.conversation_id,
-                    turn.parent_id,
-                    turn.role,
+                    turn.id.clone(),
+                    turn.conversation_id.clone(),
+                    turn.parent_id.clone(),
+                    turn.role.clone(),
                     turn.timestamp_ns,
                     &turn.content,
                 )?;
             }
             ArchiveReplayRecord::IngestedTurn(turn) => {
-                destination.ingest_turn(turn)?;
+                destination.ingest_turn(turn.clone())?;
             }
-            ArchiveReplayRecord::Branch(branch) => destination.append_branch(branch)?,
+            ArchiveReplayRecord::Branch(branch) => destination.append_branch(branch.clone())?,
+            ArchiveReplayRecord::Episode(episode) => {
+                destination
+                    .archive
+                    .put_episode(&mut destination.container, episode.clone())?;
+            }
             ArchiveReplayRecord::File(file, bytes) => {
-                destination.store_file(file.filename, file.mime_type, &bytes)?;
+                destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)?;
             }
         }
     }
-    Ok((replayed, tail.skipped_derived))
+    Ok(tail.records.len())
 }
 
-fn reject_unmerged_memories(payload: &[u8]) -> Result<(), CvaReconcileError> {
-    if decode_memory_version(payload)?.is_some() {
-        return Err(CvaReconcileError::UnsupportedSemanticOwner("Memories"));
+pub(crate) fn replay_file_memory_links(
+    destination: &mut Cva,
+    links: &[FileMemoryLink],
+) -> Result<usize, CvaReconcileError> {
+    for link in links {
+        destination.link_file_to_memory(link.file_id, link.memory_id)?;
     }
-    if decode_completion(payload)
-        .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
-        .is_some()
-    {
-        return Err(CvaReconcileError::UnsupportedSemanticOwner(
-            "Insomnia completions",
-        ));
-    }
-    Ok(())
+    Ok(links.len())
 }

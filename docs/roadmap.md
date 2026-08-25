@@ -63,7 +63,7 @@ Remaining host integration work includes:
 - basic health/status visibility; and
 - cloud-backed conflicted-copy detection/reconciliation through Reliquary rather than a Warlock-owned sync service.
 
-`Cva::compare` verifies shared workspace identity and classifies identical, one-side-ahead, or physically diverged histories. `Cva::reconcile` now provides the first semantic replay path for divergent Archive source records into a newly validated CVA. Remaining work is Memory/Insomnia reconciliation, file-to-Memory links, derived Episode/vector/index rebuild, provider-level conflicted-copy discovery, and safe canonical-file promotion. See [ADR 0018](decisions/0018-cloud-backed-cva-reconciliation.md).
+`Cva::compare` verifies shared workspace identity and classifies identical, one-side-ahead, or physically diverged histories. `Cva::reconcile` now replays divergent Archive source state, Files, Branches, immutable Episodes, Memory revisions, durable Insomnia completion receipts, and file-to-Memory links into a newly validated CVA. Remaining work is Fragment/vector/index derived-state rebuild or retirement, provider-level conflicted-copy discovery, richer conflict presentation, and safe canonical-file promotion. See [ADR 0018](decisions/0018-cloud-backed-cva-reconciliation.md).
 
 The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Reliquary lifecycle semantics directly.
 
