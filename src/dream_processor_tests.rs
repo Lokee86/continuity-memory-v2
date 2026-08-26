@@ -1,9 +1,13 @@
 use crate::dream_candidate_test_support::{install_vectors, memory, memory_extracted, test_path};
 use crate::{
     Cva, DreamCandidateConfig, DreamProcessError, DreamProcessor, DreamVerificationPolicy,
-    SimulatedGeneralEndpoint,
+    GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint,
 };
-use serde_json::json;
+use serde_json::{json, Value};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 #[test]
 fn complete_pass_with_no_candidates_advances_source_to_knowledge() {
@@ -177,6 +181,77 @@ fn temporal_only_candidate_flows_through_complete_dream_processing() {
     assert_eq!(result.source.lifecycle_state, "knowledge");
     assert_eq!(cva.graph_relations().len(), 2);
     assert_eq!(cva.memory(candidate).unwrap().lifecycle_state, "knowledge");
+}
+
+#[derive(Clone)]
+struct TrackingClassifier {
+    active: Arc<AtomicUsize>,
+    peak: Arc<AtomicUsize>,
+}
+
+impl GeneralEndpoint for TrackingClassifier {
+    fn model(&self) -> &str {
+        "tracking-classifier"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
+        self.peak.fetch_max(active, Ordering::SeqCst);
+        thread::sleep(Duration::from_millis(40));
+        self.active.fetch_sub(1, Ordering::SeqCst);
+        Ok(json!({"relation": "none", "direction": "none", "evidence": []}))
+    }
+}
+
+#[test]
+fn pair_inference_can_run_concurrently_while_publication_remains_ordered() {
+    let mut cva = Cva::create(test_path("processor-parallel.cva")).unwrap();
+    let source = memory_extracted(&mut cva, "source", "Source", "Shared topic source.", 200);
+    let a = memory(&mut cva, "a", "A", "Shared topic A.", 100, false);
+    let b = memory(&mut cva, "b", "B", "Shared topic B.", 110, false);
+    let c = memory(&mut cva, "c", "C", "Shared topic C.", 120, false);
+    let profile = install_vectors(
+        &mut cva,
+        &[source, a, b, c],
+        &[&[1.0, 0.0], &[0.99, 0.01], &[0.98, 0.02], &[0.97, 0.03]],
+    );
+    let active = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let processor = DreamProcessor::new(
+        TrackingClassifier {
+            active: active.clone(),
+            peak: peak.clone(),
+        },
+        SimulatedGeneralEndpoint::new("verifier", vec![]),
+    );
+
+    let result = processor
+        .process_memory_with_pair_concurrency(
+            &mut cva,
+            profile,
+            source,
+            DreamCandidateConfig {
+                limit: 3,
+                semantic_limit: 3,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 0,
+            },
+            DreamVerificationPolicy::default(),
+            3,
+        )
+        .unwrap();
+
+    assert_eq!(result.candidate_count, 3);
+    assert_eq!(result.pairs.len(), 3);
+    assert!(peak.load(Ordering::SeqCst) >= 2);
+    assert_eq!(result.source.lifecycle_state, "knowledge");
 }
 
 #[test]

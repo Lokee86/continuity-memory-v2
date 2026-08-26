@@ -26,7 +26,7 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() < 3 {
-        return Err("usage: dream_tune <config> <baseline-cva> <output-dir> [--limit N] [--source MEMORY_ID] [--candidate-limit N] [--verification default|broad] [--retrieval-only]".into());
+        return Err("usage: dream_tune <config> <baseline-cva> <output-dir> [--limit N] [--source MEMORY_ID] [--candidate-limit N] [--pair-concurrency N] [--verification default|broad] [--retrieval-only]".into());
     }
     let config_path = PathBuf::from(&args[0]);
     let baseline_path = PathBuf::from(&args[1]);
@@ -34,6 +34,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     let limit = option_usize(&args[3..], "--limit")?;
     let source_filter = option_string(&args[3..], "--source").map(str::to_owned);
     let candidate_limit = option_usize(&args[3..], "--candidate-limit")?;
+    let pair_concurrency = option_usize(&args[3..], "--pair-concurrency")?
+        .unwrap_or(12)
+        .max(1);
     let retrieval_only = args[3..].iter().any(|arg| arg == "--retrieval-only");
     let verification = option_string(&args[3..], "--verification").unwrap_or("default");
     let verification_policy = match verification {
@@ -108,12 +111,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             }));
             continue;
         }
-        match processor.process_memory(
+        match processor.process_memory_with_pair_concurrency(
             &mut cva,
             profile_id,
             source_id,
             candidate_config,
             verification_policy,
+            pair_concurrency,
         ) {
             Ok(result) => runs.push(json!({
                 "source_before": memory_json(&source_before),
@@ -164,6 +168,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         "verifier_model": verifier_model,
         "candidate_config": candidate_config_json(candidate_config),
         "verification_policy": verification,
+        "pair_concurrency": pair_concurrency,
         "retrieval_only": retrieval_only,
         "attempted": pending.len(),
         "recoverable_failures": recoverable_failures,
