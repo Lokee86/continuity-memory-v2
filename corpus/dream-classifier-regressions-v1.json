@@ -1,0 +1,1350 @@
+{
+  "format": "dream-classifier-regressions-v1",
+  "purpose": "Boundary fixture for classifier tuning after v2 over-pruned legitimate same-workstream relations.",
+  "rule": "Related pairs share a specific semantic workstream or explanatory scope; unrelated pairs only share project/domain/vocabulary context across workstreams or project identities.",
+  "summary": {
+    "cases": 40,
+    "positive": 30,
+    "negative": 10,
+    "medium_confidence_positive": 7
+  },
+  "cases": [
+    {
+      "id": "web-010",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+        "title": "GDScript input packet",
+        "content": "In game.gd, the input packet uses GDScript's type-inferred `var packet :=` declaration and contains type `input` with forward, back, right, left, and shoot flags."
+      },
+      "right": {
+        "id": "da2cd9b5c2692e4d445ddae769b028ed9677e7dcd55baf718f325ffce6b9726d",
+        "title": "Compatibility-first packet migration",
+        "content": "Packet migration requires a separate, stricter compatibility-preserving track rather than the prototype simple packet generator."
+      },
+      "v1_final_kind": "Factual",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "da2cd9b5c2692e4d445ddae769b028ed9677e7dcd55baf718f325ffce6b9726d",
+          "source_title": "Compatibility-first packet migration",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-021",
+      "pattern": "status_summary_detail",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "46182efe81d0b456ae696ec7463e06234e693c034f868b0257808d0e7a80706c",
+        "title": "WebSocket connection established",
+        "content": "The client connects through WebSocket, and the server successfully receives the client's hello message."
+      },
+      "right": {
+        "id": "64a4555a76f3c20de855503a7a839a816503580da0d86b14e8aae595786153fb",
+        "title": "Current implementation status",
+        "content": "The functionality implemented through the current stage appears to work adequately. Some visual bugs and other minor irregularities remain."
+      },
+      "v1_final_kind": "Factual",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "46182efe81d0b456ae696ec7463e06234e693c034f868b0257808d0e7a80706c",
+          "source_title": "WebSocket connection established",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-023",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "6fea223bd19e8f06c486b0392af1a815525587dc7a977af119f31cd3dbcf6b35",
+        "title": "Adopted packet migration approach",
+        "content": "Use the assistant\u2019s compatibility-first packet migration approach, with permission to divide it into more granular prompts."
+      },
+      "right": {
+        "id": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+        "title": "Client input packet sending",
+        "content": "The client is sending the input packet."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+          "source_title": "Client input packet sending",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-029",
+      "pattern": "workspace_operational",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "4e6fb29be36a5c3ad782e385f9da5c6d1f1203bb5e3dd9e0af492a3a38448776",
+        "title": "C-family adapter calibration corpus",
+        "content": "Use Git and CBM to calibrate the C side of the C-family Lexicon adapter."
+      },
+      "right": {
+        "id": "bb76ee78e56151cdcd1266ec3592d82338ed74814461863472491bb01d79a450",
+        "title": "C: workspace contents",
+        "content": "C:\\!bin\\workspace should contain only the originally cloned projects and items added for corpus work."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "bb76ee78e56151cdcd1266ec3592d82338ed74814461863472491bb01d79a450",
+          "source_title": "C: workspace contents",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "4e6fb29be36a5c3ad782e385f9da5c6d1f1203bb5e3dd9e0af492a3a38448776",
+          "source_title": "C-family adapter calibration corpus",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-031",
+      "pattern": "workspace_operational",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "bb76ee78e56151cdcd1266ec3592d82338ed74814461863472491bb01d79a450",
+        "title": "C: workspace contents",
+        "content": "C:\\!bin\\workspace should contain only the originally cloned projects and items added for corpus work."
+      },
+      "right": {
+        "id": "bd2d4ef941bdcedf1e466f099e38e8fca263f9d70f45e9be5fe6e77fa331e72b",
+        "title": "workspace-mcp environment file",
+        "content": "A new .env file was created in the workspace-mcp repository."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "bb76ee78e56151cdcd1266ec3592d82338ed74814461863472491bb01d79a450",
+          "source_title": "C: workspace contents",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "bd2d4ef941bdcedf1e466f099e38e8fca263f9d70f45e9be5fe6e77fa331e72b",
+          "source_title": "workspace-mcp environment file",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-032",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+        "title": "Client input packet sending",
+        "content": "The client is sending the input packet."
+      },
+      "right": {
+        "id": "da2cd9b5c2692e4d445ddae769b028ed9677e7dcd55baf718f325ffce6b9726d",
+        "title": "Compatibility-first packet migration",
+        "content": "Packet migration requires a separate, stricter compatibility-preserving track rather than the prototype simple packet generator."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+          "source_title": "Client input packet sending",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "da2cd9b5c2692e4d445ddae769b028ed9677e7dcd55baf718f325ffce6b9726d",
+          "source_title": "Compatibility-first packet migration",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-034",
+      "pattern": "interaction_preference",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "4bee78042e2fd2aaceafdc8382284bdf88967a67290ee4c0f2e603b2ec24ab32",
+        "title": "Concise response preference",
+        "content": "Default to concise responses unless the user requests detail or the subject genuinely warrants a longer answer."
+      },
+      "right": {
+        "id": "7b9851b952009a9dcf398f60521644f29eec4be4cfd4f7e703f8c4d2a3ef07b0",
+        "title": "Implementation prompt granularity",
+        "content": "Prefer more, smaller implementation prompts because they usually use less usage."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "4bee78042e2fd2aaceafdc8382284bdf88967a67290ee4c0f2e603b2ec24ab32",
+          "source_title": "Concise response preference",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "7b9851b952009a9dcf398f60521644f29eec4be4cfd4f7e703f8c4d2a3ef07b0",
+          "source_title": "Implementation prompt granularity",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-042",
+      "pattern": "multiplayer_flow",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "2b11e4c9f7663a4163925b1cfd26f198b42245dd0fb73a8f5bdef1333e338255",
+        "title": "Custom room codes not accepted",
+        "content": "Custom room codes are currently not being accepted."
+      },
+      "right": {
+        "id": "5fda3b7511ae038eb93bf518c9e7e2811adbee23a8a4e0e1d59e4830476509b3",
+        "title": "Game start not yet implemented",
+        "content": "Games were not yet starting at this stage, as expected for the implementation sequence."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "2b11e4c9f7663a4163925b1cfd26f198b42245dd0fb73a8f5bdef1333e338255",
+          "source_title": "Custom room codes not accepted",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "5fda3b7511ae038eb93bf518c9e7e2811adbee23a8a4e0e1d59e4830476509b3",
+          "source_title": "Game start not yet implemented",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-043",
+      "pattern": "multiplayer_flow",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "2b11e4c9f7663a4163925b1cfd26f198b42245dd0fb73a8f5bdef1333e338255",
+        "title": "Custom room codes not accepted",
+        "content": "Custom room codes are currently not being accepted."
+      },
+      "right": {
+        "id": "9b84bdd676d0e16d11a41a259e3c8c23a85ad2b726c5bac2434135ff74d39949",
+        "title": "Multiplayer menu leave request unconfirmed",
+        "content": "It remains unconfirmed whether the multiplayer game menu button sends a LeaveRoomRequest."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "2b11e4c9f7663a4163925b1cfd26f198b42245dd0fb73a8f5bdef1333e338255",
+          "source_title": "Custom room codes not accepted",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "9b84bdd676d0e16d11a41a259e3c8c23a85ad2b726c5bac2434135ff74d39949",
+          "source_title": "Multiplayer menu leave request unconfirmed",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-046",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+        "title": "GDScript input packet",
+        "content": "In game.gd, the input packet uses GDScript's type-inferred `var packet :=` declaration and contains type `input` with forward, back, right, left, and shoot flags."
+      },
+      "right": {
+        "id": "6fea223bd19e8f06c486b0392af1a815525587dc7a977af119f31cd3dbcf6b35",
+        "title": "Adopted packet migration approach",
+        "content": "Use the assistant\u2019s compatibility-first packet migration approach, with permission to divide it into more granular prompts."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+          "source_title": "GDScript input packet",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-050",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+        "title": "GDScript input packet",
+        "content": "In game.gd, the input packet uses GDScript's type-inferred `var packet :=` declaration and contains type `input` with forward, back, right, left, and shoot flags."
+      },
+      "right": {
+        "id": "e56c4d2b2b9ebf1b60fd0972a50f0f3e36748f358dc32e2245fe0065298cb1fd",
+        "title": "Packet output equivalence",
+        "content": "TOML-backed packet generation should be byte-for-byte equivalent to the current generator; any differences must be intentional and explained."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+          "source_title": "GDScript input packet",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-051",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+        "title": "GDScript input packet",
+        "content": "In game.gd, the input packet uses GDScript's type-inferred `var packet :=` declaration and contains type `input` with forward, back, right, left, and shoot flags."
+      },
+      "right": {
+        "id": "ac24f3f802fd56a4d02f77130881d65a0d9d44d652ff45694fec926f6a2098a7",
+        "title": "Separate constants and packet sources",
+        "content": "Use separate sources of truth for constants and packets at shared/constants/constants.toml and shared/packets/packets.toml, or delay packet activation until data_sync supports per-domain source-of-truth paths."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "22d27857462c1b6d320b7890cd7cf9513145cb4d42494d069be3bf3b46c21ab2",
+          "source_title": "GDScript input packet",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "ac24f3f802fd56a4d02f77130881d65a0d9d44d652ff45694fec926f6a2098a7",
+          "source_title": "Separate constants and packet sources",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-054",
+      "pattern": "multiplayer_flow",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "5fda3b7511ae038eb93bf518c9e7e2811adbee23a8a4e0e1d59e4830476509b3",
+        "title": "Game start not yet implemented",
+        "content": "Games were not yet starting at this stage, as expected for the implementation sequence."
+      },
+      "right": {
+        "id": "9b84bdd676d0e16d11a41a259e3c8c23a85ad2b726c5bac2434135ff74d39949",
+        "title": "Multiplayer menu leave request unconfirmed",
+        "content": "It remains unconfirmed whether the multiplayer game menu button sends a LeaveRoomRequest."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "5fda3b7511ae038eb93bf518c9e7e2811adbee23a8a4e0e1d59e4830476509b3",
+          "source_title": "Game start not yet implemented",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "9b84bdd676d0e16d11a41a259e3c8c23a85ad2b726c5bac2434135ff74d39949",
+          "source_title": "Multiplayer menu leave request unconfirmed",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-058",
+      "pattern": "conceptual_analogy",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "6d7f33e44c3df1b2c685e177e6c318d824d4b0dd2eee866a60504053a6f40748",
+        "title": "Loss of foundational carpentry skills",
+        "content": "The user believes modern carpentry has lost many foundational manual skills, including efficient handsaw use, driving nails by hand, string-line techniques, and knowledge of plumb bobs."
+      },
+      "right": {
+        "id": "a7f75e884f15e118c0aa4fab7aa28fbbcd7b2dbbdd7fe8bef99af45be4b5a249",
+        "title": "Generative AI and power-tool analogy",
+        "content": "The user sees widespread hostility toward generative-AI use as analogous to older tradespeople disparaging apprentices for using power tools while ignoring their benefits."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "6d7f33e44c3df1b2c685e177e6c318d824d4b0dd2eee866a60504053a6f40748",
+          "source_title": "Loss of foundational carpentry skills",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "a7f75e884f15e118c0aa4fab7aa28fbbcd7b2dbbdd7fe8bef99af45be4b5a249",
+          "source_title": "Generative AI and power-tool analogy",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-061",
+      "pattern": "multiplayer_flow",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "29377c94d2239a65ebc6f9ac3c33da00c417ab4dbffcb51a25dce16cc260435d",
+        "title": "Multiplayer menu button visually works",
+        "content": "The multiplayer game menu button appears to work visually."
+      },
+      "right": {
+        "id": "2b11e4c9f7663a4163925b1cfd26f198b42245dd0fb73a8f5bdef1333e338255",
+        "title": "Custom room codes not accepted",
+        "content": "Custom room codes are currently not being accepted."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "29377c94d2239a65ebc6f9ac3c33da00c417ab4dbffcb51a25dce16cc260435d",
+          "source_title": "Multiplayer menu button visually works",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "2b11e4c9f7663a4163925b1cfd26f198b42245dd0fb73a8f5bdef1333e338255",
+          "source_title": "Custom room codes not accepted",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-066",
+      "pattern": "workspace_operational",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "40ff4577a9a83572ec59c0c1b430e458a095fafa06b5b3016cfbe4a60af3d156",
+        "title": "No active work on D:",
+        "content": "Active work will no longer be performed on D:."
+      },
+      "right": {
+        "id": "bb76ee78e56151cdcd1266ec3592d82338ed74814461863472491bb01d79a450",
+        "title": "C: workspace contents",
+        "content": "C:\\!bin\\workspace should contain only the originally cloned projects and items added for corpus work."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "40ff4577a9a83572ec59c0c1b430e458a095fafa06b5b3016cfbe4a60af3d156",
+          "source_title": "No active work on D:",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "bb76ee78e56151cdcd1266ec3592d82338ed74814461863472491bb01d79a450",
+          "source_title": "C: workspace contents",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-067",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "69f8da2c6158e63d05377fbe2a118206816aebd560ee332b5d00238d3e27f874",
+        "title": "Packet architecture preservation",
+        "content": "Preserve existing outputs, structs, packet types, builders, imports, Go package mapping, GDScript builders, arrays, maps, custom struct references, and the distinction between entity and game packet structs."
+      },
+      "right": {
+        "id": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+        "title": "Client input packet sending",
+        "content": "The client is sending the input packet."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+          "source_title": "Client input packet sending",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "69f8da2c6158e63d05377fbe2a118206816aebd560ee332b5d00238d3e27f874",
+          "source_title": "Packet architecture preservation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-069",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "69f8da2c6158e63d05377fbe2a118206816aebd560ee332b5d00238d3e27f874",
+        "title": "Packet architecture preservation",
+        "content": "Preserve existing outputs, structs, packet types, builders, imports, Go package mapping, GDScript builders, arrays, maps, custom struct references, and the distinction between entity and game packet structs."
+      },
+      "right": {
+        "id": "cf16a1cae9cc3dca6203cc438d983e49368416fa2e2347c75e40ae028b8f1f7d",
+        "title": "Player response returned by server",
+        "content": "The server writes the marshaled `Player` response to the WebSocket instead of echoing the original input message."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "cf16a1cae9cc3dca6203cc438d983e49368416fa2e2347c75e40ae028b8f1f7d",
+          "source_title": "Player response returned by server",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "69f8da2c6158e63d05377fbe2a118206816aebd560ee332b5d00238d3e27f874",
+          "source_title": "Packet architecture preservation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-073",
+      "pattern": "ship_runtime_identity",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "11d3a16ad04943c58385435a84fab76394f0dfeadee861f454a51037879fc4d5",
+        "title": "Planned acquirable ship types",
+        "content": "The game is planned to eventually support separate ship types that players can acquire."
+      },
+      "right": {
+        "id": "62592426dac920a913f9011b3a5986a3103ac304d749bc237121c8fa4cb40518",
+        "title": "Hue-Based Remote Player Identity",
+        "content": "Remote player identity coloring uses a custom shader with canonical hue values rather than ship modulation."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "11d3a16ad04943c58385435a84fab76394f0dfeadee861f454a51037879fc4d5",
+          "source_title": "Planned acquirable ship types",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "62592426dac920a913f9011b3a5986a3103ac304d749bc237121c8fa4cb40518",
+          "source_title": "Hue-Based Remote Player Identity",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-074",
+      "pattern": "network_protocol",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "cf16a1cae9cc3dca6203cc438d983e49368416fa2e2347c75e40ae028b8f1f7d",
+        "title": "Player response returned by server",
+        "content": "The server writes the marshaled `Player` response to the WebSocket instead of echoing the original input message."
+      },
+      "right": {
+        "id": "fc18d2f9ab6e0a90c311b2d3955cdf90b1ca1ea3f9b1f462a2525ddabf69f1c0",
+        "title": "Go InputPacket structure",
+        "content": "The Go server's current `InputPacket` has a `Type` field and an anonymous nested `Input` struct with `Forward`, `Back`, `Right`, `Left`, and `Shoot` boolean fields."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "cf16a1cae9cc3dca6203cc438d983e49368416fa2e2347c75e40ae028b8f1f7d",
+          "source_title": "Player response returned by server",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "fc18d2f9ab6e0a90c311b2d3955cdf90b1ca1ea3f9b1f462a2525ddabf69f1c0",
+          "source_title": "Go InputPacket structure",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-078",
+      "pattern": "packet_workstream",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "ac24f3f802fd56a4d02f77130881d65a0d9d44d652ff45694fec926f6a2098a7",
+        "title": "Separate constants and packet sources",
+        "content": "Use separate sources of truth for constants and packets at shared/constants/constants.toml and shared/packets/packets.toml, or delay packet activation until data_sync supports per-domain source-of-truth paths."
+      },
+      "right": {
+        "id": "fc18d2f9ab6e0a90c311b2d3955cdf90b1ca1ea3f9b1f462a2525ddabf69f1c0",
+        "title": "Go InputPacket structure",
+        "content": "The Go server's current `InputPacket` has a `Type` field and an anonymous nested `Input` struct with `Forward`, `Back`, `Right`, `Left`, and `Shoot` boolean fields."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "fc18d2f9ab6e0a90c311b2d3955cdf90b1ca1ea3f9b1f462a2525ddabf69f1c0",
+          "source_title": "Go InputPacket structure",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "ac24f3f802fd56a4d02f77130881d65a0d9d44d652ff45694fec926f6a2098a7",
+          "source_title": "Separate constants and packet sources",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-081",
+      "pattern": "ship_runtime_identity",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+        "title": "Ship-variant foundation",
+        "content": "Add ShipTypeID to Ship with a default type, and add ship_type to ShipState for later type-based client rendering. Introduce ShipStats even with only one default ship, and have movement and shooting use ship stats instead of global player constants. Make collision-shape lookup accept a ship collision-shape ID. Keep acquisition and inventory outside the runtime Ship, adding them to the player-session or account layer later."
+      },
+      "right": {
+        "id": "62592426dac920a913f9011b3a5986a3103ac304d749bc237121c8fa4cb40518",
+        "title": "Hue-Based Remote Player Identity",
+        "content": "Remote player identity coloring uses a custom shader with canonical hue values rather than ship modulation."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+          "source_title": "Ship-variant foundation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "62592426dac920a913f9011b3a5986a3103ac304d749bc237121c8fa4cb40518",
+          "source_title": "Hue-Based Remote Player Identity",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-082",
+      "pattern": "ship_runtime_identity",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+        "title": "Ship-variant foundation",
+        "content": "Add ShipTypeID to Ship with a default type, and add ship_type to ShipState for later type-based client rendering. Introduce ShipStats even with only one default ship, and have movement and shooting use ship stats instead of global player constants. Make collision-shape lookup accept a ship collision-shape ID. Keep acquisition and inventory outside the runtime Ship, adding them to the player-session or account layer later."
+      },
+      "right": {
+        "id": "a17d8f7ef318dee57c8eb96eb2be68ab38f6c63d67229be506711ed200918ecc",
+        "title": "Shared Hue Identity Rules",
+        "content": "Remote ships use `Player.set_player_hue(hue)`, and offscreen indicator colors derive from the same stored hues. The local player's reserved default hue is `0.0`; remote hues must not be too close to it."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+          "source_title": "Ship-variant foundation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "a17d8f7ef318dee57c8eb96eb2be68ab38f6c63d67229be506711ed200918ecc",
+          "source_title": "Shared Hue Identity Rules",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-086",
+      "pattern": "asteroid_lifecycle",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "48c71bbb599cec26c7307937a9f97f207cb6da5cdf60b05cec3c110daaab173e",
+        "title": "Spawning before entity updates",
+        "content": "Implement spawning before updating spawned bullets and asteroids."
+      },
+      "right": {
+        "id": "aa2118ed8e9b097ac74a5454e0f2eaf0da5376203141e7213437aae3ec01fdea",
+        "title": "Asteroid texture and collision matching",
+        "content": "Each asteroid must use a random texture with its matching collision shape; the asteroid script handles texture and collision matching."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "48c71bbb599cec26c7307937a9f97f207cb6da5cdf60b05cec3c110daaab173e",
+          "source_title": "Spawning before entity updates",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "aa2118ed8e9b097ac74a5454e0f2eaf0da5376203141e7213437aae3ec01fdea",
+          "source_title": "Asteroid texture and collision matching",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-089",
+      "pattern": "interaction_preference",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "850b5789cda57858c0c98c52d45d82e09b44e66ca79885ebda963ff7b53071af",
+        "title": "Step-by-step guidance preference",
+        "content": "Provide guidance slowly, one step at a time."
+      },
+      "right": {
+        "id": "901f4126f44e1625aee01697eee6e5501307d6d3cb8ecf113210cb02ab24c625",
+        "title": "High-transfer contextual learner",
+        "content": "The user identifies as a high-transfer contextual learner."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "901f4126f44e1625aee01697eee6e5501307d6d3cb8ecf113210cb02ab24c625",
+          "source_title": "High-transfer contextual learner",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "850b5789cda57858c0c98c52d45d82e09b44e66ca79885ebda963ff7b53071af",
+          "source_title": "Step-by-step guidance preference",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-093",
+      "pattern": "interaction_preference",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "6a4bca1977cb031206fc9456dbbedd8984d3fb71d665b559e23d817c5e69853b",
+        "title": "Troubleshooting pace",
+        "content": "Troubleshooting guidance should proceed more slowly and in smaller steps."
+      },
+      "right": {
+        "id": "6fea223bd19e8f06c486b0392af1a815525587dc7a977af119f31cd3dbcf6b35",
+        "title": "Adopted packet migration approach",
+        "content": "Use the assistant\u2019s compatibility-first packet migration approach, with permission to divide it into more granular prompts."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "6a4bca1977cb031206fc9456dbbedd8984d3fb71d665b559e23d817c5e69853b",
+          "source_title": "Troubleshooting pace",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-094",
+      "pattern": "interaction_preference",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "6a4bca1977cb031206fc9456dbbedd8984d3fb71d665b559e23d817c5e69853b",
+        "title": "Troubleshooting pace",
+        "content": "Troubleshooting guidance should proceed more slowly and in smaller steps."
+      },
+      "right": {
+        "id": "7b9851b952009a9dcf398f60521644f29eec4be4cfd4f7e703f8c4d2a3ef07b0",
+        "title": "Implementation prompt granularity",
+        "content": "Prefer more, smaller implementation prompts because they usually use less usage."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "7b9851b952009a9dcf398f60521644f29eec4be4cfd4f7e703f8c4d2a3ef07b0",
+          "source_title": "Implementation prompt granularity",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "6a4bca1977cb031206fc9456dbbedd8984d3fb71d665b559e23d817c5e69853b",
+          "source_title": "Troubleshooting pace",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-100",
+      "pattern": "network_protocol",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "46182efe81d0b456ae696ec7463e06234e693c034f868b0257808d0e7a80706c",
+        "title": "WebSocket connection established",
+        "content": "The client connects through WebSocket, and the server successfully receives the client's hello message."
+      },
+      "right": {
+        "id": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+        "title": "Client input packet sending",
+        "content": "The client is sending the input packet."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "46182efe81d0b456ae696ec7463e06234e693c034f868b0257808d0e7a80706c",
+          "source_title": "WebSocket connection established",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+          "source_title": "Client input packet sending",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-103",
+      "pattern": "workspace_operational",
+      "expected": "related",
+      "confidence": "medium",
+      "left": {
+        "id": "06c1e62f24a6ad8be9d058a888a5674ed5b3a972504b2fb562366e29bbd44d5f",
+        "title": "Working repository location",
+        "content": "Working repositories must be located at C:\\!bin\\workspace rather than on D: to receive the speed improvement."
+      },
+      "right": {
+        "id": "bd2d4ef941bdcedf1e466f099e38e8fca263f9d70f45e9be5fe6e77fa331e72b",
+        "title": "workspace-mcp environment file",
+        "content": "A new .env file was created in the workspace-mcp repository."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "06c1e62f24a6ad8be9d058a888a5674ed5b3a972504b2fb562366e29bbd44d5f",
+          "source_title": "Working repository location",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "bd2d4ef941bdcedf1e466f099e38e8fca263f9d70f45e9be5fe6e77fa331e72b",
+          "source_title": "workspace-mcp environment file",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-missing-troubleshooting-style",
+      "pattern": "interaction_preference",
+      "expected": "related",
+      "confidence": "high",
+      "left": {
+        "id": "6a4bca1977cb031206fc9456dbbedd8984d3fb71d665b559e23d817c5e69853b",
+        "title": "Troubleshooting pace",
+        "content": "Troubleshooting guidance should proceed more slowly and in smaller steps."
+      },
+      "right": {
+        "id": "850b5789cda57858c0c98c52d45d82e09b44e66ca79885ebda963ff7b53071af",
+        "title": "Step-by-step guidance preference",
+        "content": "Provide guidance slowly, one step at a time."
+      },
+      "v1_final_kind": null,
+      "v2_final_kind": "Factual",
+      "v2_evaluations": [
+        {
+          "source": "850b5789cda57858c0c98c52d45d82e09b44e66ca79885ebda963ff7b53071af",
+          "source_title": "Step-by-step guidance preference",
+          "relation": "Factual",
+          "direction": "BToA",
+          "publication": "Published"
+        },
+        {
+          "source": "6a4bca1977cb031206fc9456dbbedd8984d3fb71d665b559e23d817c5e69853b",
+          "source_title": "Troubleshooting pace",
+          "relation": "Factual",
+          "direction": "BToA",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": null
+    },
+    {
+      "id": "web-019",
+      "pattern": "cross_project_history",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "2f4db116f7e5ee01a29068a20b4eb91a056a45794abaaaebe3d702529641bb20",
+        "title": "Successful first independent build",
+        "content": "The user considers creatureServer a good first independent build."
+      },
+      "right": {
+        "id": "64a4555a76f3c20de855503a7a839a816503580da0d86b14e8aae595786153fb",
+        "title": "Current implementation status",
+        "content": "The functionality implemented through the current stage appears to work adequately. Some visual bugs and other minor irregularities remain."
+      },
+      "v1_final_kind": "Factual",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "2f4db116f7e5ee01a29068a20b4eb91a056a45794abaaaebe3d702529641bb20",
+          "source_title": "Successful first independent build",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "64a4555a76f3c20de855503a7a839a816503580da0d86b14e8aae595786153fb",
+          "source_title": "Current implementation status",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "creatureServer retrospective is unrelated to the later active-project implementation-status summary"
+    },
+    {
+      "id": "web-038",
+      "pattern": "cross_project_history",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "64a4555a76f3c20de855503a7a839a816503580da0d86b14e8aae595786153fb",
+        "title": "Current implementation status",
+        "content": "The functionality implemented through the current stage appears to work adequately. Some visual bugs and other minor irregularities remain."
+      },
+      "right": {
+        "id": "690d72127bf66d264dd94694a3b8354d3f6c94ab1a186f2ebe9a46f4cfc1b0df",
+        "title": "First non-guided project",
+        "content": "creatureServer was the user's first build outside a guided course or tutorial."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "690d72127bf66d264dd94694a3b8354d3f6c94ab1a186f2ebe9a46f4cfc1b0df",
+          "source_title": "First non-guided project",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "later active-project status is unrelated to creatureServer being the first non-guided project"
+    },
+    {
+      "id": "web-039",
+      "pattern": "cross_project_history",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "64a4555a76f3c20de855503a7a839a816503580da0d86b14e8aae595786153fb",
+        "title": "Current implementation status",
+        "content": "The functionality implemented through the current stage appears to work adequately. Some visual bugs and other minor irregularities remain."
+      },
+      "right": {
+        "id": "ec6b7828139065d0bef1a6735315cb91825830dc9aba8c59d5b140fd4649fd40",
+        "title": "Mothballed creatureServer project",
+        "content": "The creatureServer project was mothballed."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "ec6b7828139065d0bef1a6735315cb91825830dc9aba8c59d5b140fd4649fd40",
+          "source_title": "Mothballed creatureServer project",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "64a4555a76f3c20de855503a7a839a816503580da0d86b14e8aae595786153fb",
+          "source_title": "Current implementation status",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "later active-project status is unrelated to the already-mothballed creatureServer project"
+    },
+    {
+      "id": "web-045",
+      "pattern": "cross_project_history",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "690d72127bf66d264dd94694a3b8354d3f6c94ab1a186f2ebe9a46f4cfc1b0df",
+        "title": "First non-guided project",
+        "content": "creatureServer was the user's first build outside a guided course or tutorial."
+      },
+      "right": {
+        "id": "a2361e2484d56343b576844f57f8357c4d56ed29d949bddd486ec46d846288a4",
+        "title": "New logger added",
+        "content": "The new logger has been added to the project."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "690d72127bf66d264dd94694a3b8354d3f6c94ab1a186f2ebe9a46f4cfc1b0df",
+          "source_title": "First non-guided project",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "a2361e2484d56343b576844f57f8357c4d56ed29d949bddd486ec46d846288a4",
+          "source_title": "New logger added",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "creatureServer history is unrelated to the later project logger addition"
+    },
+    {
+      "id": "web-080",
+      "pattern": "cross_subsystem_same_project",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+        "title": "Ship-variant foundation",
+        "content": "Add ShipTypeID to Ship with a default type, and add ship_type to ShipState for later type-based client rendering. Introduce ShipStats even with only one default ship, and have movement and shooting use ship stats instead of global player constants. Make collision-shape lookup accept a ship collision-shape ID. Keep acquisition and inventory outside the runtime Ship, adding them to the player-session or account layer later."
+      },
+      "right": {
+        "id": "ee24077d785c34babedb7c349763f7627386a8ae50e77b4254a01bf6e61349d9",
+        "title": "Bullet and asteroid scenes built",
+        "content": "The bullet and asteroid scenes are built."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "ee24077d785c34babedb7c349763f7627386a8ae50e77b4254a01bf6e61349d9",
+          "source_title": "Bullet and asteroid scenes built",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+          "source_title": "Ship-variant foundation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "ship-variant architecture and bullet/asteroid scene existence share only broad game context"
+    },
+    {
+      "id": "web-083",
+      "pattern": "cross_subsystem_same_project",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+        "title": "Ship-variant foundation",
+        "content": "Add ShipTypeID to Ship with a default type, and add ship_type to ShipState for later type-based client rendering. Introduce ShipStats even with only one default ship, and have movement and shooting use ship stats instead of global player constants. Make collision-shape lookup accept a ship collision-shape ID. Keep acquisition and inventory outside the runtime Ship, adding them to the player-session or account layer later."
+      },
+      "right": {
+        "id": "48c71bbb599cec26c7307937a9f97f207cb6da5cdf60b05cec3c110daaab173e",
+        "title": "Spawning before entity updates",
+        "content": "Implement spawning before updating spawned bullets and asteroids."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "48c71bbb599cec26c7307937a9f97f207cb6da5cdf60b05cec3c110daaab173e",
+          "source_title": "Spawning before entity updates",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+          "source_title": "Ship-variant foundation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "ship-variant architecture and asteroid spawn/update ordering are separate subsystems"
+    },
+    {
+      "id": "web-088",
+      "pattern": "cross_subsystem_same_project",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "48c71bbb599cec26c7307937a9f97f207cb6da5cdf60b05cec3c110daaab173e",
+        "title": "Spawning before entity updates",
+        "content": "Implement spawning before updating spawned bullets and asteroids."
+      },
+      "right": {
+        "id": "5fda3b7511ae038eb93bf518c9e7e2811adbee23a8a4e0e1d59e4830476509b3",
+        "title": "Game start not yet implemented",
+        "content": "Games were not yet starting at this stage, as expected for the implementation sequence."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "48c71bbb599cec26c7307937a9f97f207cb6da5cdf60b05cec3c110daaab173e",
+          "source_title": "Spawning before entity updates",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "5fda3b7511ae038eb93bf518c9e7e2811adbee23a8a4e0e1d59e4830476509b3",
+          "source_title": "Game start not yet implemented",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "asteroid spawn/update ordering and multiplayer game-start status are separate subsystems"
+    },
+    {
+      "id": "web-090",
+      "pattern": "cross_project_history",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "2f4db116f7e5ee01a29068a20b4eb91a056a45794abaaaebe3d702529641bb20",
+        "title": "Successful first independent build",
+        "content": "The user considers creatureServer a good first independent build."
+      },
+      "right": {
+        "id": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+        "title": "Client input packet sending",
+        "content": "The client is sending the input packet."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "d3babb98e612400b5face234595cdc637c248b9794c4c36b429e0821debea71f",
+          "source_title": "Client input packet sending",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "creatureServer retrospective is unrelated to the later client input-packet implementation"
+    },
+    {
+      "id": "web-092",
+      "pattern": "cross_project_history",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "2f4db116f7e5ee01a29068a20b4eb91a056a45794abaaaebe3d702529641bb20",
+        "title": "Successful first independent build",
+        "content": "The user considers creatureServer a good first independent build."
+      },
+      "right": {
+        "id": "46182efe81d0b456ae696ec7463e06234e693c034f868b0257808d0e7a80706c",
+        "title": "WebSocket connection established",
+        "content": "The client connects through WebSocket, and the server successfully receives the client's hello message."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "46182efe81d0b456ae696ec7463e06234e693c034f868b0257808d0e7a80706c",
+          "source_title": "WebSocket connection established",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "creatureServer retrospective is unrelated to the later WebSocket implementation"
+    },
+    {
+      "id": "web-099",
+      "pattern": "lexical_collision_cross_entity",
+      "expected": "unrelated",
+      "confidence": "high",
+      "left": {
+        "id": "0940863ba04b97c733febb577f627d608144e30be869c472618b4284c7c8a855",
+        "title": "Viewport-created asteroid collision polygons",
+        "content": "The asteroid setup must support creating multiple collision polygons in the Godot viewport."
+      },
+      "right": {
+        "id": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+        "title": "Ship-variant foundation",
+        "content": "Add ShipTypeID to Ship with a default type, and add ship_type to ShipState for later type-based client rendering. Introduce ShipStats even with only one default ship, and have movement and shooting use ship stats instead of global player constants. Make collision-shape lookup accept a ship collision-shape ID. Keep acquisition and inventory outside the runtime Ship, adding them to the player-session or account layer later."
+      },
+      "v1_final_kind": "Topical",
+      "v2_final_kind": null,
+      "v2_evaluations": [
+        {
+          "source": "0940863ba04b97c733febb577f627d608144e30be869c472618b4284c7c8a855",
+          "source_title": "Viewport-created asteroid collision polygons",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        },
+        {
+          "source": "1477571d897bfcc09499ab1f7eab28b473adf5544804b0159b95c47fb1032eb4",
+          "source_title": "Ship-variant foundation",
+          "relation": "None",
+          "direction": "None",
+          "publication": "NoChange"
+        }
+      ],
+      "audit_reason": "asteroid collision polygons and ship collision-shape lookup share terminology without a demonstrated semantic dependency"
+    }
+  ]
+}
