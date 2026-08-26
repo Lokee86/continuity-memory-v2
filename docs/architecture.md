@@ -113,7 +113,7 @@ The high-level `build_missing_memory_vectors` path verifies the endpoint against
 
 ### Dream candidate retrieval
 
-The first Dream implementation seam is read-only bounded Memory candidate discovery. `Cva::dream_candidates` takes an existing source Memory plus one Compatibility Profile and reuses the source Memory's already-stored Document vector; candidate discovery performs no new embedding or model call.
+The first Dream implementation seam is read-only bounded Memory candidate discovery. `Cva::dream_candidates` takes an existing source Memory plus one Compatibility Profile and reuses the source Memory's already-stored Document vector; candidate discovery performs no new embedding or model call. `Cva::dream_memory_context` exposes that same context-construction path for one exact Memory without ranking, so exact-pair tuning and inspection do not need to duplicate source-time, temporal, or Graph-context logic.
 
 The current lanes are exact cosine similarity over current Memory-body vectors, a bounded prior-semantic quota keyed to authoritative source chronology, deterministic lexical/metadata overlap, and deterministic temporal matching. Temporal matching is based on overlapping parsed content-time anchors or identical recurrence-pattern identity; source-time proximity alone is not a match. Archived Memories are excluded. Candidates missing a vector under the selected profile may still enter through lexical/metadata or temporal lanes. Lane ranks are fused deterministically, with stable `MemoryId` tie-breaking.
 

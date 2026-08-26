@@ -1,17 +1,27 @@
 use crate::dream_candidate_ranking::{
-    ScoredCandidate, lexical_score, rank_lanes, select_candidates,
+    lexical_score, rank_lanes, select_candidates, ScoredCandidate,
 };
 use crate::dream_source_time::source_timestamp_ns;
 use crate::dream_temporal::analyze_memory_temporal;
 use crate::dream_temporal_match::temporal_matches;
 use crate::{
     CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
-    DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
-    MemoryVectorId, ScalarType,
+    DreamMemoryContext, GraphRelation, Memory, MemoryBodyId, MemoryId, MemoryVectorId, ScalarType,
+    MAX_DREAM_CANDIDATE_LIMIT,
 };
 use std::collections::HashMap;
 
 impl Cva {
+    pub fn dream_memory_context(
+        &mut self,
+        memory_id: MemoryId,
+    ) -> Result<DreamMemoryContext, DreamCandidateError> {
+        let memory = self.memories.memory(&mut self.container, memory_id)?;
+        let body_id = self.memories.current_body_id(memory_id)?;
+        let relations = self.graph.active_relations();
+        Ok(self.build_dream_memory_context(memory, body_id, &relations))
+    }
+
     pub fn dream_candidates(
         &mut self,
         compatibility_profile_id: CompatibilityProfileId,
@@ -26,7 +36,7 @@ impl Cva {
             .get(&source_body)
             .ok_or(DreamCandidateError::MissingSourceVector)?;
         let relations = self.graph.active_relations();
-        let source_context = self.dream_memory_context(source, source_body, &relations);
+        let source_context = self.build_dream_memory_context(source, source_body, &relations);
 
         let mut scored = Vec::new();
         for id in self.memories.current_ids() {
@@ -43,7 +53,7 @@ impl Cva {
                 .map(|candidate| cosine(source_vector, candidate))
                 .transpose()?;
             let lexical_score = lexical_score(&source_context.memory, &memory);
-            let context = self.dream_memory_context(memory, body_id, &relations);
+            let context = self.build_dream_memory_context(memory, body_id, &relations);
             let (temporal_matches, temporal_score) =
                 temporal_matches(&source_context.temporal, &context.temporal);
             scored.push(ScoredCandidate {
@@ -66,7 +76,7 @@ impl Cva {
         })
     }
 
-    fn dream_memory_context(
+    fn build_dream_memory_context(
         &self,
         memory: Memory,
         body_id: MemoryBodyId,

@@ -94,12 +94,10 @@ fn prior_semantic_quota_uses_source_timestamps_and_survives_top_n_pressure() {
             },
         )
         .unwrap();
-    assert!(
-        result
-            .candidates
-            .iter()
-            .any(|candidate| candidate.context.memory.id == old)
-    );
+    assert!(result
+        .candidates
+        .iter()
+        .any(|candidate| candidate.context.memory.id == old));
     let old_candidate = result
         .candidates
         .iter()
@@ -155,12 +153,51 @@ fn lexical_lane_can_recover_an_unembedded_candidate_and_excludes_archived_memori
     assert_eq!(result.candidates[0].context.memory.id, lexical);
     assert_eq!(result.candidates[0].semantic_score, None);
     assert!(result.candidates[0].lexical_score > 0.0);
-    assert!(
-        !result
-            .candidates
-            .iter()
-            .any(|candidate| candidate.context.memory.id == archived)
+    assert!(!result
+        .candidates
+        .iter()
+        .any(|candidate| candidate.context.memory.id == archived));
+}
+
+#[test]
+fn direct_memory_context_matches_candidate_context_builder() {
+    let mut cva = Cva::create(test_path("direct-context.cva")).unwrap();
+    let source = memory(
+        &mut cva,
+        "source",
+        "Source",
+        "Shared wall fact.",
+        100,
+        false,
     );
+    let candidate = memory(
+        &mut cva,
+        "candidate",
+        "Candidate",
+        "Shared wall fact.",
+        90,
+        false,
+    );
+    let profile = install_vectors(
+        &mut cva,
+        &[source, candidate],
+        &[&[1.0, 0.0], &[0.99, 0.01]],
+    );
+    let direct = cva.dream_memory_context(candidate).unwrap();
+    let set = cva
+        .dream_candidates(
+            profile,
+            source,
+            DreamCandidateConfig {
+                limit: 1,
+                semantic_limit: 1,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(direct, set.candidates[0].context);
 }
 
 #[test]
