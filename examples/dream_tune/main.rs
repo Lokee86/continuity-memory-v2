@@ -1,4 +1,6 @@
 mod report;
+#[cfg(test)]
+mod report_tests;
 mod support;
 
 use continuity_memory::{

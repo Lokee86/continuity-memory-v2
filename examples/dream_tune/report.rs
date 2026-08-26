@@ -1,6 +1,6 @@
 use continuity_memory::{
-    Cva, DreamCandidateSet, DreamProcessResult, DreamPublicationOutcome, GraphRelation, Memory,
-    MemoryId,
+    Cva, DreamCandidateSet, DreamPairClassification, DreamProcessResult, DreamPublicationOutcome,
+    GraphRelation, Memory, MemoryId,
 };
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -80,8 +80,9 @@ pub fn result_json(result: &DreamProcessResult) -> Value {
                     "verdict": format!("{:?}", value.verdict),
                 })
             });
+            let candidate_id = pair_candidate_id(result.source.id, classification);
             json!({
-                "candidate_id": id_hex(classification.b),
+                "candidate_id": id_hex(candidate_id),
                 "classification": {
                     "model": classification.model,
                     "relation": format!("{:?}", classification.relation),
@@ -105,6 +106,18 @@ pub fn result_json(result: &DreamProcessResult) -> Value {
             "promoted_to_knowledge": result.lifecycle.promoted_to_knowledge,
         }
     })
+}
+
+pub(crate) fn pair_candidate_id(
+    source_id: MemoryId,
+    classification: &DreamPairClassification,
+) -> MemoryId {
+    if classification.a == source_id {
+        classification.b
+    } else {
+        debug_assert_eq!(classification.b, source_id);
+        classification.a
+    }
 }
 
 fn publication_json(outcome: &DreamPublicationOutcome) -> Value {
