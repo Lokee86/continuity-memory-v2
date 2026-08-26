@@ -228,7 +228,11 @@ fn optional_turn_content(
                 .find(|turn| turn.node_id == node_id)
                 .map(|turn| turn.content.clone())
         })
-        .ok_or_else(|| invalid(format!("metadata provenance turn is unavailable: {node_id}")))
+        .ok_or_else(|| {
+            invalid(format!(
+                "metadata provenance turn is unavailable: {node_id}"
+            ))
+        })
 }
 
 fn required_string(value: &Value, key: &str) -> Result<String, InsomniaExtractionError> {

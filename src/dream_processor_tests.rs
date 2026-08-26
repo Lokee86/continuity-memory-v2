@@ -3,9 +3,9 @@ use crate::{
     Cva, DreamCandidateConfig, DreamProcessError, DreamProcessor, DreamVerificationPolicy,
     GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint,
 };
-use serde_json::{json, Value};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use serde_json::{Value, json};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 

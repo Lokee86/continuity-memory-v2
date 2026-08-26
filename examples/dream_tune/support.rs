@@ -1,5 +1,5 @@
-use continuity_memory::{CompatibilityProfileId, Cva, DreamCandidateConfig};
-use serde_json::{json, Value};
+use reliquary_memory::{CompatibilityProfileId, Cva, DreamCandidateConfig};
+use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs;

@@ -216,7 +216,9 @@ pub(super) fn merge_repair(
         }
     }
     if base_requests.len() > 4 {
-        return Err(invalid("ledger repair exceeded archive evidence request limit"));
+        return Err(invalid(
+            "ledger repair exceeded archive evidence request limit",
+        ));
     }
     Ok(())
 }

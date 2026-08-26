@@ -1,5 +1,5 @@
 use super::{DiagnosticEndpoint, support};
-use continuity_memory::{
+use reliquary_memory::{
     Cva, DreamCandidateConfig, DreamProcessor, DreamPublicationOutcome, DreamRelationKind,
     DreamVerificationPolicy, DreamVerificationVerdict, GraphRelationKind,
 };
@@ -168,9 +168,9 @@ pub fn supersession(
 
 fn assert_replay(
     cva: &mut Cva,
-    pair: &continuity_memory::DreamProcessedPair,
+    pair: &reliquary_memory::DreamProcessedPair,
     policy: DreamVerificationPolicy,
-    source: continuity_memory::MemoryId,
+    source: reliquary_memory::MemoryId,
 ) -> Result<(), Box<dyn Error>> {
     let graph_version = cva.graph_version();
     if cva.publish_dream_pair(

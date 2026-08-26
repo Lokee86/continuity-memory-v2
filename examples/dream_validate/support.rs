@@ -1,4 +1,4 @@
-use continuity_memory::{
+use reliquary_memory::{
     Cva, DreamCandidateConfig, DreamClassifier, DreamMemoryContext, DreamRelationDirection,
     DreamRelationKind, DreamTemporalAnalysis, DreamTemporalFrequency, DreamTemporalPattern,
     DreamTemporalWeekday, DreamVerificationVerdict, DreamVerifier, GeneralEndpoint,

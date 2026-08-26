@@ -1,4 +1,4 @@
-use continuity_memory::{
+use reliquary_memory::{
     Cva, DreamMemoryContext, GraphRelation, MemoryDraft, MemoryId, PackedVectors, ScalarType,
     SimulatedEmbeddingEndpoint, VectorNormalization, VectorSchema,
 };
@@ -67,7 +67,7 @@ pub fn install_vectors(
     cva: &mut Cva,
     ids: &[MemoryId],
     vectors: &[&[f32]],
-) -> Result<continuity_memory::CompatibilityProfileId, Box<dyn Error>> {
+) -> Result<reliquary_memory::CompatibilityProfileId, Box<dyn Error>> {
     if ids.len() != vectors.len() || ids.is_empty() {
         return Err("vector fixture must contain matching non-empty ids/vectors".into());
     }

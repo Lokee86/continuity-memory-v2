@@ -1,9 +1,9 @@
 #[path = "dream_validate/support.rs"]
 mod support;
 
-use continuity_memory::{
-    ContinuityConfig, DreamClassifier, DreamRelationDirection, DreamRelationKind,
-    DreamVerificationVerdict, DreamVerifier, ModelSwitchboard, OpenAiReadyGeneralEndpoint,
+use reliquary_memory::{
+    DreamClassifier, DreamRelationDirection, DreamRelationKind, DreamVerificationVerdict,
+    DreamVerifier, ModelSwitchboard, OpenAiReadyGeneralEndpoint, ReliquaryConfig,
 };
 use std::env;
 use std::error::Error;
@@ -29,7 +29,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         .map(PathBuf::from)
         .ok_or("missing fixture path")?;
 
-    let config = ContinuityConfig::open(config_path)?;
+    let config = ReliquaryConfig::open(config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = DiagnosticEndpoint {
         inner: OpenAiReadyGeneralEndpoint::from_dream_switchboard(&switchboard)?,

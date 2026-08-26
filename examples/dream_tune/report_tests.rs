@@ -1,5 +1,5 @@
 use super::report::pair_candidate_id;
-use continuity_memory::{
+use reliquary_memory::{
     DreamPairClassification, DreamRelationDirection, DreamRelationKind, MemoryId,
 };
 

@@ -64,16 +64,15 @@ impl OpenAiReadyGeneralEndpoint {
     pub fn from_insomnia_metadata_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {
-        let route = switchboard
-            .insomnia_metadata()
-            .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Insomnia metadata route is not configured",
-            ))?;
-        let auth = switchboard
-            .insomnia_metadata_auth()
-            .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Insomnia metadata auth is missing",
-            ))?;
+        let route =
+            switchboard
+                .insomnia_metadata()
+                .ok_or(GeneralEndpointError::InvalidConfiguration(
+                    "Insomnia metadata route is not configured",
+                ))?;
+        let auth = switchboard.insomnia_metadata_auth().ok_or(
+            GeneralEndpointError::InvalidConfiguration("Insomnia metadata auth is missing"),
+        )?;
         Self::from_route(route, auth, StructuredMode::ForcedTool)
     }
 
@@ -137,7 +136,8 @@ impl OpenAiReadyGeneralEndpoint {
                 .post(&self.url)
                 .header(AUTHORIZATION, self.auth.authorization_header())
                 .header(CONTENT_TYPE, "application/json");
-            if self.stream_tool_calls && matches!(self.structured_mode, StructuredMode::ForcedTool) {
+            if self.stream_tool_calls && matches!(self.structured_mode, StructuredMode::ForcedTool)
+            {
                 request = request.header(ACCEPT, "text/event-stream");
             }
             let response = request.body(payload.to_vec()).send();
@@ -235,7 +235,10 @@ impl GeneralEndpoint for OpenAiReadyGeneralEndpoint {
             .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
         let bytes = self.send_with_retry(&payload)?;
         if self.stream_tool_calls && matches!(self.structured_mode, StructuredMode::ForcedTool) {
-            return parse_streamed_forced_tool_result(&String::from_utf8_lossy(&bytes), schema_name);
+            return parse_streamed_forced_tool_result(
+                &String::from_utf8_lossy(&bytes),
+                schema_name,
+            );
         }
         let value: Value = serde_json::from_slice(&bytes)
             .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;

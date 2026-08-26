@@ -1,8 +1,8 @@
-use continuity_memory::{
+use reliquary_memory::{
     Cva, DreamCandidateSet, DreamPairClassification, DreamProcessResult, DreamPublicationOutcome,
     GraphRelation, Memory, MemoryId,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 pub fn id_hex(id: MemoryId) -> String {

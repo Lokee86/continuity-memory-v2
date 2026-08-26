@@ -5,9 +5,9 @@ mod scenarios;
 #[path = "dream_write_validate/support.rs"]
 mod support;
 
-use continuity_memory::{
-    ContinuityConfig, GeneralEndpoint, GeneralEndpointError, ModelSwitchboard,
-    OpenAiReadyGeneralEndpoint,
+use reliquary_memory::{
+    GeneralEndpoint, GeneralEndpointError, ModelSwitchboard, OpenAiReadyGeneralEndpoint,
+    ReliquaryConfig,
 };
 use serde_json::Value;
 use std::env;
@@ -56,7 +56,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         .next()
         .map(PathBuf::from)
         .ok_or("missing output directory")?;
-    let config = ContinuityConfig::open(config_path)?;
+    let config = ReliquaryConfig::open(config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = DiagnosticEndpoint {
         inner: OpenAiReadyGeneralEndpoint::from_dream_switchboard(&switchboard)?,

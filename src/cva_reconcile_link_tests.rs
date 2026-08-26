@@ -54,6 +54,7 @@ fn reconcile_replays_file_memory_links_after_targets() {
             MemoryDraft {
                 category: "fact".into(),
                 memory_type: "project".into(),
+                authority_kind: "unknown".into(),
                 title: "Invoice".into(),
                 content: "Invoice is attached.".into(),
                 scope: "private".into(),

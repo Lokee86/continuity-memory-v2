@@ -94,10 +94,12 @@ fn prior_semantic_quota_uses_source_timestamps_and_survives_top_n_pressure() {
             },
         )
         .unwrap();
-    assert!(result
-        .candidates
-        .iter()
-        .any(|candidate| candidate.context.memory.id == old));
+    assert!(
+        result
+            .candidates
+            .iter()
+            .any(|candidate| candidate.context.memory.id == old)
+    );
     let old_candidate = result
         .candidates
         .iter()
@@ -153,10 +155,12 @@ fn lexical_lane_can_recover_an_unembedded_candidate_and_excludes_archived_memori
     assert_eq!(result.candidates[0].context.memory.id, lexical);
     assert_eq!(result.candidates[0].semantic_score, None);
     assert!(result.candidates[0].lexical_score > 0.0);
-    assert!(!result
-        .candidates
-        .iter()
-        .any(|candidate| candidate.context.memory.id == archived));
+    assert!(
+        !result
+            .candidates
+            .iter()
+            .any(|candidate| candidate.context.memory.id == archived)
+    );
 }
 
 #[test]

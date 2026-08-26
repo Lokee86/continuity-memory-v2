@@ -85,9 +85,9 @@ impl ModelProvider {
             (
                 _,
                 ModelCapability::General
-                    | ModelCapability::Insomnia
-                    | ModelCapability::InsomniaMetadata
-                    | ModelCapability::Dream,
+                | ModelCapability::Insomnia
+                | ModelCapability::InsomniaMetadata
+                | ModelCapability::Dream,
             ) => true,
             (Self::OpenAiReady, ModelCapability::Embedding) => true,
             (Self::OpenAiCodex, ModelCapability::Embedding) => false,

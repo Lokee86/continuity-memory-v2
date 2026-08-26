@@ -1,5 +1,5 @@
 use super::{DiagnosticEndpoint, support};
-use continuity_memory::{
+use reliquary_memory::{
     Cva, DreamClassifier, DreamPublicationOutcome, DreamRelationKind, DreamVerificationPolicy,
     DreamVerificationVerdict, DreamVerifier, GraphRelationKind,
 };
@@ -77,13 +77,13 @@ fn classify_publish(
     classifier: &DreamClassifier<DiagnosticEndpoint>,
     verifier: &DreamVerifier<DiagnosticEndpoint>,
     cva: &mut Cva,
-    left: continuity_memory::MemoryId,
-    right: continuity_memory::MemoryId,
+    left: reliquary_memory::MemoryId,
+    right: reliquary_memory::MemoryId,
     policy: DreamVerificationPolicy,
 ) -> Result<
     (
-        continuity_memory::DreamPairClassification,
-        continuity_memory::DreamPairVerification,
+        reliquary_memory::DreamPairClassification,
+        reliquary_memory::DreamPairVerification,
     ),
     Box<dyn Error>,
 > {
@@ -113,9 +113,9 @@ fn classify_publish(
 
 fn assert_chain(
     cva: &Cva,
-    new: continuity_memory::MemoryId,
-    middle: continuity_memory::MemoryId,
-    old: continuity_memory::MemoryId,
+    new: reliquary_memory::MemoryId,
+    middle: reliquary_memory::MemoryId,
+    old: reliquary_memory::MemoryId,
 ) -> Result<(), Box<dyn Error>> {
     let edges = cva
         .graph_relations()

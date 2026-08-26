@@ -1,8 +1,8 @@
 mod support;
 
-use continuity_memory::{
-    ConfiguredGeneralEndpoint, ContinuityConfig, Cva, DREAM_CLASSIFIER_CONTRACT_VERSION,
-    DreamClassifier, DreamRelationKind, GeneralEndpoint, ModelSwitchboard,
+use reliquary_memory::{
+    ConfiguredGeneralEndpoint, Cva, DREAM_CLASSIFIER_CONTRACT_VERSION, DreamClassifier,
+    DreamRelationKind, GeneralEndpoint, ModelSwitchboard, ReliquaryConfig,
 };
 use serde_json::{Value, json};
 use std::env;
@@ -37,7 +37,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         .map(fs::read_to_string)
         .transpose()?;
 
-    let config = ContinuityConfig::open(&config_path)?;
+    let config = ReliquaryConfig::open(&config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = ConfiguredGeneralEndpoint::from_dream_switchboard(&switchboard)?;
     let model = endpoint.model().to_owned();

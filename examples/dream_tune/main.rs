@@ -3,9 +3,9 @@ mod report;
 mod report_tests;
 mod support;
 
-use continuity_memory::{
-    ConfiguredGeneralEndpoint, ContinuityConfig, Cva, DreamCandidateConfig, DreamProcessError,
-    DreamProcessor, DreamVerificationPolicy, ModelSwitchboard,
+use reliquary_memory::{
+    ConfiguredGeneralEndpoint, Cva, DreamCandidateConfig, DreamProcessError, DreamProcessor,
+    DreamVerificationPolicy, ModelSwitchboard, ReliquaryConfig,
 };
 use report::{candidates_json, durable_snapshot, id_hex, memory_json, result_json};
 use serde_json::{Value, json};
@@ -59,7 +59,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
     fs::copy(&baseline_path, &run_path)?;
 
-    let config = ContinuityConfig::open(&config_path)?;
+    let config = ReliquaryConfig::open(&config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = ConfiguredGeneralEndpoint::from_dream_switchboard(&switchboard)?;
     let processor = match system_prompt {

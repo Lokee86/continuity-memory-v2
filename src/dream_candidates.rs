@@ -1,13 +1,13 @@
 use crate::dream_candidate_ranking::{
-    lexical_score, rank_lanes, select_candidates, ScoredCandidate,
+    ScoredCandidate, lexical_score, rank_lanes, select_candidates,
 };
 use crate::dream_source_time::source_timestamp_ns;
 use crate::dream_temporal::analyze_memory_temporal;
 use crate::dream_temporal_match::temporal_matches;
 use crate::{
     CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
-    DreamMemoryContext, GraphRelation, Memory, MemoryBodyId, MemoryId, MemoryVectorId, ScalarType,
-    MAX_DREAM_CANDIDATE_LIMIT,
+    DreamMemoryContext, GraphRelation, MAX_DREAM_CANDIDATE_LIMIT, Memory, MemoryBodyId, MemoryId,
+    MemoryVectorId, ScalarType,
 };
 use std::collections::HashMap;
 

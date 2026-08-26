@@ -2,6 +2,14 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Purpose
+
+This document defines the planned durable ownership boundaries, file kinds, scope graph, context-composition rules, and validation requirements for Reliquary and Phylactery memory scopes.
+
+## Overview
+
+Durable state is partitioned by semantic owner rather than stored in one global memory pool. User-global state belongs to Phylactery; Organization, Project, and Connection state belong to typed Reliquary scopes. Cross-scope context is composed through explicit typed relationships and policy without transferring ownership merely because one scope references or physically contains another.
+
 ## Status
 
 Provisional implementation plan. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) amends Reliquary from a project-only concept into a typed family of non-user durable scopes.
@@ -405,3 +413,7 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 - [Architecture](architecture.md)
 - [ADR 0012 — deterministic Episodes and Insomnia Memory authority](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
 - [ADR 0017 — CVA workspace and Warlock host application](decisions/0017-cva-workspace-and-warlock-host-application.md)
+
+## Notes
+
+This plan is intentionally provisional where the document marks vocabulary, policy, traversal, migration, or schema details as open. Accepted naming and file-kind decisions remain governed by the referenced ADRs.

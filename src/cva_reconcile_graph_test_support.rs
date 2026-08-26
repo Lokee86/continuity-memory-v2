@@ -31,6 +31,7 @@ pub(crate) fn publish_memory(cva: &mut Cva, name: &str) -> MemoryId {
         MemoryDraft {
             category: "fact".into(),
             memory_type: "project".into(),
+            authority_kind: "unknown".into(),
             title: name.into(),
             content: format!("memory {name}"),
             scope: "project".into(),

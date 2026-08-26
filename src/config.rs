@@ -8,8 +8,8 @@ use crate::config_object::{
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
     DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2, GENERAL_MODEL_KEY,
-    GENERAL_MODEL_SCHEMA_V3, INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, decode_embedding, decode_general_v2,
-    decode_general_v3, encode_embedding, encode_general,
+    GENERAL_MODEL_SCHEMA_V3, INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, decode_embedding,
+    decode_general_v2, decode_general_v3, encode_embedding, encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,

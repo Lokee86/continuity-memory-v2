@@ -48,6 +48,7 @@ fn seed_right(cva: &mut Cva) -> (crate::Episode, MemoryDraft) {
     let draft = MemoryDraft {
         category: "decision".into(),
         memory_type: "project".into(),
+        authority_kind: "unknown".into(),
         title: "Decision".into(),
         content: "Keep this".into(),
         scope: "private".into(),
@@ -104,6 +105,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         body_id,
         category: draft.category,
         memory_type: draft.memory_type,
+        authority_kind: draft.authority_kind,
         scope: draft.scope,
         lifecycle_state: draft.lifecycle_state,
         archived: false,

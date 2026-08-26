@@ -1,4 +1,4 @@
-use continuity_memory::{DreamMemoryContext, DreamPairClassification, MemoryId};
+use reliquary_memory::{DreamMemoryContext, DreamPairClassification, MemoryId};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 

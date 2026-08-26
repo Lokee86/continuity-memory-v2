@@ -167,6 +167,7 @@ fn memory_draft(memory: Memory) -> MemoryDraft {
     MemoryDraft {
         category: memory.category,
         memory_type: memory.memory_type,
+        authority_kind: memory.authority_kind,
         title: memory.title,
         content: memory.content,
         scope: memory.scope,

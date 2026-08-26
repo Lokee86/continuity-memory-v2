@@ -236,12 +236,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             &repair_prompt,
             &repair_payload,
             "insomnia_authority_disposition_ledger_repair",
-            &ledger::repair_schema(
-                turns,
-                evidence_turns,
-                &missing,
-                allow_evidence_requests,
-            ),
+            &ledger::repair_schema(turns, evidence_turns, &missing, allow_evidence_requests),
         )?;
         ledger::merge_repair(&mut result, repair, &missing, allow_evidence_requests)?;
         Ok(result)
