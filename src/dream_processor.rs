@@ -19,6 +19,17 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
         }
     }
 
+    pub fn with_classifier_system_prompt(
+        classifier_endpoint: C,
+        verifier_endpoint: V,
+        system_prompt: impl Into<String>,
+    ) -> Self {
+        Self {
+            classifier: DreamClassifier::with_system_prompt(classifier_endpoint, system_prompt),
+            verifier: DreamVerifier::new(verifier_endpoint),
+        }
+    }
+
     pub fn classifier_model(&self) -> &str {
         self.classifier.model()
     }

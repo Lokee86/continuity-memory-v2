@@ -4,15 +4,15 @@ Parent: [Dream implementation plan](dream-implementation-plan.md)
 
 ## Purpose
 
-This document freezes the measured Dream classifier-v2 candidate and the remaining gate it must clear before replacing production classifier v1.
+This document records the measured Dream classifier-v2 prompt and the evidence supporting its production promotion.
 
 ## Overview
 
-Classifier v1 over-links broad project context, while the rejected first v2 over-prunes useful same-workstream relations. The measured v2f candidate targets the middle boundary: semantic workstream continuity is sufficient, but project/domain proximity alone is not. It has cleared the exact-pair gate on Luna-low and now awaits population-level validation.
+Classifier v1 over-links broad project context, while the rejected first v2 over-prunes useful same-workstream relations. The measured v2f candidate targets the middle boundary: semantic workstream continuity is sufficient, but project/domain proximity alone is not. It cleared both the exact-pair and population gates and is now production classifier contract v2.
 
 ## Status
 
-The exact-pair boundary gate is **passed** with the frozen v2f prompt in [`../corpus/dream-classifier-v2-candidate.txt`](../corpus/dream-classifier-v2-candidate.txt). Three independent live `gpt-5.6-luna` / low-reasoning runs all cleared the advancement threshold. Production classifier source remains on measured contract v1 until the 46-Memory population gate confirms that the improved boundary generalizes.
+The exact-pair boundary gate is **passed** with the frozen v2f prompt in [`../corpus/dream-classifier-v2-candidate.txt`](../corpus/dream-classifier-v2-candidate.txt). Three independent live `gpt-5.6-luna` / low-reasoning runs all cleared the advancement threshold. The 46-Memory Luna-low population gate also passed: 46/46 complete, zero failures/backlog, 96/98 whole-web agreement, all 10 audited false positives absent, and troubleshooting/step-by-step restored. The prompt is production contract v2.
 
 ## Why v1 and the rejected first v2 fail
 
@@ -52,7 +52,7 @@ The central distinction remains **same workstream, not same noun and not same pr
 
 ## v2f prompt
 
-The canonical prompt is [`corpus/dream-classifier-v2-candidate.txt`](../corpus/dream-classifier-v2-candidate.txt). Keeping the experimental prompt in one tracked file lets the exact-pair harness test it without changing production classifier behavior.
+The frozen reference prompt is [`corpus/dream-classifier-v2-candidate.txt`](../corpus/dream-classifier-v2-candidate.txt), and production `DREAM_CLASSIFIER_SYSTEM_PROMPT` matches it. The tracked file remains the reproducible acceptance artifact and a baseline for future prompt experiments.
 
 The final tuning step made the bounded-session rule explicit: room/lobby admission or selection, readiness/match-start, and leave/exit handling are stages of the same session lifecycle. It simultaneously preserves the negative rule that gameplay/runtime subsystems such as spawning, rendering, collision, logging, or protocol implementation do not become session-lifecycle relations merely because they run in the same application.
 
@@ -90,7 +90,7 @@ v2f lifecycle rule    27-29/30   10/10      37-39/40   0  three-run range
 
 ## Harness behavior
 
-`examples/dream_classifier_tune/` accepts `--system-prompt-file PATH`. The override is tuning-only: `DreamClassifier::new` still uses the production v1 prompt, while `DreamClassifier::with_system_prompt` lets the exact-pair harness inject the tracked candidate explicitly.
+`examples/dream_classifier_tune/` accepts `--system-prompt-file PATH`. The override is tuning-only: `DreamClassifier::new` uses the production v2 prompt, while `DreamClassifier::with_system_prompt` lets the exact-pair harness inject the tracked candidate explicitly.
 
 ```text
 cargo run --example dream_classifier_tune -- \
@@ -102,7 +102,7 @@ cargo run --example dream_classifier_tune -- \
 
 ## Population gate
 
-The next experiment is the durable 46-Memory population fixture at candidate limit 12 / pair concurrency 12. Required checks:
+The durable 46-Memory population fixture at candidate limit 12 / pair concurrency 12 passed all required checks:
 
 - 46/46 sources complete with zero recoverable failures;
 - extracted backlog drains to zero;
@@ -111,7 +111,7 @@ The next experiment is the durable 46-Memory population fixture at candidate lim
 - troubleshooting/step-by-step relation is present;
 - relation density is audited rather than optimized for being lower or higher by itself.
 
-Do not tune retrieval during this classifier experiment; retrieval already finds the tracked pairs at the intended population limit.
+Retrieval was not tuned during this classifier experiment; it already found the tracked pairs at the intended population limit.
 
 ## Related docs
 
@@ -122,4 +122,4 @@ Do not tune retrieval during this classifier experiment; retrieval already finds
 
 ## Notes
 
-This is a measured candidate, not shipped classifier behavior. Production remains classifier v1 until population-level evidence clears the second gate.
+Classifier v2 is shipped behavior; the frozen v2f prompt remains the reproducible acceptance artifact.

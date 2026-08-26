@@ -8,7 +8,7 @@ use continuity_memory::{
     DreamProcessor, DreamVerificationPolicy, ModelSwitchboard,
 };
 use report::{candidates_json, durable_snapshot, id_hex, memory_json, result_json};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -28,7 +28,7 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() < 3 {
-        return Err("usage: dream_tune <config> <baseline-cva> <output-dir> [--limit N] [--source MEMORY_ID] [--candidate-limit N] [--pair-concurrency N] [--verification default|broad] [--retrieval-only]".into());
+        return Err("usage: dream_tune <config> <baseline-cva> <output-dir> [--limit N] [--source MEMORY_ID] [--candidate-limit N] [--pair-concurrency N] [--verification default|broad] [--retrieval-only] [--system-prompt-file PATH]".into());
     }
     let config_path = PathBuf::from(&args[0]);
     let baseline_path = PathBuf::from(&args[1]);
@@ -41,6 +41,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         .max(1);
     let retrieval_only = args[3..].iter().any(|arg| arg == "--retrieval-only");
     let verification = option_string(&args[3..], "--verification").unwrap_or("default");
+    let system_prompt_file = option_string(&args[3..], "--system-prompt-file").map(PathBuf::from);
+    let system_prompt = system_prompt_file
+        .as_ref()
+        .map(fs::read_to_string)
+        .transpose()?;
     let verification_policy = match verification {
         "default" => DreamVerificationPolicy::default(),
         "broad" => DreamVerificationPolicy::broad_semantic(),
@@ -57,7 +62,12 @@ fn run() -> Result<(), Box<dyn Error>> {
     let config = ContinuityConfig::open(&config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = ConfiguredGeneralEndpoint::from_dream_switchboard(&switchboard)?;
-    let processor = DreamProcessor::new(endpoint.clone(), endpoint);
+    let processor = match system_prompt {
+        Some(prompt) => {
+            DreamProcessor::with_classifier_system_prompt(endpoint.clone(), endpoint, prompt)
+        }
+        None => DreamProcessor::new(endpoint.clone(), endpoint),
+    };
     let classifier_model = processor.classifier_model().to_owned();
     let verifier_model = processor.verifier_model().to_owned();
 
@@ -171,6 +181,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         "candidate_config": candidate_config_json(candidate_config),
         "verification_policy": verification,
         "pair_concurrency": pair_concurrency,
+        "system_prompt_file": system_prompt_file,
         "retrieval_only": retrieval_only,
         "attempted": pending.len(),
         "recoverable_failures": recoverable_failures,

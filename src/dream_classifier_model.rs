@@ -1,6 +1,6 @@
 use crate::MemoryId;
 
-pub const DREAM_CLASSIFIER_CONTRACT_VERSION: &str = "v1";
+pub const DREAM_CLASSIFIER_CONTRACT_VERSION: &str = "v2";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DreamRelationKind {
