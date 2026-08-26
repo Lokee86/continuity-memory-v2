@@ -18,6 +18,7 @@ impl fmt::Display for ContainerError {
             Self::InvalidVersionRecord => write!(f, "invalid CVA version record"),
             Self::VersionExhausted => write!(f, "CVA global version counter exhausted"),
             Self::ChunkTooLarge => write!(f, "CVA chunk is too large"),
+            Self::InvalidIdentity => write!(f, "invalid container identity"),
         }
     }
 }

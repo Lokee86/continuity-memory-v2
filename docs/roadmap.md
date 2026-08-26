@@ -14,7 +14,7 @@ Future work is organized around productization first, with intelligence quality 
 
 Reliquary is moving from a storage/retrieval substrate toward the durable workspace/context layer of the broader Warlock product.
 
-One CVA maps to one Warlock workspace. Warlock owns the native application surface and long-lived application orchestration; Reliquary remains the Rust semantic/storage subsystem linked into that application core. External agent protocols such as ACP remain interoperability adapters into the same normalized interaction seam and are not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
+One Reliquary REL maps to one non-user Warlock scope/workspace; the current Warlock host uses Project RELs. Warlock owns the native application surface and long-lived application orchestration; Reliquary remains the Rust semantic/storage subsystem linked into that application core. External agent protocols such as ACP remain interoperability adapters into the same normalized interaction seam and are not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
 
 ## Near-term productization sequence
 
@@ -32,9 +32,9 @@ Required behavior:
 - expose the narrow explicit memory-control operations needed by hosts;
 - define heartbeat, cancellation, retry, and shutdown behavior for long-running inference work.
 
-### 2. Workspace/CVA application API
+### 2. Workspace/REL application API
 
-Expose the concrete Rust operations Warlock needs to manage one CVA-backed workspace without introducing a generalized database abstraction or mandatory service layer.
+Expose the concrete Rust operations Warlock needs to manage one REL-backed workspace without introducing a generalized database abstraction or mandatory service layer.
 
 The application surface should compose explicit owner operations for:
 
@@ -49,7 +49,7 @@ The management layer must remain an application/service surface over concrete ow
 
 ### 3. Warlock host integration
 
-Reliquary is now linked directly into the Warlock v2 Rust application core. One CVA is the durable workspace file, and Warlock currently implements create/open/close/reopen plus durable conversation list/start/resume/user-turn/reopen through the public Reliquary runtime seam.
+Reliquary is now linked directly into the Warlock v2 Rust application core. One Project REL is the durable workspace file, and Warlock currently implements create/open/close/reopen plus durable conversation list/start/resume/user-turn/reopen through the public Reliquary runtime seam.
 
 Remaining host integration work includes:
 
@@ -65,7 +65,7 @@ Remaining host integration work includes:
 
 `Cva::compare` verifies shared workspace identity and classifies identical, one-side-ahead, or physically diverged histories. `Cva::reconcile` handles true divergence by semantic replay into a fresh validated CVA when the candidate contributes new state. If a physically divergent candidate is already semantically absorbed, `canonical_change_required` is false and reconciliation preserves an exact copy of the canonical CVA instead of persisting reconciliation receipts or retiring vector state. Real changed merges replay Archive source state, Files, Branches, immutable Episodes/Fragments, Memory revisions, durable Insomnia completion receipts, file-to-Memory links, and compatibility profiles; stale packed/vector bindings and Vector Generations are then intentionally retired and `vector_rebuild_required` exposes the need for verified re-embedding. `Cva::reconcile_and_promote` skips replacement for no-ops and otherwise provides canonical fingerprint guarding, a synced recovery copy, atomic replacement, post-replacement validation/recovery, and temporary-artifact cleanup. Known semantic merge collisions surface as typed `CvaReconcileConflict` values for host presentation rather than raw Archive/Memory/Insomnia errors. Remaining work is provider-level conflicted-copy discovery, host-triggered vector rebuild, Warlock-side conflict presentation/resolution, and realistic repeated multi-device/provider fixtures. See [ADR 0019](decisions/0019-cloud-backed-cva-reconciliation.md).
 
-The TypeScript presentation layer consumes Warlock application commands/state and must not parse CVAs or implement Reliquary lifecycle semantics directly.
+The TypeScript presentation layer consumes Warlock application commands/state and must not parse REL files or implement Reliquary lifecycle semantics directly.
 
 ### 4. ACP interoperability adapter
 
@@ -139,23 +139,21 @@ Planning work therefore needs explicit scope creation/editing, ownership routing
 
 ## Reliquary / Phylactery file-kind transition
 
-The current implementation remains `.cva`, but the long-term product file identities are now fixed by ADR 0020 and amended by ADR 0021:
+Typed Reliquary `.rel` identity is now implemented over the full former CVA model. Phylactery remains pending. Product file identities are fixed by ADR 0020 and amended by ADR 0021:
 
 - Reliquary is the typed non-user scope family → `<name>.<scope-type>.rel`;
 - currently accepted Reliquary scope hints are `.org.rel`, `.prj.rel`, and `.con.rel`;
 - Phylactery user-global Identity state → `.phy`.
 
-Implementation should preserve one shared low-level container/storage engine rather than fork the existing storage machinery. Both the semantic file kind and Reliquary scope kind must be encoded and validated inside the file; filename extensions are human-facing hints, not semantic authority.
+The implementation preserves one shared low-level container/storage engine. New REL files encode and validate semantic file kind plus Reliquary scope kind inside a 24-byte header; filename extensions are human-facing hints, not semantic authority. Existing 16-byte CVA headers are detected explicitly as legacy Project Reliquaries.
 
-Migration work should proceed in this order:
+Remaining migration/product work should proceed in this order:
 
-1. define the versioned header/file-kind discriminator and required compatibility behavior;
-2. define the internal Reliquary scope-kind field plus required, optional, and forbidden semantic owners for `.org.rel`, `.prj.rel`, `.con.rel`, and `.phy`;
-3. add explicit legacy `.cva` detection as Project Reliquary data and a safe migration path to typed `.prj.rel`;
-4. preserve existing deterministic IDs, record payloads, and hash/domain-separation constants wherever the file-kind transition does not require a semantic-format change;
-5. update Warlock file creation/open/association UX to distinguish `.phy` and typed Reliquary scopes before retrieval/context assembly;
-6. implement filename-hint versus authoritative internal-type mismatch detection;
-7. decide later whether the internal `Cva`/CVA terminology remains useful as a neutral container implementation detail or should be renamed.
+1. add a safe explicit legacy `.cva` → typed `.prj.rel` migration operation while preserving deterministic IDs, record payloads, and hash/domain-separation constants;
+2. update Warlock file creation/open/association UX to use typed REL files and later distinguish `.phy` before retrieval/context assembly;
+3. implement filename-hint versus authoritative internal-type mismatch warnings;
+4. implement Phylactery `.phy` over shared low-level mechanics with its own semantic validity rules;
+5. decide later whether the internal/back-compat `Cva` terminology should be removed.
 
 Do not implement `.phy` as a project Reliquary with provenance fields merely made nullable. Shared mechanics and separate semantic validation are both required.
 
@@ -165,7 +163,7 @@ Routine prompt tuning on the 11-Episode adversarial fixture is complete and froz
 
 1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
 2. design and fixture-test persistence ownership routing described in [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md). `user | project` remains a useful first implementation boundary, but the long-term router must also represent learned Organization and Connection state where publication authority permits it. Ownership classification must remain separate from authorization/governance so observed behaviour cannot silently become policy, permissions, contractual terms, or standing instructions. A dedicated narrow ownership-classification pass may be cleaner than adding this responsibility to ordinary metadata and must be compared explicitly;
-3. define and implement the separate **typed Reliquary `.<scope>.rel`** and **Phylactery `.phy`** semantic file kinds over shared storage primitives, including `.org.rel`, `.prj.rel`, `.con.rel`, optional rather than mandatory Phylactery source provenance, and cross-scope Memory/source export policy;
+3. implement **Phylactery `.phy`** and cross-scope Memory/source export policy over the now-implemented typed Reliquary `.org.rel` / `.prj.rel` / `.con.rel` substrate;
 4. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
 5. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/scope/wording model mix;
 6. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
@@ -226,7 +224,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 ## Open decisions
 
 - storage and explicit management surfaces for Organization, Project, and Connection scopes, including ownership routing, authorization/governance, typed graph edges, hierarchy/composition, and runtime rendering;
-- Exact `.rel` and `.phy` physical header/file-kind discriminator, Reliquary internal scope-kind discriminator, and required/optional/forbidden owner sets for each file/scope kind.
+- Phylactery `.phy` owner composition/validation and the required/optional/forbidden owner policy for each scope kind; Reliquary header and internal scope discrimination are implemented.
 - Legacy `.cva` → typed Project `.prj.rel` migration mechanics and whether `CVA` remains only as an internal generic-container term.
 - The exact ownership boundaries among user-global Phylactery, Organization Reliquary, Project Reliquary, and Connection Reliquary learned state.
 - Whether persistence ownership classification belongs in the existing metadata pass or a dedicated ownership-classification pass; if dedicated, its ordering relative to metadata and synthesis, and how the first `user | project` boundary expands to Organization/Connection learned state.

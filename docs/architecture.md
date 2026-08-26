@@ -3,9 +3,9 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
 ## Overview
-A `.cva` is one physical file containing explicit concrete owners:
+A typed Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Legacy `.cva` files remain readable as Project Reliquaries:
 ```text
-Cva
+Reliquary (internal compatibility type: Cva)
 ├── WorkspaceMetadata
 │   ├── stable workspace ID
 │   ├── display name
@@ -37,7 +37,7 @@ Cva
 └── VectorGenerationStore
     └── vector_version: u64 + current generation per profile
 ```
-`Cva` owns physical composition and the single Container handle. It is not a generalized semantic database, store registry, root, or dependency engine.
+`Reliquary` is the public product-facing type; `Cva` remains the compatibility/internal implementation name. It owns physical composition and the single Container handle. New files carry authoritative Reliquary/scope identity in the header; no existing Archive/Memory/Graph/Insomnia/vector owner was removed or reduced by the rename.
 Machine-local application configuration is a separate owner:
 ```text
 ReliquaryConfig
@@ -50,12 +50,12 @@ ReliquaryConfig
     ├── models.embedding
     └── credential.<id> (AES-256-GCM)
 ```
-`reliquary.cfg` is current-state configuration only. It is not contained in a `.cva`, consumes no semantic clocks, and has no append-only/history semantics.
+`reliquary.cfg` is current-state configuration only. It is not contained in a `.rel`, consumes no semantic clocks, and has no append-only/history semantics.
 ## Responsibilities
 ### Workspace metadata
 `WorkspaceMetadataStore` owns one optional singleton workspace identity inside the CVA: stable ID, display name, and extensible workspace-type identifier. `Cva::create_workspace` initializes the record at creation; an ordinary CVA may be initialized exactly once later. Current workspace metadata is clock-neutral and does not participate in Archive, Memory, Vector Generation, or CVA-global semantic ordering. The owner is deliberately not a generic metadata/property store. Rename/type-change history and external-resource bindings are not part of this first slice.
 
-### CVA comparison and reconciliation
+### Reliquary comparison and reconciliation
 `Cva::compare` requires stable workspace identity on both files, rejects mismatched workspace IDs, and compares physical chunk streams to find their longest common prefix. `Cva::reconcile` builds on that detection seam: identical/strict-extension cases copy the complete valid side, while true divergence semantically replays the complete left history plus the right divergent tail. If the right/candidate side contributes new semantic state, the result is a fresh workspace CVA with reallocated global/Archive/Memory/Graph clocks; if every candidate record is already semantically present, the fresh probe is discarded and an exact copy of the canonical/left CVA is returned instead. This no-op path prevents repeated cloud-conflicted copies from rewriting the workspace and avoids any reconciliation-receipt metadata inside the CVA. Replay is owner-ordered: Archive source/Files/Branches/Episodes/Fragments first, Memory revisions next, then Graph transactions after their Memory endpoints exist, followed by cross-owner file-to-Memory links and durable Insomnia receipts; interaction-stream state and compatibility profiles are also preserved through their own seams. Graph single-edge and atomic batch mutations are republished through the Graph owner with fresh destination clocks and dense node mappings. For each oriented `(source, target, kind)` identity, divergent active-state histories are prefix-compared so already-absorbed/stale mutations are skipped and only a novel right suffix is replayed; non-prefix histories fail closed. Graph topology and Dream's duplicate index remain derived and rebuild from merged relationship authority. Memory mutation/revision invariants and completion identity similarly decide duplicates versus genuine conflicts. Immutable Fragments are revalidated and retained, and the disposable lexical index rebuilds lazily from a changed merged state. Packed vectors, Memory/Archive vector bindings, and Vector Generations are retired only for a real changed merge; `canonical_change_required` and `vector_rebuild_required` report those outcomes separately. Semantic replay collisions are normalized into public `CvaReconcileConflict` values carrying the stable owner identity and the competing state needed by a host UI; corruption and transport failures remain ordinary errors. `Cva::reconcile_and_promote` skips replacement entirely for semantic no-ops and otherwise uses a hidden sibling candidate, pre-promotion fingerprint check, synced recovery copy, atomic path replacement, post-replacement reopen/sync, recovery on finalization failure, and cleanup. It detects ordinary canonical changes during preparation but does not introduce a general interprocess writer lock or cloud-provider discovery. Cloud providers remain responsible for storage transport and conflicted-copy preservation. See [ADR 0019](decisions/0019-cloud-backed-cva-reconciliation.md).
 
 ### Local configuration

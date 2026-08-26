@@ -36,6 +36,17 @@ pub struct Cva {
 }
 
 impl Cva {
+    pub fn scope_kind(&self) -> crate::ReliquaryScopeKind {
+        self.container
+            .identity()
+            .and_then(|identity| identity.scope)
+            .unwrap_or(crate::ReliquaryScopeKind::Project)
+    }
+
+    pub fn is_legacy_cva(&self) -> bool {
+        self.container.identity().is_none()
+    }
+
     pub fn archive(&self) -> &Archive {
         &self.archive
     }

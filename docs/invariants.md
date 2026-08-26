@@ -12,7 +12,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 ## Invariants
 
-1. **One file, several databases.** A `.cva` contains explicit purpose-built databases, not one generalized semantic database.
+1. **One file, several databases.** A Reliquary `.rel` contains explicit purpose-built databases, not one generalized semantic database; legacy `.cva` is only the prior Project Reliquary physical form.
 2. **One mutable domain, one owner.** Each independently mutable semantic domain has one concrete owner.
 3. **Stable IDs cross database boundaries.** Cross-indexing uses IDs, not shared mutable semantic objects.
 4. **The physical substrate has no semantic dependency knowledge.**
@@ -54,24 +54,24 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 40. **Retrieval never mixes vector spaces.** Exact semantic search resolves one selected Compatibility Profile's current Vector Generation, searches only that generation, and maps only its row bindings back to Archive fragments.
 41. **Published generation representation must be interpretable.** Until alternate scalar/quantization semantics are explicitly defined, Vector Generations may reference only `f32` packed matrices even though raw PackedVectorStore objects support other scalar types.
 42. **Retrieval is derived and read-only.** Lexical scoring, semantic search, hybrid fusion, deduplication, and diversification persist no authority and consume no semantic version ticket.
-43. **Local configuration is current state, not semantic history.** `reliquary.cfg` is separate from `.cva`, uses replaceable logical objects, and consumes no semantic version ticket.
+43. **Local configuration is current state, not semantic history.** `reliquary.cfg` is separate from `.rel`, uses replaceable logical objects, and consumes no semantic version ticket.
 44. **Configuration replacement does not accumulate history.** Saving writes one complete validated current image and atomically replaces the prior file; superseded config objects are not retained.
 45. **Model routing is not vector compatibility.** Switchboard provider/model/URL selections are machine-local integration policy; Compatibility Profiles remain the sole durable vector-space compatibility contract.
-46. **Provider secrets are separate encrypted config objects.** Model routes reference credentials by stable ID; API keys and OAuth tokens are not stored in model-route payloads or `.cva` state.
+46. **Provider secrets are separate encrypted config objects.** Model routes reference credentials by stable ID; API keys and OAuth tokens are not stored in model-route payloads or Reliquary state.
 47. **Credential ciphertext is authenticated to its logical key.** Moving or modifying encrypted credential bytes must fail decryption rather than silently rebind a secret.
 48. **Executable model routing requires matching auth.** A runtime switchboard cannot resolve a route whose credential is missing or whose auth kind does not match the provider.
 49. **Current branch inventory is derived read state.** Enumerating current branches exposes the latest visible branch revision and adds no new Archive authority or persistent record.
-50. **The CLI owns no semantics.** The detachable `cli/` package may compose only public library operations; CVA, config, auth, and retrieval authority remain in the core library.
+50. **The CLI owns no semantics.** The detachable `cli/` package may compose only public library operations; Reliquary, config, auth, and retrieval authority remain in the core library.
 51. **Source attachments are intrinsic source-event data.** Importers/runtimes submit a turn and its attachments together; they do not persist a file and then separately reconstruct its source-turn provenance.
 52. **A source turn and its attachments publish together.** The node, attached file manifests, and source-to-file relationship become visible through one Archive semantic mutation; unversioned staged content or turn payloads are inert.
 53. **Later file relationships remain explicit.** A file-to-Memory relationship crosses owners by stable `FileId`/`MemoryId` and does not transfer file authority into Memories.
 54. **Interaction transports do not define semantic storage.** Warlock-native interaction, ACP, imports, APIs, and future provider adapters must normalize above concrete semantic owners; protocol-specific message models cannot become Archive authority by convenience.
-55. **Product management is not a generalized semantic store.** A CVA management surface may compose explicit owner operations, but it cannot bypass owner validation or introduce a generic mutable object/root/dependency model.
-56. **External protocols are optional product integrations.** Warlock-native use of customer-owned CVA state cannot require ACP, MCP, an IDE, or another external agent host.
+55. **Product management is not a generalized semantic store.** A Reliquary management surface may compose explicit owner operations, but it cannot bypass owner validation or introduce a generic mutable object/root/dependency model.
+56. **External protocols are optional product integrations.** Warlock-native use of customer-owned Reliquary state cannot require ACP, MCP, an IDE, or another external agent host.
 57. **Incomplete live messages may be durable transcript state without becoming source history.** User-visible assistant text may be checkpointed into the interaction-stream journal, but text/attachments become Archive authority only when one completed message crosses the durable turn-ingestion boundary.
 58. **Live session continuation is explicit.** Reopening a session that already has durable Archive history requires an explicit durable resume message; the session runtime cannot silently create an unrelated second root for that history.
 59. **Source acknowledgement does not depend on background scheduling.** A completed live turn is durably acknowledged before Episode/Insomnia scheduling, and a scheduling failure cannot revoke or obscure that receipt.
-60. **Workspace identity has one explicit owner.** A CVA may contain at most one initialized `WorkspaceMetadata` record; workspace identity/type cannot be represented through a generic metadata map or inferred from unrelated stores.
+60. **Workspace identity has one explicit owner.** A Reliquary may contain at most one initialized `WorkspaceMetadata` record; workspace identity/type cannot be represented through a generic metadata map or inferred from unrelated stores.
 61. **Workspace metadata is clock-neutral.** Initializing workspace ID, name, and type consumes no Archive, Memory, Vector Generation, or CVA-global semantic version.
 62. **Displayed streamed text must already be durable.** A host must not expose an assistant delta as committed presentation state until the corresponding interaction-stream checkpoint has synchronized successfully.
 63. **Recovered streaming state is interrupted state.** A persisted `Streaming` checkpoint is considered actively streaming only while the matching in-memory message exists; after runtime loss it is recovered as `Interrupted`.
@@ -90,6 +90,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 75. **Dream lifecycle is a Graph-derived Memory projection.** Accepted Graph state is published before lifecycle metadata; lifecycle revisions do not redefine relationship authority or mutate Memory bodies, failed bounded inference does not advance `extracted` sources, and archived Memories are never automatically reactivated by reconciliation.
 76. **Canonical promotion is evidence-driven and deterministic.** Direct/correction authority promotes only configured current-state classes, duplicate corroboration requires distinct user authority anchors, canonical supersession transfers only through a unique active superseder, and age/model confidence/graph degree/reprocessing are never promotion evidence.
 77. **Dream temporal semantics are body/source-time derived.** Content-time anchors and recurrence patterns derive from immutable Memory text plus authoritative source chronology; `Memory.created_at_ns` is never semantic time, source-time proximity alone is not a relationship signal, and derived temporal analysis owns no semantic clock.
+78. **Reliquary identity is stored, not inferred.** New REL files carry authoritative file kind and Organization/Project/Connection scope kind in the physical header. A legacy 16-byte CVA header is explicitly Project Reliquary, and opening it must not silently rewrite the physical identity.
 
 ## Safety boundaries
 

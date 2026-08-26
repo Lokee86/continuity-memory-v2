@@ -14,7 +14,7 @@ Durable state is partitioned by semantic owner rather than stored in one global 
 
 Provisional implementation plan. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) amends Reliquary from a project-only concept into a typed family of non-user durable scopes.
 
-The current implementation remains `.cva`; typed Reliquary files, Phylactery, multi-scope routing, and scope-graph context resolution are not yet implemented.
+Typed Reliquary `.rel` files are now implemented over the existing full CVA storage model, including authoritative Organization/Project/Connection scope identity and explicit legacy `.cva` detection as Project Reliquary. Phylactery, multi-scope persistence routing, and scope-graph context resolution are not yet implemented.
 
 ## Problem
 
@@ -79,7 +79,7 @@ Their semantic validation and permitted owners remain distinct.
 
 Within Reliquary, Organization, Project, and Connection may also share many physical owners while retaining scope-specific validity and policy rules.
 
-The current `.cva` implementation remains legacy project Reliquary data for migration purposes.
+Existing `.cva` files remain legacy Project Reliquary data for migration purposes; new Reliquary creation uses typed `.rel` headers without removing any of the current storage owners.
 
 ## Ownership versus authority
 

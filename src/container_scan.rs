@@ -1,6 +1,5 @@
 use super::{
-    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, HEADER_LEN, read_header, read_u64,
-    truncated_or_io,
+    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, read_header, read_u64, truncated_or_io,
 };
 use std::fs::OpenOptions;
 use std::io::{Read, Seek, SeekFrom};
@@ -24,11 +23,13 @@ impl Container {
             .write(true)
             .open(path)
             .map_err(ContainerError::Io)?;
-        let version = read_header(&mut file).map_err(E::from)?;
+        let (version, identity, header_len) = read_header(&mut file).map_err(E::from)?;
         let mut container = Self {
             file,
             path: path.to_path_buf(),
             version,
+            identity,
+            header_len,
             next_version: 1,
         };
         container.scan_payloads(&mut visitor)?;
@@ -43,7 +44,7 @@ impl Container {
         E: From<ContainerError>,
     {
         let file_len = self.file.metadata().map_err(ContainerError::Io)?.len();
-        let mut offset = HEADER_LEN;
+        let mut offset = self.header_len;
         self.file
             .seek(SeekFrom::Start(offset))
             .map_err(ContainerError::Io)?;

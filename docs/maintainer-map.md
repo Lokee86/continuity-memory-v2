@@ -59,7 +59,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 ## Boundaries
 
 - `cli/` owns only operator argument/prompt/output composition and depends exclusively on public library APIs; removing it cannot change core library semantics.
-- `ReliquaryConfig` owns machine-local current configuration separately from `.cva`; config changes do not enter semantic history.
+- `ReliquaryConfig` owns machine-local current configuration separately from `.rel`; config changes do not enter semantic history.
 - `CredentialsConfig` owns decrypted in-memory provider secrets; `credential.<id>` objects are independently authenticated/encrypted and route references use stable IDs.
 - `ModelSwitchboardConfig` owns provider/model/endpoint/credential selection; `ModelSwitchboard` validates matching credentials and attaches request auth. These choices cannot establish Compatibility Profile identity or vector compatibility.
 - `Cva` owns the single Container handle and explicit concrete-store scan dispatch; it owns no semantic dependency graph.

@@ -118,7 +118,7 @@ pub fn run(command: ImportCommand) -> Result<()> {
             }
             archive.sync()?;
             println!(
-                "imported: nodes={} attachments={} branches={} new_fragments={} cva={}",
+                "imported: nodes={} attachments={} branches={} new_fragments={} rel={}",
                 nodes,
                 attachments,
                 branches,

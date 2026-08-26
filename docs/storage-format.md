@@ -1,26 +1,29 @@
-# CVA Storage Format
+# Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The development format is one append-only CVA file containing Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Graph relationship state, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. `Cva::open` performs one physical scan and dispatches each payload to the concrete owners.
+The current format is one append-only typed Reliquary `.rel` file containing Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Graph relationship state, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. The public product-facing type is `Reliquary`; the existing `Cva` implementation name remains a compatibility/internal alias. Opening performs one physical scan and dispatches each payload to the existing concrete owners.
 
-## Planned product file-kind transition — not implemented
+## Reliquary file identity — implemented; Phylactery pending
 
-The current exact contract below remains `.cva`. ADR 0020 establishes the future user-facing file identities **Reliquary `.rel`** and **Phylactery `.phy`** without changing the current bytes yet; ADR 0021 amends Reliquary into a typed family of non-user durable scopes.
+New Reliquary files use a typed 24-byte header. The header carries authoritative `file_kind = Reliquary` plus an internal scope kind for Organization, Project, or Connection. Human-facing filenames should use `.org.rel`, `.prj.rel`, and `.con.rel`; filenames are hints only and do not determine semantic identity.
 
-The two future file kinds are expected to reuse common framing, recovery, versioning, Memory, vector, graph, and compaction primitives while enforcing different semantic validity rules and owner composition. Reliquary currently includes Organization, Project, and Connection scope kinds, preferably surfaced as `.org.rel`, `.prj.rel`, and `.con.rel`; Phylactery is user-global Identity state and must remain valid without retained project source turns.
+The existing 16-byte `.cva` header remains readable as **legacy Project Reliquary** data. Legacy detection is explicit and no automatic rewrite occurs on open, so a later migration can preserve deterministic IDs, record payloads, and semantic history while still distinguishing old physical files from typed REL files.
 
-The file kind and Reliquary scope kind must eventually be encoded in the physical format rather than inferred only from extensions. Existing `.cva` files are treated as legacy Project Reliquary data and should migrate to typed Project Reliquary form without gratuitously changing deterministic IDs, existing record payloads, or semantic history. Exact header magic/versioning and migration mechanics remain future implementation work. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
+Phylactery `.phy` remains planned and is not implemented by this transition. The typed header reserves a distinct file-kind value for that future format, but no Phylactery lifecycle or owner composition exists yet. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
-### CVA header
+### Container header
 | Offset | Size | Field | Value |
 | --- | ---: | --- | --- |
 | `0` | 8 | magic | `CVA\0\r\n\x1a\n` |
 | `8` | 2 | major | `1` |
 | `10` | 2 | minor | `0` |
-| `12` | 4 | header length | `16` |
+| `12` | 4 | header length | `16` for legacy CVA; `24` for typed files |
+| `16` | 1 | file kind | `1=Reliquary`; `2` reserved for future Phylactery and rejected by the current implementation |
+| `17` | 1 | Reliquary scope kind | `1=Organization`, `2=Project`, `3=Connection`; future non-Reliquary kinds use `0` |
+| `18` | 6 | reserved | zero |
 Physical chunks follow:
 ```text
 u64 payload_length
@@ -48,7 +51,7 @@ string    display name
 string    workspace type
 ```
 
-A current-format CVA created by `Cva::create` contains the workspace format marker even when no metadata record has been initialized. `Cva::create_workspace` appends exactly one metadata record. Existing CVAs that predate this owner may reopen without the marker; initializing workspace metadata on such a CVA first appends the marker and then the singleton record. Duplicate metadata records are rejected. Workspace metadata is purpose-built current workspace identity, not a generic property bag, and consumes no semantic/global version ticket.
+A current-format REL created by `Reliquary::create` contains the workspace format marker even when no metadata record has been initialized. `Reliquary::create_workspace` appends exactly one metadata record. Legacy CVAs that predate this owner may reopen without the marker; initializing workspace metadata on such a file first appends the marker and then the singleton record. Duplicate metadata records are rejected. Workspace metadata is purpose-built current workspace identity, not a generic property bag, and consumes no semantic/global version ticket.
 
 ### Interaction-stream checkpoints
 
@@ -69,7 +72,7 @@ Strings in this record use `u32 byte_length + UTF-8 bytes`. Interaction-stream r
 
 These records are durable transcript state, not Archive semantic records. They consume no `CVAVERS1`, Archive version, Memory version, or Vector Generation version. A live runtime may expose the latest `Streaming` checkpoint as streaming only while the matching in-memory message is still active; after restart that same on-disk record is interpreted as interrupted. If the same message ID later exists as a completed Archive node, transcript resolution suppresses the checkpoint copy and uses the completed Archive turn.
 
-Divergent CVA reconciliation retains and merges interaction-stream records independently of Archive semantic history. Compatible prefix histories keep the longest visible content and retain `Interrupted` if either side recorded interruption; non-prefix text or immutable-metadata divergence is rejected rather than silently discarding user-visible output.
+Divergent Reliquary reconciliation retains and merges interaction-stream records independently of Archive semantic history. Compatible prefix histories keep the longest visible content and retain `Interrupted` if either side recorded interruption; non-prefix text or immutable-metadata divergence is rejected rather than silently discarding user-visible output.
 
 ### Archive records
 Format marker:

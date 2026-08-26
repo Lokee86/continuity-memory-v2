@@ -1,5 +1,5 @@
 use crate::config_args::ConfigCommand;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -18,9 +18,10 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    Cva {
+    #[command(name = "rel", visible_alias = "cva")]
+    Rel {
         #[command(subcommand)]
-        command: CvaCommand,
+        command: RelCommand,
     },
     Import {
         #[command(subcommand)]
@@ -49,16 +50,32 @@ pub enum Command {
 }
 
 #[derive(Subcommand, Debug)]
-pub enum CvaCommand {
-    Create { path: PathBuf },
-    Info { path: PathBuf },
-    Verify { path: PathBuf },
+pub enum RelCommand {
+    Create {
+        path: PathBuf,
+        #[arg(long, value_enum, default_value_t = RelScopeArg::Project)]
+        scope: RelScopeArg,
+    },
+    Info {
+        path: PathBuf,
+    },
+    Verify {
+        path: PathBuf,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum RelScopeArg {
+    Organization,
+    Project,
+    Connection,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ImportCommand {
     GraphJsonl {
         input: PathBuf,
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long, default_value_t = 8)]
         turns: usize,
@@ -72,9 +89,11 @@ pub enum ImportCommand {
 #[derive(Subcommand, Debug)]
 pub enum ArchiveCommand {
     Conversations {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
     },
     Show {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long)]
         conversation: String,
@@ -82,11 +101,13 @@ pub enum ArchiveCommand {
         branch: String,
     },
     Fragments {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long)]
         conversation: Option<String>,
     },
     Fragment {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         id: String,
     },
@@ -95,9 +116,11 @@ pub enum ArchiveCommand {
 #[derive(Subcommand, Debug)]
 pub enum VectorsCommand {
     Status {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
     },
     Profiles {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
     },
     Probe {
@@ -105,6 +128,7 @@ pub enum VectorsCommand {
         text: Vec<String>,
     },
     Build {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long, default_value_t = 16)]
         batch_size: usize,
@@ -116,6 +140,7 @@ pub enum VectorsCommand {
 #[derive(Subcommand, Debug)]
 pub enum InsomniaCommand {
     Run {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long, default_value_t = reliquary_memory::DEFAULT_INSOMNIA_WORKERS)]
         workers: usize,
@@ -133,6 +158,7 @@ pub enum InsomniaCommand {
 #[derive(Subcommand, Debug)]
 pub enum DevCommand {
     EstablishProfile {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long)]
         dimensions: u32,
@@ -144,6 +170,7 @@ pub enum DevCommand {
         drift: f32,
     },
     BuildVectors {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long)]
         profile: String,
@@ -153,6 +180,7 @@ pub enum DevCommand {
         drift: f32,
     },
     Search {
+        #[arg(value_name = "REL")]
         cva: PathBuf,
         #[arg(long)]
         profile: String,

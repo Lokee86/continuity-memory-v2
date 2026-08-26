@@ -22,8 +22,8 @@ The package depends only on the public `reliquary-memory` Rust API through a pat
 
 ```text
 reliquary
-├── cva
-│   ├── create
+├── rel
+│   ├── create [--scope project|organization|connection]
 │   ├── info
 │   └── verify
 ├── import
@@ -53,7 +53,7 @@ reliquary
 
 `vectors probe` and `vectors build` use the configured live `openai-ready` embedding route. `build` establishes/reuses the compatibility profile, embeds the Archive, and publishes one generation. `dev` commands deliberately remain on `SimulatedEmbeddingEndpoint` for deterministic development work.
 
-`insomnia run <cva>` is the whole-file bring-up surface. Unless `--existing-queue-only` is supplied, it materializes/queues uncovered canonical import paths first. It then invokes the core Insomnia drain with `--workers` concurrent processors (default 48, maximum 64), using the dedicated Insomnia model route or General fallback plus the configured embedding route. The core drain automatically establishes/reuses the compatibility profile and embeds only Memory bodies still missing for that profile after authoritative Episode processing. `--embedding-batch-size` and `--embedding-concurrency` control that automatic derived-vector phase independently from Insomnia worker concurrency.
+`insomnia run <rel>` is the whole-file bring-up surface. Unless `--existing-queue-only` is supplied, it materializes/queues uncovered canonical import paths first. It then invokes the core Insomnia drain with `--workers` concurrent processors (default 48, maximum 64), using the dedicated Insomnia model route or General fallback plus the configured embedding route. The core drain automatically establishes/reuses the compatibility profile and embeds only Memory bodies still missing for that profile after authoritative Episode processing. `--embedding-batch-size` and `--embedding-concurrency` control that automatic derived-vector phase independently from Insomnia worker concurrency.
 
 ## Configuration and credentials
 
@@ -65,11 +65,11 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 `config model set-general`, `set-insomnia`, and `set-dream` persist General-model route selection and accept `--reasoning` for `openai-codex` routes. For example, `config model set-general --provider openai-codex --model gpt-5.6-luna --credential codex --reasoning low` selects Luna at low reasoning; if `models.insomnia` is unset, Insomnia inherits that General route. `set-embedding` persists the separate embedding route. `config verify` performs route/credential compatibility validation without sending network requests.
 
-## CVA and import behavior
+## REL and import behavior
 
-`cva verify` performs a normal `Cva::open`, so the same format/reopen/reference validation used by the library is exercised.
+`rel create` creates a typed Project REL by default; `--scope organization`, `--scope project`, and `--scope connection` select the authoritative internal Reliquary scope kind. `rel info` reports the stored scope and whether the file is a legacy CVA physical form. `rel verify` performs a normal `Reliquary::open`, so the same format/reopen/reference validation used by the library is exercised. The old `cva` command name remains a compatibility alias for `rel`.
 
-`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target CVA when absent or appends idempotent/compatible records to an existing CVA, then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
+`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target Project REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
 
 The CLI does not expose a single-turn live-ingestion command, file-management commands, or a persistent capture service. The graph importer is currently the only CLI surface that drives turn ingestion.
 
@@ -85,7 +85,7 @@ cargo check --manifest-path cli/Cargo.toml
 cargo test --manifest-path cli/Cargo.toml
 ```
 
-Repository verification also performs command-level smoke tests for CVA create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
+Repository verification also performs command-level smoke tests for REL create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
 
 ## Related docs
 

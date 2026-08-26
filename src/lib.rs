@@ -199,9 +199,13 @@ pub use compatibility_profile_model::{
 pub use config::ReliquaryConfig;
 pub use config_error::ConfigError;
 pub use configured_general::ConfiguredGeneralEndpoint;
-pub use container::{ChunkRef, Container, ContainerError, FormatVersion};
+pub use container::{
+    ChunkRef, Container, ContainerError, ContainerIdentity, FileKind, FormatVersion,
+    ReliquaryScopeKind,
+};
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
+pub type Reliquary = Cva;
 pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
@@ -431,6 +435,8 @@ mod openai_ready_embedding_tests;
 mod openai_ready_general_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod reliquary_tests;
 #[cfg(test)]
 mod runtime_host_test_support;
 #[cfg(test)]

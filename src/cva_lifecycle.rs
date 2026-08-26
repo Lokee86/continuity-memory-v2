@@ -27,7 +27,66 @@ use std::path::Path;
 
 impl Cva {
     pub fn create(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        let mut container = Container::create(path)?;
+        Self::create_scope(path, crate::ReliquaryScopeKind::Project)
+    }
+
+    pub fn create_project(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::create_scope(path, crate::ReliquaryScopeKind::Project)
+    }
+
+    pub fn create_organization(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::create_scope(path, crate::ReliquaryScopeKind::Organization)
+    }
+
+    pub fn create_connection(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::create_scope(path, crate::ReliquaryScopeKind::Connection)
+    }
+
+    pub fn open_project(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::open_scope(path, crate::ReliquaryScopeKind::Project)
+    }
+
+    pub fn open_organization(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::open_scope(path, crate::ReliquaryScopeKind::Organization)
+    }
+
+    pub fn open_connection(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::open_scope(path, crate::ReliquaryScopeKind::Connection)
+    }
+
+    fn open_scope(
+        path: impl AsRef<Path>,
+        expected: crate::ReliquaryScopeKind,
+    ) -> Result<Self, CvaError> {
+        let cva = Self::open(path)?;
+        if cva.scope_kind() != expected {
+            return Err(CvaError::InvalidContainerIdentity(
+                "Reliquary scope kind does not match the requested API",
+            ));
+        }
+        Ok(cva)
+    }
+
+    pub(crate) fn create_scope(
+        path: impl AsRef<Path>,
+        scope: crate::ReliquaryScopeKind,
+    ) -> Result<Self, CvaError> {
+        let container = Container::create_with_identity(
+            path,
+            crate::ContainerIdentity {
+                file_kind: crate::FileKind::Reliquary,
+                scope: Some(scope),
+            },
+        )?;
+        Self::initialize(container)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn create_legacy_cva(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::initialize(Container::create(path)?)
+    }
+
+    fn initialize(mut container: Container) -> Result<Self, CvaError> {
         let archive = Archive::empty();
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();

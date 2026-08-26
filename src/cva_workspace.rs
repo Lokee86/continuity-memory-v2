@@ -6,7 +6,15 @@ impl Cva {
         path: impl AsRef<Path>,
         metadata: WorkspaceMetadata,
     ) -> Result<Self, crate::CvaError> {
-        let mut cva = Self::create(path)?;
+        Self::create_workspace_for_scope(path, metadata, crate::ReliquaryScopeKind::Project)
+    }
+
+    pub(crate) fn create_workspace_for_scope(
+        path: impl AsRef<Path>,
+        metadata: WorkspaceMetadata,
+        scope: crate::ReliquaryScopeKind,
+    ) -> Result<Self, crate::CvaError> {
+        let mut cva = Self::create_scope(path, scope)?;
         cva.initialize_workspace_metadata(metadata)?;
         cva.sync()?;
         Ok(cva)

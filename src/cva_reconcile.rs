@@ -43,6 +43,14 @@ impl Cva {
     ) -> Result<CvaComparison, CvaReconcileError> {
         let mut left = Self::open(left_path)?;
         let mut right = Self::open(right_path)?;
+        let left_scope = left.scope_kind();
+        let right_scope = right.scope_kind();
+        if left_scope != right_scope {
+            return Err(CvaReconcileError::ScopeMismatch {
+                left: left_scope,
+                right: right_scope,
+            });
+        }
         let left_id = workspace_id(&left, "left")?;
         let right_id = workspace_id(&right, "right")?;
         if left_id != right_id {

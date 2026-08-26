@@ -14,15 +14,51 @@ fn test_path(name: &str) -> PathBuf {
 }
 
 #[test]
-fn create_then_reopen_cva() {
+fn create_then_reopen_legacy_container() {
     let path = test_path("archive.cva");
     let created = Container::create(&path).unwrap();
     let version = created.version();
     assert_eq!((version.major, version.minor), (1, 0));
+    assert_eq!(created.identity(), None);
     drop(created);
 
     let mut reopened = Container::open(&path).unwrap();
     assert_eq!(reopened.chunks().unwrap().len(), 0);
+    assert_eq!(reopened.identity(), None);
+}
+
+#[test]
+fn typed_reliquary_identity_roundtrips() {
+    let path = test_path("project.prj.rel");
+    let identity = crate::ContainerIdentity {
+        file_kind: crate::FileKind::Reliquary,
+        scope: Some(crate::ReliquaryScopeKind::Project),
+    };
+    let created = Container::create_with_identity(&path, identity).unwrap();
+    assert_eq!(created.identity(), Some(identity));
+    drop(created);
+
+    let reopened = Container::open(&path).unwrap();
+    assert_eq!(reopened.identity(), Some(identity));
+}
+
+#[test]
+fn reject_unimplemented_file_kind() {
+    let path = test_path("future.phy");
+    let identity = crate::ContainerIdentity {
+        file_kind: crate::FileKind::Reliquary,
+        scope: Some(crate::ReliquaryScopeKind::Project),
+    };
+    drop(Container::create_with_identity(&path, identity).unwrap());
+    let mut bytes = fs::read(&path).unwrap();
+    bytes[16] = 2;
+    bytes[17] = 0;
+    fs::write(&path, bytes).unwrap();
+
+    assert!(matches!(
+        Container::open(path),
+        Err(ContainerError::InvalidIdentity)
+    ));
 }
 
 #[test]

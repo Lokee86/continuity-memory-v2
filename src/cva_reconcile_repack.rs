@@ -17,6 +17,7 @@ pub(crate) fn reconcile_diverged(
 ) -> Result<CvaReconcileResult, CvaReconcileError> {
     let mut left = Cva::open(left_path)?;
     let mut right = Cva::open(right_path)?;
+    let scope = left.scope_kind();
     let metadata = left
         .workspace_metadata()
         .cloned()
@@ -39,7 +40,7 @@ pub(crate) fn reconcile_diverged(
     )?;
 
     let merge_result = (|| {
-        let mut output = Cva::create_workspace(output_path, metadata)?;
+        let mut output = Cva::create_workspace_for_scope(output_path, metadata, scope)?;
         replay_profiles(&mut output, left_profiles)?;
         replay_interaction_streams(&mut output, interaction_streams)?;
         replay_archive_tail(&mut output, &left_archive)?;

@@ -1,6 +1,6 @@
 use crate::{
     Cva, CvaReconcileError, CvaRelation, InteractionRole, InteractionRuntime,
-    InteractionStreamStatus, WorkspaceMetadata,
+    InteractionStreamStatus, ReliquaryScopeKind, WorkspaceMetadata,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -22,6 +22,11 @@ fn metadata(id: &str) -> WorkspaceMetadata {
 
 fn create_base(path: &Path, id: &str) {
     let cva = Cva::create_workspace(path, metadata(id)).unwrap();
+    cva.sync().unwrap();
+}
+
+fn create_base_scope(path: &Path, id: &str, scope: ReliquaryScopeKind) {
+    let cva = Cva::create_workspace_for_scope(path, metadata(id), scope).unwrap();
     cva.sync().unwrap();
 }
 
@@ -144,6 +149,52 @@ fn divergent_reconcile_preserves_interrupted_interaction_streams() {
     assert_eq!(streams.len(), 1);
     assert_eq!(streams[0].content, "Visible partial");
     assert_eq!(streams[0].status, InteractionStreamStatus::Interrupted);
+}
+
+#[test]
+fn divergent_reconcile_preserves_reliquary_scope() {
+    let dir = test_dir();
+    let left = dir.join("left.org.rel");
+    let right = dir.join("right.org.rel");
+    let output = dir.join("merged.org.rel");
+    create_base_scope(&left, "workspace-1", ReliquaryScopeKind::Organization);
+    fs::copy(&left, &right).unwrap();
+
+    for (path, id, content) in [
+        (&left, "node-a", "left-only"),
+        (&right, "node-b", "right-only"),
+    ] {
+        let mut rel = Cva::open(path).unwrap();
+        rel.append_node(
+            id.into(),
+            "conversation-a".into(),
+            None,
+            "user".into(),
+            1,
+            content,
+        )
+        .unwrap();
+        rel.sync().unwrap();
+    }
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let merged = Cva::open(&output).unwrap();
+    assert_eq!(merged.scope_kind(), ReliquaryScopeKind::Organization);
+    assert!(!merged.is_legacy_cva());
+}
+
+#[test]
+fn compare_rejects_different_reliquary_scopes() {
+    let dir = test_dir();
+    let left = dir.join("left.prj.rel");
+    let right = dir.join("right.org.rel");
+    create_base_scope(&left, "workspace-1", ReliquaryScopeKind::Project);
+    create_base_scope(&right, "workspace-1", ReliquaryScopeKind::Organization);
+
+    assert!(matches!(
+        Cva::compare(&left, &right),
+        Err(CvaReconcileError::ScopeMismatch { .. })
+    ));
 }
 
 #[test]

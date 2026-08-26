@@ -20,6 +20,7 @@ pub enum CvaError {
     WorkspaceMetadata(WorkspaceMetadataError),
     InteractionStream(String),
     SemanticGlobalVersionConflict(u64),
+    InvalidContainerIdentity(&'static str),
 }
 
 impl fmt::Display for CvaError {
@@ -37,6 +38,9 @@ impl fmt::Display for CvaError {
             Self::VectorGenerations(error) => write!(f, "{error}"),
             Self::WorkspaceMetadata(error) => write!(f, "{error}"),
             Self::InteractionStream(error) => write!(f, "interaction stream error: {error}"),
+            Self::InvalidContainerIdentity(message) => {
+                write!(f, "invalid container identity: {message}")
+            }
             Self::SemanticGlobalVersionConflict(version) => {
                 write!(
                     f,

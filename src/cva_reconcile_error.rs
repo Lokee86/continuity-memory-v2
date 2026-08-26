@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
-    GraphError, InsomniaError, MemoryError,
+    GraphError, InsomniaError, MemoryError, ReliquaryScopeKind,
 };
 use std::fmt;
 use std::io;
@@ -16,7 +16,14 @@ pub enum CvaReconcileError {
     CompatibilityProfile(CompatibilityProfileError),
     Io(io::Error),
     MissingWorkspaceMetadata(&'static str),
-    WorkspaceMismatch { left: String, right: String },
+    WorkspaceMismatch {
+        left: String,
+        right: String,
+    },
+    ScopeMismatch {
+        left: ReliquaryScopeKind,
+        right: ReliquaryScopeKind,
+    },
     OutputExists,
     UnsupportedSemanticOwner(&'static str),
     InvalidInsomniaCompletion(&'static str),
@@ -27,7 +34,10 @@ pub enum CvaReconcileError {
     PromotionPathsMustDiffer,
     CanonicalChangedDuringPromotion,
     PromotionFinalizationFailed(String),
-    PromotionRecoveryFailed { failure: String, recovery: String },
+    PromotionRecoveryFailed {
+        failure: String,
+        recovery: String,
+    },
 }
 
 impl fmt::Display for CvaReconcileError {
@@ -46,6 +56,9 @@ impl fmt::Display for CvaReconcileError {
             }
             Self::WorkspaceMismatch { left, right } => {
                 write!(f, "workspace mismatch: left={left} right={right}")
+            }
+            Self::ScopeMismatch { left, right } => {
+                write!(f, "Reliquary scope mismatch: left={left:?} right={right:?}")
             }
             Self::OutputExists => write!(f, "reconciliation output already exists"),
             Self::UnsupportedSemanticOwner(owner) => {

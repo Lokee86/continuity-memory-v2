@@ -6,7 +6,8 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 const MAGIC: [u8; 8] = *b"CVA\0\r\n\x1a\n";
-const HEADER_LEN: u64 = 16;
+const LEGACY_HEADER_LEN: u64 = 16;
+const IDENTITY_HEADER_LEN: u64 = 24;
 const CHUNK_HEADER_LEN: u64 = 8;
 const CURRENT_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
 
@@ -14,6 +15,24 @@ const CURRENT_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
 pub struct FormatVersion {
     pub major: u16,
     pub minor: u16,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FileKind {
+    Reliquary,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReliquaryScopeKind {
+    Organization,
+    Project,
+    Connection,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ContainerIdentity {
+    pub file_kind: FileKind,
+    pub scope: Option<ReliquaryScopeKind>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -27,6 +46,8 @@ pub struct Container {
     file: File,
     path: PathBuf,
     version: FormatVersion,
+    identity: Option<ContainerIdentity>,
+    pub(crate) header_len: u64,
     pub(crate) next_version: u64,
 }
 
@@ -45,6 +66,33 @@ impl Container {
             file,
             path: path.to_path_buf(),
             version: CURRENT_VERSION,
+            identity: None,
+            header_len: LEGACY_HEADER_LEN,
+            next_version: 1,
+        })
+    }
+
+    pub fn create_with_identity(
+        path: impl AsRef<Path>,
+        identity: ContainerIdentity,
+    ) -> Result<Self, ContainerError> {
+        if identity.scope.is_none() {
+            return Err(ContainerError::InvalidIdentity);
+        }
+        let path = path.as_ref();
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)?;
+        file.write_all(&encode_identity_header(identity))?;
+        file.sync_all()?;
+        Ok(Self {
+            file,
+            path: path.to_path_buf(),
+            version: CURRENT_VERSION,
+            identity: Some(identity),
+            header_len: IDENTITY_HEADER_LEN,
             next_version: 1,
         })
     }
@@ -73,7 +121,7 @@ impl Container {
 
     pub fn chunks(&mut self) -> Result<Vec<ChunkRef>, ContainerError> {
         let file_len = self.file.metadata()?.len();
-        let mut offset = HEADER_LEN;
+        let mut offset = self.header_len;
         let mut chunks = Vec::new();
         while offset < file_len {
             if file_len - offset < CHUNK_HEADER_LEN {
@@ -102,6 +150,10 @@ impl Container {
         self.version
     }
 
+    pub fn identity(&self) -> Option<ContainerIdentity> {
+        self.identity
+    }
+
     pub fn sync(&self) -> Result<(), ContainerError> {
         self.file.sync_all().map_err(ContainerError::Io)
     }
@@ -115,6 +167,7 @@ pub enum ContainerError {
     TruncatedChunk(u64),
     UnsupportedVersion(FormatVersion),
     InvalidHeaderLength(u32),
+    InvalidIdentity,
     InvalidChunkRef(ChunkRef),
     InvalidVersionRecord,
     VersionExhausted,
@@ -127,17 +180,37 @@ impl From<io::Error> for ContainerError {
     }
 }
 
-fn encode_header(version: FormatVersion) -> [u8; HEADER_LEN as usize] {
-    let mut header = [0_u8; HEADER_LEN as usize];
+fn encode_header(version: FormatVersion) -> [u8; LEGACY_HEADER_LEN as usize] {
+    let mut header = [0_u8; LEGACY_HEADER_LEN as usize];
     header[..8].copy_from_slice(&MAGIC);
     header[8..10].copy_from_slice(&version.major.to_le_bytes());
     header[10..12].copy_from_slice(&version.minor.to_le_bytes());
-    header[12..16].copy_from_slice(&(HEADER_LEN as u32).to_le_bytes());
+    header[12..16].copy_from_slice(&(LEGACY_HEADER_LEN as u32).to_le_bytes());
     header
 }
 
-fn read_header(file: &mut File) -> Result<FormatVersion, ContainerError> {
-    let mut header = [0_u8; HEADER_LEN as usize];
+fn encode_identity_header(identity: ContainerIdentity) -> [u8; IDENTITY_HEADER_LEN as usize] {
+    let mut header = [0_u8; IDENTITY_HEADER_LEN as usize];
+    header[..8].copy_from_slice(&MAGIC);
+    header[8..10].copy_from_slice(&CURRENT_VERSION.major.to_le_bytes());
+    header[10..12].copy_from_slice(&CURRENT_VERSION.minor.to_le_bytes());
+    header[12..16].copy_from_slice(&(IDENTITY_HEADER_LEN as u32).to_le_bytes());
+    header[16] = match identity.file_kind {
+        FileKind::Reliquary => 1,
+    };
+    header[17] = match identity.scope {
+        None => 0,
+        Some(ReliquaryScopeKind::Organization) => 1,
+        Some(ReliquaryScopeKind::Project) => 2,
+        Some(ReliquaryScopeKind::Connection) => 3,
+    };
+    header
+}
+
+fn read_header(
+    file: &mut File,
+) -> Result<(FormatVersion, Option<ContainerIdentity>, u64), ContainerError> {
+    let mut header = [0_u8; LEGACY_HEADER_LEN as usize];
     file.read_exact(&mut header).map_err(|error| {
         if error.kind() == io::ErrorKind::UnexpectedEof {
             ContainerError::TruncatedHeader
@@ -156,10 +229,40 @@ fn read_header(file: &mut File) -> Result<FormatVersion, ContainerError> {
         return Err(ContainerError::UnsupportedVersion(version));
     }
     let length = u32::from_le_bytes([header[12], header[13], header[14], header[15]]);
-    if length != HEADER_LEN as u32 {
+    if length == LEGACY_HEADER_LEN as u32 {
+        // Legacy v1 has no embedded semantic discriminator. Reliquary treats
+        // this physical form explicitly as legacy Project state while keeping
+        // the missing identity visible so migration remains detectable.
+        return Ok((version, None, LEGACY_HEADER_LEN));
+    }
+    if length != IDENTITY_HEADER_LEN as u32 {
         return Err(ContainerError::InvalidHeaderLength(length));
     }
-    Ok(version)
+    let mut identity_bytes = [0_u8; 8];
+    file.read_exact(&mut identity_bytes)
+        .map_err(|_| ContainerError::TruncatedHeader)?;
+    if identity_bytes[2..].iter().any(|byte| *byte != 0) {
+        return Err(ContainerError::InvalidIdentity);
+    }
+    let file_kind = match identity_bytes[0] {
+        1 => FileKind::Reliquary,
+        _ => return Err(ContainerError::InvalidIdentity),
+    };
+    let scope = match identity_bytes[1] {
+        0 => None,
+        1 => Some(ReliquaryScopeKind::Organization),
+        2 => Some(ReliquaryScopeKind::Project),
+        3 => Some(ReliquaryScopeKind::Connection),
+        _ => return Err(ContainerError::InvalidIdentity),
+    };
+    if scope.is_none() {
+        return Err(ContainerError::InvalidIdentity);
+    }
+    Ok((
+        version,
+        Some(ContainerIdentity { file_kind, scope }),
+        IDENTITY_HEADER_LEN,
+    ))
 }
 
 fn read_u64(file: &mut File, offset: u64) -> Result<u64, ContainerError> {

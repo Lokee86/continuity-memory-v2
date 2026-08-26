@@ -4,10 +4,10 @@ mod args;
 mod args_tests;
 mod config_args;
 mod config_cmd;
-mod cva_cmd;
 mod dev_cmd;
 mod import_cmd;
 mod insomnia_cmd;
+mod rel_cmd;
 mod util;
 mod vectors_cmd;
 
@@ -25,7 +25,7 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Cva { command } => cva_cmd::run(command),
+        Command::Rel { command } => rel_cmd::run(command),
         Command::Import { command } => import_cmd::run(command),
         Command::Archive { command } => archive_cmd::run(command),
         Command::Config { command } => config_cmd::run(&cli.config, command),

@@ -1,14 +1,47 @@
-use crate::args::{Cli, Command, CvaCommand, InsomniaCommand, VectorsCommand};
+use crate::args::{Cli, Command, InsomniaCommand, RelCommand, RelScopeArg, VectorsCommand};
 use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand, ReasoningArg};
 use clap::Parser;
 
 #[test]
-fn parses_repo_local_cva_command() {
+fn parses_rel_command() {
+    let cli = Cli::try_parse_from(["reliquary", "rel", "info", "sample.prj.rel"]).unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Rel {
+            command: RelCommand::Info { .. }
+        }
+    ));
+}
+
+#[test]
+fn legacy_cva_command_remains_an_alias() {
     let cli = Cli::try_parse_from(["reliquary", "cva", "info", "sample.cva"]).unwrap();
     assert!(matches!(
         cli.command,
-        Command::Cva {
-            command: CvaCommand::Info { .. }
+        Command::Rel {
+            command: RelCommand::Info { .. }
+        }
+    ));
+}
+
+#[test]
+fn rel_create_accepts_scope_kind() {
+    let cli = Cli::try_parse_from([
+        "reliquary",
+        "rel",
+        "create",
+        "acme.org.rel",
+        "--scope",
+        "organization",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Rel {
+            command: RelCommand::Create {
+                scope: RelScopeArg::Organization,
+                ..
+            }
         }
     ));
 }

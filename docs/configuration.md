@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document owns the local Reliquary configuration format, mutation semantics, and boundary from CVA semantic state.
+This document owns the local Reliquary configuration format, mutation semantics, and boundary from Reliquary semantic state.
 
 ## Overview
 
@@ -12,7 +12,7 @@ Reliquary uses one small purpose-built `reliquary.cfg` file for machine-local cu
 
 ## Ownership
 
-`reliquary.cfg` is a purpose-built local application-configuration file. It is not part of a `.cva`, does not participate in CVA semantic clocks, and has no historical or append-only semantics.
+`reliquary.cfg` is a purpose-built local application-configuration file. It is not part of a `.rel`, does not participate in Reliquary semantic clocks, and has no historical or append-only semantics.
 
 Configuration is current-state only:
 
