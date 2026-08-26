@@ -60,6 +60,51 @@ impl Cva {
         )
     }
 
+    pub fn build_archive_vector_generation_f64(
+        &mut self,
+        profile_id: CompatibilityProfileId,
+        endpoint: &impl crate::EmbeddingEndpointF64,
+    ) -> Result<VectorGeneration, VectorGenerationError> {
+        let profile = self
+            .compatibility_profiles
+            .get(profile_id)
+            .cloned()
+            .ok_or(VectorGenerationError::MissingProfile)?;
+        if !verify_endpoint(&profile, endpoint)?.compatible {
+            return Err(VectorGenerationError::IncompatibleEndpoint);
+        }
+        let fragments = self.fragments();
+        if fragments.is_empty() {
+            return Err(VectorGenerationError::EmptyPopulation);
+        }
+        let ids: Vec<_> = fragments.iter().map(|f| f.id).collect();
+        let texts: Vec<_> = ids
+            .iter()
+            .map(|id| self.fragment_text(*id))
+            .collect::<Result<_, _>>()?;
+        let vectors = endpoint.embed_f64(EmbeddingMode::Document, &texts)?;
+        if vectors.len() != texts.len()
+            || vectors
+                .iter()
+                .any(|v| v.len() != profile.dimensions as usize || v.iter().any(|x| !x.is_finite()))
+        {
+            return Err(VectorGenerationError::InvalidEmbeddingMatrix);
+        }
+        let schema = VectorSchema::new(profile.dimensions, ScalarType::F64)
+            .map_err(|_| VectorGenerationError::InvalidEmbeddingMatrix)?;
+        let mut bytes = Vec::with_capacity(vectors.len() * profile.dimensions as usize * 8);
+        for vector in vectors {
+            for value in vector {
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+        }
+        let packed = PackedVectors::from_bytes(schema, bytes)
+            .map_err(|_| VectorGenerationError::InvalidEmbeddingMatrix)?;
+        let packed_id = self.put_packed_vectors(packed)?;
+        let archive_vector_id = self.put_archive_vectors(packed_id, ids)?;
+        self.publish_vector_generation(profile_id, archive_vector_id, self.archive_version())
+    }
+
     pub fn publish_vector_generation(
         &mut self,
         compatibility_profile_id: CompatibilityProfileId,

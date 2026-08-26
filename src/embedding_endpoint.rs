@@ -72,6 +72,14 @@ pub trait EmbeddingEndpoint {
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError>;
 }
 
+pub trait EmbeddingEndpointF64: EmbeddingEndpoint {
+    fn embed_f64(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f64>>, EmbeddingEndpointError>;
+}
+
 #[derive(Clone, Debug)]
 pub struct SimulatedEmbeddingEndpoint {
     dimensions: u32,

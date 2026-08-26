@@ -80,6 +80,60 @@ impl Cva {
         Ok(candidates)
     }
 
+    pub fn search_with_config_f64(
+        &mut self,
+        profile_id: CompatibilityProfileId,
+        endpoint: &impl crate::EmbeddingEndpointF64,
+        query: &str,
+        config: RetrievalConfig,
+    ) -> Result<Vec<SearchCandidate>, SearchError> {
+        if query.trim().is_empty() {
+            return Err(SearchError::EmptyQuery);
+        }
+        let Some(weights) = config.normalized_weights() else {
+            return Err(SearchError::InvalidConfig);
+        };
+        if config.candidate_limit > crate::MAX_SEMANTIC_SEARCH_LIMIT {
+            return Err(SearchError::InvalidConfig);
+        }
+        let mut by_id = HashMap::new();
+        for hit in self.lexical_candidates(query, config.candidate_limit)? {
+            by_id.insert(
+                hit.fragment.id,
+                SearchCandidate {
+                    fragment: hit.fragment,
+                    lexical_score: hit.score,
+                    semantic_score: 0.0,
+                    combined_score: hit.score,
+                    generation_id: None,
+                },
+            );
+        }
+        for hit in self.semantic_search_f64(profile_id, endpoint, query, config.candidate_limit)? {
+            let c = by_id
+                .entry(hit.fragment.id)
+                .or_insert_with(|| SearchCandidate {
+                    fragment: hit.fragment.clone(),
+                    lexical_score: 0.0,
+                    semantic_score: 0.0,
+                    combined_score: 0.0,
+                    generation_id: None,
+                });
+            c.semantic_score = hit.score;
+            c.generation_id = Some(hit.generation_id);
+        }
+        let mut candidates: Vec<_> = by_id.into_values().collect();
+        for c in &mut candidates {
+            c.combined_score =
+                combine_scores_with_weights(c.lexical_score, c.semantic_score, weights);
+        }
+        sort_candidates(&mut candidates);
+        let candidates = deduplicate_candidates(candidates);
+        let mut candidates = self.diversify_candidates(candidates, config.candidate_limit)?;
+        candidates.truncate(config.result_limit);
+        Ok(candidates)
+    }
+
     pub(crate) fn diversify_candidates(
         &self,
         candidates: Vec<SearchCandidate>,

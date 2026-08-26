@@ -34,7 +34,7 @@ pub(crate) fn validate_generation_reference(
     if profile.dimensions != packed.schema.dimensions {
         return Err(VectorGenerationError::DimensionMismatch);
     }
-    if packed.schema.scalar != ScalarType::F32 {
+    if !matches!(packed.schema.scalar, ScalarType::F32 | ScalarType::F64) {
         return Err(VectorGenerationError::UnsupportedScalar(
             packed.schema.scalar,
         ));

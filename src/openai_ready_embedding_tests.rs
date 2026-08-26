@@ -1,4 +1,4 @@
-use crate::openai_ready_embedding_response::decode_response;
+use crate::openai_ready_embedding_response::{decode_response, decode_response_f64};
 use crate::{
     CredentialId, CredentialsConfig, EmbeddingEndpoint, EmbeddingModelEndpoint, ModelProvider,
     ModelSwitchboard, ModelSwitchboardConfig, OpenAiReadyEmbeddingEndpoint, VectorNormalization,
@@ -17,6 +17,16 @@ fn indexed_response_is_reordered_and_l2_normalized() {
     assert!((vectors[0][1] - 0.8).abs() < 1e-6);
     assert!((vectors[1][0] - 0.0).abs() < 1e-6);
     assert!((vectors[1][1] - 1.0).abs() < 1e-6);
+}
+
+#[test]
+fn f64_response_preserves_precision_without_f32_downcast() {
+    let response =
+        br#"{"data":[{"index":0,"embedding":[0.12345678901234566,0.9876543210987654]}]}"#;
+    let vectors = decode_response_f64(response, 1, 2, VectorNormalization::None).unwrap();
+    assert!((vectors[0][0] - 0.12345678901234566_f64).abs() < 1e-15);
+    assert!((vectors[0][1] - 0.9876543210987654_f64).abs() < 1e-15);
+    assert!((vectors[0][0] - vectors[0][0] as f32 as f64).abs() > 1e-10);
 }
 
 #[test]

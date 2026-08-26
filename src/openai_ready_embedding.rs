@@ -1,7 +1,7 @@
-use crate::openai_ready_embedding_response::decode_response;
+use crate::openai_ready_embedding_response::{decode_response, decode_response_f64};
 use crate::{
-    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, ModelProvider, ModelRequestAuth,
-    ModelSwitchboard, VectorNormalization,
+    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingEndpointF64, EmbeddingMode, ModelProvider,
+    ModelRequestAuth, ModelSwitchboard, VectorNormalization,
 };
 use reqwest::blocking::Client;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
@@ -119,6 +119,42 @@ impl OpenAiReadyEmbeddingEndpoint {
         }
         decode_response(&bytes, inputs.len(), self.dimensions, self.normalization)
     }
+
+    fn request_batch_f64(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f64>>, EmbeddingEndpointError> {
+        let body = json!({
+            "model": self.model,
+            "input": inputs,
+            "dimensions": self.dimensions,
+            "encoding_format": "float",
+            "input_type": input_type(mode),
+        });
+        let payload = serde_json::to_vec(&body)
+            .map_err(|error| EmbeddingEndpointError::Failure(error.to_string()))?;
+        let response = self
+            .client
+            .post(&self.url)
+            .header(AUTHORIZATION, self.auth.authorization_header())
+            .header(CONTENT_TYPE, "application/json")
+            .body(payload)
+            .send()
+            .map_err(|error| EmbeddingEndpointError::Failure(error.to_string()))?;
+        let status = response.status();
+        let bytes = response
+            .bytes()
+            .map_err(|error| EmbeddingEndpointError::Failure(error.to_string()))?;
+        if !status.is_success() {
+            let message = String::from_utf8_lossy(&bytes);
+            return Err(EmbeddingEndpointError::Failure(format!(
+                "HTTP {status}: {}",
+                truncate(&message, 1024)
+            )));
+        }
+        decode_response_f64(&bytes, inputs.len(), self.dimensions, self.normalization)
+    }
 }
 
 impl EmbeddingEndpoint for OpenAiReadyEmbeddingEndpoint {
@@ -156,6 +192,61 @@ impl EmbeddingEndpoint for OpenAiReadyEmbeddingEndpoint {
                         let end = (start + self.batch_size).min(inputs.len());
                         if tx
                             .send((batch, self.request_batch(mode, &inputs[start..end])))
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
+                });
+            }
+            drop(tx);
+            let mut ordered = vec![None; batches];
+            let mut first_error = None;
+            for _ in 0..batches {
+                let (batch, result) = rx.recv().map_err(|_| {
+                    EmbeddingEndpointError::Failure("embedding worker terminated".into())
+                })?;
+                match result {
+                    Ok(vectors) => ordered[batch] = Some(vectors),
+                    Err(error) if first_error.is_none() => first_error = Some(error),
+                    Err(_) => {}
+                }
+            }
+            if let Some(error) = first_error {
+                return Err(error);
+            }
+            Ok(ordered.into_iter().flatten().flatten().collect())
+        })
+    }
+}
+
+impl EmbeddingEndpointF64 for OpenAiReadyEmbeddingEndpoint {
+    fn embed_f64(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f64>>, EmbeddingEndpointError> {
+        if inputs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let batches = inputs.len().div_ceil(self.batch_size);
+        let workers = self.concurrency.min(batches);
+        let next = AtomicUsize::new(0);
+        let (tx, rx) = mpsc::channel();
+        thread::scope(|scope| {
+            for _ in 0..workers {
+                let tx = tx.clone();
+                let next = &next;
+                scope.spawn(move || {
+                    loop {
+                        let batch = next.fetch_add(1, Ordering::Relaxed);
+                        if batch >= batches {
+                            break;
+                        }
+                        let start = batch * self.batch_size;
+                        let end = (start + self.batch_size).min(inputs.len());
+                        if tx
+                            .send((batch, self.request_batch_f64(mode, &inputs[start..end])))
                             .is_err()
                         {
                             break;

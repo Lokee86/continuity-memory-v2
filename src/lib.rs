@@ -155,8 +155,8 @@ pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
 pub use embedding_endpoint::{
-    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
-    VectorNormalization,
+    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingEndpointF64, EmbeddingMode,
+    SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 pub use episode_model::{
     DEFAULT_EPISODE_MAX_INPUT_BYTES, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,
