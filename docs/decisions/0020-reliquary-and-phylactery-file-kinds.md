@@ -1,6 +1,6 @@
 # ADR 0020: Reliquary and Phylactery file kinds
 
-Status: Accepted for product file identity and semantic separation; physical header/schema details remain provisional
+Status: Accepted for product file identity and semantic separation; Reliquary project-only semantics amended by ADR 0021; physical header/schema details remain provisional
 Date: 2026-08-24
 Owners: container identity, Reliquary persistence boundary, Phylactery persistence boundary, migration compatibility
 Supersedes: CVA as the long-term user-facing file identity
@@ -8,9 +8,9 @@ Superseded by: none
 
 ## Context
 
-The original `.cva` file identity predates the separation between project-local Reliquary state and user-global Phylactery state. Once both persistence domains exist, treating both as generic CVAs would make file identity and storage semantics ambiguous.
+The original `.cva` file identity predates the separation between Reliquary state and user-global Phylactery state. Once both persistence domains exist, treating both as generic CVAs would make file identity and storage semantics ambiguous.
 
-Reliquary and Phylactery are expected to reuse most of the same low-level storage machinery. That implementation reuse does not mean they are the same semantic container. Reliquary is project/workspace state with project-local provenance and source history; Phylactery is user-global Identity state whose validity must not depend on retaining project source turns.
+Reliquary and Phylactery are expected to reuse most of the same low-level storage machinery. That implementation reuse does not mean they are the same semantic container. ADR 0021 subsequently amends Reliquary from a project/workspace-only container into the shared family for typed non-user durable scopes such as Organization, Project, and Connection. Phylactery remains user-global Identity state whose validity must not depend on retaining project source turns.
 
 A different extension alone is insufficient because callers must be able to validate the semantic kind from the file itself rather than trusting a filename.
 
@@ -38,18 +38,22 @@ shared container/storage engine
         ↓ semantic file kind
 
 Reliquary (.rel)          Phylactery (.phy)
-project/workspace state   user-global Identity state
+typed non-user scopes     user-global Identity state
 ```
 
 The file kind must eventually be encoded in the physical file header or another mandatory format-level discriminator. The extension is a user-facing identifier, not the authority for container type.
+
+ADR 0021 adds a second internal discriminator for the Reliquary scope kind and adopts the preferred human-facing filename shape `<name>.<scope-type>.rel`, currently including `.org.rel`, `.prj.rel`, and `.con.rel`. The internal type remains authoritative.
 
 ## Semantic distinction
 
 ### Reliquary (`.rel`)
 
-Reliquary is the project/workspace persistence domain. Its expected semantic owners include project/workspace identity, source Archive/history, Episodes, Memories, provenance/evidence, vectors, graph state, files/attachments, and later Dream/Ego-derived project state as those owners are implemented.
+Reliquary is the shared persistence family for typed non-user durable scopes. ADR 0021 currently establishes Organization, Project, and Connection scope kinds.
 
-Project source/provenance remains a first-class part of the Reliquary model.
+Project Reliquaries retain project/workspace identity, source Archive/history, Episodes, Memories, provenance/evidence, vectors, graph state, files/attachments, and later Dream/Ego-derived project state as those owners are implemented. Organization and Connection Reliquaries may use different semantic owner sets and validity rules over the same low-level container machinery.
+
+Project source/provenance remains a first-class part of the Project Reliquary model.
 
 ### Phylactery (`.phy`)
 
@@ -67,17 +71,19 @@ The semantic split does **not** justify duplicating the physical storage impleme
 
 Low-level framing, checksums, append/recovery mechanics, version primitives, immutable backing objects, vectors, compaction, and other genuinely common mechanics should remain shared. Reliquary and Phylactery add type-specific validation and owner composition above those primitives.
 
+Typed Reliquary scopes should likewise share the common Reliquary/container machinery while allowing Organization, Project, and Connection to enforce distinct scope-specific validation and owner composition.
+
 A strong semantic boundary can therefore exist without a second repository or a forked storage engine.
 
 ## CVA compatibility and migration
 
 The currently implemented `.cva` format remains valid development data until the new file-kind transition is implemented.
 
-Existing `.cva` files are conceptually **legacy Reliquary files**, not ambiguous future containers. Migration should move them to `.rel` without gratuitously invalidating stored semantic identities.
+Existing `.cva` files are conceptually **legacy Project Reliquary files**, not ambiguous future containers. Migration should move them to the typed Project Reliquary form without gratuitously invalidating stored semantic identities.
 
 The transition should preserve existing record payloads, deterministic IDs, hash/domain-separation constants, and other stable format material wherever possible. A product/file rename alone is not sufficient reason to regenerate Memory IDs, vector IDs, compatibility profiles, or semantic history.
 
-The exact migration mechanism is unresolved. Plausible implementations include an in-place versioned header upgrade where safe, or an explicit rewrite/copy into a `.rel` container. Merely renaming `.cva` to `.rel` without embedding/validating file kind is not the final format design.
+The exact migration mechanism is unresolved. Plausible implementations include an in-place versioned header upgrade where safe, or an explicit rewrite/copy into a `.rel` container. Merely renaming `.cva` to `.rel` without embedding/validating file kind and scope kind is not the final format design.
 
 ## CVA terminology
 
@@ -89,26 +95,28 @@ Existing `CVA*` record markers and `CVCFG` framing are not changed by this ADR a
 
 ## Consequences
 
-- Warlock can distinguish active project state (`.rel`) from user-global Identity state (`.phy`) before retrieval begins.
+- Warlock can distinguish typed non-user Reliquary state (`.<scope>.rel`) from user-global Identity state (`.phy`) before retrieval begins.
 - Phylactery remains part of the Reliquary storage/runtime codebase rather than becoming another repository solely because it has a distinct file type.
-- Shared container machinery remains reusable without collapsing the two semantic domains into one omni-store.
-- Current code/docs that describe `.cva` remain accurate until implementation changes them; future-facing planning must use `.rel` and `.phy` terminology.
+- Shared container machinery remains reusable without collapsing the semantic domains into one omni-store.
+- Current code/docs that describe `.cva` remain accurate until implementation changes them; future-facing planning must use typed `.rel` and `.phy` terminology.
 - Migration from `.cva` must be explicit and compatibility-aware.
 
 ## Open implementation decisions
 
 - exact header magic/version and file-kind discriminator;
 - whether `.rel` and `.phy` use distinct top-level magic or one neutral container magic plus a required kind field;
-- exact required, optional, and forbidden owner sets for each file kind;
+- exact internal Reliquary scope-kind field and versioning;
+- exact required, optional, and forbidden owner sets for each file/scope kind;
 - exact Phylactery source/provenance representation when source export is allowed;
 - legacy `.cva` detection and migration mechanics;
 - whether the internal `Cva` type/name survives as a generic container implementation detail;
-- file-association and shell UX for `.rel` and `.phy` in Warlock;
+- file-association and shell UX for `.rel`, typed `.<scope>.rel`, and `.phy` in Warlock;
 - whether any low-level record markers need a future neutral naming/version transition.
 
 ## Related docs
 
 - [ADR 0018 — Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md)
+- [ADR 0021 — Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md)
 - [Reliquary and Phylactery memory scope plan](../reliquary-phylactery-memory-scope-plan.md)
 - [Storage format](../storage-format.md)
 - [Roadmap](../roadmap.md)

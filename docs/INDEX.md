@@ -8,7 +8,7 @@
 - [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.
 - [Development](development.md) — repository workflow, tests, and smoke example.
 - [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md) — frozen semantic/metadata/wording tuning architecture, corrected evaluator scope, Sol/Ox/Luna comparison, and provider compatibility findings.
-- [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) — provisional two-layer persistence/retrieval architecture, Phylactery storage direction, provenance/export policy, and Insomnia scope-classification options.
+- [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) — provisional durable-scope ownership architecture covering Phylactery plus typed Organization, Project, and Connection Reliquaries, scope-graph composition, provenance/export policy, and ownership-classification options.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.

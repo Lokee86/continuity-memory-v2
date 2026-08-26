@@ -7,11 +7,11 @@ The development format is one append-only CVA file containing Archive source/his
 
 ## Planned product file-kind transition — not implemented
 
-The current exact contract below remains `.cva`. ADR 0020 establishes the future user-facing file identities **Reliquary `.rel`** and **Phylactery `.phy`** without changing the current bytes yet.
+The current exact contract below remains `.cva`. ADR 0020 establishes the future user-facing file identities **Reliquary `.rel`** and **Phylactery `.phy`** without changing the current bytes yet; ADR 0021 amends Reliquary into a typed family of non-user durable scopes.
 
-The two future file kinds are expected to reuse common framing, recovery, versioning, Memory, vector, graph, and compaction primitives while enforcing different semantic validity rules and owner composition. Reliquary is project/workspace state; Phylactery is user-global Identity state and must remain valid without retained project source turns.
+The two future file kinds are expected to reuse common framing, recovery, versioning, Memory, vector, graph, and compaction primitives while enforcing different semantic validity rules and owner composition. Reliquary currently includes Organization, Project, and Connection scope kinds, preferably surfaced as `.org.rel`, `.prj.rel`, and `.con.rel`; Phylactery is user-global Identity state and must remain valid without retained project source turns.
 
-The file kind must eventually be encoded in the physical format rather than inferred only from the extension. Existing `.cva` files are treated as legacy Reliquary data and should migrate to `.rel` without gratuitously changing deterministic IDs, existing record payloads, or semantic history. Exact header magic/versioning and migration mechanics remain future implementation work. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md).
+The file kind and Reliquary scope kind must eventually be encoded in the physical format rather than inferred only from extensions. Existing `.cva` files are treated as legacy Project Reliquary data and should migrate to typed Project Reliquary form without gratuitously changing deterministic IDs, existing record payloads, or semantic history. Exact header magic/versioning and migration mechanics remain future implementation work. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
 ### CVA header

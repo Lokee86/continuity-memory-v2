@@ -119,39 +119,43 @@ Add product-level file usability:
 
 ## Persistent scope implementation boundary
 
-The broader Warlock scope model now distinguishes learned contextual state from explicitly governed instruction state.
+The broader Warlock scope model now treats **scope as durable state ownership**, separate from retrieval, access, and mutation authority.
 
-Implementation must preserve the following boundary:
+Current durable owners are:
 
-- **Identity / Phylactery:** learned/synthesized state may be maintained automatically; the user can explicitly correct, override, remove, or otherwise manage it.
-- **Work / Reliquary:** learned/synthesized state may be maintained automatically; authorized users can explicitly correct, override, promote, remove, or otherwise manage current work state without rewriting historical Session evidence.
-- **Organization:** explicitly governed instruction state only. Insomnia and Dream must not create or mutate it automatically.
-- **Relationship:** explicitly governed instruction state only. Insomnia and Dream must not create or mutate it automatically.
-- **Session:** durable source/history state; correction of synthesized state must not require rewriting historical evidence.
+- **User / Phylactery (`.phy`):** user-global Identity state.
+- **Organization / Reliquary (`.org.rel`):** durable organization-wide operational and governed state that is not project-specific.
+- **Project / Reliquary (`.prj.rel`):** durable state belonging to one bounded body of work.
+- **Connection / Reliquary (`.con.rel`):** durable state belonging to a relationship between parties/scopes.
+- **Session/interaction evidence:** durable source/history state, but not automatically an independent scope.
 
-Organization and Relationship state may be edited by a user or by an agent acting under explicit user authorization. Warlock may compose those scopes into model/runtime instructions, but they are not Memory-pipeline destinations and repeated observed behaviour must never silently become organizational policy, permission, contract terms, or relationship exceptions.
+Organization and Connection may contain both learned/synthesized state and explicitly governed state. The implementation must preserve the authority distinction: repeated observed behaviour must never silently become organizational policy, permission, contract terms, standing exceptions, or other authoritative instructions.
 
-Planning work therefore needs a separate explicit management surface for Organization/Relationship scope creation, editing, authority, and composition. Their physical storage shape remains open.
+Connections use extensible classification plus directional participant roles rather than rigid `VendorConnection`/`ClientConnection` subclasses. Roles such as client or vendor may influence default context-graph behaviour, but hierarchy is represented by typed scope edges rather than by the Connection type itself.
 
-See [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) and the active Warlock persistent-context scope thesis.
+Scope topology is a typed graph/DAG. Structural/contextual edges can contribute inherited context; associative edges establish relevance without unconditional inheritance. A client Connection may be structurally upstream of its Projects while a vendor Connection remains lateral/associative.
+
+Planning work therefore needs explicit scope creation/editing, ownership routing, authority policy, typed graph edges, and context-resolution surfaces. See [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) and [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md).
 
 ## Reliquary / Phylactery file-kind transition
 
-The current implementation remains `.cva`, but the long-term product file identities are now fixed by ADR 0020:
+The current implementation remains `.cva`, but the long-term product file identities are now fixed by ADR 0020 and amended by ADR 0021:
 
-- Reliquary project/workspace state → `.rel`;
+- Reliquary is the typed non-user scope family → `<name>.<scope-type>.rel`;
+- currently accepted Reliquary scope hints are `.org.rel`, `.prj.rel`, and `.con.rel`;
 - Phylactery user-global Identity state → `.phy`.
 
-Implementation should preserve one shared low-level container/storage engine rather than fork the existing storage machinery. The semantic file kind must be encoded and validated inside the file, not inferred only from its extension.
+Implementation should preserve one shared low-level container/storage engine rather than fork the existing storage machinery. Both the semantic file kind and Reliquary scope kind must be encoded and validated inside the file; filename extensions are human-facing hints, not semantic authority.
 
 Migration work should proceed in this order:
 
 1. define the versioned header/file-kind discriminator and required compatibility behavior;
-2. define required, optional, and forbidden semantic owners for `.rel` and `.phy`;
-3. add explicit legacy `.cva` detection as Reliquary data and a safe migration path to `.rel`;
+2. define the internal Reliquary scope-kind field plus required, optional, and forbidden semantic owners for `.org.rel`, `.prj.rel`, `.con.rel`, and `.phy`;
+3. add explicit legacy `.cva` detection as Project Reliquary data and a safe migration path to typed `.prj.rel`;
 4. preserve existing deterministic IDs, record payloads, and hash/domain-separation constants wherever the file-kind transition does not require a semantic-format change;
-5. update Warlock file creation/open/association UX to distinguish `.rel` and `.phy` before retrieval/context assembly;
-6. decide later whether the internal `Cva`/CVA terminology remains useful as a neutral container implementation detail or should be renamed.
+5. update Warlock file creation/open/association UX to distinguish `.phy` and typed Reliquary scopes before retrieval/context assembly;
+6. implement filename-hint versus authoritative internal-type mismatch detection;
+7. decide later whether the internal `Cva`/CVA terminology remains useful as a neutral container implementation detail or should be renamed.
 
 Do not implement `.phy` as a project Reliquary with provenance fields merely made nullable. Shared mechanics and separate semantic validation are both required.
 
@@ -160,8 +164,8 @@ Do not implement `.phy` as a project Reliquary with provenance fields merely mad
 Routine prompt tuning on the 11-Episode adversarial fixture is complete and frozen. Future work is implementation/validation rather than continued fixture optimization:
 
 1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
-2. design and fixture-test the `user | project` **Identity | Work** persistence-scope boundary described in [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md). Do not expand this classifier to Organization or Relationship: those scopes are explicitly governed and outside Insomnia/Dream ownership. Do not assume the Identity/Work decision belongs in the existing metadata pass: a dedicated narrow scope-classification pass may be the cleaner architecture and must be compared explicitly;
-3. define and implement the separate **Reliquary `.rel`** and **Phylactery `.phy`** semantic file kinds over shared storage primitives, including optional rather than mandatory Phylactery source provenance and Reliquary-controlled Memory/source export policy;
+2. design and fixture-test persistence ownership routing described in [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md). `user | project` remains a useful first implementation boundary, but the long-term router must also represent learned Organization and Connection state where publication authority permits it. Ownership classification must remain separate from authorization/governance so observed behaviour cannot silently become policy, permissions, contractual terms, or standing instructions. A dedicated narrow ownership-classification pass may be cleaner than adding this responsibility to ordinary metadata and must be compared explicitly;
+3. define and implement the separate **typed Reliquary `.<scope>.rel`** and **Phylactery `.phy`** semantic file kinds over shared storage primitives, including `.org.rel`, `.prj.rel`, `.con.rel`, optional rather than mandatory Phylactery source provenance, and cross-scope Memory/source export policy;
 4. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
 5. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/scope/wording model mix;
 6. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
@@ -219,11 +223,11 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 
 ## Open decisions
 
-- storage and explicit management surface for Organization and Relationship instruction scopes, including authorization, hierarchy/composition, and runtime rendering;
-- Exact `.rel` and `.phy` physical header/file-kind discriminator and the required/optional/forbidden owner set for each semantic file kind.
-- Legacy `.cva` → `.rel` migration mechanics and whether `CVA` remains only as an internal generic-container term.
-- The exact boundary between user-global Phylactery Memory and project-local Reliquary Memory.
-- Whether `user | project` scope belongs in the existing metadata pass or a dedicated scope-classification pass; if dedicated, its ordering relative to metadata and synthesis.
+- storage and explicit management surfaces for Organization, Project, and Connection scopes, including ownership routing, authorization/governance, typed graph edges, hierarchy/composition, and runtime rendering;
+- Exact `.rel` and `.phy` physical header/file-kind discriminator, Reliquary internal scope-kind discriminator, and required/optional/forbidden owner sets for each file/scope kind.
+- Legacy `.cva` → typed Project `.prj.rel` migration mechanics and whether `CVA` remains only as an internal generic-container term.
+- The exact ownership boundaries among user-global Phylactery, Organization Reliquary, Project Reliquary, and Connection Reliquary learned state.
+- Whether persistence ownership classification belongs in the existing metadata pass or a dedicated ownership-classification pass; if dedicated, its ordering relative to metadata and synthesis, and how the first `user | project` boundary expands to Organization/Connection learned state.
 - Reliquary policy for exporting user Memories and optionally their source/provenance into Phylactery.
 - Normalized interaction vocabulary for tool/session/artifact events beyond completed user/agent turns.
 - Whether any future headless/remote product mode justifies adding a service/IPC boundary around the in-process Rust integration.

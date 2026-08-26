@@ -4,197 +4,404 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Status
 
-Provisional architecture. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md); the storage/pipeline design recorded here remains unresolved and unimplemented. It does not amend the current CVA/Insomnia contracts until a later implementation decision is accepted.
+Provisional implementation plan. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) amends Reliquary from a project-only concept into a typed family of non-user durable scopes.
+
+The current implementation remains `.cva`; typed Reliquary files, Phylactery, multi-scope routing, and scope-graph context resolution are not yet implemented.
 
 ## Problem
 
-A single omni-memory pool creates an avoidable context-management problem. Stable user-level facts and preferences need to persist across work, while project state needs to remain durable without competing with unrelated projects for retrieval relevance or being displaced as the user works elsewhere.
+A single omni-memory pool creates both retrieval pollution and state-ownership ambiguity. Durable state does not all belong to the same thing.
 
-The intended model therefore has **two independent persistence and retrieval layers**, not one memory hierarchy with project tags:
+The currently identified state owners are:
 
-1. **Phylactery** is the user-global memory/profile: it persists across projects and is eligible for cross-project retrieval.
-2. **Reliquary** is the project-local memory/workspace: each Reliquary persists independently and participates in retrieval only when that project is active or explicitly consulted.
+- **User / Phylactery** — user-global Identity state that persists across work;
+- **Organization / Reliquary** — company/organization state that persists across projects;
+- **Project / Reliquary** — bounded work state specific to one project;
+- **Connection / Reliquary** — durable state belonging to a relationship between parties/scopes.
 
-Normal active context can compose both retrieval results:
+These are ownership boundaries first. Retrieval and context composition are separate concerns.
 
-`current interaction + relevant user memory + relevant active-project memory`
+A company policy does not become Project state because it was used while working on a project. A project delivery delay does not become Organization state because company personnel observed it. Supplier reliability history does not necessarily belong to either the supplier participant or the current project; it can belong to the Connection itself.
 
-Inactive project memories do not participate in ordinary retrieval. Mothballing a project therefore preserves its memory state without allowing that state to pollute unrelated work or compete continuously for context budget.
+## Product file direction
 
-## Storage direction
+### Phylactery
 
-Project memory remains the provenance-rich container system already being built. Its long-term product file identity is **Reliquary `.rel`**. It can retain Archive turns, Episodes, authoritative source/grounding relationships, Memories, vectors, and later graph/Dream state.
+User-global state remains **Phylactery `.phy`**, a distinct semantic file kind rather than a Reliquary with fields removed.
 
-User memory is **Phylactery `.phy`**, a distinct semantic file kind rather than a Reliquary with fields removed. It is not merely a project container with missing fields. Its expected core is the durable user Memory web plus the indexes/graph/vector structures required to retrieve and maintain it.
+Its expected core is durable user Memory plus the indexes, graph/vector structures, and maintenance state required to retrieve and evolve it across projects and organizations.
 
-Reliquary and Phylactery should share the same low-level container/storage machinery wherever the mechanics are genuinely common. Their semantic file kind, validity rules, and permitted owner composition remain distinct. The physical file must eventually encode `Reliquary | Phylactery` authoritatively; the `.rel` or `.phy` extension alone is not sufficient type evidence.
+A Phylactery Memory does not require project source turns or a live pointer to an originating Reliquary. Source/provenance may be retained when policy permits, but source absence must remain valid.
 
-The current implementation still uses `.cva`. Existing `.cva` files are treated as **legacy Reliquary data** for migration purposes. The `.rel`/`.phy` direction is accepted under ADR 0020, but the exact header migration, owner sets, and physical schema transition remain unimplemented.
+### Reliquary family
 
-A user-profile Memory does **not** require source turns or project provenance in order to be valid. Source/provenance should be retained when it can legally and operationally cross the project boundary, but the profile format must remain valid when no source is available.
+Non-user durable scopes use the **Reliquary `.rel` family** over shared storage/container mechanics.
 
-This is important for NDA, confidentiality, client-data, and other policy boundaries: a project may be allowed to contribute a generalized user Memory while being forbidden from exporting the conversation/source material that established it.
+New human-facing files should use a typed double extension:
 
-A likely project export-policy shape is conceptually:
+```text
+<name>.<scope-type>.rel
+```
 
-- `memory_export = allow | deny`
-- `source_export = allow | deny`
+Current accepted type abbreviations:
 
-The exact names and policy representation are unresolved. `source_export = deny` must not imply that an otherwise permitted user Memory cannot exist. `memory_export = deny` prevents the project from contributing user-profile state at all.
+- Organization: `.org.rel`
+- Project: `.prj.rel`
+- Connection: `.con.rel`
 
-When source export is allowed, the profile may retain copied evidence/provenance sufficient for later inspection. Whether this is a copied source package, a durable lineage record, or another purpose-built representation remains open. The user profile must not require a live cross-file pointer to the originating project in order to remain usable.
+Examples:
 
-## Common versus destination-specific metadata
+```text
+acme.org.rel
+tower-a.prj.rel
+willyswidgets.con.rel
+```
 
-The current experimental metadata pass assigns semantic fields that can plausibly remain common to both destinations:
+The final `.rel` identifies the Reliquary family. The penultimate extension is a human-visible scope hint. The internal file-kind/scope-type discriminator is authoritative; renaming a file must not change its semantic type.
 
-- `category`
-- `type`
-- `lifecycle`
+Hierarchy is not encoded in filenames.
 
-Project and user Memories nevertheless need different surrounding metadata contracts.
+No Person Reliquary scope is currently established. It must not be added without an independent durable state-ownership requirement.
 
-Project Memories may retain full source identity, assistant-authority identity, grounding identity, Episode/source relationships, and other project-local provenance.
+### Shared mechanics, distinct semantics
 
-Phylactery Memories need a lighter contract. Candidate fields include user-global scope/ownership, creation/update state, optional origin lineage, and source-availability/export state. Full source-turn provenance is optional rather than mandatory.
+Reliquary and Phylactery should share low-level framing, checksums, immutable object storage, versioning, vector/graph primitives, recovery, compaction, and migration machinery where those mechanics are genuinely common.
 
-The final Phylactery schema should be defined from user-memory requirements rather than by copying the Reliquary Memory record and making provenance nullable everywhere.
+Their semantic validation and permitted owners remain distinct.
 
-## Governed scopes outside the memory pipeline
+Within Reliquary, Organization, Project, and Connection may also share many physical owners while retaining scope-specific validity and policy rules.
 
-The broader Warlock context model also includes **Organization** and **Relationship** scopes. These are not additional Insomnia Memory destinations.
+The current `.cva` implementation remains legacy project Reliquary data for migration purposes.
 
-They are explicitly governed, authoritative instruction scopes:
+## Ownership versus authority
 
-- **Organization** records how an organization intentionally operates: policy, procedure, approval rules, institutional defaults, security/compliance rules, terminology, and other explicitly managed instructions.
-- **Relationship** records how parties intentionally operate with one another: negotiated exceptions, client/vendor-specific rules, standing communication or approval paths, contractual operating constraints, and other explicitly managed relationship instructions.
+Scope ownership does not imply that every kind of state may be inferred or mutated automatically.
 
-Insomnia and Dream must **not automatically create, infer, promote, supersede, or otherwise mutate Organization or Relationship state**. Repeated observed behaviour is not sufficient evidence that a policy, permission, contract term, or standing exception exists.
+This distinction is especially important for Organization and Connection scopes.
 
-Those scopes may be edited directly by users or by agents acting under explicit user authorization. Automation may consume their contents as applicable context, but normal memory maintenance does not own them.
+An Organization may own both:
 
-Conceptually, Organization and Relationship scopes behave like persistent, structured system/developer instruction addendums that Warlock composes into the active context. They should not be reduced to opaque prompt blobs merely because their runtime effect is instruction-like.
+- learned operational state/history; and
+- explicitly governed policies, permissions, procedures, compliance rules, and institutional instructions.
 
-This leaves Insomnia/Dream responsible for learned contextual state, principally **Identity** and **Work**, while explicitly governed instruction state remains outside the autonomous memory pipeline.
+A Connection may own both:
+
+- learned relationship state/history; and
+- explicitly governed contractual terms, negotiated exceptions, standing permissions, commitments, and operating instructions.
+
+Insomnia/Dream must never convert repeated observed behaviour directly into authoritative policy, permission, contract terms, or governed instructions merely because the observation belongs to that scope.
+
+The eventual schema must therefore preserve at least the conceptual distinction between **learned/synthesized state** and **explicitly governed state**. Mutation authority is a separate policy from scope ownership.
+
+## Organization scope
+
+Organization owns durable state belonging to the organization independently of individual projects.
+
+In construction this includes, for example:
+
+- day-to-day company operations;
+- estimating and bidding practices;
+- purchasing and supplier practices;
+- scheduling and crew conventions;
+- accounting/administrative conventions;
+- approval paths;
+- safety/security/compliance policy;
+- institutional terminology and defaults;
+- recurring operational history and learned company knowledge.
+
+Project-specific implementation state remains outside Organization even when the project is owned by that organization.
+
+Organization is therefore a genuine state scope, not merely a persistent instruction addendum.
+
+## Project scope
+
+Project owns durable state specific to one bounded body of work.
+
+Project state includes project source/history, files, decisions, constraints, schedules, deliveries, issues, Memories, provenance, vectors, graph state, and later Dream/Ego-derived project context.
+
+A Project may inherit/apply Organization and Connection context without transferring ownership of that inherited state into the Project.
+
+## Connection scope
+
+A Connection owns durable state about the relationship between parties/scopes.
+
+The term **Connection** replaces `Relationship` in the scope vocabulary. This avoids `.rel.rel` filenames and reduces ambiguity with graph/database relationships.
+
+Connections are unusual because they are often not neutral operational contexts. Most interactions with a client, vendor, consultant, partner, or personal contact concern some project, business matter, or event. Nevertheless, durable state exists that belongs to the relationship itself rather than to the surrounding matter.
+
+Examples include:
+
+- standing communication norms;
+- relationship history across projects;
+- recurring reliability patterns;
+- account-level disputes or unresolved issues;
+- negotiated expectations or exceptions;
+- durable commitments;
+- commercial terms where storage policy permits;
+- personal/shared history in non-commercial connections.
+
+### Connection classification
+
+Connection should not be implemented as a rigid subclass hierarchy such as `VendorConnection`, `ClientConnection`, etc. One relationship can hold multiple roles, and roles can change.
+
+Instead a Connection should contain:
+
+- a broad, extensible `class`;
+- its participants;
+- directional participant roles;
+- durable Connection state;
+- typed graph edges to relevant scopes.
+
+Provisional classes include:
+
+- `commercial`
+- `professional`
+- `organizational/internal`
+- `personal`
+
+Provisional roles include:
+
+- `client`
+- `vendor`
+- `supplier`
+- `subcontractor`
+- `general_contractor`
+- `consultant`
+- `partner`
+- `employee`
+- `employer`
+
+These are examples, not a frozen ontology.
+
+Roles are directional. The same two-party Connection can describe different roles from each participant's perspective, and a participant can hold more than one role.
+
+## Scope graph
+
+The scope topology is a **typed graph/DAG**, not a universal tree.
+
+Some relationships are structural/contextual:
+
+```text
+Organization -> Project
+Client Connection -> Project
+```
+
+Others are associative:
+
+```text
+Project -> Vendor Connection
+Project -> Consultant Connection
+```
+
+A client Connection may legitimately act as hierarchy-like context above one or more projects. A vendor Connection may instead be a lateral participant used by many projects. Therefore hierarchy is a property of the specific typed edge/role configuration, not of `Connection` as a class.
+
+At minimum, future graph design must distinguish:
+
+- **structural/contextual edges** that can contribute default inherited context;
+- **associative edges** that establish relevance without unconditional inheritance.
+
+The final edge vocabulary and traversal rules remain open.
+
+## Context composition
+
+Normal context must be composed from applicable scopes rather than by searching every Reliquary.
+
+Conceptually, work inside a project may assemble:
+
+```text
+current interaction
++ relevant Phylactery/User state
++ relevant Project state
++ applicable Organization state
++ applicable structural Connection state
++ task-relevant associated Connection state
+```
+
+Inactive/unrelated projects and Connections do not automatically participate.
+
+Context composition must preserve three separate questions:
+
+1. **Ownership:** what scope durably owns this state?
+2. **Access:** is the current actor/runtime permitted to inspect it?
+3. **Retrieval/composition:** should it participate in this execution context now?
+
+Do not collapse those into a single namespace/filter decision.
+
+## Nested scope discovery and evidence extraction
+
+Reliquary and Phylactery files may physically appear inside directories observed by another Reliquary. They must be recognized as independent scope boundaries rather than recursively ingested as ordinary source artifacts.
+
+The default ingestion behaviour is:
+
+```text
+other .rel/.phy encountered
+        ↓
+recognize scope/container
+        ↓
+do not ingest its container bytes as ordinary evidence
+        ↓
+resolve permitted scope identity/edge
+        ↓
+query through scope interface when evidence/state is needed
+```
+
+This is not equivalent to ignoring subordinate scopes. A parent, ancestor, or associated scope may deliberately consume permitted evidence or state from another scope.
+
+The cross-scope operations should remain distinct:
+
+- **discover/reference** — identify the scope and relationship;
+- **read/extract** — inspect permitted evidence/state while ownership remains with the source;
+- **copy/export** — preserve selected evidence or derived state in the destination scope when policy requires independent durability.
+
+Example:
+
+```text
+Tower A Project
+  ├── vendor promise evidence
+  └── late delivery evidence
+          ↓ permitted extraction
+Willy's Widgets Connection
+  └── learned reliability Memory
+      provenance -> Tower A evidence
+```
+
+Depending on export policy, the destination may retain only a stable source reference, a bounded evidence snapshot, or a full permitted evidence copy. It must not recursively embed the source `.rel`/`.phy` container.
+
+The invariant is:
+
+> **Scopes may consume permitted evidence from other scopes, but they never acquire another scope merely by containing its file. Cross-scope state movement is semantic extraction/publication, not recursive repository ingestion.**
+
+This keeps physical repositories independent while allowing the logical scope graph to compose evidence and state across Organization, Project, Connection, and User boundaries.
+
+## Interaction/event boundary
+
+Ordinary meetings, messages, conversations, and interactions are primarily durable evidence/history, not automatically independent scopes.
+
+One interaction may feed several owners:
+
+```text
+interaction
+├── Project Memory
+├── Organization Memory
+└── Connection Memory
+```
+
+This is preferable to creating an Interaction scope for every event.
+
+A new scope kind should be created only when the thing has durable state and lifecycle that cannot be assigned correctly to surrounding scopes.
 
 ## Insomnia scope classification
 
-Insomnia's semantic extraction should remain concerned first with **what durable learned state exists**. The new memory persistence boundary is a later classification problem: each retained Memory must eventually be classified as either:
+The current experimental persistence classifier is `user | project`. That remains a useful first implementation boundary but is not the complete long-term ownership model.
 
-- `user`: durable Identity state that should follow the user across projects; or
-- `project`: durable Work state belonging to the active project/workspace.
+The eventual classifier/router must support the real durable owners that are authorized for learned state:
 
-Examples of likely user state include stable identity/name conventions, general communication preferences, durable developer/working preferences, and other cross-project habits or constraints. Project implementation decisions, architecture, project facts, local constraints, project entities, and project history remain project state.
+- `user`
+- `project`
+- `organization`
+- `connection`
 
-Atomicity matters. A mixed source statement such as a general user preference plus a project-specific consequence should become separate durable propositions before final scope ownership is assigned when they represent independently retainable state.
+Organization/Connection classification must not imply permission to create governed policies, permissions, contractual terms, or standing instructions. Scope classification answers **where a proposition belongs**; authority/policy answers **whether and how it may be written**.
 
-## Pass-boundary options
+Atomicity matters. A mixed interaction should become separate durable propositions when its content belongs to different owners.
+
+Example:
+
+- `Tower A joists from Willy's Widgets will arrive Friday` -> Project;
+- `Willy's Widgets has repeatedly missed promised delivery dates` -> Connection.
+
+## Pass-boundary direction
 
 The current tuning harness is:
 
 `semantic authority/disposition -> fixed groups -> metadata classification -> wording`
 
-There are two viable ways to add persistence scope.
+Persistence ownership remains consequential enough to justify an independently testable classification/routing stage.
 
-### Option A — add scope to the existing metadata pass
+A plausible future sequence is:
 
-Extend the existing metadata classifier to return `scope = user | project` alongside `category`, `type`, and `lifecycle`.
+`semantic authority/disposition -> fixed groups -> semantic metadata -> ownership classification -> authority/export policy -> destination-aware wording/publication`
 
-Advantages:
+The exact placement of ownership classification relative to ordinary metadata and synthesis remains open.
 
-- no additional model call;
-- scope is naturally classification rather than extraction;
-- synthesis can receive the selected destination and phrase the final Memory appropriately for that destination;
-- publication can fork cleanly after synthesis.
+The classifier should be evaluated independently from authority policy. A correct Organization/Connection ownership prediction can still result in `do not publish` or `require explicit authorization` for the proposed state type.
 
-Risk:
+## Publication and export boundary
 
-- Phylactery and Reliquary Memories are beginning to have meaningfully different metadata/provenance requirements;
-- adding persistence-boundary responsibility to the metadata pass may couple two different classification concerns and make tuning/evaluation less clean.
+Scope ownership, export permission, and source-export permission are separate decisions.
 
-### Option B — dedicated scope-classification pass
+A User Memory extracted from a Project may classify correctly as Phylactery-owned while project policy forbids exporting it. Likewise, Organization or Connection state may be semantically owned by those scopes while confidentiality or authorization policy blocks publication.
 
-Use a separate narrow pass whose only substantive job is to decide `user | project` for an already-fixed durable Memory/group.
+Project-to-Phylactery policy remains conceptually:
 
-**This may be the better architecture and must remain an explicit option rather than being collapsed into the existing metadata pass by default.** The persistence boundary is consequential enough to justify independent tuning, stricter conservative policy for user-global state, and isolated regression tests.
+- `memory_export = allow | deny`
+- `source_export = allow | deny`
 
-A dedicated pass would also let ordinary semantic metadata evolve independently from the policy used to decide whether state belongs in the cross-project profile.
+Equivalent cross-scope policy may later be required for Organization and Connection publication.
 
-The exact placement is still open:
-
-- **before synthesis:** scope is decided from the frozen durable proposition/group, then wording can be destination-aware;
-- **after synthesis:** scope is decided from the final atomic Memory wording, which may make classification easier, but synthesis cannot use destination semantics unless a later normalization step exists.
-
-The current working bias is **before synthesis** if destination-specific wording/schema materially differs, but this is not yet a decision. It should be tested rather than assumed.
-
-A plausible four-pass experiment is therefore:
-
-`semantic authority/disposition -> fixed groups -> semantic metadata -> scope classification -> destination-aware wording`
-
-An alternate experiment should test scope immediately after fixed grouping and before ordinary metadata if the scope decision proves useful to selecting the appropriate metadata schema.
-
-## Publication boundary
-
-Scope classification and export permission are separate decisions.
-
-A Memory may classify as `user` while project policy still forbids it from leaving the project. Insomnia should not equate "user-scoped" with "exportable".
-
-Conceptually:
-
-`durable Memory -> scope classification -> project export policy -> destination-specific synthesis/publication`
-
-For project scope, publication remains in the project CVA with project provenance.
-
-For user scope, permitted publication targets Phylactery. Source evidence is copied only when source export policy permits it. Otherwise the user Memory remains valid without source turns.
+A destination Memory must not require a live cross-file source pointer unless that source dependency is itself an explicit product contract.
 
 ## Retrieval implication
 
-The retrieval model is deliberately compositional rather than omni-memory search:
+Retrieval is compositional rather than an omni-memory search.
 
-- query Phylactery for relevant cross-project user state;
-- query the active Reliquary for relevant project state;
-- combine the two result sets with current interaction context;
-- do not include unrelated project CVAs in normal retrieval.
+The resolver should:
 
-This keeps global user state small and durable while allowing individual projects to grow arbitrarily deep without degrading every other project's candidate set.
+- identify the active scope(s);
+- resolve applicable structural/contextual scope edges;
+- identify task-relevant associated scopes where needed;
+- query each permitted owner independently;
+- query Phylactery for relevant user-global state;
+- combine/rank the resulting evidence within a context budget.
+
+This allows individual Projects, Organizations, and Connections to grow independently without forcing every memory into one global candidate set.
 
 ## Validation requirements
 
-Before selecting the final pass arrangement, build scope-specific fixtures containing:
+Scope fixtures should eventually include:
 
-- obvious user-only Memories;
-- obvious project-only Memories;
-- mixed statements that should split into separate user/project propositions;
-- project-specific preferences that must **not** leak into the user profile;
-- general preferences expressed while discussing a project that should classify as user state;
-- NDA/confidential examples where `user` classification is correct but export is forbidden;
-- source-export-denied examples where user Memory publication remains valid without provenance;
-- stale/mothballed project cases verifying that unrelated project state never enters ordinary retrieval.
+- obvious User-only Memories;
+- obvious Project-only Memories;
+- obvious Organization-only learned operational Memories;
+- obvious Connection-only learned relational Memories;
+- mixed interactions that must split across multiple owners;
+- project-specific preferences that must not leak to Phylactery or Organization;
+- organization-wide practices observed during one project that should route to Organization only when authority policy permits learned operational state;
+- recurring vendor/client history that belongs to Connection rather than Project;
+- client Connections that structurally contextualize Projects;
+- vendor Connections that remain associative rather than inherited;
+- NDA/confidential cases where ownership is clear but publication/export is forbidden;
+- source-export-denied cases where destination Memory can remain valid without source content;
+- inactive/mothballed scope cases verifying unrelated state does not enter ordinary retrieval.
 
-Evaluate scope accuracy separately from extraction coverage, ordinary metadata accuracy, wording quality, and export-policy enforcement. A dedicated scope pass should be preferred if it materially improves isolation or makes the persistence boundary easier to audit without unacceptable inference cost.
+Evaluate ownership accuracy separately from extraction coverage, semantic metadata, wording quality, authorization, export-policy enforcement, and context-resolution accuracy.
 
 ## Open decisions
 
-- physical/storage representation of explicitly governed Organization and Relationship instruction scopes, including how Warlock references and composes them without making Insomnia/Dream their owners;
-- explicit mutation/authorization surface for user- or agent-directed Organization and Relationship edits;
-- exact `.phy` Phylactery owner set, including required, optional, and forbidden owners;
-- exact `.rel`/`.phy` header discriminator and legacy `.cva` migration mechanics;
-- whether `CVA` survives only as a private generic-container implementation term or is renamed entirely;
-- exact user-memory metadata schema;
-- whether scope classification belongs inside the existing metadata pass or in a dedicated pass;
-- if dedicated, whether it runs before ordinary metadata, after ordinary metadata, or after synthesis;
-- whether user-scope synthesis must differ from project-scope synthesis;
-- source-copy versus lineage representation when source export is permitted;
-- project policy representation for memory/source export;
-- how user Memories are corrected, superseded, deduplicated, or retired when they have no retained source evidence;
-- how Dream/Graph operate over Phylactery versus project Reliquaries;
-- how Ego/context assembly balances user-profile and active-project retrieval results.
+- exact `.phy` Phylactery owner set;
+- exact typed `.rel` header fields and internal scope-kind discriminator;
+- exact Organization, Project, and Connection owner sets;
+- whether bare `.rel` remains creatable or only supported for compatibility/migration;
+- representation and validation of learned versus governed state inside Organization and Connection;
+- automatic publication/authorization policy for Organization and Connection learned state;
+- Connection class and directional role vocabulary;
+- temporal role changes;
+- concrete scope-edge vocabulary and structural/associative traversal semantics;
+- context-resolution algorithm and ranking across several active scopes;
+- exact ownership-classification pass placement;
+- source-copy versus lineage representation across scope boundaries;
+- memory/source export policy representation;
+- correction, supersession, deduplication, and retirement across each scope kind;
+- Dream/Graph operation across Phylactery and multiple Reliquary scope kinds;
+- Ego/context assembly budget and conflict resolution across inherited and associated scopes;
+- legacy `.cva` -> typed Project Reliquary migration mechanics.
 
 ## Related docs
 
+- [ADR 0021 — Typed Reliquary scopes and Connection state](decisions/0021-typed-reliquary-scopes-and-connections.md)
+- [ADR 0020 — Reliquary and Phylactery file kinds](decisions/0020-reliquary-and-phylactery-file-kinds.md)
 - [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md)
 - [Roadmap](roadmap.md)
 - [Architecture](architecture.md)
 - [ADR 0012 — deterministic Episodes and Insomnia Memory authority](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
 - [ADR 0017 — CVA workspace and Warlock host application](decisions/0017-cva-workspace-and-warlock-host-application.md)
-- [ADR 0020 — Reliquary and Phylactery file kinds](decisions/0020-reliquary-and-phylactery-file-kinds.md)
