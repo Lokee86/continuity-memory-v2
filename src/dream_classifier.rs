@@ -9,11 +9,22 @@ use serde_json::{Value, json};
 
 pub struct DreamClassifier<E> {
     endpoint: E,
+    system_prompt: String,
 }
 
 impl<E: GeneralEndpoint> DreamClassifier<E> {
     pub fn new(endpoint: E) -> Self {
-        Self { endpoint }
+        Self {
+            endpoint,
+            system_prompt: DREAM_CLASSIFIER_SYSTEM_PROMPT.to_owned(),
+        }
+    }
+
+    pub fn with_system_prompt(endpoint: E, system_prompt: impl Into<String>) -> Self {
+        Self {
+            endpoint,
+            system_prompt: system_prompt.into(),
+        }
     }
 
     pub fn model(&self) -> &str {
@@ -43,7 +54,7 @@ impl<E: GeneralEndpoint> DreamClassifier<E> {
         }))
         .map_err(|error| DreamClassificationError::InvalidOutput(error.to_string()))?;
         let output = self.endpoint.complete_json(
-            DREAM_CLASSIFIER_SYSTEM_PROMPT,
+            &self.system_prompt,
             &payload,
             "dream_pair_classification",
             &dream_classifier_schema(),

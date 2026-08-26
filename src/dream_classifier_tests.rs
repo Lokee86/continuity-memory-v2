@@ -127,6 +127,20 @@ fn classifier_uses_strict_pair_schema_and_dream_contract_prompt() {
 }
 
 #[test]
+fn classifier_can_use_an_explicit_tuning_prompt_without_changing_the_default() {
+    let (left, right) = pair_contexts();
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let classifier = DreamClassifier::with_system_prompt(
+        RecordingEndpoint::new(calls.clone()),
+        "tuning-only Dream classifier prompt",
+    );
+    classifier.classify_pair(&left, &right).unwrap();
+
+    let calls = calls.lock().unwrap();
+    assert_eq!(calls[0].0, "tuning-only Dream classifier prompt");
+}
+
+#[test]
 fn directional_relation_is_validated_without_using_memory_creation_time() {
     let (left, right) = pair_contexts();
     let (a, b) = if left.memory.id.0 < right.memory.id.0 {

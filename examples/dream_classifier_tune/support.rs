@@ -1,5 +1,5 @@
 use continuity_memory::{DreamMemoryContext, DreamPairClassification, MemoryId};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
 #[derive(Clone)]

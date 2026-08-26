@@ -1,16 +1,16 @@
 mod support;
 
 use continuity_memory::{
-    ConfiguredGeneralEndpoint, ContinuityConfig, Cva, DreamClassifier, DreamRelationKind,
-    GeneralEndpoint, ModelSwitchboard, DREAM_CLASSIFIER_CONTRACT_VERSION,
+    ConfiguredGeneralEndpoint, ContinuityConfig, Cva, DREAM_CLASSIFIER_CONTRACT_VERSION,
+    DreamClassifier, DreamRelationKind, GeneralEndpoint, ModelSwitchboard,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use std::thread;
-use support::{classification_json, memory_id, summarize, CaseTask};
+use support::{CaseTask, classification_json, memory_id, summarize};
 
 fn main() {
     if let Err(error) = run() {
@@ -22,7 +22,7 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() < 4 {
-        return Err("usage: dream_classifier_tune <config> <baseline-cva> <fixture.json> <output.json> [--concurrency N]".into());
+        return Err("usage: dream_classifier_tune <config> <baseline-cva> <fixture.json> <output.json> [--concurrency N] [--system-prompt-file PATH]".into());
     }
     let config_path = PathBuf::from(&args[0]);
     let cva_path = PathBuf::from(&args[1]);
@@ -31,6 +31,11 @@ fn run() -> Result<(), Box<dyn Error>> {
     let concurrency = option_usize(&args[4..], "--concurrency")?
         .unwrap_or(12)
         .max(1);
+    let system_prompt_file = option_string(&args[4..], "--system-prompt-file")?.map(PathBuf::from);
+    let system_prompt = system_prompt_file
+        .as_ref()
+        .map(fs::read_to_string)
+        .transpose()?;
 
     let config = ContinuityConfig::open(&config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
@@ -64,7 +69,8 @@ fn run() -> Result<(), Box<dyn Error>> {
                 .cloned()
                 .map(|task| {
                     let endpoint = endpoint.clone();
-                    scope.spawn(move || classify_case(task, endpoint))
+                    let system_prompt = system_prompt.clone();
+                    scope.spawn(move || classify_case(task, endpoint, system_prompt))
                 })
                 .collect::<Vec<_>>();
             handles
@@ -84,6 +90,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         "baseline_cva": cva_path,
         "fixture": fixture_path,
         "concurrency": concurrency,
+        "system_prompt_file": system_prompt_file,
         "summary": summary,
         "cases": results,
     });
@@ -104,8 +111,15 @@ fn run() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn classify_case(task: CaseTask, endpoint: ConfiguredGeneralEndpoint) -> Value {
-    let classifier = DreamClassifier::new(endpoint);
+fn classify_case(
+    task: CaseTask,
+    endpoint: ConfiguredGeneralEndpoint,
+    system_prompt: Option<String>,
+) -> Value {
+    let classifier = match system_prompt {
+        Some(prompt) => DreamClassifier::with_system_prompt(endpoint, prompt),
+        None => DreamClassifier::new(endpoint),
+    };
     match classifier.classify_pair(&task.left, &task.right) {
         Ok(classification) => {
             let actual_related = classification.relation != DreamRelationKind::None;
@@ -130,6 +144,17 @@ fn classify_case(task: CaseTask, endpoint: ConfiguredGeneralEndpoint) -> Value {
             "error": error.to_string(),
         }),
     }
+}
+
+fn option_string(args: &[String], name: &str) -> Result<Option<String>, Box<dyn Error>> {
+    let Some(index) = args.iter().position(|arg| arg == name) else {
+        return Ok(None);
+    };
+    Ok(Some(
+        args.get(index + 1)
+            .ok_or_else(|| format!("missing value for {name}"))?
+            .to_owned(),
+    ))
 }
 
 fn option_usize(args: &[String], name: &str) -> Result<Option<usize>, Box<dyn Error>> {
