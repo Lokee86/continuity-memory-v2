@@ -53,6 +53,22 @@ impl OpenAiCodexGeneralEndpoint {
         Self::from_route(route, auth)
     }
 
+    pub fn from_insomnia_metadata_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route = switchboard
+            .insomnia_metadata()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Insomnia metadata route is not configured",
+            ))?;
+        let auth = switchboard
+            .insomnia_metadata_auth()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Insomnia metadata auth is missing",
+            ))?;
+        Self::from_route(route, auth)
+    }
+
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

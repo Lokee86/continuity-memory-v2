@@ -51,5 +51,14 @@ pub(crate) fn insert_credentials(
 }
 
 pub(crate) fn master_key_path(config_path: &Path) -> PathBuf {
+<<<<<<< HEAD
     config_path.with_file_name("reliquary.master-key.json")
+=======
+    let stem = config_path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("continuity");
+    config_path.with_file_name(format!("{stem}.master-key.json"))
+>>>>>>> 7e9c772 (Add Dream population tuning harness and harden Insomnia routing)
 }

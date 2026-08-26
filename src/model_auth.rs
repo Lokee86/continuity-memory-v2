@@ -74,6 +74,12 @@ pub(crate) fn validate_credentials(
         )
         .chain(
             config
+                .insomnia_metadata
+                .iter()
+                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
+        )
+        .chain(
+            config
                 .dream
                 .iter()
                 .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),

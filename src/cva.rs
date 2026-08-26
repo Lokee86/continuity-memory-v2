@@ -208,6 +208,10 @@ impl Cva {
         self.memories.stats()
     }
 
+    pub fn memory_ids(&self) -> Vec<MemoryId> {
+        self.memories.current_ids()
+    }
+
     pub fn memory_version(&self) -> u64 {
         self.memories.memory_version()
     }

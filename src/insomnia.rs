@@ -12,6 +12,7 @@ mod error;
 mod evidence;
 mod extraction;
 mod ledger;
+mod metadata;
 mod model;
 mod processor;
 pub(crate) mod rebuild;

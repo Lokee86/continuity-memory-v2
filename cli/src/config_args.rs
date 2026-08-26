@@ -61,6 +61,19 @@ pub enum ModelCommand {
         reasoning: Option<ReasoningArg>,
     },
     ClearInsomnia,
+    SetInsomniaMetadata {
+        #[arg(long, value_enum)]
+        provider: ProviderArg,
+        #[arg(long)]
+        model: String,
+        #[arg(long)]
+        credential: String,
+        #[arg(long)]
+        url: Option<String>,
+        #[arg(long, value_enum)]
+        reasoning: Option<ReasoningArg>,
+    },
+    ClearInsomniaMetadata,
     SetDream {
         #[arg(long, value_enum)]
         provider: ProviderArg,

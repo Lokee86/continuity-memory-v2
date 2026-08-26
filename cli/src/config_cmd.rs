@@ -32,6 +32,7 @@ fn show(path: &Path) -> Result<()> {
     );
     show_general(config.models.general.as_ref());
     show_insomnia(config.models.insomnia.as_ref());
+    show_insomnia_metadata(config.models.insomnia_metadata.as_ref());
     show_dream(config.models.dream.as_ref());
     show_embedding(config.models.embedding.as_ref());
     println!("credentials:");
@@ -129,6 +130,23 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
             validate_runtime(&config)?;
         }
         ModelCommand::ClearInsomnia => config.models.insomnia = None,
+        ModelCommand::SetInsomniaMetadata {
+            provider: p,
+            model,
+            credential,
+            url,
+            reasoning: r,
+        } => {
+            config.models.insomnia_metadata = Some(GeneralModelEndpoint {
+                provider: provider(p),
+                model,
+                url,
+                credential_id: credential_id(credential)?,
+                reasoning_effort: r.map(reasoning),
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearInsomniaMetadata => config.models.insomnia_metadata = None,
         ModelCommand::SetDream {
             provider: p,
             model,
@@ -215,6 +233,23 @@ fn show_insomnia(value: Option<&GeneralModelEndpoint>) {
             endpoint.credential_id.as_str()
         ),
         None => println!("insomnia: <unset; falls back to general>"),
+    }
+}
+
+fn show_insomnia_metadata(value: Option<&GeneralModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!(
+            "insomnia_metadata: provider={:?} model={} reasoning={} url={} credential={}",
+            endpoint.provider,
+            endpoint.model,
+            endpoint
+                .reasoning_effort
+                .map(|value| value.as_str())
+                .unwrap_or("<unset>"),
+            endpoint.url.as_deref().unwrap_or("<provider-owned>"),
+            endpoint.credential_id.as_str()
+        ),
+        None => println!("insomnia_metadata: <unset>"),
     }
 }
 

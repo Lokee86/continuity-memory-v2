@@ -8,7 +8,7 @@ use crate::config_object::{
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
     DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2, GENERAL_MODEL_KEY,
-    GENERAL_MODEL_SCHEMA_V3, INSOMNIA_MODEL_KEY, decode_embedding, decode_general_v2,
+    GENERAL_MODEL_SCHEMA_V3, INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, decode_embedding, decode_general_v2,
     decode_general_v3, encode_embedding, encode_general,
 };
 use crate::{
@@ -60,6 +60,10 @@ impl ReliquaryConfig {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
         };
+        let insomnia_metadata = match objects.remove(INSOMNIA_METADATA_MODEL_KEY) {
+            Some(object) => Some(decode_known_general(object)?),
+            None => None,
+        };
         let dream = match objects.remove(DREAM_MODEL_KEY) {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
@@ -71,6 +75,7 @@ impl ReliquaryConfig {
         let models = ModelSwitchboardConfig {
             general,
             insomnia,
+            insomnia_metadata,
             dream,
             embedding,
         };
@@ -124,6 +129,12 @@ impl ReliquaryConfig {
         if let Some(endpoint) = &self.models.insomnia {
             objects.insert(
                 INSOMNIA_MODEL_KEY.to_owned(),
+                general_model_object(encode_general(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.insomnia_metadata {
+            objects.insert(
+                INSOMNIA_METADATA_MODEL_KEY.to_owned(),
                 general_model_object(encode_general(endpoint)?),
             );
         }

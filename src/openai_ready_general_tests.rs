@@ -1,4 +1,6 @@
-use crate::openai_ready_general::{parse_forced_tool_result, parse_structured_content};
+use crate::openai_ready_general::{
+    parse_forced_tool_result, parse_streamed_forced_tool_result, parse_structured_content,
+};
 use serde_json::json;
 
 #[test]
@@ -36,6 +38,18 @@ fn forced_tool_result_requires_exact_named_single_call() {
     let value = parse_forced_tool_result(&response, "dream_pair_classification").unwrap();
     assert_eq!(value["relation"], "none");
     assert!(value["evidence"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn streamed_forced_tool_result_reassembles_arguments() {
+    let stream = concat!(
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"insomnia_ledger\",\"arguments\":\"{\\\"turns\\\":\"}}]}}]}\n",
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{},\\\"evidence_requests\\\":[]}\"}}]}}]}\n",
+        "data: [DONE]\n"
+    );
+    let value = parse_streamed_forced_tool_result(stream, "insomnia_ledger").unwrap();
+    assert!(value["turns"].is_object());
+    assert!(value["evidence_requests"].as_array().unwrap().is_empty());
 }
 
 #[test]

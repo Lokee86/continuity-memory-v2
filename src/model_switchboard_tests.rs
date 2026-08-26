@@ -64,6 +64,14 @@ fn routes_and_credentials_round_trip_and_attach_auth_headers() {
     assert_eq!(insomnia["Authorization"], "Bearer ready-key");
     assert!(!insomnia.contains_key("ChatGPT-Account-ID"));
 
+    let mut metadata = BTreeMap::new();
+    switchboard
+        .insomnia_metadata_auth()
+        .unwrap()
+        .apply_to(&mut metadata);
+    assert_eq!(metadata["Authorization"], "Bearer ready-key");
+    assert!(!metadata.contains_key("ChatGPT-Account-ID"));
+
     let mut dream = BTreeMap::new();
     switchboard.dream_auth().unwrap().apply_to(&mut dream);
     assert_eq!(dream["Authorization"], "Bearer ready-key");
@@ -99,6 +107,7 @@ fn invalid_provider_routes_are_rejected() {
     let codex_embedding = ModelSwitchboardConfig {
         general: None,
         insomnia: None,
+        insomnia_metadata: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiCodex,
@@ -120,6 +129,7 @@ fn invalid_provider_routes_are_rejected() {
             reasoning_effort: None,
         }),
         insomnia: None,
+        insomnia_metadata: None,
         dream: None,
         embedding: None,
     };
@@ -195,6 +205,13 @@ fn configured_models() -> ModelSwitchboardConfig {
         insomnia: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "insomnia-model".into(),
+            url: Some("https://example.test/v1/chat/completions".into()),
+            credential_id: id("ready"),
+            reasoning_effort: None,
+        }),
+        insomnia_metadata: Some(GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: "metadata-model".into(),
             url: Some("https://example.test/v1/chat/completions".into()),
             credential_id: id("ready"),
             reasoning_effort: None,

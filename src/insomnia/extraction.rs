@@ -1,9 +1,11 @@
 use super::evidence::{EvidenceRequest, parse_evidence_requests, resolve_evidence};
 use super::ledger;
+use super::metadata;
 use super::synthesis;
 use crate::{Cva, Episode, GeneralEndpoint, GeneralEndpointError, ResolvedTurn};
 use serde_json::{Value, json};
 use std::fmt;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaCandidate {
@@ -90,11 +92,23 @@ impl From<GeneralEndpointError> for InsomniaExtractionError {
 
 pub struct InsomniaExtractor<E> {
     endpoint: E,
+    metadata_endpoint: Option<Arc<dyn GeneralEndpoint>>,
 }
 
 impl<E: GeneralEndpoint> InsomniaExtractor<E> {
     pub fn new(endpoint: E) -> Self {
-        Self { endpoint }
+        Self {
+            endpoint,
+            metadata_endpoint: None,
+        }
+    }
+
+    pub fn with_metadata_endpoint<M>(mut self, endpoint: M) -> Self
+    where
+        M: GeneralEndpoint + 'static,
+    {
+        self.metadata_endpoint = Some(Arc::new(endpoint));
+        self
     }
 
     pub fn model(&self) -> &str {
@@ -193,16 +207,44 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         evidence_turns: &[InsomniaEvidenceTurn],
         allow_evidence_requests: bool,
     ) -> Result<Value, InsomniaExtractionError> {
-        let payload = serde_json::to_string(payload)
+        let encoded = serde_json::to_string(payload)
             .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
-        self.endpoint
-            .complete_json(
-                ledger::LEDGER_SYSTEM_PROMPT,
-                &payload,
-                "insomnia_authority_disposition_ledger",
-                &ledger::schema(turns, evidence_turns, allow_evidence_requests),
-            )
-            .map_err(Into::into)
+        let mut result = self.endpoint.complete_json(
+            ledger::LEDGER_SYSTEM_PROMPT,
+            &encoded,
+            "insomnia_authority_disposition_ledger",
+            &ledger::schema(turns, evidence_turns, allow_evidence_requests),
+        )?;
+        let missing = ledger::sanitize_turn_keys(&mut result, turns)?;
+        if missing.is_empty() {
+            return Ok(result);
+        }
+
+        let repair_payload = json!({
+            "authoritative_input": payload,
+            "partial_ledger": result,
+            "missing_user_turn_ids": missing,
+            "instruction": "Repair only the missing user-turn ledger entries listed in missing_user_turn_ids. Return exactly those turn keys and no others. Preserve the original authority rules. Do not revise clauses already present in partial_ledger."
+        });
+        let repair_payload = serde_json::to_string(&repair_payload)
+            .map_err(|error| InsomniaExtractionError::InvalidOutput(error.to_string()))?;
+        let repair_prompt = format!(
+            "{}\n\nREPAIR MODE: The previous structured result omitted required user-turn keys. Return clauses only for the explicitly listed missing user turns. Do not repeat or modify already-present turns.",
+            ledger::LEDGER_SYSTEM_PROMPT
+        );
+        let repair = self.endpoint.complete_json(
+            &repair_prompt,
+            &repair_payload,
+            "insomnia_authority_disposition_ledger_repair",
+            &ledger::repair_schema(
+                turns,
+                evidence_turns,
+                &missing,
+                allow_evidence_requests,
+            ),
+        )?;
+        ledger::merge_repair(&mut result, repair, &missing, allow_evidence_requests)?;
+        Ok(result)
     }
 
     fn synthesize(
@@ -213,7 +255,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         entries: Vec<ledger::LedgerEntry>,
         evidence_turns: Vec<InsomniaEvidenceTurn>,
     ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
-        let groups = synthesis::build_groups(&entries)?;
+        let mut groups = synthesis::build_groups(&entries)?;
         if groups.is_empty() {
             return Ok(InsomniaExtraction {
                 model: self.endpoint.model().to_owned(),
@@ -221,6 +263,15 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
                 rejected: Vec::new(),
                 evidence_turns,
             });
+        }
+        if let Some(metadata_endpoint) = &self.metadata_endpoint {
+            metadata::classify(
+                metadata_endpoint.as_ref(),
+                episode_payload,
+                turns,
+                &evidence_turns,
+                &mut groups,
+            )?;
         }
         let payload = synthesis::payload(episode_payload, &groups);
         let payload = serde_json::to_string(&payload)

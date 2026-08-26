@@ -47,6 +47,25 @@ impl ConfiguredGeneralEndpoint {
         }
     }
 
+    pub fn from_insomnia_metadata_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let provider = switchboard
+            .insomnia_metadata()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Insomnia metadata route is not configured",
+            ))?
+            .provider;
+        match provider {
+            ModelProvider::OpenAiCodex => Ok(Self::OpenAiCodex(
+                OpenAiCodexGeneralEndpoint::from_insomnia_metadata_switchboard(switchboard)?,
+            )),
+            ModelProvider::OpenAiReady => Ok(Self::OpenAiReady(
+                OpenAiReadyGeneralEndpoint::from_insomnia_metadata_switchboard(switchboard)?,
+            )),
+        }
+    }
+
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

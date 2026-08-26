@@ -44,7 +44,13 @@ fn run_file(
     let general = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
     let embedding = OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard)?
         .with_batching(embedding_batch_size, embedding_concurrency)?;
-    let extractor = InsomniaExtractor::new(general);
+    let extractor = if switchboard.insomnia_metadata().is_some() {
+        InsomniaExtractor::new(general).with_metadata_endpoint(
+            ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&switchboard)?,
+        )
+    } else {
+        InsomniaExtractor::new(general)
+    };
     let mut cva = Cva::open(cva_path)?;
 
     let before = cva.insomnia_stats();

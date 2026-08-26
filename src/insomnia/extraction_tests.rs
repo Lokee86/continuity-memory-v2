@@ -184,8 +184,8 @@ fn assistant_cannot_become_user_authority_even_if_provider_bypasses_schema() {
             )]
         }))],
     ));
-    let error = extractor.extract(&episode, &turns).unwrap_err();
-    assert!(error.to_string().contains("non-user source key"));
+    let extraction = extractor.extract(&episode, &turns).unwrap();
+    assert!(extraction.candidates.is_empty());
 }
 
 #[test]
@@ -444,6 +444,49 @@ fn structurally_distinct_groups_from_one_turn_have_distinct_candidate_keys() {
     let extraction = extractor.extract(&episode, &turns).unwrap();
     assert_eq!(extraction.candidates.len(), 2);
     assert_ne!(extraction.candidates[0].key, extraction.candidates[1].key);
+}
+
+#[test]
+fn missing_ledger_turn_gets_one_targeted_repair_and_extra_non_user_key_is_dropped() {
+    let path = test_path("ledger-repair.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append(
+        &mut cva,
+        "u0",
+        None,
+        "user",
+        10,
+        "Default to concise answers.",
+    );
+    append(&mut cva, "a0", Some("u0"), "assistant", 20, "Understood.");
+    append(&mut cva, "u1", Some("a0"), "user", 30, "What next?");
+    append(&mut cva, "a1", Some("u1"), "assistant", 40, "Next step.");
+    let episode = queue_episode(&mut cva, "a1");
+    let turns = cva.episode_turns(episode.id).unwrap();
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "test-model",
+        vec![
+            ledger(json!({
+                "u0": [retain(
+                    "direct",
+                    "instruction",
+                    "communication",
+                    "current",
+                    "Default to concise answers.",
+                    "",
+                    ""
+                )],
+                "a0": [omit()]
+            })),
+            ledger(json!({"u1": [omit()]})),
+            wording("Concise responses", "Default to concise answers."),
+        ],
+    ));
+
+    let extraction = extractor.extract(&episode, &turns).unwrap();
+    assert_eq!(extraction.candidates.len(), 1);
+    assert_eq!(extraction.candidates[0].source_node_id, "u0");
+    assert_eq!(extraction.candidates[0].category, "instruction");
 }
 
 #[test]

@@ -149,9 +149,10 @@ pub(super) fn terminal_claim(
 }
 
 fn retryable(error: &InsomniaExtractionError) -> bool {
-    !matches!(
+    matches!(
         error,
-        InsomniaExtractionError::Endpoint(GeneralEndpointError::InvalidConfiguration(_))
+        InsomniaExtractionError::Endpoint(GeneralEndpointError::Failure(_))
+            | InsomniaExtractionError::Endpoint(GeneralEndpointError::InvalidResponse(_))
     )
 }
 

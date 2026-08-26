@@ -309,6 +309,8 @@ Milestone A currently provides:
 
 The first representative candidate-recall inspection used 13 hand-selected related pairs from a 103-Memory Insomnia-generated corpus with 1024-dimensional Memory vectors. All 13 related counterparts appeared within the default top 12, at ranks 1–12. This small fixture does not justify an LLM triage stage; broader recall measurement should be added only if production misses demonstrate a need.
 
+Population tuning now uses `examples/dream_tune/` over the durable 46-Memory `insomnia-tuning-v1-check.cva` fixture. Each run copies the source CVA, executes the production candidate/processor/publication/lifecycle path, syncs, reopens, and records stage-level diagnostics plus final durable state. `--retrieval-only` isolates candidate fusion without model calls, and `--source` isolates one Memory. `corpus/dream-gold-v1-tuning-v1.json` and `tools/evaluate_dream_gold.py` provide scoped retrieval/relatedness/final-graph/backlog scoring. The first targeted repository-location check missed its paired state at top 4 but found it at top 12, which is exactly the kind of population ranking failure this harness is intended to expose without changing semantic ownership.
+
 ### Phase 3 — pair classifier — implemented
 
 Milestone B currently provides:
