@@ -122,6 +122,8 @@ mod packed_vector_error;
 mod packed_vector_model;
 mod packed_vector_rebuild;
 mod packed_vector_store;
+mod runtime_host;
+mod runtime_vector_step;
 mod search;
 mod search_error;
 mod search_model;
@@ -239,6 +241,7 @@ pub use openai_ready_embedding::{
 pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
+pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError};
 pub use search_error::SearchError;
 pub use search_model::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
@@ -328,6 +331,12 @@ mod openai_codex_general_tests;
 mod openai_ready_embedding_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod runtime_host_test_support;
+#[cfg(test)]
+mod runtime_host_tests;
+#[cfg(test)]
+mod runtime_host_vector_tests;
 #[cfg(test)]
 mod search_policy_tests;
 #[cfg(test)]

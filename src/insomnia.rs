@@ -15,6 +15,7 @@ mod ledger;
 mod model;
 mod processor;
 pub(crate) mod rebuild;
+pub(crate) mod runtime_step;
 pub(crate) mod store;
 mod synthesis;
 mod worker;
@@ -31,11 +32,13 @@ pub use extraction::{
     InsomniaCandidate, InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtraction,
     InsomniaExtractionError, InsomniaExtractor, InsomniaRejection,
 };
+pub(crate) use extraction::{InsomniaEvidenceRound, InsomniaExtractionStage};
 pub use model::{
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
     InsomniaWork, InsomniaWorkState,
 };
 pub use processor::{InsomniaProcessError, InsomniaProcessResult};
+pub(crate) use runtime_step::RuntimeInsomniaClaim;
 pub use worker::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
     DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_WORKERS, InsomniaDrainResult,
