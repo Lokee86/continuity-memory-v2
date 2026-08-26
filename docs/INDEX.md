@@ -16,6 +16,7 @@
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
 - [Dream implementation plan](dream-implementation-plan.md) — pair-oriented Dream redesign, implemented Milestones A/B/C/D/E/F/G from candidate retrieval through deterministic temporal end-to-end processing, plus validation, canonical-policy, and remaining staged work.
+- [Dream classifier v2 candidate design](dream-classifier-v2-design.md) — unmeasured next classifier prompt, semantic-workstream boundary, 40-case advancement gate, and post-gate population criteria.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.

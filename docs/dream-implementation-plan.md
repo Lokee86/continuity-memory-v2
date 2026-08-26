@@ -479,6 +479,7 @@ Independent-observation and canonical-promotion policy are now frozen at the con
 
 ## Related docs
 
+- [Dream classifier v2 candidate design](dream-classifier-v2-design.md)
 - [Architecture](architecture.md)
 - [Rust API](api.md)
 - [Roadmap](roadmap.md)

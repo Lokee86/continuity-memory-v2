@@ -207,6 +207,12 @@ The first classifier-v2 prompt deliberately tightened graph utility and proved f
 
 `examples/dream_classifier_tune/` is the cheap prompt-tuning gate for that fixture. It opens the durable baseline CVA read-only, obtains each Memory through `Cva::dream_memory_context` (the same context builder used by production candidate retrieval), and calls the production `DreamClassifier::classify_pair` directly for the 40 explicit pairs. It bypasses retrieval, Graph publication, verification, and lifecycle mutation, runs pairs with configurable bounded concurrency (default 12), and emits per-case relation/direction/evidence plus related/unrelated accuracy by pattern. This reduces a prompt iteration from the 46-Memory population run's roughly 552 candidate classifications to exactly 40 classifier calls. A prompt should clear this boundary gate before another full population run is purchased.
 
+```text
+cargo run --example dream_classifier_tune -- <config> <baseline.cva> corpus/dream-classifier-regressions-v1.json <report.json> --concurrency 12
+```
+
+The unmeasured replacement prompt and advancement thresholds are frozen in [Dream classifier v2 candidate design](dream-classifier-v2-design.md).
+
 ### Live Insomnia worker concurrency — 2026-08-15
 
 The prepared 12-conversation ChatGPT corpus was converted to the current canonical graph-JSONL development format without adding a production importer. It produced 1,441 canonical text nodes and 66 deterministic import Episodes. Each concurrency point used a fresh copy of the same pre-Insomnia CVA, the configured `gpt-5.6-luna` Codex route at `low` reasoning, and the configured Qwen3 embedding route. Episode-processing time and Memory-Vector time were measured separately so embedding latency did not contaminate the worker scaling curve.
