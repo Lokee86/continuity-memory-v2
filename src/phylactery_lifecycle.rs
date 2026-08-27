@@ -23,6 +23,18 @@ impl Phylactery {
         Self::initialize(container)
     }
 
+    #[cfg(test)]
+    pub(crate) fn create_legacy_typed(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
+        let container = Container::create_with_legacy_identity(
+            path,
+            ContainerIdentity {
+                file_kind: FileKind::Phylactery,
+                scope: None,
+            },
+        )?;
+        Self::initialize(container)
+    }
+
     pub(crate) fn create_with_uuid(
         path: impl AsRef<Path>,
         owner_uuid: [u8; 16],

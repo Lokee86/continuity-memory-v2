@@ -100,6 +100,20 @@ impl Cva {
         Self::initialize(Container::create(path)?)
     }
 
+    #[cfg(test)]
+    pub(crate) fn create_legacy_typed(
+        path: impl AsRef<Path>,
+        scope: crate::ReliquaryScopeKind,
+    ) -> Result<Self, CvaError> {
+        Self::initialize(Container::create_with_legacy_identity(
+            path,
+            crate::ContainerIdentity {
+                file_kind: crate::FileKind::Reliquary,
+                scope: Some(scope),
+            },
+        )?)
+    }
+
     fn initialize(mut container: Container) -> Result<Self, CvaError> {
         let archive = Archive::empty();
         let memories = MemoryStore::empty();

@@ -84,6 +84,31 @@ impl Container {
         Self::create_with_identity_and_uuid(path, identity, *Uuid::new_v4().as_bytes())
     }
 
+    #[cfg(test)]
+    pub(crate) fn create_with_legacy_identity(
+        path: impl AsRef<Path>,
+        identity: ContainerIdentity,
+    ) -> Result<Self, ContainerError> {
+        validate_identity(identity)?;
+        let path = path.as_ref();
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)?;
+        file.write_all(&encode_legacy_identity_header(identity))?;
+        file.sync_all()?;
+        Ok(Self {
+            file,
+            path: path.to_path_buf(),
+            version: CURRENT_VERSION,
+            identity: Some(identity),
+            owner_uuid: None,
+            header_len: LEGACY_TYPED_HEADER_LEN,
+            next_version: 1,
+        })
+    }
+
     pub(crate) fn create_with_identity_and_uuid(
         path: impl AsRef<Path>,
         identity: ContainerIdentity,
@@ -208,6 +233,17 @@ fn encode_header(version: FormatVersion) -> [u8; LEGACY_HEADER_LEN as usize] {
     header[8..10].copy_from_slice(&version.major.to_le_bytes());
     header[10..12].copy_from_slice(&version.minor.to_le_bytes());
     header[12..16].copy_from_slice(&(LEGACY_HEADER_LEN as u32).to_le_bytes());
+    header
+}
+
+#[cfg(test)]
+fn encode_legacy_identity_header(
+    identity: ContainerIdentity,
+) -> [u8; LEGACY_TYPED_HEADER_LEN as usize] {
+    let current = encode_identity_header(identity, [0; 16]);
+    let mut header = [0_u8; LEGACY_TYPED_HEADER_LEN as usize];
+    header.copy_from_slice(&current[..LEGACY_TYPED_HEADER_LEN as usize]);
+    header[12..16].copy_from_slice(&(LEGACY_TYPED_HEADER_LEN as u32).to_le_bytes());
     header
 }
 

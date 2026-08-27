@@ -376,6 +376,7 @@ mod cva_reconcile_merge_tests;
 mod cva_reconcile_promotion_tests;
 #[cfg(test)]
 mod cva_reconcile_tests;
+#[cfg(test)]
 mod dream_candidate_test_support;
 #[cfg(test)]
 mod dream_candidate_tests;
@@ -425,6 +426,8 @@ mod memory_codec_tests;
 mod memory_tests;
 #[cfg(test)]
 mod memory_vector_tests;
+#[cfg(test)]
+mod migration_tests;
 #[cfg(test)]
 mod model_switchboard_tests;
 #[cfg(test)]
