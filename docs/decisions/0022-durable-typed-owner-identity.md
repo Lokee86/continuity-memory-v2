@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted and partially implemented — 2026-08-26.
+Accepted and implemented — 2026-08-26.
 
 Supersedes the WorkspaceMetadata identity/type portions of ADR 0017 and the WorkspaceMetadata reconciliation boundary in ADR 0019. Their remaining product-host and reconciliation decisions stay in force.
 
@@ -54,7 +54,7 @@ The earlier typed header was 24 bytes. The current typed header is 40 bytes and 
 24..40  owner UUID bytes
 ```
 
-Legacy 16-byte CVA headers and earlier 24-byte typed REL/PHY headers remain readable so explicit migration can be implemented without conflating old physical forms with current identified files.
+Legacy 16-byte CVA headers and earlier 24-byte typed REL/PHY headers remain readable and are migrated explicitly through a semantic repack into a new 40-byte file. Migration never rewrites the source in place.
 
 ## Consequences
 
@@ -64,7 +64,7 @@ Legacy 16-byte CVA headers and earlier 24-byte typed REL/PHY headers remain read
 - Repacking preserves one UUID rather than cloning an unrelated metadata record.
 - Display names and domain adapters cannot accidentally become semantic identity.
 - Existing reconciliation tests that manually manufacture `WorkspaceMetadata` must be rewritten around copied typed REL fixtures.
-- Explicit migration remains required for old files without header UUIDs.
+- Old files without header UUIDs require the explicit migration operation before reconciliation.
 
 ## Implementation boundary
 
@@ -76,5 +76,6 @@ Current implementation lives in:
 - `src/phylactery_lifecycle.rs`
 - `src/cva_reconcile.rs`
 - `src/cva_reconcile_repack.rs`
+- `src/migration.rs` + private `src/migration_rel.rs` / `src/migration_phy.rs`
 
 The former `workspace_metadata*.rs` and `cva_workspace.rs` subsystem is removed.

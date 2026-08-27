@@ -9,7 +9,7 @@ The shared append-only container now supports two typed semantic file kinds. A R
 
 New Reliquary files use a typed 40-byte header. The header carries authoritative `file_kind = Reliquary`, an internal scope kind for Organization, Project, or Connection, and a 16-byte durable owner UUID. Human-facing filenames should use `.org.rel`, `.prj.rel`, and `.con.rel`; filenames are hints only and do not determine semantic identity.
 
-The existing 16-byte `.cva` header remains readable as **legacy Project Reliquary** data. Legacy detection is explicit and no automatic rewrite occurs on open, so a later migration can preserve deterministic IDs, record payloads, and semantic history while still distinguishing old physical files from typed REL files.
+The existing 16-byte `.cva` header remains readable as **legacy Project Reliquary** data. Legacy detection is explicit and no automatic rewrite occurs on open. `migration::migrate_file` repacks that source into a separate current 40-byte Project REL while preserving stable semantic identities.
 
 Phylactery `.phy` uses the same 40-byte typed header with authoritative `file_kind = Phylactery`, no Reliquary scope, and its own durable owner UUID. A `.phy` is not a legacy CVA and cannot be opened through the Reliquary/CVA lifecycle. Conversely, Phylactery rejects typed REL and legacy CVA files. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
 ## Exact contract
@@ -40,7 +40,7 @@ Global versions begin at `1` and are semantically consecutive. Ordinary semantic
 
 ### Durable owner identity
 
-Current typed REL/PHY files store a 16-byte UUID directly in the container header. The canonical external owner ID is derived from the authoritative type/scope plus that UUID: `proj-<uuid>`, `org-<uuid>`, `con-<uuid>`, or `phy-<uuid>`. Owner identity consumes no semantic/global version ticket. Copies, moves, renames, and reconciliation repacks preserve the UUID. Earlier 16-byte legacy CVA and 24-byte typed files have no header UUID and require explicit migration before owner-ID-based reconciliation.
+Current typed REL/PHY files store a 16-byte UUID directly in the container header. The canonical external owner ID is derived from the authoritative type/scope plus that UUID: `proj-<uuid>`, `org-<uuid>`, `con-<uuid>`, or `phy-<uuid>`. Owner identity consumes no semantic/global version ticket. Copies, moves, renames, reconciliation repacks, and format migration preserve or deliberately derive the UUID. Earlier 16-byte legacy CVA and 24-byte typed files have no header UUID and require explicit migration before owner-ID-based reconciliation.
 
 Legacy `CVAWKFM1` / `CVAWKSP1` workspace-metadata chunks may remain physically present in old RELs, but current runtime semantics ignore them and do not write them.
 

@@ -1,0 +1,105 @@
+use super::{MigrationError, op, require_same};
+use crate::cva_reconcile_archive::{
+    read_archive_tail, replay_archive_tail, replay_file_memory_links,
+};
+use crate::cva_reconcile_graph::{read_graph_tail, replay_graph_tail};
+use crate::cva_reconcile_interaction::replay_interaction_streams;
+use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
+use crate::{Cva, ReliquaryScopeKind};
+use std::path::Path;
+
+pub(super) fn migrate(
+    source_path: &Path,
+    output_path: &Path,
+    scope: ReliquaryScopeKind,
+    owner_uuid: [u8; 16],
+) -> Result<String, MigrationError> {
+    let mut source = op(Cva::open(source_path))?;
+    let archive = op(read_archive_tail(&mut source, 0))?;
+    let memories = op(read_memory_tail(&mut source, 0))?;
+    let graph = op(read_graph_tail(&mut source, 0))?;
+    let streams = source.interaction_stream_records();
+    let profiles = source.compatibility_profiles();
+    let packed_infos = source.packed_vector_infos();
+    let memory_vector_infos = source.memory_vector_infos();
+    let archive_vector_infos = source.archive_vector_infos();
+    let generations = source.vector_generations.generations().to_vec();
+
+    let mut output = op(Cva::create_scope_with_uuid(output_path, scope, owner_uuid))?;
+    for profile in profiles {
+        op(output
+            .compatibility_profiles
+            .put(&mut output.container, profile))?;
+    }
+    op(replay_interaction_streams(&mut output, streams))?;
+    op(replay_archive_tail(&mut output, &archive))?;
+    op(replay_memory_tail(&mut output, memories))?;
+    op(replay_graph_tail(&mut output, &graph))?;
+    op(replay_file_memory_links(
+        &mut output,
+        &archive.file_memory_links,
+    ))?;
+
+    copy_vectors(
+        &mut source,
+        &mut output,
+        packed_infos,
+        memory_vector_infos,
+        archive_vector_infos,
+        generations,
+    )?;
+    op(output.sync())?;
+    let owner_id = output
+        .owner_id()
+        .ok_or_else(|| MigrationError::Operation("migrated REL has no owner ID".into()))?;
+    drop(output);
+    op(Cva::open(output_path))?;
+    Ok(owner_id)
+}
+
+fn copy_vectors(
+    source: &mut Cva,
+    output: &mut Cva,
+    packed_infos: Vec<crate::PackedVectorInfo>,
+    memory_vector_infos: Vec<crate::MemoryVectorInfo>,
+    archive_vector_infos: Vec<crate::ArchiveVectorInfo>,
+    generations: Vec<crate::VectorGeneration>,
+) -> Result<(), MigrationError> {
+    for info in packed_infos {
+        let packed = op(source.packed_vectors(info.id))?;
+        require_same(
+            info.id,
+            op(output.put_packed_vectors(packed))?,
+            "packed vector",
+        )?;
+    }
+    for info in memory_vector_infos {
+        let set = op(source.memory_vectors(info.id))?;
+        require_same(
+            info.id,
+            op(output.put_memory_vectors(
+                set.compatibility_profile_id,
+                set.packed_vector_id,
+                set.memory_body_ids,
+            ))?,
+            "Memory Vector",
+        )?;
+    }
+    for info in archive_vector_infos {
+        let set = op(source.archive_vectors(info.id))?;
+        require_same(
+            info.id,
+            op(output.put_archive_vectors(set.packed_vector_id, set.fragment_ids))?,
+            "Archive Vector",
+        )?;
+    }
+    for generation in generations {
+        let migrated = op(output.publish_vector_generation(
+            generation.compatibility_profile_id,
+            generation.archive_vector_id,
+            generation.source_archive_version,
+        ))?;
+        require_same(generation.id, migrated.id, "Vector Generation")?;
+    }
+    Ok(())
+}

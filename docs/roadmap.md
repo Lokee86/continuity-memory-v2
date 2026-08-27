@@ -149,7 +149,7 @@ The implementation preserves one shared low-level container/storage engine. New 
 
 Remaining migration/product work should proceed in this order:
 
-1. add a safe explicit legacy `.cva` → typed `.prj.rel` migration operation while preserving deterministic IDs, record payloads, and hash/domain-separation constants;
+1. **Implemented:** explicit legacy `.cva` / earlier typed REL/PHY → current identified REL/PHY migration through semantic repack, preserving stable semantic IDs and deriving owner UUIDs from legacy workspace IDs when available;
 2. update Warlock file creation/open/association UX to use typed REL and PHY files before retrieval/context assembly;
 3. implement filename-hint versus authoritative internal-type mismatch warnings;
 4. define explicit cross-file Memory/source export and lineage semantics between REL and PHY;
@@ -225,7 +225,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 
 - storage and explicit management surfaces for Organization, Project, and Connection scopes, including ownership routing, authorization/governance, typed graph edges, hierarchy/composition, and runtime rendering;
 - Whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memories/Graph/Packed Vectors/Memory Vectors/Compatibility Profiles core, and how future user-Memory lexical retrieval should be represented without importing Archive semantics.
-- Legacy `.cva` → typed Project `.prj.rel` migration mechanics and whether `CVA` remains only as an internal generic-container term.
+- Whether `CVA` remains only as an internal generic-container/back-compat term now that explicit legacy migration is implemented.
 - The exact ownership boundaries among user-global Phylactery, Organization Reliquary, Project Reliquary, and Connection Reliquary learned state.
 - Whether persistence ownership classification belongs in the existing metadata pass or a dedicated ownership-classification pass; if dedicated, its ordering relative to metadata and synthesis, and how the first `user | project` boundary expands to Organization/Connection learned state.
 - Reliquary policy for exporting user Memories and optionally their source/provenance into Phylactery.

@@ -30,6 +30,7 @@ reliquary
 │   ├── create
 │   ├── info
 │   └── verify
+├── migrate <source> <output>
 ├── import
 │   └── graph-jsonl
 ├── archive
@@ -74,6 +75,8 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 `rel create` creates a typed Project REL by default; `--scope organization`, `--scope project`, and `--scope connection` select the authoritative internal Reliquary scope kind. `rel info` reports the stored scope and whether the file is a legacy CVA physical form. `rel verify` performs a normal `Reliquary::open`, so the same format/reopen/reference validation used by the library is exercised. The old `cva` command name remains a compatibility alias for `rel`.
 
 `phy create <path>` creates a typed user-global Phylactery with no Reliquary scope. `phy info` reports `kind: phylactery` plus Memory, Graph, packed-vector, Memory-vector, and compatibility-profile state. `phy verify` performs a normal `Phylactery::open`, including exact file-kind validation, source-independent Memory validation, Graph endpoint/global-version validation, and vector/profile reference validation. PHY has no `--scope` option.
+
+`migrate <source> <output>` auto-detects a legacy 16-byte Project CVA or earlier 24-byte typed REL/PHY and semantically repacks it into a new 40-byte identified file. The source is never replaced in place. When an old REL contains `WorkspaceMetadata.id`, migration derives the new UUID deterministically from that ID so independently diverged copies retain the same logical owner identity; otherwise a new UUID is generated. Legacy WorkspaceMetadata itself is not copied into the output.
 
 `import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target Project REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
 

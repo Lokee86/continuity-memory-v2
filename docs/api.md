@@ -12,6 +12,12 @@ Public types include `Container`, `ContainerError`, `ChunkRef { offset, len }`, 
 
 `Reliquary::create(path)` and `create_project(path)` create Project REL files; `create_organization(path)` and `create_connection(path)` create the other Reliquary scopes. Each creates its durable owner UUID before returning. `open_project`, `open_organization`, and `open_connection` enforce the requested scope. Display names are filesystem/host concerns rather than persisted core metadata, and domain adapters are outside the core identity model.
 
+### Explicit migration
+
+`migrate_file(source, output)` is the current format migration boundary. It accepts legacy 16-byte Project CVAs and earlier 24-byte typed REL/PHY files and writes a separate current 40-byte file. It rejects current files that already have an owner UUID and never replaces the source in place. For old RELs containing a valid legacy `WorkspaceMetadata.id`, the owner UUID is deterministically derived from that ID; otherwise migration generates a new UUID. The obsolete workspace metadata record itself is not republished.
+
+Migration is a semantic repack rather than a header byte-shift because existing semantic version records contain absolute `ChunkRef` offsets. REL migration replays Archive, Memory, Graph, Insomnia completion, interaction-stream, file-to-Memory, profile, packed-vector, Memory-vector, Archive-vector, and Vector Generation state through current owner APIs. PHY migration replays its Memory/Graph/profile/vector owners. `MigrationResult` reports the resulting typed owner ID and whether its UUID came from a legacy workspace ID.
+
 ### CVA comparison and reconciliation
 
 Public reconciliation types are `CvaComparison`, `CvaRelation`, `CvaReconcileResult`, `CvaReconcileConflict`, and `CvaReconcileError`. `Cva::compare(left, right)` opens and validates two Reliquaries, requires matching durable `owner_id()` values, compares their physical append-only chunk histories, and reports `Identical`, `LeftExtendsRight`, `RightExtendsLeft`, or `Diverged` plus common/total chunk counts. Files without the new durable owner UUID must be migrated before reconciliation.

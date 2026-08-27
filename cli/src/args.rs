@@ -27,6 +27,10 @@ pub enum Command {
         #[command(subcommand)]
         command: PhyCommand,
     },
+    Migrate {
+        source: PathBuf,
+        output: PathBuf,
+    },
     Import {
         #[command(subcommand)]
         command: ImportCommand,

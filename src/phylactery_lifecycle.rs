@@ -23,6 +23,21 @@ impl Phylactery {
         Self::initialize(container)
     }
 
+    pub(crate) fn create_with_uuid(
+        path: impl AsRef<Path>,
+        owner_uuid: [u8; 16],
+    ) -> Result<Self, PhylacteryError> {
+        let container = Container::create_with_identity_and_uuid(
+            path,
+            ContainerIdentity {
+                file_kind: FileKind::Phylactery,
+                scope: None,
+            },
+            owner_uuid,
+        )?;
+        Self::initialize(container)
+    }
+
     fn initialize(mut container: Container) -> Result<Self, PhylacteryError> {
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();

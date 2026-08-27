@@ -145,6 +145,7 @@ mod memory_vector_error;
 mod memory_vector_model;
 mod memory_vector_rebuild;
 mod memory_vector_store;
+pub mod migration;
 mod model_auth;
 mod model_switchboard;
 mod model_switchboard_codec;
@@ -301,6 +302,7 @@ pub use memory_vector_model::{
     MemoryVectorBuildResult, MemoryVectorId, MemoryVectorInfo, MemoryVectorLocation,
     MemoryVectorSet, MemoryVectorStats,
 };
+pub use migration::{MigrationError, MigrationResult, migrate_file};
 pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
     EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,

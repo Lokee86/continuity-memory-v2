@@ -1,6 +1,6 @@
 # ADR 0020: Reliquary and Phylactery file kinds
 
-Status: Accepted; typed Reliquary and Phylactery file identities/lifecycles implemented; Reliquary project-only semantics amended by ADR 0021; legacy CVA migration remains pending
+Status: Accepted; typed Reliquary and Phylactery file identities/lifecycles implemented; Reliquary project-only semantics amended by ADR 0021; explicit legacy migration implemented by ADR 0022
 Date: 2026-08-24
 Owners: container identity, Reliquary persistence boundary, Phylactery persistence boundary, migration compatibility
 Supersedes: CVA as the long-term user-facing file identity
@@ -83,7 +83,7 @@ Existing `.cva` files are conceptually **legacy Project Reliquary files**, not a
 
 The transition should preserve existing record payloads, deterministic IDs, hash/domain-separation constants, and other stable format material wherever possible. A product/file rename alone is not sufficient reason to regenerate Memory IDs, vector IDs, compatibility profiles, or semantic history.
 
-Legacy detection is implemented without automatic rewrite: a 16-byte v1 header opens explicitly as Project Reliquary, while typed REL files use a 24-byte header with internal file/scope identity. The exact migration mechanism remains unresolved; it may be an in-place header upgrade where safe or an explicit rewrite/copy. Merely renaming `.cva` to `.rel` is still not migration.
+Legacy detection remains explicit and without automatic rewrite. ADR 0022 resolves migration as a semantic repack into a separate current 40-byte identified file rather than an in-place header shift, because persisted semantic records contain absolute chunk offsets. Merely renaming `.cva` to `.rel` is still not migration.
 
 ## CVA terminology
 
@@ -106,7 +106,6 @@ Existing `CVA*` record markers and `CVCFG` framing are not changed by this ADR a
 - whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memory/Graph/vector/profile core;
 - exact required, optional, and forbidden owner sets for Organization/Project/Connection Reliquaries as their policy surfaces diverge;
 - exact Phylactery cross-file source/provenance representation when source export is allowed;
-- legacy `.cva` → typed `.prj.rel` migration mechanics (legacy detection itself is implemented);
 - whether the internal/back-compat `Cva` type/name should eventually be removed; the public product-facing alias is now `Reliquary`;
 - file-association and shell UX for `.rel`, typed `.<scope>.rel`, and `.phy` in Warlock;
 - whether any low-level record markers need a future neutral naming/version transition.

@@ -7,6 +7,7 @@ mod config_cmd;
 mod dev_cmd;
 mod import_cmd;
 mod insomnia_cmd;
+mod migration_cmd;
 mod phy_cmd;
 mod rel_cmd;
 mod util;
@@ -28,6 +29,7 @@ fn run() -> Result<()> {
     match cli.command {
         Command::Rel { command } => rel_cmd::run(command),
         Command::Phy { command } => phy_cmd::run(command),
+        Command::Migrate { source, output } => migration_cmd::run(&source, &output),
         Command::Import { command } => import_cmd::run(command),
         Command::Archive { command } => archive_cmd::run(command),
         Command::Config { command } => config_cmd::run(&cli.config, command),

@@ -402,7 +402,6 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 - correction, supersession, deduplication, and retirement across each scope kind;
 - Dream operation across Phylactery and multiple Reliquary scope kinds; same-file PHY Graph persistence is implemented, but Dream is not yet scope-aware;
 - Ego/context assembly budget and conflict resolution across inherited and associated scopes;
-- legacy `.cva` -> typed Project Reliquary migration mechanics.
 
 ## Related docs
 
