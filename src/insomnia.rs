@@ -14,6 +14,7 @@ mod extraction;
 mod ledger;
 mod metadata;
 mod model;
+mod ownership;
 mod processor;
 pub(crate) mod rebuild;
 pub(crate) mod runtime_step;
@@ -38,6 +39,7 @@ pub use model::{
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
     InsomniaWork, InsomniaWorkState,
 };
+pub use ownership::{INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, InsomniaOwnership};
 pub use processor::{InsomniaProcessError, InsomniaProcessResult};
 pub(crate) use runtime_step::RuntimeInsomniaClaim;
 pub use worker::{
@@ -62,6 +64,8 @@ mod extraction_tests;
 mod gold_tests;
 #[cfg(test)]
 mod grounding_tests;
+#[cfg(test)]
+mod ownership_tests;
 #[cfg(test)]
 mod queue_recovery_tests;
 #[cfg(test)]

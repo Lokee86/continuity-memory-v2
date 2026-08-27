@@ -178,6 +178,7 @@ impl InsomniaStore {
             extractor_model: completion.extractor_model.clone(),
             extractor_version: completion.extractor_version.clone(),
             memory_ids: completion.memory_ids.clone(),
+            external_memory_refs: completion.external_memory_refs.clone(),
             rejected_count: completion.rejected_count,
             error: None,
         });

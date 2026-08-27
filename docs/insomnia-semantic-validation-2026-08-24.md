@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 
 This record captures the small-fixture validation of Insomnia semantic extraction, the evolution from the original two-pass authority-ledger experiment to the frozen three-model-pass tuning harness, and model/provider comparisons against `gpt-5.6-sol`, `stealth/ox-alpha`, and `gpt-5.6-luna` at low reasoning.
 
-The authoritative Insomnia runtime remains extractor contract `v3-0`: clause-level semantic selection followed by wording-only synthesis. The final experimental harness adds a separate metadata-classification pass between those semantic and wording stages. The implementations in `examples/` and `tools/` remain benchmark/provider-compatibility harnesses rather than production execution paths.
+At the time of this 2026-08-24 validation, the authoritative Insomnia runtime was extractor contract `v3-0`: clause-level semantic selection followed by wording-only synthesis, while the final tuning harness added a separate metadata-classification pass. Current runtime contract `v3-1` has since ported the fixed-group classification seam and added dedicated User/Project owner routing; see ADR 0023. The measurements below remain historical model/prompt evidence and are not recomputed for that later routing change. The implementations in `examples/` and `tools/` remain benchmark/provider-compatibility harnesses rather than production execution paths.
 
 ## Overview
 
@@ -196,7 +196,7 @@ The controlled result produced 49 Memories with `94.7%` anchor fidelity, `100%` 
 
 A fresh end-to-end `v7` Sol-low run produced 51 Memories and scored `89.5%` anchor fidelity, `93.3%` state coverage, `100%` omit cleanliness, `100%` authority, `100%` grounding, `71.4%` metadata, and `100%` guards. Its substantive coverage miss was `future-ship-variants`, which pass 1 stochastically omitted; no synthesis-side authority/provenance failure reappeared.
 
-Authoritative Insomnia now implements this ownership boundary as extractor contract `v3-0`:
+The production implementation reached by this 2026-08-24 milestone encoded this semantic/synthesis ownership boundary as extractor contract `v3-0`:
 
 - **Pass 1 owns:** disposition, authority kind, lifecycle, source identity, assistant-authority identity, grounding identity, category, and type.
 - Retained clauses are deterministically grouped only when all those structural fields match.
@@ -303,13 +303,11 @@ This is not current implementation work. The present architecture remains the ba
 
 ### User/project persistence-scope classification
 
-A separate design problem now sits downstream of durable-state extraction: the system may maintain two independent persistence/retrieval layers, user-global **Phylactery** and project-local **Reliquary**. A retained durable Memory therefore needs an eventual `user | project` ownership decision before publication. This is a persistence/context boundary, not another semantic-discovery pass.
+This section records the design question that remained open on 2026-08-24. It has since been resolved by ADR 0023. Current extractor contract `v3-1` uses a dedicated narrow `user | project` ownership classifier after deterministic groups (and optional metadata classification) but before wording. The classifier may change only the destination owner; it cannot modify retained semantics, provenance, metadata/lifecycle, grouping, or candidate identity. Ambiguous state defaults to Project.
 
-The existing Luna metadata pass could be extended with `scope`, but that is **not yet the preferred or final architecture**. User/profile and project Memories have different provenance requirements, and user-global publication has a larger pollution/privacy blast radius. A dedicated narrow scope-classification pass may therefore be cleaner, independently tunable, and easier to regression-test. Both designs must remain viable until fixtures compare them.
+Current User publication targets an explicitly attached Phylactery and strips REL-local source/Episode/conversation provenance so the PHY Memory remains valid independently of Project Archive retention. The REL completion records the result through `MemoryRef { owner_id, memory_id }`. With no cross-file transaction manager, PHY is synced first and deterministic mutation IDs make a crash before the REL receipt idempotently recoverable.
 
-Phylactery Memories must not require source turns. When Reliquary policy permits, source/provenance may be copied into Phylactery; when source export is forbidden by NDA/confidentiality or other policy, a permitted generalized user Memory may still exist without those source records. Scope classification and export permission are separate decisions.
-
-Ordering also remains open. Running scope classification before synthesis allows destination-aware wording/schema; running it after synthesis gives the classifier the final atomic Memory. The current working bias is before synthesis if destination-specific representation proves material, but this should be tested rather than assumed. See [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md).
+The historical question of folding scope into metadata was therefore rejected for the current slice in favor of a separately tunable ownership boundary. Organization/Connection destinations and any richer cross-file lineage policy remain later work. See [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) and [ADR 0023](decisions/0023-insomnia-durable-owner-routing.md).
 
 ## Experimental implementation
 

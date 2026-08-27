@@ -95,6 +95,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 80. **Phylactery does not depend on Project Archive retention.** A current PHY Memory is valid without source turns, Episodes, Files, or a live originating REL. Direct PHY publication rejects REL-local provenance fields until an explicit cross-file lineage/export contract exists.
 81. **Shared codecs do not collapse file semantics.** Phylactery currently persists Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles only; REL-only owners cannot appear in PHY merely because the shared container can physically carry their bytes.
 82. **Current Graph endpoints are same-file Memory identities.** REL and PHY may each persist Memory Graph state, but the current `MemoryId`-only endpoint format does not establish cross-file Graph relationships.
+83. **Cross-file Memory references are owner-qualified.** A bare `MemoryId` is sufficient only inside one durable owner; persisted references to a Memory in another REL/PHY use `MemoryRef { owner_id, memory_id }`.
+84. **Insomnia destination ownership cannot redefine semantic identity.** User/Project routing is decided only after semantic groups are fixed; ownership cannot change propositions, authority, provenance, metadata/lifecycle, grouping, or candidate key material.
+85. **User-global export is conservative and source-independent.** Without an ownership classifier, Insomnia defaults to Project. A User-owned result may enter PHY only through an explicit routing target, and REL-local provenance is removed before PHY publication.
+86. **Cross-file Insomnia publication prefers durable truth over atomic illusion.** With no cross-file transaction manager, routed User Memories sync to PHY before the REL completion receipt; deterministic mutation IDs make a crash in between idempotently recoverable.
 
 ## Safety boundaries
 

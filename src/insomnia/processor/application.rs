@@ -3,16 +3,24 @@ use super::{InsomniaProcessError, InsomniaProcessResult};
 use crate::insomnia::candidate::hex;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
 use crate::insomnia::store::InsomniaStore;
+use crate::memory_model::memory_id;
 use crate::memory_store::MemoryStore;
 use crate::{
     Archive, Container, Episode, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, InsomniaExtraction,
-    InsomniaRejection, InsomniaWork, MemoryDraft,
+    InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft, MemoryRef, Phylactery,
 };
 
 pub(crate) struct PreparedApplication {
-    pub(crate) drafts: Vec<MemoryDraft>,
+    pub(crate) project_drafts: Vec<MemoryDraft>,
+    pub(crate) user_drafts: Vec<MemoryDraft>,
     pub(crate) rejected: Vec<InsomniaRejection>,
     pub(crate) model: String,
+}
+
+pub(crate) struct UserPublication {
+    pub(crate) created: Vec<Memory>,
+    pub(crate) existing: Vec<Memory>,
+    pub(crate) refs: Vec<MemoryRef>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -26,7 +34,8 @@ pub(crate) fn prepare_application(
     completed_at_ns: i64,
 ) -> Result<PreparedApplication, InsomniaProcessError> {
     let mut rejected = extraction.rejected;
-    let mut drafts = Vec::with_capacity(extraction.candidates.len());
+    let mut project_drafts = Vec::with_capacity(extraction.candidates.len());
+    let mut user_drafts = Vec::new();
     for candidate in extraction.candidates {
         if let Err(reason) = validate_candidate_sources(
             archive,
@@ -42,7 +51,7 @@ pub(crate) fn prepare_application(
             });
             continue;
         }
-        drafts.push(MemoryDraft {
+        let mut draft = MemoryDraft {
             category: candidate.category,
             memory_type: candidate.memory_type,
             authority_kind: candidate.authority_kind,
@@ -62,12 +71,74 @@ pub(crate) fn prepare_application(
             mutation_id: format!("insomnia:{}:{}", hex(&episode.id.0), candidate.key),
             created_at_ns: episode.source_through_ns,
             updated_at_ns: completed_at_ns.max(episode.source_through_ns),
-        });
+        };
+        match candidate.ownership {
+            InsomniaOwnership::Project => project_drafts.push(draft),
+            InsomniaOwnership::User => {
+                draft.source_node_id = None;
+                draft.content_source_conversation_id = None;
+                draft.content_source_node_id = None;
+                draft.grounding_source_conversation_id = None;
+                draft.grounding_source_node_id = None;
+                draft.source_episode_id = None;
+                user_drafts.push(draft);
+            }
+        }
     }
     Ok(PreparedApplication {
-        drafts,
+        project_drafts,
+        user_drafts,
         rejected,
         model: extraction.model,
+    })
+}
+
+pub(crate) fn publish_user_application(
+    phylactery: &mut Phylactery,
+    drafts: &[MemoryDraft],
+) -> Result<UserPublication, InsomniaProcessError> {
+    let owner_id = phylactery.owner_id().ok_or_else(|| {
+        InsomniaProcessError::Phylactery(
+            "Phylactery has no durable owner ID; migrate it before routed Insomnia processing"
+                .into(),
+        )
+    })?;
+    let mut created = Vec::new();
+    let mut existing = Vec::new();
+    let mut refs = Vec::with_capacity(drafts.len());
+    for draft in drafts {
+        let memory = match phylactery.publish_memory(None, 0, draft.clone()) {
+            Ok((memory, was_created)) => {
+                if was_created {
+                    created.push(memory.clone());
+                } else {
+                    existing.push(memory.clone());
+                }
+                memory
+            }
+            Err(crate::MemoryError::MutationConflict) => {
+                let id = memory_id(&draft.mutation_id);
+                let memory = phylactery.memory(id)?;
+                if !same_routed_user_semantics(&memory, draft) {
+                    return Err(crate::MemoryError::MutationConflict.into());
+                }
+                existing.push(memory.clone());
+                memory
+            }
+            Err(error) => return Err(error.into()),
+        };
+        refs.push(MemoryRef {
+            owner_id: owner_id.clone(),
+            memory_id: memory.id,
+        });
+    }
+    phylactery
+        .sync()
+        .map_err(|error| InsomniaProcessError::Phylactery(error.to_string()))?;
+    Ok(UserPublication {
+        created,
+        existing,
+        refs,
     })
 }
 
@@ -78,6 +149,7 @@ pub(crate) fn commit_application(
     insomnia: &mut InsomniaStore,
     claim: &InsomniaWork,
     prepared: PreparedApplication,
+    user_publication: Option<UserPublication>,
     started_at_ns: i64,
     completed_at_ns: i64,
 ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
@@ -85,7 +157,15 @@ pub(crate) fn commit_application(
         .lease_token
         .ok_or(InsomniaProcessError::InvalidClaim)?;
     insomnia.active_claim(claim.episode_id, token, completed_at_ns)?;
-    let batch = memories.stage_grouped_insomnia(container, prepared.drafts)?;
+    if !prepared.user_drafts.is_empty() && user_publication.is_none() {
+        return Err(InsomniaProcessError::UserRoutingRequired);
+    }
+    let user_publication = user_publication.unwrap_or(UserPublication {
+        created: Vec::new(),
+        existing: Vec::new(),
+        refs: Vec::new(),
+    });
+    let batch = memories.stage_grouped_insomnia(container, prepared.project_drafts)?;
     let existing = batch.existing;
     let mut memory_ids: Vec<_> = batch.records.iter().map(|record| record.id).collect();
     memory_ids.extend(existing.iter().map(|memory| memory.id));
@@ -98,6 +178,7 @@ pub(crate) fn commit_application(
         extractor_version: INSOMNIA_EXTRACTOR_CONTRACT_VERSION.into(),
         rejected_count: prepared.rejected.len() as u32,
         memory_ids,
+        external_memory_refs: user_publication.refs.clone(),
         global_version_start: batch.global_version_start,
         bodies: batch.bodies,
         records: batch.records,
@@ -117,6 +198,27 @@ pub(crate) fn commit_application(
     Ok(InsomniaProcessResult {
         created,
         existing,
+        user_created: user_publication.created,
+        user_existing: user_publication.existing,
         rejected: prepared.rejected,
     })
+}
+
+fn same_routed_user_semantics(memory: &Memory, draft: &MemoryDraft) -> bool {
+    memory.category == draft.category
+        && memory.memory_type == draft.memory_type
+        && memory.authority_kind == draft.authority_kind
+        && memory.scope == draft.scope
+        && memory.lifecycle_state == draft.lifecycle_state
+        && memory.archived == draft.archived
+        && memory.superseded_by == draft.superseded_by
+        && memory.parent_id == draft.parent_id
+        && memory.source_node_id.is_none()
+        && memory.content_source_conversation_id.is_none()
+        && memory.content_source_node_id.is_none()
+        && memory.grounding_source_conversation_id.is_none()
+        && memory.grounding_source_node_id.is_none()
+        && memory.source_episode_id.is_none()
+        && memory.mutation_id == draft.mutation_id
+        && memory.created_at_ns == draft.created_at_ns
 }

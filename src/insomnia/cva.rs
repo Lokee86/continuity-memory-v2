@@ -202,6 +202,7 @@ impl Cva {
             extractor_version,
             rejected_count,
             memory_ids,
+            external_memory_refs: Vec::new(),
             global_version_start: self.container.next_version_candidate(),
             bodies: Vec::new(),
             records: Vec::new(),

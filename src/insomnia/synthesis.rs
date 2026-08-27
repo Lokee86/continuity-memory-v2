@@ -4,6 +4,7 @@ use super::extraction::{
     InsomniaCandidate, InsomniaEvidenceTurn, InsomniaExtractionError, InsomniaRejection,
 };
 use super::ledger::LedgerEntry;
+use super::ownership::InsomniaOwnership;
 use crate::{Episode, ResolvedTurn};
 use serde_json::{Map, Value, json};
 
@@ -16,7 +17,7 @@ Rules:
 2. Preserve every proposition in the group. You may consolidate wording, but may not omit a retained proposition or add a proposition not present in the group.
 3. Preserve modality exactly: current, future, historical, uncertainty, and correction semantics must not drift.
 4. Strip conversational/checkpoint phrasing that is not part of the retained propositions. Do not introduce prompt/phase/step numbers, receipts, implementation chatter, rationale, architecture, paths, consequences, or contextual facts absent from the group.
-5. Grounding and authority metadata are already final and are not fields you can edit.
+5. Grounding, authority, metadata, and durable ownership are already final and are not fields you can edit.
 6. Keep content compact and durable. The title should identify the remembered state; the body should state the grouped propositions naturally without editorial commentary.
 
 The episode is supplied only to help preserve referent wording when necessary. It is not permission to reinterpret the groups."#;
@@ -29,6 +30,7 @@ pub(super) struct SynthesisGroup {
     pub category: String,
     pub memory_type: String,
     pub lifecycle: String,
+    pub ownership: InsomniaOwnership,
     pub authority_source_node_id: String,
     pub grounding_source_node_id: String,
     pub propositions: Vec<String>,
@@ -55,6 +57,7 @@ pub(super) fn build_groups(
             category: entry.category.clone(),
             memory_type: entry.memory_type.clone(),
             lifecycle: entry.lifecycle.clone(),
+            ownership: InsomniaOwnership::Project,
             authority_source_node_id: entry.authority_source_node_id.clone(),
             grounding_source_node_id: entry.grounding_source_node_id.clone(),
             propositions: vec![entry.proposition.clone()],
@@ -158,6 +161,7 @@ pub(super) fn materialize(
             "authority_kind": group.authority_kind,
             "category": group.category,
             "type": group.memory_type,
+            "ownership": group.ownership.as_str(),
             "title": title,
             "content": content,
             "source_node_id": group.source_node_id,
@@ -208,6 +212,7 @@ fn group_json(group: &SynthesisGroup) -> Value {
         "category": group.category,
         "type": group.memory_type,
         "lifecycle": group.lifecycle,
+        "ownership": group.ownership.as_str(),
         "authority_source_node_id": group.authority_source_node_id,
         "grounding_source_node_id": group.grounding_source_node_id,
         "propositions": group.propositions

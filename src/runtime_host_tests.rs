@@ -1,8 +1,10 @@
 use crate::runtime_host_test_support::{
-    BlockingEndpoint, OmitEndpoint, one_worker, test_path, wait_complete,
+    BlockingEndpoint, OmitEndpoint, UserMemoryEndpoint, one_worker, queue_memory_episode,
+    test_path, wait_complete, wait_phylactery_memory, wait_phylactery_vectors,
 };
 use crate::{
-    Cva, EpisodeConfig, EpisodePolicy, InteractionRole, InteractionRuntime, ReliquaryRuntimeHost,
+    Cva, EpisodeConfig, EpisodePolicy, InteractionRole, InteractionRuntime, Phylactery,
+    ReliquaryRuntimeHost, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::sync::{Arc, Barrier};
 
@@ -79,4 +81,53 @@ fn live_completion_wakes_idle_insomnia_workers() {
     wait_complete(&host, 1);
     assert!(host.insomnia_stats().unwrap().complete >= 1);
     host.into_cva().unwrap();
+}
+
+#[test]
+fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
+    let mut cva = Cva::create_project(test_path("routed.prj.rel")).unwrap();
+    queue_memory_episode(&mut cva);
+    let phylactery = Phylactery::create(test_path("routed.phy")).unwrap();
+    let phy_owner = phylactery.owner_id().unwrap();
+    let host = ReliquaryRuntimeHost::start_with_phylactery(
+        InteractionRuntime::new(cva),
+        phylactery,
+        Some(Arc::new(UserMemoryEndpoint)),
+        Some(Arc::new(SimulatedEmbeddingEndpoint::new(
+            8,
+            VectorNormalization::L2,
+            7,
+        ))),
+        one_worker(),
+        EpisodePolicy {
+            episode: EpisodeConfig::default(),
+            inactivity_ns: i64::MAX,
+        },
+    );
+
+    wait_complete(&host, 1);
+    wait_phylactery_memory(&host, 1);
+    wait_phylactery_vectors(&host, 1);
+    assert_eq!(host.memory_stats().unwrap().memories, 0);
+    assert_eq!(
+        host.phylactery_owner_id().unwrap().as_deref(),
+        Some(phy_owner.as_str())
+    );
+
+    let (cva, phylactery) = host.into_cva_and_phylactery().unwrap();
+    let mut phylactery = phylactery.unwrap();
+    assert_eq!(phylactery.memory_stats().memories, 1);
+    assert_eq!(phylactery.memory_vector_stats().bindings, 1);
+    let episode = cva.episodes().into_iter().next().unwrap();
+    let attempt = &cva.insomnia_attempts(episode.id)[0];
+    assert!(attempt.memory_ids.is_empty());
+    assert_eq!(attempt.external_memory_refs.len(), 1);
+    assert_eq!(attempt.external_memory_refs[0].owner_id, phy_owner);
+    assert_eq!(
+        phylactery
+            .memory(attempt.external_memory_refs[0].memory_id)
+            .unwrap()
+            .source_episode_id,
+        None
+    );
 }

@@ -161,11 +161,11 @@ Do not implement `.phy` as a project Reliquary with provenance fields merely mad
 
 Routine prompt tuning on the 11-Episode adversarial fixture is complete and frozen. Future work is implementation/validation rather than continued fixture optimization:
 
-1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
-2. design and fixture-test persistence ownership routing described in [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md). `user | project` remains a useful first implementation boundary, but the long-term router must also represent learned Organization and Connection state where publication authority permits it. Ownership classification must remain separate from authorization/governance so observed behaviour cannot silently become policy, permissions, contractual terms, or standing instructions. A dedicated narrow ownership-classification pass may be cleaner than adding this responsibility to ordinary metadata and must be compared explicitly;
-3. implement cross-scope Memory routing/export policy from REL into the now-implemented Phylactery `.phy`, including explicit source-export/lineage semantics rather than REL-local pointers;
+1. **Implemented:** port the fixed-group metadata classification seam into authoritative extractor contract `v3-1` without allowing metadata to alter semantic groups;
+2. **Implemented for the first boundary:** dedicated `user | project` persistence ownership classification after fixed groups/optional metadata and before wording, with Project as the conservative default. Ownership remains separate from semantic authority and does not alter candidate identity;
+3. **Implemented for User routing:** explicit REL → PHY Memory routing, source-independent PHY publication, owner-qualified `MemoryRef` receipts, PHY-first crash recovery, finite-drain/CLI routing, and long-lived RuntimeHost attachment/vector backfill. Rich cross-file source lineage/export permission remains future work; Organization/Connection learned-state routing must also remain separate from authorization/governance;
 4. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
-5. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/scope/wording model mix;
+5. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/ownership/wording model mix;
 6. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
 
 Do not resume benchmark-specific prompt squeezing or add a general semantic review/rewrite pass merely to chase stochastic misses on the tuning fixture. Any reliability architecture should be triggered by production-observed failure classes and should concentrate extra inference on ambiguous/high-risk cases rather than multiplying every Insomnia call by default.
@@ -227,8 +227,8 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - Whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memories/Graph/Packed Vectors/Memory Vectors/Compatibility Profiles core, and how future user-Memory lexical retrieval should be represented without importing Archive semantics.
 - Whether `CVA` remains only as an internal generic-container/back-compat term now that explicit legacy migration is implemented.
 - The exact ownership boundaries among user-global Phylactery, Organization Reliquary, Project Reliquary, and Connection Reliquary learned state.
-- Whether persistence ownership classification belongs in the existing metadata pass or a dedicated ownership-classification pass; if dedicated, its ordering relative to metadata and synthesis, and how the first `user | project` boundary expands to Organization/Connection learned state.
-- Reliquary policy for exporting user Memories and optionally their source/provenance into Phylactery.
+- How the implemented dedicated `user | project` ownership classifier expands to Organization/Connection learned state without conflating ownership with authorization/governance.
+- Richer Reliquary policy for permitting/denying user-Memory export and optional source/lineage export into Phylactery; the current routing slice strips REL-local provenance and records only the resulting owner-qualified Memory reference.
 - Normalized interaction vocabulary for tool/session/artifact events beyond completed user/agent turns.
 - Whether any future headless/remote product mode justifies adding a service/IPC boundary around the in-process Rust integration.
 - Which CVA mutations are safe to expose as direct user actions before whole-history retention semantics exist.

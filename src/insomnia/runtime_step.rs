@@ -1,9 +1,9 @@
 use super::evidence::{hydrate_evidence_parts, plan_evidence};
 use super::extraction::{InsomniaEvidenceRound, InsomniaExtractionError};
-use super::processor::{commit_application, prepare_application};
+use super::processor::{commit_application, prepare_application, publish_user_application};
 use crate::{
     Cva, InsomniaExtraction, InsomniaProcessResult, InsomniaWork, InsomniaWorkerConfig,
-    InsomniaWorkerError,
+    InsomniaWorkerError, Phylactery,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -75,6 +75,26 @@ impl Cva {
         extraction: InsomniaExtraction,
         config: &InsomniaWorkerConfig,
     ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
+        self.commit_runtime_insomnia_inner(None, claim, extraction, config)
+    }
+
+    pub(crate) fn commit_runtime_insomnia_routed(
+        &mut self,
+        phylactery: &mut Phylactery,
+        claim: &RuntimeInsomniaClaim,
+        extraction: InsomniaExtraction,
+        config: &InsomniaWorkerConfig,
+    ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
+        self.commit_runtime_insomnia_inner(Some(phylactery), claim, extraction, config)
+    }
+
+    fn commit_runtime_insomnia_inner(
+        &mut self,
+        phylactery: Option<&mut Phylactery>,
+        claim: &RuntimeInsomniaClaim,
+        extraction: InsomniaExtraction,
+        config: &InsomniaWorkerConfig,
+    ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
         let completed_at_ns = now_ns();
         self.renew_insomnia_lease(
             claim.work.episode_id,
@@ -94,12 +114,19 @@ impl Cva {
             &config.scope,
             completed_at_ns,
         )?;
+        let user_publication = match phylactery {
+            Some(phylactery) if !prepared.user_drafts.is_empty() => {
+                Some(publish_user_application(phylactery, &prepared.user_drafts)?)
+            }
+            _ => None,
+        };
         commit_application(
             &mut self.container,
             &mut self.memories,
             &mut self.insomnia,
             &claim.work,
             prepared,
+            user_publication,
             claim.started_at_ns,
             completed_at_ns,
         )

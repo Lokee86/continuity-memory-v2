@@ -1,5 +1,7 @@
 use super::{DrainCounters, DrainShared, now_ns};
-use crate::insomnia::processor::{commit_application, prepare_application};
+use crate::insomnia::processor::{
+    commit_application, prepare_application, publish_user_application,
+};
 use crate::{GeneralEndpointError, InsomniaError, InsomniaExtractionError, InsomniaWork};
 use std::sync::atomic::Ordering;
 
@@ -50,6 +52,20 @@ pub(super) fn apply_success(
             completed_at_ns,
         )?
     };
+    let user_publication = if prepared.user_drafts.is_empty() {
+        None
+    } else {
+        let phylactery = shared.phylactery.as_ref().ok_or_else(|| {
+            crate::InsomniaWorkerError::Process(crate::InsomniaProcessError::UserRoutingRequired)
+        })?;
+        let mut phylactery = phylactery
+            .lock()
+            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
+        Some(publish_user_application(
+            &mut phylactery,
+            &prepared.user_drafts,
+        )?)
+    };
     let result = {
         let mut container = shared
             .container
@@ -69,6 +85,7 @@ pub(super) fn apply_success(
             &mut insomnia,
             claim,
             prepared,
+            user_publication,
             started_at_ns,
             completed_at_ns,
         )?
@@ -80,6 +97,12 @@ pub(super) fn apply_success(
     counters
         .existing
         .fetch_add(result.existing.len(), Ordering::Relaxed);
+    counters
+        .user_created
+        .fetch_add(result.user_created.len(), Ordering::Relaxed);
+    counters
+        .user_existing
+        .fetch_add(result.user_existing.len(), Ordering::Relaxed);
     counters
         .rejected
         .fetch_add(result.rejected.len(), Ordering::Relaxed);

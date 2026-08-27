@@ -300,7 +300,7 @@ A new scope kind should be created only when the thing has durable state and lif
 
 ## Insomnia scope classification
 
-The current experimental persistence classifier is `user | project`. That remains a useful first implementation boundary but is not the complete long-term ownership model.
+The first persistence classifier is now implemented as `user | project` under ADR 0023. It is deliberately conservative and remains only the first boundary, not the complete long-term ownership model.
 
 The eventual classifier/router must support the real durable owners that are authorized for learned state:
 
@@ -320,17 +320,13 @@ Example:
 
 ## Pass-boundary direction
 
-The current tuning harness is:
+The implemented `v3-1` extraction/routing sequence is:
 
-`semantic authority/disposition -> fixed groups -> metadata classification -> wording`
+`semantic authority/disposition -> fixed groups -> optional metadata classification -> optional ownership classification -> wording -> owner publication`
 
-Persistence ownership remains consequential enough to justify an independently testable classification/routing stage.
+Persistence ownership is a separately testable classification/routing stage. For the current User/Project slice it runs after groups are fixed (and after metadata when configured) but before wording, and may change only the destination owner. It cannot change the durable proposition, authority/provenance, category/type/lifecycle, group membership, or candidate identity.
 
-A plausible future sequence is:
-
-`semantic authority/disposition -> fixed groups -> semantic metadata -> ownership classification -> authority/export policy -> destination-aware wording/publication`
-
-The exact placement of ownership classification relative to ordinary metadata and synthesis remains open.
+A later governance/export-policy stage may still be required before learned Organization/Connection publication. That is separate from the now-resolved placement of User/Project ownership classification.
 
 The classifier should be evaluated independently from authority policy. A correct Organization/Connection ownership prediction can still result in `do not publish` or `require explicit authorization` for the proposed state type.
 
@@ -340,14 +336,9 @@ Scope ownership, export permission, and source-export permission are separate de
 
 A User Memory extracted from a Project may classify correctly as Phylactery-owned while project policy forbids exporting it. Likewise, Organization or Connection state may be semantically owned by those scopes while confidentiality or authorization policy blocks publication.
 
-Project-to-Phylactery policy remains conceptually:
+The current implementation has no general export-policy engine. Supplying an explicit PHY routing target enables User publication; Project-only paths do not run the ownership classifier. A routed User Memory is made source-independent by stripping REL-local provenance, while the REL completion records `MemoryRef { owner_id, memory_id }` to the resulting PHY object.
 
-- `memory_export = allow | deny`
-- `source_export = allow | deny`
-
-Equivalent cross-scope policy may later be required for Organization and Connection publication.
-
-A destination Memory must not require a live cross-file source pointer unless that source dependency is itself an explicit product contract.
+A richer future policy may still distinguish `memory_export = allow | deny` and `source_export = allow | deny`, especially for Organization/Connection or confidential Project material. A destination Memory must not require a live cross-file source pointer unless that source dependency is itself an explicit product contract.
 
 ## Retrieval implication
 

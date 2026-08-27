@@ -139,6 +139,7 @@ fn decode_attempt(bytes: &[u8]) -> Result<InsomniaAttempt, InsomniaError> {
         extractor_model,
         extractor_version,
         memory_ids,
+        external_memory_refs: Vec::new(),
         rejected_count,
         error,
     })

@@ -1,7 +1,7 @@
 use crate::{
     ArchiveError, CompatibilityProfileError, CompatibilityProfileId, Cva, EmbeddingEndpoint,
     GeneralEndpoint, InsomniaError, InsomniaExtractor, InsomniaProcessError, MemoryVectorError,
-    MemoryVectorId,
+    MemoryVectorId, Phylactery,
 };
 use std::fmt;
 
@@ -49,12 +49,18 @@ pub struct InsomniaDrainResult {
     pub terminal_episodes: usize,
     pub memories_created: usize,
     pub memories_existing: usize,
+    pub user_memories_created: usize,
+    pub user_memories_existing: usize,
     pub rejected_candidates: usize,
     pub evidence_turns: usize,
     pub memory_vector_profile_id: Option<CompatibilityProfileId>,
     pub memory_vectors_embedded: usize,
     pub memory_vectors_already_present: usize,
     pub memory_vector_set_id: Option<MemoryVectorId>,
+    pub user_memory_vector_profile_id: Option<CompatibilityProfileId>,
+    pub user_memory_vectors_embedded: usize,
+    pub user_memory_vectors_already_present: usize,
+    pub user_memory_vector_set_id: Option<MemoryVectorId>,
 }
 
 #[derive(Debug)]
@@ -127,17 +133,48 @@ impl Cva {
     ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
         validate_config(&config)?;
         let mut result = runtime::drain(self, extractor, &config)?;
-        if self.memory_stats().memories == 0 {
-            return Ok(result);
-        }
-        let profile = self.establish_compatibility_profile(embedding_endpoint)?;
-        let vectors = self.build_missing_memory_vectors(profile.id, embedding_endpoint)?;
-        result.memory_vector_profile_id = Some(profile.id);
-        result.memory_vectors_embedded = vectors.embedded;
-        result.memory_vectors_already_present = vectors.already_present;
-        result.memory_vector_set_id = vectors.created_set;
+        fill_project_vectors(self, embedding_endpoint, &mut result)?;
         Ok(result)
     }
+
+    pub fn drain_insomnia_backlog_routed<E: GeneralEndpoint, V: EmbeddingEndpoint>(
+        &mut self,
+        phylactery: &mut Phylactery,
+        extractor: &InsomniaExtractor<E>,
+        embedding_endpoint: &V,
+        config: InsomniaWorkerConfig,
+    ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+        validate_config(&config)?;
+        let mut result = runtime::drain_routed(self, phylactery, extractor, &config)?;
+        fill_project_vectors(self, embedding_endpoint, &mut result)?;
+        if phylactery.memory_stats().memories > 0 {
+            let profile = phylactery.establish_compatibility_profile(embedding_endpoint)?;
+            let vectors =
+                phylactery.build_missing_memory_vectors(profile.id, embedding_endpoint)?;
+            result.user_memory_vector_profile_id = Some(profile.id);
+            result.user_memory_vectors_embedded = vectors.embedded;
+            result.user_memory_vectors_already_present = vectors.already_present;
+            result.user_memory_vector_set_id = vectors.created_set;
+        }
+        Ok(result)
+    }
+}
+
+fn fill_project_vectors<V: EmbeddingEndpoint>(
+    cva: &mut Cva,
+    embedding_endpoint: &V,
+    result: &mut InsomniaDrainResult,
+) -> Result<(), InsomniaWorkerError> {
+    if cva.memory_stats().memories == 0 {
+        return Ok(());
+    }
+    let profile = cva.establish_compatibility_profile(embedding_endpoint)?;
+    let vectors = cva.build_missing_memory_vectors(profile.id, embedding_endpoint)?;
+    result.memory_vector_profile_id = Some(profile.id);
+    result.memory_vectors_embedded = vectors.embedded;
+    result.memory_vectors_already_present = vectors.already_present;
+    result.memory_vector_set_id = vectors.created_set;
+    Ok(())
 }
 
 fn validate_config(config: &InsomniaWorkerConfig) -> Result<(), InsomniaWorkerError> {

@@ -46,7 +46,17 @@ pub(super) fn worker_loop(
             seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
             continue;
         };
-        let extractor = InsomniaExtractor::new(SharedGeneralEndpoint(endpoint));
+        let general = SharedGeneralEndpoint(endpoint);
+        let extractor = if shared
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .is_some()
+        {
+            InsomniaExtractor::new(general.clone()).with_ownership_endpoint(general)
+        } else {
+            InsomniaExtractor::new(general)
+        };
         let claim = {
             let mut runtime = shared
                 .runtime
@@ -83,10 +93,21 @@ fn process_claim(
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     match extraction {
         Ok(extraction) => {
-            runtime
-                .cva
-                .commit_runtime_insomnia(&claim, extraction, &shared.config)
-                .map_err(operation)?;
+            let mut phylactery = shared
+                .phylactery
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            match phylactery.as_mut() {
+                Some(phylactery) => runtime
+                    .cva
+                    .commit_runtime_insomnia_routed(phylactery, &claim, extraction, &shared.config)
+                    .map_err(operation)?,
+                None => runtime
+                    .cva
+                    .commit_runtime_insomnia(&claim, extraction, &shared.config)
+                    .map_err(operation)?,
+            };
+            drop(phylactery);
             drop(runtime);
             notify_work(&shared.signal)
         }

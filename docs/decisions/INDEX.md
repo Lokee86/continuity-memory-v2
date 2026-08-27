@@ -22,3 +22,4 @@
 - [ADR 0020: Reliquary and Phylactery file kinds](0020-reliquary-and-phylactery-file-kinds.md) — **Accepted and implemented for typed REL/PHY identity; amended by ADR 0021**, 2026-08-24.
 - [ADR 0021: Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md) — **Accepted for logical scope ownership, typed Reliquary naming, and Connection modelling; concrete schema/context policy provisional**, 2026-08-25.
 - [ADR 0022: Durable typed owner identity](0022-durable-typed-owner-identity.md) — **Accepted and implemented**, 2026-08-26.
+- [ADR 0023: Insomnia durable owner routing](0023-insomnia-durable-owner-routing.md) — **Accepted and implemented**, 2026-08-27.

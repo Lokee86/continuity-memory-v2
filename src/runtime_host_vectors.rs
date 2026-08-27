@@ -33,7 +33,8 @@ impl EmbeddingEndpoint for SharedEmbeddingEndpoint {
 pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHostError> {
     let mut seen_epoch = 0_u64;
     let mut active_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>> = None;
-    let mut active_profile: Option<CompatibilityProfile> = None;
+    let mut project_profile: Option<CompatibilityProfile> = None;
+    let mut user_profile: Option<CompatibilityProfile> = None;
     loop {
         if stopped(&shared.signal)? {
             return Ok(());
@@ -45,7 +46,8 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             .clone();
         let Some(endpoint) = endpoint else {
             active_endpoint = None;
-            active_profile = None;
+            project_profile = None;
+            user_profile = None;
             seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
             continue;
         };
@@ -62,48 +64,99 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
                         continue;
                     }
                 };
-            let profile = {
+            project_profile = Some({
                 let mut runtime = shared
                     .runtime
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
                 runtime
                     .cva
-                    .accept_runtime_compatibility_profile(candidate)
+                    .accept_runtime_compatibility_profile(candidate.clone())
+                    .map_err(operation)?
+            });
+            user_profile = {
+                let mut phylactery = shared
+                    .phylactery
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                phylactery
+                    .as_mut()
+                    .map(|phy| phy.accept_runtime_compatibility_profile(candidate.clone()))
+                    .transpose()
                     .map_err(operation)?
             };
             active_endpoint = Some(Arc::clone(&endpoint));
-            active_profile = Some(profile);
         }
-        let profile = active_profile.as_ref().expect("profile established");
-        let batch = {
-            let mut runtime = shared
-                .runtime
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            runtime
-                .cva
-                .prepare_runtime_memory_vector_batch(profile.id)
-                .map_err(operation)?
-        };
-        let Some(batch) = batch else {
-            seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
-            continue;
-        };
-        let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
-            Ok(vectors) => vectors,
-            Err(_) => {
-                seen_epoch = wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
-                continue;
+
+        let mut did_work = false;
+        if let Some(profile) = &project_profile {
+            let batch = {
+                let mut runtime = shared
+                    .runtime
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                runtime
+                    .cva
+                    .prepare_runtime_memory_vector_batch(profile.id)
+                    .map_err(operation)?
+            };
+            if let Some(batch) = batch {
+                let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
+                    Ok(vectors) => vectors,
+                    Err(_) => {
+                        seen_epoch =
+                            wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
+                        continue;
+                    }
+                };
+                let mut runtime = shared
+                    .runtime
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                runtime
+                    .cva
+                    .commit_runtime_memory_vector_batch(batch, vectors)
+                    .map_err(operation)?;
+                did_work = true;
             }
-        };
-        let mut runtime = shared
-            .runtime
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        runtime
-            .cva
-            .commit_runtime_memory_vector_batch(batch, vectors)
-            .map_err(operation)?;
+        }
+
+        if let Some(profile) = &user_profile {
+            let batch = {
+                let mut phylactery = shared
+                    .phylactery
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                match phylactery.as_mut() {
+                    Some(phy) => phy
+                        .prepare_runtime_memory_vector_batch(profile.id)
+                        .map_err(operation)?,
+                    None => None,
+                }
+            };
+            if let Some(batch) = batch {
+                let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
+                    Ok(vectors) => vectors,
+                    Err(_) => {
+                        seen_epoch =
+                            wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
+                        continue;
+                    }
+                };
+                let mut phylactery = shared
+                    .phylactery
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                if let Some(phy) = phylactery.as_mut() {
+                    phy.commit_runtime_memory_vector_batch(batch, vectors)
+                        .map_err(operation)?;
+                }
+                did_work = true;
+            }
+        }
+
+        if !did_work {
+            seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
+        }
     }
 }

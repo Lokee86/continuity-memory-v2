@@ -1,0 +1,192 @@
+use super::completion::decode_completion;
+use super::test_support::test_path;
+use crate::{
+    Cva, EpisodeBoundary, EpisodeConfig, EpisodeId, EpisodeOrigin, InsomniaExtractor,
+    InsomniaPriority, MemoryDraft, Phylactery, SimulatedGeneralEndpoint,
+};
+use serde_json::{Value, json};
+
+fn setup(name: &str) -> (Cva, crate::Episode) {
+    let path = test_path(name);
+    let mut cva = Cva::create(path).unwrap();
+    cva.append_node(
+        "u0".into(),
+        "c1".into(),
+        None,
+        "user".into(),
+        10,
+        "I prefer concise answers.",
+    )
+    .unwrap();
+    let episode = cva
+        .materialize_path_episodes(
+            "c1",
+            "u0",
+            EpisodeConfig::default(),
+            EpisodeOrigin::Live,
+            Some((EpisodeBoundary::Inactivity, 100)),
+        )
+        .unwrap()
+        .created[0]
+        .clone();
+    cva.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 101)
+        .unwrap();
+    (cva, episode)
+}
+
+fn ledger() -> Value {
+    json!({
+        "turns": {"u0": [{
+            "disposition": "retain",
+            "authority_kind": "direct",
+            "category": "preference",
+            "type": "communication",
+            "lifecycle": "current",
+            "proposition": "The user prefers concise answers.",
+            "authority_source_node_id": "",
+            "grounding_source_node_id": "",
+            "reason": "durable preference"
+        }]},
+        "evidence_requests": []
+    })
+}
+
+fn user_extractor(title: &str, content: &str) -> InsomniaExtractor<SimulatedGeneralEndpoint> {
+    InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "wording-model",
+        vec![
+            ledger(),
+            json!({"groups": {"g000": {"title": title, "content": content}}}),
+        ],
+    ))
+    .with_ownership_endpoint(SimulatedGeneralEndpoint::new(
+        "ownership-model",
+        vec![json!({"groups": {"g000": {"ownership": "user"}}})],
+    ))
+}
+
+#[test]
+fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
+    let (mut cva, episode) = setup("owner-routing.prj.rel");
+    let phy_path = test_path("owner-routing.phy");
+    let mut phy = Phylactery::create(&phy_path).unwrap();
+    let phy_owner = phy.owner_id().unwrap();
+    let claim = cva
+        .claim_insomnia_episode("worker", 110, 100)
+        .unwrap()
+        .unwrap();
+
+    let result = cva
+        .process_claimed_insomnia_episode_routed(
+            &mut phy,
+            &claim,
+            &user_extractor("Concise responses", "The user prefers concise answers."),
+            "private",
+            110,
+            120,
+        )
+        .unwrap();
+
+    assert!(result.created.is_empty());
+    assert_eq!(result.user_created.len(), 1);
+    let memory = &result.user_created[0];
+    assert!(memory.source_episode_id.is_none());
+    assert!(memory.source_node_id.is_none());
+    assert_eq!(cva.memory_stats().memories, 0);
+    assert_eq!(phy.memory_stats().memories, 1);
+    let attempt = &cva.insomnia_attempts(episode.id)[0];
+    assert!(attempt.memory_ids.is_empty());
+    assert_eq!(attempt.external_memory_refs.len(), 1);
+    assert_eq!(attempt.external_memory_refs[0].owner_id, phy_owner);
+    assert_eq!(attempt.external_memory_refs[0].memory_id, memory.id);
+}
+
+#[test]
+fn routed_retry_reuses_phy_memory_after_wording_drift() {
+    let (mut cva, episode) = setup("owner-routing-retry.prj.rel");
+    let phy_path = test_path("owner-routing-retry.phy");
+    let mut phy = Phylactery::create(&phy_path).unwrap();
+    let turns = cva.episode_turns(episode.id).unwrap();
+    let extraction = user_extractor("Concise responses", "The user prefers concise answers.")
+        .extract(&episode, &turns)
+        .unwrap();
+    let candidate = &extraction.candidates[0];
+    let mutation_id = format!(
+        "insomnia:{}:{}",
+        super::candidate::hex(&episode.id.0),
+        candidate.key
+    );
+    let (prewritten, _) = phy
+        .publish_memory(
+            None,
+            0,
+            MemoryDraft {
+                category: candidate.category.clone(),
+                memory_type: candidate.memory_type.clone(),
+                authority_kind: candidate.authority_kind.clone(),
+                title: candidate.title.clone(),
+                content: candidate.content.clone(),
+                scope: "private".into(),
+                lifecycle_state: "extracted".into(),
+                archived: false,
+                superseded_by: None,
+                parent_id: None,
+                source_node_id: None,
+                content_source_conversation_id: None,
+                content_source_node_id: None,
+                grounding_source_conversation_id: None,
+                grounding_source_node_id: None,
+                source_episode_id: None,
+                mutation_id,
+                created_at_ns: episode.source_through_ns,
+                updated_at_ns: 120,
+            },
+        )
+        .unwrap();
+    phy.sync().unwrap();
+
+    let claim = cva
+        .claim_insomnia_episode("worker", 110, 100)
+        .unwrap()
+        .unwrap();
+    let result = cva
+        .process_claimed_insomnia_episode_routed(
+            &mut phy,
+            &claim,
+            &user_extractor(
+                "Response brevity",
+                "Concise responses are preferred by the user.",
+            ),
+            "private",
+            110,
+            120,
+        )
+        .unwrap();
+    assert!(result.user_created.is_empty());
+    assert_eq!(result.user_existing.len(), 1);
+    assert_eq!(result.user_existing[0].id, prewritten.id);
+    assert_eq!(phy.memory_stats().memories, 1);
+}
+
+#[test]
+fn legacy_v2_completion_has_no_external_memory_refs() {
+    fn string(out: &mut Vec<u8>, value: &str) {
+        out.extend_from_slice(&(value.len() as u32).to_le_bytes());
+        out.extend_from_slice(value.as_bytes());
+    }
+    let mut payload = b"CVAINSC2".to_vec();
+    payload.extend_from_slice(&EpisodeId([7; 32]).0);
+    payload.extend_from_slice(&1_u32.to_le_bytes());
+    payload.extend_from_slice(&10_i64.to_le_bytes());
+    payload.extend_from_slice(&11_i64.to_le_bytes());
+    payload.extend_from_slice(&0_u32.to_le_bytes());
+    payload.extend_from_slice(&0_u64.to_le_bytes());
+    payload.extend_from_slice(&0_u32.to_le_bytes());
+    string(&mut payload, "legacy-model");
+    string(&mut payload, "v3-0");
+    payload.extend_from_slice(&0_u32.to_le_bytes());
+    payload.extend_from_slice(&0_u32.to_le_bytes());
+    payload.extend_from_slice(&0_u32.to_le_bytes());
+    let completion = decode_completion(&payload).unwrap().unwrap();
+    assert!(completion.external_memory_refs.is_empty());
+}

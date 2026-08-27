@@ -1,10 +1,11 @@
 use crate::EpisodeId;
-use crate::MemoryBodyId;
 use crate::memory_codec::{decode_record, encode_record};
 use crate::memory_model::MemoryRecord;
+use crate::{MemoryBodyId, MemoryRef};
 
 const COMPLETION_MAGIC_V1: [u8; 8] = *b"CVAINSC1";
 const COMPLETION_MAGIC_V2: [u8; 8] = *b"CVAINSC2";
+const COMPLETION_MAGIC_V3: [u8; 8] = *b"CVAINSC3";
 
 #[derive(Clone, Debug)]
 pub(crate) struct InsomniaCompletionBody {
@@ -22,6 +23,7 @@ pub(crate) struct InsomniaCompletion {
     pub(crate) extractor_version: String,
     pub(crate) rejected_count: u32,
     pub(crate) memory_ids: Vec<crate::MemoryId>,
+    pub(crate) external_memory_refs: Vec<MemoryRef>,
     pub(crate) global_version_start: u64,
     pub(crate) bodies: Vec<InsomniaCompletionBody>,
     pub(crate) records: Vec<MemoryRecord>,
@@ -41,7 +43,7 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
                 .map(|body| body.bytes.len())
                 .sum::<usize>(),
     );
-    out.extend_from_slice(&COMPLETION_MAGIC_V2);
+    out.extend_from_slice(&COMPLETION_MAGIC_V3);
     out.extend_from_slice(&value.episode_id.0);
     out.extend_from_slice(&value.attempt.to_le_bytes());
     out.extend_from_slice(&value.started_at_ns.to_le_bytes());
@@ -56,6 +58,16 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
     out.extend_from_slice(&memory_count.to_le_bytes());
     for id in &value.memory_ids {
         out.extend_from_slice(&id.0);
+    }
+    let external_count = u32::try_from(value.external_memory_refs.len())
+        .map_err(|_| "too many completion external memory refs")?;
+    out.extend_from_slice(&external_count.to_le_bytes());
+    for memory_ref in &value.external_memory_refs {
+        if memory_ref.owner_id.trim().is_empty() {
+            return Err("empty external memory owner id");
+        }
+        write_string(&mut out, &memory_ref.owner_id)?;
+        out.extend_from_slice(&memory_ref.memory_id.0);
     }
     let body_count = u32::try_from(value.bodies.len()).map_err(|_| "too many completion bodies")?;
     out.extend_from_slice(&body_count.to_le_bytes());
@@ -88,11 +100,11 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
 pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
 ) -> Result<Option<(u64, u32)>, &'static str> {
-    if bytes.len() < 8 || bytes[..8] != COMPLETION_MAGIC_V2 {
+    if bytes.len() < 8 || (bytes[..8] != COMPLETION_MAGIC_V2 && bytes[..8] != COMPLETION_MAGIC_V3) {
         return Ok(None);
     }
     if bytes.len() < 76 {
-        return Err("short Insomnia v2 completion");
+        return Err("short Insomnia completion");
     }
     let start = u64::from_le_bytes(bytes[64..72].try_into().unwrap());
     let count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
@@ -106,6 +118,9 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
     if bytes.len() < 8 {
         return Ok(None);
     }
+    if bytes[..8] == COMPLETION_MAGIC_V3 {
+        return decode_completion_v3(bytes).map(Some);
+    }
     if bytes[..8] == COMPLETION_MAGIC_V2 {
         return decode_completion_v2(bytes).map(Some);
     }
@@ -113,6 +128,68 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
         return decode_completion_v1(bytes).map(Some);
     }
     Ok(None)
+}
+
+fn decode_completion_v3(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
+    if bytes.len() < 88 {
+        return Err("short Insomnia v3 completion");
+    }
+    let episode_id = EpisodeId(bytes[8..40].try_into().unwrap());
+    let attempt = u32::from_le_bytes(bytes[40..44].try_into().unwrap());
+    let started_at_ns = i64::from_le_bytes(bytes[44..52].try_into().unwrap());
+    let completed_at_ns = i64::from_le_bytes(bytes[52..60].try_into().unwrap());
+    let rejected_count = u32::from_le_bytes(bytes[60..64].try_into().unwrap());
+    let global_version_start = u64::from_le_bytes(bytes[64..72].try_into().unwrap());
+    let global_version_count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
+    if global_version_count > 0 && global_version_start == 0 {
+        return Err("invalid completion global version range");
+    }
+    let mut cursor = 76;
+    let extractor_model = read_string(bytes, &mut cursor)?;
+    let extractor_version = read_string(bytes, &mut cursor)?;
+    let memory_ids = read_memory_ids(bytes, &mut cursor)?;
+    let external_memory_refs = read_memory_refs(bytes, &mut cursor)?;
+    let body_count = read_u32(bytes, &mut cursor)? as usize;
+    let mut bodies = Vec::with_capacity(body_count);
+    for _ in 0..body_count {
+        let id_end = cursor
+            .checked_add(32)
+            .ok_or("completion body id overflow")?;
+        let id_raw = bytes
+            .get(cursor..id_end)
+            .ok_or("truncated completion body id")?;
+        cursor = id_end;
+        let len = read_u32(bytes, &mut cursor)? as usize;
+        let end = cursor.checked_add(len).ok_or("completion body overflow")?;
+        let body = bytes
+            .get(cursor..end)
+            .ok_or("truncated completion body")?
+            .to_vec();
+        cursor = end;
+        bodies.push(InsomniaCompletionBody {
+            id: MemoryBodyId(id_raw.try_into().unwrap()),
+            bytes: body,
+        });
+    }
+    let records = read_records(bytes, &mut cursor)?;
+    validate_record_versions(global_version_start, global_version_count, &records)?;
+    if cursor != bytes.len() {
+        return Err("Insomnia completion trailing bytes");
+    }
+    Ok(InsomniaCompletion {
+        episode_id,
+        attempt,
+        started_at_ns,
+        completed_at_ns,
+        extractor_model,
+        extractor_version,
+        rejected_count,
+        memory_ids,
+        external_memory_refs,
+        global_version_start,
+        bodies,
+        records,
+    })
 }
 
 fn decode_completion_v2(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
@@ -179,6 +256,7 @@ fn decode_completion_v2(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         extractor_version,
         rejected_count,
         memory_ids,
+        external_memory_refs: Vec::new(),
         global_version_start,
         bodies,
         records,
@@ -215,6 +293,7 @@ fn decode_completion_v1(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         extractor_version,
         rejected_count,
         memory_ids,
+        external_memory_refs: Vec::new(),
         global_version_start,
         bodies: Vec::new(),
         records,
@@ -235,6 +314,48 @@ fn read_memory_ids(bytes: &[u8], cursor: &mut usize) -> Result<Vec<crate::Memory
         memory_ids.push(crate::MemoryId(raw.try_into().unwrap()));
     }
     Ok(memory_ids)
+}
+
+fn read_memory_refs(bytes: &[u8], cursor: &mut usize) -> Result<Vec<MemoryRef>, &'static str> {
+    let count = read_u32(bytes, cursor)? as usize;
+    let mut refs = Vec::with_capacity(count);
+    for _ in 0..count {
+        let owner_id = read_string(bytes, cursor)?;
+        if owner_id.trim().is_empty() {
+            return Err("empty external memory owner id");
+        }
+        let end = cursor
+            .checked_add(32)
+            .ok_or("completion external memory id overflow")?;
+        let raw = bytes
+            .get(*cursor..end)
+            .ok_or("truncated completion external memory id")?;
+        *cursor = end;
+        refs.push(MemoryRef {
+            owner_id,
+            memory_id: crate::MemoryId(raw.try_into().unwrap()),
+        });
+    }
+    Ok(refs)
+}
+
+fn validate_record_versions(
+    global_version_start: u64,
+    global_version_count: u32,
+    records: &[MemoryRecord],
+) -> Result<(), &'static str> {
+    if global_version_count as usize != records.len() {
+        return Err("completion global version count mismatch");
+    }
+    for (index, record) in records.iter().enumerate() {
+        let expected = global_version_start
+            .checked_add(u64::try_from(index).map_err(|_| "completion version overflow")?)
+            .ok_or("completion version overflow")?;
+        if record.global_version != expected {
+            return Err("non-contiguous completion global versions");
+        }
+    }
+    Ok(())
 }
 
 fn read_records(bytes: &[u8], cursor: &mut usize) -> Result<Vec<MemoryRecord>, &'static str> {

@@ -266,7 +266,7 @@ fn two_pass_selector_and_wording_contracts_preserve_tuned_policy() {
     for clause in [
         "Your ONLY job is to write one concise durable Memory title and content body",
         "Do not add, drop, merge, split, rename, or reorder groups",
-        "Grounding and authority metadata are already final",
+        "Grounding, authority, metadata, and durable ownership are already final",
     ] {
         assert!(
             SYNTHESIS_SYSTEM_PROMPT.contains(clause),

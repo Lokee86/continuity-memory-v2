@@ -25,7 +25,7 @@ These names describe separate persistence/retrieval owners:
 
 Normal context assembly may retrieve from both the active Reliquary and Phylactery. Unrelated Reliquaries are not part of ordinary retrieval merely because they belong to the same user.
 
-The exact Phylactery storage schema and the Insomnia `user | project` classification boundary remain future design work. In particular, this ADR does not decide whether scope classification belongs in the existing metadata pass or in a dedicated pass.
+The exact Phylactery storage schema and Insomnia ownership boundary were intentionally deferred here. ADR 0020 later defined the concrete PHY owner composition, and ADR 0023 now defines the implemented dedicated `user | project` ownership pass and owner-qualified routing receipts.
 
 ## Rename boundary
 

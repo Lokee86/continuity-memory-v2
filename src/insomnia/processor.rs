@@ -9,12 +9,16 @@ use std::fmt;
 mod application;
 mod source_validation;
 
-pub(crate) use application::{PreparedApplication, commit_application, prepare_application};
+pub(crate) use application::{
+    PreparedApplication, commit_application, prepare_application, publish_user_application,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaProcessResult {
     pub created: Vec<Memory>,
     pub existing: Vec<Memory>,
+    pub user_created: Vec<Memory>,
+    pub user_existing: Vec<Memory>,
     pub rejected: Vec<InsomniaRejection>,
 }
 
@@ -23,6 +27,8 @@ pub enum InsomniaProcessError {
     MissingEpisode,
     InvalidClaim,
     InvalidCandidate(String),
+    UserRoutingRequired,
+    Phylactery(String),
     Extraction(InsomniaExtractionError),
     Memory(MemoryError),
     Queue(crate::InsomniaError),
@@ -35,6 +41,11 @@ impl fmt::Display for InsomniaProcessError {
             Self::MissingEpisode => write!(f, "Insomnia episode is missing"),
             Self::InvalidClaim => write!(f, "Insomnia work is not an active claim"),
             Self::InvalidCandidate(message) => write!(f, "invalid Insomnia candidate: {message}"),
+            Self::UserRoutingRequired => write!(
+                f,
+                "Insomnia produced user-owned Memory but no Phylactery routing target was supplied"
+            ),
+            Self::Phylactery(message) => write!(f, "Phylactery routing failed: {message}"),
             Self::Extraction(error) => write!(f, "{error}"),
             Self::Memory(error) => write!(f, "{error}"),
             Self::Queue(error) => write!(f, "{error}"),
@@ -86,6 +97,43 @@ impl Cva {
             &turns,
             extraction,
             scope,
+            started_at_ns,
+            completed_at_ns,
+        )
+    }
+
+    pub fn process_claimed_insomnia_episode_routed<E: GeneralEndpoint>(
+        &mut self,
+        phylactery: &mut crate::Phylactery,
+        claim: &InsomniaWork,
+        extractor: &InsomniaExtractor<E>,
+        scope: &str,
+        started_at_ns: i64,
+        completed_at_ns: i64,
+    ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
+        let (episode, turns) = self.claimed_episode_input(claim, scope)?;
+        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        let prepared = prepare_application(
+            &self.archive,
+            &mut self.container,
+            &episode,
+            &turns,
+            extraction,
+            scope,
+            completed_at_ns,
+        )?;
+        let user_publication = if prepared.user_drafts.is_empty() {
+            None
+        } else {
+            Some(publish_user_application(phylactery, &prepared.user_drafts)?)
+        };
+        commit_application(
+            &mut self.container,
+            &mut self.memories,
+            &mut self.insomnia,
+            claim,
+            prepared,
+            user_publication,
             started_at_ns,
             completed_at_ns,
         )
@@ -198,6 +246,7 @@ fn apply_prepared(
         insomnia,
         claim,
         prepared,
+        None,
         started_at_ns,
         completed_at_ns,
     )

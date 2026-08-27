@@ -1,6 +1,6 @@
 use crate::insomnia::completion::{InsomniaCompletion, InsomniaCompletionBody, encode_completion};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
-use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, MemoryDraft};
+use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, MemoryDraft, MemoryRef};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -128,6 +128,10 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         extractor_version: "v1".into(),
         rejected_count: 0,
         memory_ids: vec![id],
+        external_memory_refs: vec![MemoryRef {
+            owner_id: "phy-00000000-0000-0000-0000-000000000001".into(),
+            memory_id: id,
+        }],
         global_version_start: global_version,
         bodies: vec![InsomniaCompletionBody {
             id: body_id,
@@ -152,5 +156,8 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
     assert_eq!(result.replayed_insomnia_completions, 1);
     let mut merged = Cva::open(output).unwrap();
     assert_eq!(merged.memory(id).unwrap().mutation_id, "grouped-memory");
-    assert_eq!(merged.insomnia_attempts(episode.id)[0].memory_ids, vec![id]);
+    let attempt = &merged.insomnia_attempts(episode.id)[0];
+    assert_eq!(attempt.memory_ids, vec![id]);
+    assert_eq!(attempt.external_memory_refs[0].memory_id, id);
+    assert!(attempt.external_memory_refs[0].owner_id.starts_with("phy-"));
 }

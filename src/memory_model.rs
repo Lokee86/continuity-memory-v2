@@ -4,6 +4,12 @@ use sha2::{Digest, Sha256};
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MemoryId(pub [u8; 32]);
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct MemoryRef {
+    pub owner_id: String,
+    pub memory_id: MemoryId,
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MemoryBodyId(pub [u8; 32]);
 

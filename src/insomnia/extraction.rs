@@ -1,6 +1,7 @@
 use super::evidence::{EvidenceRequest, parse_evidence_requests, resolve_evidence};
 use super::ledger;
 use super::metadata;
+use super::ownership::{self, InsomniaOwnership};
 use super::synthesis;
 use crate::{Cva, Episode, GeneralEndpoint, GeneralEndpointError, ResolvedTurn};
 use serde_json::{Value, json};
@@ -13,6 +14,7 @@ pub struct InsomniaCandidate {
     pub authority_kind: String,
     pub category: String,
     pub memory_type: String,
+    pub ownership: InsomniaOwnership,
     pub title: String,
     pub content: String,
     pub source_node_id: String,
@@ -93,6 +95,7 @@ impl From<GeneralEndpointError> for InsomniaExtractionError {
 pub struct InsomniaExtractor<E> {
     endpoint: E,
     metadata_endpoint: Option<Arc<dyn GeneralEndpoint>>,
+    ownership_endpoint: Option<Arc<dyn GeneralEndpoint>>,
 }
 
 impl<E: GeneralEndpoint> InsomniaExtractor<E> {
@@ -100,6 +103,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         Self {
             endpoint,
             metadata_endpoint: None,
+            ownership_endpoint: None,
         }
     }
 
@@ -108,6 +112,14 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         M: GeneralEndpoint + 'static,
     {
         self.metadata_endpoint = Some(Arc::new(endpoint));
+        self
+    }
+
+    pub fn with_ownership_endpoint<O>(mut self, endpoint: O) -> Self
+    where
+        O: GeneralEndpoint + 'static,
+    {
+        self.ownership_endpoint = Some(Arc::new(endpoint));
         self
     }
 
@@ -262,6 +274,15 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         if let Some(metadata_endpoint) = &self.metadata_endpoint {
             metadata::classify(
                 metadata_endpoint.as_ref(),
+                episode_payload,
+                turns,
+                &evidence_turns,
+                &mut groups,
+            )?;
+        }
+        if let Some(ownership_endpoint) = &self.ownership_endpoint {
+            ownership::classify(
+                ownership_endpoint.as_ref(),
                 episode_payload,
                 turns,
                 &evidence_turns,

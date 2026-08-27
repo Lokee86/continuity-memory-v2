@@ -141,6 +141,7 @@ fn replay_completion(
         extractor_version: completion.extractor_version,
         rejected_count: completion.rejected_count,
         memory_ids: completion.memory_ids,
+        external_memory_refs: completion.external_memory_refs,
         global_version_start: destination.container.next_version_candidate(),
         bodies: Vec::new(),
         records: Vec::new(),
@@ -160,6 +161,7 @@ fn same_completion(attempt: &InsomniaAttempt, completion: &InsomniaCompletion) -
         && attempt.extractor_model == completion.extractor_model
         && attempt.extractor_version == completion.extractor_version
         && attempt.memory_ids == completion.memory_ids
+        && attempt.external_memory_refs == completion.external_memory_refs
         && attempt.rejected_count == completion.rejected_count
 }
 

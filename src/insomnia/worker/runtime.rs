@@ -5,7 +5,9 @@ use crate::insomnia::processor::claimed_episode_input_parts;
 use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
-use crate::{Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaWork};
+use crate::{
+    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaWork, Phylactery,
+};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
@@ -25,6 +27,8 @@ pub(super) struct DrainCounters {
     pub(super) terminal: AtomicUsize,
     pub(super) created: AtomicUsize,
     pub(super) existing: AtomicUsize,
+    pub(super) user_created: AtomicUsize,
+    pub(super) user_existing: AtomicUsize,
     pub(super) rejected: AtomicUsize,
     pub(super) evidence_turns: AtomicUsize,
 }
@@ -35,6 +39,7 @@ pub(super) struct DrainShared<'a> {
     pub(super) container: Mutex<&'a mut Container>,
     pub(super) memories: Mutex<&'a mut MemoryStore>,
     pub(super) insomnia: Mutex<&'a mut InsomniaStore>,
+    pub(super) phylactery: Option<Mutex<&'a mut Phylactery>>,
 }
 
 enum ClaimState {
@@ -48,6 +53,24 @@ pub(super) fn drain<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    drain_inner(cva, None, extractor, config)
+}
+
+pub(super) fn drain_routed<E: GeneralEndpoint>(
+    cva: &mut Cva,
+    phylactery: &mut Phylactery,
+    extractor: &InsomniaExtractor<E>,
+    config: &InsomniaWorkerConfig,
+) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    drain_inner(cva, Some(phylactery), extractor, config)
+}
+
+fn drain_inner<E: GeneralEndpoint>(
+    cva: &mut Cva,
+    phylactery: Option<&mut Phylactery>,
+    extractor: &InsomniaExtractor<E>,
+    config: &InsomniaWorkerConfig,
+) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
     cva.lexical_index
         .ensure_current(&cva.archive, &mut cva.container)?;
     let shared = DrainShared {
@@ -56,6 +79,7 @@ pub(super) fn drain<E: GeneralEndpoint>(
         container: Mutex::new(&mut cva.container),
         memories: Mutex::new(&mut cva.memories),
         insomnia: Mutex::new(&mut cva.insomnia),
+        phylactery: phylactery.map(Mutex::new),
     };
     let counters = DrainCounters::default();
     let results = thread::scope(|scope| {
@@ -87,6 +111,8 @@ pub(super) fn drain<E: GeneralEndpoint>(
         terminal_episodes: counters.terminal.load(Ordering::Relaxed),
         memories_created: counters.created.load(Ordering::Relaxed),
         memories_existing: counters.existing.load(Ordering::Relaxed),
+        user_memories_created: counters.user_created.load(Ordering::Relaxed),
+        user_memories_existing: counters.user_existing.load(Ordering::Relaxed),
         rejected_candidates: counters.rejected.load(Ordering::Relaxed),
         evidence_turns: counters.evidence_turns.load(Ordering::Relaxed),
         ..InsomniaDrainResult::default()

@@ -1,7 +1,7 @@
 use crate::{
     Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, EpisodeConfig,
-    InsomniaExtractor, InsomniaWorkerConfig, InsomniaWorkerError, SimulatedEmbeddingEndpoint,
-    SimulatedGeneralEndpoint, VectorNormalization,
+    InsomniaExtractor, InsomniaWorkerConfig, InsomniaWorkerError, Phylactery,
+    SimulatedEmbeddingEndpoint, SimulatedGeneralEndpoint, VectorNormalization,
 };
 use serde_json::json;
 use std::fs;
@@ -106,6 +106,46 @@ fn backlog_drain_automatically_vectorizes_created_memories() {
     let episode = cva.episodes().into_iter().next().unwrap();
     let memory_id = cva.insomnia_attempts(episode.id)[0].memory_ids[0];
     assert_eq!(cva.memory(memory_id).unwrap().authority_kind, "direct");
+}
+
+#[test]
+fn routed_backlog_drain_vectorizes_user_memory_in_phylactery() {
+    let path = test_path("routed.cva");
+    let phy_path = test_path("routed.phy");
+    let mut cva = Cva::create(path).unwrap();
+    let mut phy = Phylactery::create(phy_path).unwrap();
+    queue_memory_episode(&mut cva);
+    let extractor = memory_extractor().with_ownership_endpoint(SimulatedGeneralEndpoint::new(
+        "ownership-model",
+        vec![json!({"groups": {"g000": {"ownership": "user"}}})],
+    ));
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+
+    let result = cva
+        .drain_insomnia_backlog_routed(
+            &mut phy,
+            &extractor,
+            &embedding,
+            InsomniaWorkerConfig {
+                workers: 1,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    assert_eq!(result.memories_created, 0);
+    assert_eq!(result.user_memories_created, 1);
+    assert_eq!(result.user_memory_vectors_embedded, 1);
+    assert!(result.user_memory_vector_profile_id.is_some());
+    assert_eq!(cva.memory_stats().memories, 0);
+    assert_eq!(phy.memory_stats().memories, 1);
+    assert_eq!(phy.memory_vector_stats().bindings, 1);
+    let episode = cva.episodes().into_iter().next().unwrap();
+    let attempt = &cva.insomnia_attempts(episode.id)[0];
+    assert_eq!(
+        attempt.external_memory_refs[0].owner_id,
+        phy.owner_id().unwrap()
+    );
 }
 
 #[test]

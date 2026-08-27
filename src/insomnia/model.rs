@@ -1,4 +1,4 @@
-use crate::{EpisodeBuildResult, EpisodeId, MemoryId};
+use crate::{EpisodeBuildResult, EpisodeId, MemoryId, MemoryRef};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum InsomniaPriority {
@@ -85,6 +85,7 @@ pub struct InsomniaAttempt {
     pub extractor_model: String,
     pub extractor_version: String,
     pub memory_ids: Vec<MemoryId>,
+    pub external_memory_refs: Vec<MemoryRef>,
     pub rejected_count: u32,
     pub error: Option<String>,
 }

@@ -42,6 +42,58 @@ fn omit_ledger(payload: &str) -> Result<Value, GeneralEndpointError> {
     Ok(json!({"turns": turns, "evidence_requests": []}))
 }
 
+pub(super) struct UserMemoryEndpoint;
+
+impl GeneralEndpoint for UserMemoryEndpoint {
+    fn model(&self) -> &str {
+        "runtime-host-user-memory-test"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        match schema_name {
+            "insomnia_authority_disposition_ledger" => {
+                let payload: Value = serde_json::from_str(user_payload)
+                    .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
+                let user_id = payload["turns"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .find(|turn| turn["role"] == "user")
+                    .and_then(|turn| turn["id"].as_str())
+                    .ok_or(GeneralEndpointError::InvalidResponse("missing user turn"))?;
+                Ok(json!({
+                    "turns": {user_id: [{
+                        "disposition":"retain", "authority_kind":"direct", "category":"preference",
+                        "type":"communication", "lifecycle":"current",
+                        "proposition":"The user prefers Helix for editing code.",
+                        "authority_source_node_id":"", "grounding_source_node_id":"",
+                        "reason":"durable user-global preference"
+                    }]},
+                    "evidence_requests": []
+                }))
+            }
+            "insomnia_memory_ownership" => Ok(json!({
+                "groups": {"g000": {"ownership": "user"}}
+            })),
+            "insomnia_memory_wording" => Ok(json!({
+                "groups": {"g000": {
+                    "title":"Preferred editor",
+                    "content":"The user prefers Helix for editing code."
+                }}
+            })),
+            _ => Err(GeneralEndpointError::Failure(format!(
+                "unexpected schema {schema_name}"
+            ))),
+        }
+    }
+}
+
 pub(super) struct OmitEndpoint;
 
 impl GeneralEndpoint for OmitEndpoint {
@@ -156,6 +208,28 @@ pub(super) fn wait_vectors(host: &ReliquaryRuntimeHost, target: usize) {
     wait_until(
         || host.memory_vector_stats().unwrap().bindings >= target,
         "vectorization",
+    );
+}
+
+pub(super) fn wait_phylactery_memory(host: &ReliquaryRuntimeHost, target: usize) {
+    wait_until(
+        || {
+            host.phylactery_memory_stats()
+                .unwrap()
+                .is_some_and(|stats| stats.memories >= target)
+        },
+        "Phylactery Memory publication",
+    );
+}
+
+pub(super) fn wait_phylactery_vectors(host: &ReliquaryRuntimeHost, target: usize) {
+    wait_until(
+        || {
+            host.phylactery_memory_vector_stats()
+                .unwrap()
+                .is_some_and(|stats| stats.bindings >= target)
+        },
+        "Phylactery vectorization",
     );
 }
 

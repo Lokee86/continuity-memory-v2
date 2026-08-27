@@ -3,6 +3,7 @@ use super::candidate_shape::validate_candidate_shape;
 use super::candidate_source::{RawSource, optional, parse_source, required_string, trim_source};
 use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{InsomniaCandidate, InsomniaExtractionError, InsomniaRejection};
+use super::ownership::InsomniaOwnership;
 use crate::{EpisodeId, ResolvedTurn};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -13,6 +14,7 @@ pub(super) struct RawCandidate {
     authority_kind: String,
     category: String,
     memory_type: String,
+    ownership: InsomniaOwnership,
     title: String,
     content: String,
     source_node_id: String,
@@ -44,6 +46,15 @@ fn parse_candidate(value: &Value) -> Result<RawCandidate, InsomniaExtractionErro
         authority_kind: required_string(value, "authority_kind")?,
         category: required_string(value, "category")?,
         memory_type: required_string(value, "type")?,
+        ownership: match required_string(value, "ownership")?.as_str() {
+            "user" => InsomniaOwnership::User,
+            "project" => InsomniaOwnership::Project,
+            value => {
+                return Err(InsomniaExtractionError::InvalidOutput(format!(
+                    "invalid candidate ownership: {value}"
+                )));
+            }
+        },
         title: required_string(value, "title")?,
         content: required_string(value, "content")?,
         source_node_id: required_string(value, "source_node_id")?,
@@ -121,6 +132,7 @@ pub(super) fn validate_candidates(
             authority_kind,
             category,
             memory_type,
+            ownership: raw.ownership,
             title: raw.title.trim().to_owned(),
             content: raw.content.trim().to_owned(),
             source_node_id,

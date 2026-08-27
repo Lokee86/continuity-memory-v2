@@ -267,3 +267,22 @@ fn insomnia_run_exposes_worker_concurrency() {
         }
     ));
 }
+
+#[test]
+fn insomnia_run_accepts_phylactery_routing_target() {
+    let cli = Cli::try_parse_from([
+        "reliquary",
+        "insomnia",
+        "run",
+        "project.prj.rel",
+        "--phy",
+        "user.phy",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Insomnia {
+            command: InsomniaCommand::Run { phy: Some(path), .. }
+        } if path.to_string_lossy() == "user.phy"
+    ));
+}

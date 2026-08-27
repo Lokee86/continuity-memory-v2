@@ -157,6 +157,8 @@ pub enum InsomniaCommand {
     Run {
         #[arg(value_name = "REL")]
         cva: PathBuf,
+        #[arg(long, value_name = "PHY")]
+        phy: Option<PathBuf>,
         #[arg(long, default_value_t = reliquary_memory::DEFAULT_INSOMNIA_WORKERS)]
         workers: usize,
         #[arg(long, default_value = "private")]

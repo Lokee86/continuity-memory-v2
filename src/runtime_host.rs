@@ -1,5 +1,6 @@
 use crate::{
     EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint, InsomniaWorkerConfig, InteractionRuntime,
+    Phylactery,
 };
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
@@ -44,6 +45,7 @@ pub(super) struct Shared {
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
     pub(super) general_endpoint: Arc<RwLock<Option<Arc<dyn GeneralEndpoint>>>>,
     pub(super) embedding_endpoint: Arc<RwLock<Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>>>,
+    pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
     pub(super) config: InsomniaWorkerConfig,
     pub(super) episode_policy: EpisodePolicy,
 }
@@ -53,12 +55,49 @@ pub struct ReliquaryRuntimeHost {
     signal: Arc<(Mutex<Control>, Condvar)>,
     general_endpoint: Arc<RwLock<Option<Arc<dyn GeneralEndpoint>>>>,
     embedding_endpoint: Arc<RwLock<Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>>>,
+    phylactery: Arc<Mutex<Option<Phylactery>>>,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
 
 impl ReliquaryRuntimeHost {
     pub fn start(
         runtime: InteractionRuntime,
+        general_endpoint: Option<Arc<dyn GeneralEndpoint>>,
+        embedding_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+    ) -> Self {
+        Self::start_inner(
+            runtime,
+            None,
+            general_endpoint,
+            embedding_endpoint,
+            config,
+            episode_policy,
+        )
+    }
+
+    pub fn start_with_phylactery(
+        runtime: InteractionRuntime,
+        phylactery: Phylactery,
+        general_endpoint: Option<Arc<dyn GeneralEndpoint>>,
+        embedding_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+    ) -> Self {
+        Self::start_inner(
+            runtime,
+            Some(phylactery),
+            general_endpoint,
+            embedding_endpoint,
+            config,
+            episode_policy,
+        )
+    }
+
+    fn start_inner(
+        runtime: InteractionRuntime,
+        phylactery: Option<Phylactery>,
         general_endpoint: Option<Arc<dyn GeneralEndpoint>>,
         embedding_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
         config: InsomniaWorkerConfig,
@@ -74,11 +113,13 @@ impl ReliquaryRuntimeHost {
         ));
         let general_endpoint = Arc::new(RwLock::new(general_endpoint));
         let embedding_endpoint = Arc::new(RwLock::new(embedding_endpoint));
+        let phylactery = Arc::new(Mutex::new(phylactery));
         let shared = Arc::new(Shared {
             runtime: Arc::clone(&runtime),
             signal: Arc::clone(&signal),
             general_endpoint: Arc::clone(&general_endpoint),
             embedding_endpoint: Arc::clone(&embedding_endpoint),
+            phylactery: Arc::clone(&phylactery),
             config: config.clone(),
             episode_policy,
         });
@@ -96,6 +137,7 @@ impl ReliquaryRuntimeHost {
             signal,
             general_endpoint,
             embedding_endpoint,
+            phylactery,
             workers,
         }
     }
@@ -126,8 +168,19 @@ impl ReliquaryRuntimeHost {
         notify_work(&self.signal)
     }
 
-    pub fn into_cva(mut self) -> Result<crate::Cva, ReliquaryRuntimeHostError> {
+    pub fn into_cva(self) -> Result<crate::Cva, ReliquaryRuntimeHostError> {
+        self.into_cva_and_phylactery().map(|(cva, _)| cva)
+    }
+
+    pub fn into_cva_and_phylactery(
+        mut self,
+    ) -> Result<(crate::Cva, Option<Phylactery>), ReliquaryRuntimeHostError> {
         self.stop_workers()?;
+        let phylactery = self
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .take();
         let runtime = self.runtime.take().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
         })?;
@@ -135,7 +188,7 @@ impl ReliquaryRuntimeHost {
             .map_err(|_| ReliquaryRuntimeHostError::Operation("runtime still shared".into()))?
             .into_inner()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        Ok(runtime.into_cva())
+        Ok((runtime.into_cva(), phylactery))
     }
 
     fn stop_workers(&mut self) -> Result<(), ReliquaryRuntimeHostError> {

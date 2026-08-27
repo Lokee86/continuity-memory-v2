@@ -5,6 +5,17 @@ use crate::{
 };
 
 impl ReliquaryRuntimeHost {
+    fn with_phylactery<T>(
+        &self,
+        action: impl FnOnce(&mut crate::Phylactery) -> Result<T, ReliquaryRuntimeHostError>,
+    ) -> Result<Option<T>, ReliquaryRuntimeHostError> {
+        let mut phylactery = self
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        phylactery.as_mut().map(action).transpose()
+    }
+
     fn with_runtime<T>(
         &self,
         action: impl FnOnce(&mut crate::InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
@@ -20,6 +31,12 @@ impl ReliquaryRuntimeHost {
 
     pub fn owner_id(&self) -> Result<Option<String>, ReliquaryRuntimeHostError> {
         self.with_runtime(|runtime| Ok(runtime.cva().owner_id()))
+    }
+
+    pub fn phylactery_owner_id(&self) -> Result<Option<String>, ReliquaryRuntimeHostError> {
+        Ok(self
+            .with_phylactery(|phylactery| Ok(phylactery.owner_id()))?
+            .flatten())
     }
 
     pub fn conversation_summaries(
@@ -155,5 +172,17 @@ impl ReliquaryRuntimeHost {
         &self,
     ) -> Result<crate::MemoryVectorStats, ReliquaryRuntimeHostError> {
         self.with_runtime(|runtime| Ok(runtime.cva().memory_vector_stats()))
+    }
+
+    pub fn phylactery_memory_stats(
+        &self,
+    ) -> Result<Option<crate::MemoryStats>, ReliquaryRuntimeHostError> {
+        self.with_phylactery(|phylactery| Ok(phylactery.memory_stats()))
+    }
+
+    pub fn phylactery_memory_vector_stats(
+        &self,
+    ) -> Result<Option<crate::MemoryVectorStats>, ReliquaryRuntimeHostError> {
+        self.with_phylactery(|phylactery| Ok(phylactery.memory_vector_stats()))
     }
 }
