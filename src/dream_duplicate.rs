@@ -1,5 +1,5 @@
 use crate::dream_duplicate_index::{DuplicateIndex, DuplicateTemporalKey};
-use crate::dream_source_time::source_timestamp_ns;
+use crate::dream_source_time::reliquary_source_timestamp_ns;
 use crate::{Cva, DreamPublicationError, DreamPublicationOutcome, GraphRelationKind, MemoryId};
 use std::collections::{HashMap, HashSet};
 
@@ -80,7 +80,7 @@ impl Cva {
         memory_id: MemoryId,
     ) -> Result<DuplicateTemporalKey, DreamPublicationError> {
         let memory = self.memories.memory(&mut self.container, memory_id)?;
-        let timestamp_ns = source_timestamp_ns(self, &memory)
+        let timestamp_ns = reliquary_source_timestamp_ns(&self.archive, &memory)
             .ok_or(DreamPublicationError::MissingSourceTimestamp(memory_id))?;
         Ok(DuplicateTemporalKey::new(timestamp_ns, memory_id))
     }

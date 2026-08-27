@@ -75,6 +75,8 @@ mod dream_duplicate_index;
 mod dream_lifecycle;
 mod dream_lifecycle_error;
 mod dream_lifecycle_model;
+mod dream_owner_candidates;
+mod dream_owner_vectors;
 mod dream_pair_context;
 mod dream_processor;
 mod dream_processor_error;

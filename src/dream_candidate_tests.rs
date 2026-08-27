@@ -1,5 +1,7 @@
 use crate::dream_candidate_test_support::{install_vectors, memory, test_path};
-use crate::{Cva, DreamCandidateConfig, GraphRelationKind};
+use crate::dream_owner_candidates::dream_memory_context as dream_memory_context_from_parts;
+use crate::dream_source_time::memory_source_timestamp_ns;
+use crate::{Cva, DreamCandidateConfig, GraphRelationKind, MemoryDraft};
 
 #[test]
 fn semantic_lane_finds_the_known_nearest_memory_without_embedding_calls() {
@@ -250,4 +252,48 @@ fn source_and_candidates_arrive_with_their_active_graph_context() {
     assert_eq!(result.source.graph_relations.len(), 1);
     assert_eq!(result.candidates[0].context.memory.id, candidate);
     assert_eq!(result.candidates[0].context.graph_relations.len(), 2);
+}
+
+#[test]
+fn owner_candidate_core_accepts_source_independent_memory_time() {
+    let mut cva = Cva::create(test_path("owner-core.cva")).unwrap();
+    let (memory, _) = cva
+        .publish_memory(
+            None,
+            0,
+            MemoryDraft {
+                category: "preference".into(),
+                memory_type: "user".into(),
+                authority_kind: "direct".into(),
+                title: "Answer style".into(),
+                content: "Prefer concise answers.".into(),
+                scope: "private".into(),
+                lifecycle_state: "extracted".into(),
+                archived: false,
+                superseded_by: None,
+                parent_id: None,
+                source_node_id: None,
+                content_source_conversation_id: None,
+                content_source_node_id: None,
+                grounding_source_conversation_id: None,
+                grounding_source_node_id: None,
+                source_episode_id: None,
+                source_time_ns: Some(123),
+                mutation_id: "owner-core-source-time".into(),
+                created_at_ns: 999,
+                updated_at_ns: 999,
+            },
+        )
+        .unwrap();
+    let source_time = |memory: &crate::Memory| memory_source_timestamp_ns(memory);
+    let context = dream_memory_context_from_parts(
+        &mut cva.container,
+        &cva.memories,
+        &cva.graph,
+        memory.id,
+        &source_time,
+    )
+    .unwrap();
+    assert_eq!(context.source_timestamp_ns, Some(123));
+    assert!(context.graph_relations.is_empty());
 }
