@@ -67,6 +67,7 @@ fn memory_draft(content: &str) -> MemoryDraft {
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: None,
+        source_time_ns: None,
         mutation_id: "same-mutation".into(),
         created_at_ns: 1,
         updated_at_ns: 1,

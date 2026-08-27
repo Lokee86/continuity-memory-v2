@@ -64,6 +64,7 @@ fn draft(episode: &crate::Episode, mutation_id: &str, content: &str) -> MemoryDr
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: Some(episode.id),
+        source_time_ns: None,
         mutation_id: mutation_id.into(),
         created_at_ns: 30,
         updated_at_ns: 30,

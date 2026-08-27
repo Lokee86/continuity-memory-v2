@@ -86,6 +86,32 @@ pub(crate) fn memory_with_created_at(
     cva.publish_memory(None, 0, draft).unwrap().0.id
 }
 
+pub(crate) fn memory_with_source_time(
+    cva: &mut Cva,
+    mutation_id: &str,
+    title: &str,
+    content: &str,
+    archive_timestamp_ns: i64,
+    source_time_ns: i64,
+    created_at_ns: i64,
+) -> MemoryId {
+    let node_id = format!("node-{mutation_id}");
+    cva.append_node(
+        node_id.clone(),
+        "c1".into(),
+        None,
+        "user".into(),
+        archive_timestamp_ns,
+        content,
+    )
+    .unwrap();
+    let mut draft = draft(mutation_id, title, content, &node_id, false);
+    draft.source_time_ns = Some(source_time_ns);
+    draft.created_at_ns = created_at_ns;
+    draft.updated_at_ns = created_at_ns;
+    cva.publish_memory(None, 0, draft).unwrap().0.id
+}
+
 pub(crate) fn install_vectors(
     cva: &mut Cva,
     ids: &[MemoryId],
@@ -139,6 +165,7 @@ fn draft(
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: None,
+        source_time_ns: None,
         mutation_id: mutation_id.into(),
         created_at_ns: 999,
         updated_at_ns: 999,

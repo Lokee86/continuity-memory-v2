@@ -73,6 +73,7 @@ fn draft(episode: &crate::Episode, mutation: &str, state: &str) -> MemoryDraft {
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: Some(episode.id),
+        source_time_ns: Some(1),
         mutation_id: mutation.into(),
         created_at_ns: 3,
         updated_at_ns: 4,
@@ -122,10 +123,9 @@ fn reconcile_replays_memory_episode_and_completion_together() {
     assert_eq!(result.replayed_memory_revisions, 1);
     assert_eq!(result.replayed_insomnia_completions, 1);
     let mut merged = Cva::open(output).unwrap();
-    assert_eq!(
-        merged.memory(memory.id).unwrap().mutation_id,
-        "right-memory"
-    );
+    let merged_memory = merged.memory(memory.id).unwrap();
+    assert_eq!(merged_memory.mutation_id, "right-memory");
+    assert_eq!(merged_memory.source_time_ns, Some(1));
     assert!(merged.episode(episode.id).is_some());
     let attempts = merged.insomnia_attempts(episode.id);
     assert_eq!(attempts.len(), 1);

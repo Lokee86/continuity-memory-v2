@@ -51,6 +51,7 @@ pub(crate) fn prepare_application(
             });
             continue;
         }
+        let source_time_ns = candidate_source_time_ns(archive, &candidate, turns)?;
         let mut draft = MemoryDraft {
             category: candidate.category,
             memory_type: candidate.memory_type,
@@ -68,6 +69,7 @@ pub(crate) fn prepare_application(
             grounding_source_conversation_id: candidate.grounding_source_conversation_id,
             grounding_source_node_id: candidate.grounding_source_node_id,
             source_episode_id: Some(episode.id),
+            source_time_ns: Some(source_time_ns),
             mutation_id: format!("insomnia:{}:{}", hex(&episode.id.0), candidate.key),
             created_at_ns: episode.source_through_ns,
             updated_at_ns: completed_at_ns.max(episode.source_through_ns),
@@ -204,6 +206,34 @@ pub(crate) fn commit_application(
     })
 }
 
+fn candidate_source_time_ns(
+    archive: &Archive,
+    candidate: &crate::InsomniaCandidate,
+    turns: &[crate::ResolvedTurn],
+) -> Result<i64, InsomniaProcessError> {
+    if let (Some(conversation_id), Some(node_id)) = (
+        candidate.authority_source_conversation_id.as_deref(),
+        candidate.authority_source_node_id.as_deref(),
+    ) {
+        return archive
+            .nodes
+            .get(conversation_id, node_id)
+            .map(|node| node.timestamp_ns)
+            .ok_or_else(|| {
+                InsomniaProcessError::InvalidCandidate(
+                    "authority source timestamp is unavailable".into(),
+                )
+            });
+    }
+    turns
+        .iter()
+        .find(|turn| turn.node_id == candidate.source_node_id)
+        .map(|turn| turn.timestamp_ns)
+        .ok_or_else(|| {
+            InsomniaProcessError::InvalidCandidate("source timestamp is unavailable".into())
+        })
+}
+
 fn same_routed_user_semantics(memory: &Memory, draft: &MemoryDraft) -> bool {
     memory.category == draft.category
         && memory.memory_type == draft.memory_type
@@ -219,6 +249,7 @@ fn same_routed_user_semantics(memory: &Memory, draft: &MemoryDraft) -> bool {
         && memory.grounding_source_conversation_id.is_none()
         && memory.grounding_source_node_id.is_none()
         && memory.source_episode_id.is_none()
+        && memory.source_time_ns == draft.source_time_ns
         && memory.mutation_id == draft.mutation_id
         && memory.created_at_ns == draft.created_at_ns
 }

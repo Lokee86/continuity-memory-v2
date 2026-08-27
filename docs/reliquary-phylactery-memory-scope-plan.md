@@ -336,7 +336,7 @@ Scope ownership, export permission, and source-export permission are separate de
 
 A User Memory extracted from a Project may classify correctly as Phylactery-owned while project policy forbids exporting it. Likewise, Organization or Connection state may be semantically owned by those scopes while confidentiality or authorization policy blocks publication.
 
-The current implementation has no general export-policy engine. Supplying an explicit PHY routing target enables User publication; Project-only paths do not run the ownership classifier. A routed User Memory is made source-independent by stripping REL-local provenance, while the REL completion records `MemoryRef { owner_id, memory_id }` to the resulting PHY object.
+The current implementation has no general export-policy engine. Supplying an explicit PHY routing target enables User publication; Project-only paths do not run the ownership classifier. A routed User Memory is made source-independent by stripping REL-local provenance while retaining resolved `source_time_ns` semantic chronology; the REL completion records `MemoryRef { owner_id, memory_id }` to the resulting PHY object.
 
 A richer future policy may still distinguish `memory_export = allow | deny` and `source_export = allow | deny`, especially for Organization/Connection or confidential Project material. A destination Memory must not require a live cross-file source pointer unless that source dependency is itself an explicit product contract.
 

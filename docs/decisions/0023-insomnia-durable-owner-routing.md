@@ -29,7 +29,7 @@ project
 
 Ownership classification may change only the destination owner. It cannot change grouping, retained propositions, authority, provenance, category, type, lifecycle, or candidate identity. Candidate semantic keys therefore remain independent of ownership.
 
-Project-owned drafts are published into the active REL exactly as before. User-owned drafts are published into an explicitly attached Phylactery. Before PHY publication, REL-local provenance fields are removed so the resulting Memory remains independently valid if the source Project is unavailable.
+Project-owned drafts are published into the active REL exactly as before. User-owned drafts are published into an explicitly attached Phylactery. Before either publication, Insomnia resolves `source_time_ns` from the authoritative semantic/content source while the REL Archive is available. Before PHY publication, REL-local provenance fields are then removed while that source-derived timestamp is retained, so the resulting Memory remains chronologically usable and independently valid if the source Project is unavailable.
 
 Cross-file receipts use the general owner-qualified form established by ADR 0022:
 
@@ -83,7 +83,7 @@ Reconciliation preserves `external_memory_refs` when re-emitting an Insomnia com
 - User-global extraction can be enabled without merging REL and PHY storage models.
 - Project candidate IDs do not change merely because owner routing is available.
 - Cross-file references are self-describing by durable owner ID.
-- PHY Memories remain source-independent under the current provenance contract.
+- PHY Memories remain source-independent under the current provenance contract while retaining source-derived `source_time_ns` chronology; the timestamp is not a cross-file source pointer.
 - A crash between PHY and REL writes is recoverable through deterministic mutation IDs rather than a cross-file transaction log.
 - Runtime ownership remains deterministic except for the one bounded semantic classification call that is genuinely required.
 - Organization/Connection routing can later extend the destination vocabulary without replacing `MemoryRef` or the owner-ID substrate.

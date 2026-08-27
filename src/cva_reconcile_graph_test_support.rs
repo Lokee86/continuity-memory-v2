@@ -44,6 +44,7 @@ pub(crate) fn publish_memory(cva: &mut Cva, name: &str) -> MemoryId {
             grounding_source_conversation_id: None,
             grounding_source_node_id: None,
             source_episode_id: None,
+            source_time_ns: None,
             mutation_id: name.into(),
             created_at_ns: 1,
             updated_at_ns: 1,

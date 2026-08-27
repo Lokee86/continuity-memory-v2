@@ -99,6 +99,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 84. **Insomnia destination ownership cannot redefine semantic identity.** User/Project routing is decided only after semantic groups are fixed; ownership cannot change propositions, authority, provenance, metadata/lifecycle, grouping, or candidate key material.
 85. **User-global export is conservative and source-independent.** Without an ownership classifier, Insomnia defaults to Project. A User-owned result may enter PHY only through an explicit routing target, and REL-local provenance is removed before PHY publication.
 86. **Cross-file Insomnia publication prefers durable truth over atomic illusion.** With no cross-file transaction manager, routed User Memories sync to PHY before the REL completion receipt; deterministic mutation IDs make a crash in between idempotently recoverable.
+87. **Source-independent does not mean time-free.** Insomnia resolves semantic source chronology while authoritative source evidence is available and persists it as optional `Memory.source_time_ns`; removing REL-local provenance for PHY publication must not replace that timestamp with Memory creation/update bookkeeping.
 
 ## Safety boundaries
 

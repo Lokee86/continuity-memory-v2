@@ -1,5 +1,5 @@
 use crate::dream_candidate_test_support::{
-    install_vectors, memory, memory_with_created_at, test_path,
+    install_vectors, memory, memory_with_created_at, memory_with_source_time, test_path,
 };
 use crate::dream_temporal_parser::parse_temporal;
 use crate::{
@@ -78,6 +78,28 @@ fn relative_dates_resolve_against_source_turn_time_not_memory_bookkeeping() {
         anchor.granularity == DreamTemporalGranularity::Week
             && anchor.start_ns == day_start_ns(2026, Month::August, 17)
             && anchor.end_ns == day_start_ns(2026, Month::August, 24)
+    }));
+}
+
+#[test]
+fn explicit_memory_source_time_overrides_archive_and_creation_bookkeeping() {
+    let archive_time = timestamp_ns(2026, Month::August, 10, 12);
+    let source_time = timestamp_ns(2026, Month::August, 24, 12);
+    let mut cva = Cva::create(test_path("explicit-source-time.cva")).unwrap();
+    let id = memory_with_source_time(
+        &mut cva,
+        "explicit-source-time",
+        "Inspection",
+        "Inspection is tomorrow.",
+        archive_time,
+        source_time,
+        1,
+    );
+    let analysis = cva.dream_temporal_analysis(id).unwrap();
+    assert_eq!(analysis.source_timestamp_ns, Some(source_time));
+    assert!(analysis.anchors.iter().any(|anchor| {
+        anchor.origin == DreamTemporalOrigin::Relative
+            && anchor.start_ns == day_start_ns(2026, Month::August, 25)
     }));
 }
 

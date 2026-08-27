@@ -257,6 +257,7 @@ fn unprovenanced_draft(mutation_id: &str) -> MemoryDraft {
         grounding_source_conversation_id: None,
         grounding_source_node_id: None,
         source_episode_id: None,
+        source_time_ns: None,
         mutation_id: mutation_id.into(),
         created_at_ns: 999_999,
         updated_at_ns: 999_999,

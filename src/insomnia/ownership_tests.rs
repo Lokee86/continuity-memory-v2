@@ -18,10 +18,19 @@ fn setup(name: &str) -> (Cva, crate::Episode) {
         "I prefer concise answers.",
     )
     .unwrap();
+    cva.append_node(
+        "a0".into(),
+        "c1".into(),
+        Some("u0".into()),
+        "assistant".into(),
+        20,
+        "Noted.",
+    )
+    .unwrap();
     let episode = cva
         .materialize_path_episodes(
             "c1",
-            "u0",
+            "a0",
             EpisodeConfig::default(),
             EpisodeOrigin::Live,
             Some((EpisodeBoundary::Inactivity, 100)),
@@ -92,6 +101,7 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     let memory = &result.user_created[0];
     assert!(memory.source_episode_id.is_none());
     assert!(memory.source_node_id.is_none());
+    assert_eq!(memory.source_time_ns, Some(10));
     assert_eq!(cva.memory_stats().memories, 0);
     assert_eq!(phy.memory_stats().memories, 1);
     let attempt = &cva.insomnia_attempts(episode.id)[0];
@@ -99,6 +109,11 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     assert_eq!(attempt.external_memory_refs.len(), 1);
     assert_eq!(attempt.external_memory_refs[0].owner_id, phy_owner);
     assert_eq!(attempt.external_memory_refs[0].memory_id, memory.id);
+    let memory_id = memory.id;
+    phy.sync().unwrap();
+    drop(phy);
+    let mut reopened = Phylactery::open(&phy_path).unwrap();
+    assert_eq!(reopened.memory(memory_id).unwrap().source_time_ns, Some(10));
 }
 
 #[test]
@@ -137,6 +152,7 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
                 grounding_source_conversation_id: None,
                 grounding_source_node_id: None,
                 source_episode_id: None,
+                source_time_ns: Some(10),
                 mutation_id,
                 created_at_ns: episode.source_through_ns,
                 updated_at_ns: 120,

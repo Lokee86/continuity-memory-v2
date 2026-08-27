@@ -183,6 +183,7 @@ fn memory_draft(memory: Memory) -> MemoryDraft {
         grounding_source_conversation_id: memory.grounding_source_conversation_id,
         grounding_source_node_id: memory.grounding_source_node_id,
         source_episode_id: memory.source_episode_id,
+        source_time_ns: memory.source_time_ns,
         mutation_id: memory.mutation_id,
         created_at_ns: memory.created_at_ns,
         updated_at_ns: memory.updated_at_ns,

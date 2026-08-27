@@ -171,7 +171,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 A current `.phy` initializes and requires only the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
-The same Memory record codec is reused, but current Phylactery validity is stricter about provenance: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent. This allows user-global Memories to remain independently valid when an originating Project REL is unavailable or intentionally not retained. Cross-file provenance requires a future explicit lineage/export representation rather than storing REL-local IDs as dangling references.
+The same Memory record codec is reused, but current Phylactery validity is stricter about provenance: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent. `source_time_ns` is different: it is source-independent semantic chronology resolved while the originating source is available, so it may remain after those REL-local pointers are removed. This allows user-global Memories to remain independently valid when an originating Project REL is unavailable or intentionally not retained. Cross-file provenance requires a future explicit lineage/export representation rather than storing REL-local IDs as dangling references.
 
 The existing disposable lexical index indexes REL Archive Fragments and filenames, so it is not part of `.phy`. A user-Memory lexical index, if required, is a separate future derived owner/design.
 
@@ -196,7 +196,7 @@ N bytes   content UTF-8
 ```
 Memory record:
 ```text
-8 bytes   "CVAMEMR3"
+8 bytes   "CVAMEMR4"
 32 bytes  MemoryId
 u64       revision
 32 bytes  MemoryBodyId
@@ -204,6 +204,7 @@ u8        archived: 0=false, 1=true
 optional  MemoryId superseded_by
 optional  MemoryId parent_id
 optional  EpisodeId source_episode_id
+optional  i64 source_time_ns
 i64       created_at_ns
 i64       updated_at_ns
 string    category
@@ -218,9 +219,9 @@ optional  string grounding_source_conversation_id
 optional  string grounding_source_node_id
 string    mutation_id
 ```
-Optional fixed IDs and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+Optional fixed IDs, optional `source_time_ns`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_time_ns` records source-derived semantic chronology without retaining a source pointer; it is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
 
-Legacy `CVAMEMR2` records remain decodable. They have the same layout except that `authority_kind` is absent; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted.
+Legacy `CVAMEMR3` and `CVAMEMR2` records remain decodable with `source_time_ns = None`. R3 lacks the source-time field. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted.
 
 Standalone Memory publication metadata:
 ```text
@@ -230,7 +231,7 @@ u64       Memory version
 u64       record chunk offset
 u64       record payload length
 ```
-Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR3`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC3` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR3` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR4`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC3` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR4` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
 
 ### Graph
 Format marker:
@@ -428,7 +429,7 @@ repeated newly published records:
     u64   global version
     u64   memory version
     u32   encoded Memory-record length
-    N     complete "CVAMEMR3" record payload
+    N     complete "CVAMEMR4" record payload
 ```
 The embedded global-version count must equal the newly published local Memory-record count. For a non-empty local publication, record global versions are contiguous beginning at the stored first version. A completion with no new local REL Memories consumes no REL global versions even when it records external Memory references.
 

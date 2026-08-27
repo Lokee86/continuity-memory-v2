@@ -164,6 +164,7 @@ fn lifecycle_draft(
         grounding_source_conversation_id: memory.grounding_source_conversation_id.clone(),
         grounding_source_node_id: memory.grounding_source_node_id.clone(),
         source_episode_id: memory.source_episode_id,
+        source_time_ns: memory.source_time_ns,
         mutation_id: lifecycle_mutation_id(
             memory.id,
             lifecycle_state,

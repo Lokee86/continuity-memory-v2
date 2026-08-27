@@ -90,6 +90,7 @@ impl MemoryStore {
             grounding_source_conversation_id: draft.grounding_source_conversation_id.clone(),
             grounding_source_node_id: draft.grounding_source_node_id.clone(),
             source_episode_id: draft.source_episode_id,
+            source_time_ns: draft.source_time_ns,
             mutation_id: draft.mutation_id.clone(),
             created_at_ns: draft.created_at_ns,
             updated_at_ns: draft.updated_at_ns,
@@ -363,6 +364,7 @@ impl MemoryStore {
             grounding_source_conversation_id: record.grounding_source_conversation_id.clone(),
             grounding_source_node_id: record.grounding_source_node_id.clone(),
             source_episode_id: record.source_episode_id,
+            source_time_ns: record.source_time_ns,
             mutation_id: record.mutation_id.clone(),
             created_at_ns: record.created_at_ns,
             updated_at_ns: record.updated_at_ns,
@@ -445,6 +447,7 @@ fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
         && memory.grounding_source_conversation_id == draft.grounding_source_conversation_id
         && memory.grounding_source_node_id == draft.grounding_source_node_id
         && memory.source_episode_id == draft.source_episode_id
+        && memory.source_time_ns == draft.source_time_ns
         && memory.mutation_id == draft.mutation_id
         && memory.created_at_ns == draft.created_at_ns
         && memory.updated_at_ns == draft.updated_at_ns
