@@ -7,6 +7,7 @@ mod config_cmd;
 mod dev_cmd;
 mod import_cmd;
 mod insomnia_cmd;
+mod phy_cmd;
 mod rel_cmd;
 mod util;
 mod vectors_cmd;
@@ -26,6 +27,7 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Rel { command } => rel_cmd::run(command),
+        Command::Phy { command } => phy_cmd::run(command),
         Command::Import { command } => import_cmd::run(command),
         Command::Archive { command } => archive_cmd::run(command),
         Command::Config { command } => config_cmd::run(&cli.config, command),

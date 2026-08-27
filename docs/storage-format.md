@@ -3,15 +3,15 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The current format is one append-only typed Reliquary `.rel` file containing Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Graph relationship state, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. The public product-facing type is `Reliquary`; the existing `Cva` implementation name remains a compatibility/internal alias. Opening performs one physical scan and dispatches each payload to the existing concrete owners.
+The shared append-only container now supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Graph relationship state, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
-## Reliquary file identity — implemented; Phylactery pending
+## Reliquary and Phylactery file identity — implemented
 
 New Reliquary files use a typed 24-byte header. The header carries authoritative `file_kind = Reliquary` plus an internal scope kind for Organization, Project, or Connection. Human-facing filenames should use `.org.rel`, `.prj.rel`, and `.con.rel`; filenames are hints only and do not determine semantic identity.
 
 The existing 16-byte `.cva` header remains readable as **legacy Project Reliquary** data. Legacy detection is explicit and no automatic rewrite occurs on open, so a later migration can preserve deterministic IDs, record payloads, and semantic history while still distinguishing old physical files from typed REL files.
 
-Phylactery `.phy` remains planned and is not implemented by this transition. The typed header reserves a distinct file-kind value for that future format, but no Phylactery lifecycle or owner composition exists yet. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
+Phylactery `.phy` uses the same 24-byte typed header with authoritative `file_kind = Phylactery` and no Reliquary scope. A `.phy` is not a legacy CVA and cannot be opened through the Reliquary/CVA lifecycle. Conversely, Phylactery rejects typed REL and legacy CVA files. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
 ### Container header
@@ -21,8 +21,8 @@ All integers and multi-byte scalar values are little-endian.
 | `8` | 2 | major | `1` |
 | `10` | 2 | minor | `0` |
 | `12` | 4 | header length | `16` for legacy CVA; `24` for typed files |
-| `16` | 1 | file kind | `1=Reliquary`; `2` reserved for future Phylactery and rejected by the current implementation |
-| `17` | 1 | Reliquary scope kind | `1=Organization`, `2=Project`, `3=Connection`; future non-Reliquary kinds use `0` |
+| `16` | 1 | file kind | `1=Reliquary`; `2=Phylactery` |
+| `17` | 1 | semantic scope discriminator | Reliquary: `1=Organization`, `2=Project`, `3=Connection`; Phylactery: `0` |
 | `18` | 6 | reserved | zero |
 Physical chunks follow:
 ```text
@@ -175,6 +175,14 @@ u64       record chunk offset
 u64       record payload length
 ```
 Archive versions begin at `1` and are contiguous. A semantic Archive payload without valid metadata is inert. Nodes, native source turns, branches, fragments, episodes, standalone file manifests, and file-to-Memory links are semantic Archive payloads. One `CVATURN1` consumes one Archive/global version regardless of its attachment count. Fragment creation Archive versions are retained in the derived fragment index so later generation coverage can be validated.
+
+### Phylactery owner composition
+
+A current `.phy` initializes and requires only the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, Workspace Metadata, or interaction-stream checkpoints as Phylactery owners.
+
+The same Memory record codec is reused, but current Phylactery validity is stricter about provenance: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent. This allows user-global Memories to remain independently valid when an originating Project REL is unavailable or intentionally not retained. Cross-file provenance requires a future explicit lineage/export representation rather than storing REL-local IDs as dangling references.
+
+The existing disposable lexical index indexes REL Archive Fragments and filenames, so it is not part of `.phy`. A user-Memory lexical index, if required, is a separate future derived owner/design.
 
 ### Memories
 Format marker:
@@ -447,7 +455,9 @@ N bytes UTF-8
 ## Historical semantics
 Archive, Memories, Graph, and Vector Generations have independent local watermarks. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
-`Cva::open` requires exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Workspace metadata is a compatibility exception: pre-workspace CVAs may omit `CVAWKFM1`, while current `Cva::create` writes it exactly once. Graph is another narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
+`Cva::open` / `Reliquary::open` requires Reliquary identity (or the legacy 16-byte Project form) and exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Workspace metadata is a compatibility exception: pre-workspace CVAs may omit `CVAWKFM1`, while current `Cva::create` writes it exactly once. Graph is another narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
+
+`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds only Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, vector/profile references, and source-independent Memory provenance. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.

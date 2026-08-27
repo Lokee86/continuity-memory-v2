@@ -1,6 +1,6 @@
 # ADR 0020: Reliquary and Phylactery file kinds
 
-Status: Accepted; typed Reliquary file identity/header implemented; Reliquary project-only semantics amended by ADR 0021; Phylactery schema/lifecycle and legacy migration remain pending
+Status: Accepted; typed Reliquary and Phylactery file identities/lifecycles implemented; Reliquary project-only semantics amended by ADR 0021; legacy CVA migration remains pending
 Date: 2026-08-24
 Owners: container identity, Reliquary persistence boundary, Phylactery persistence boundary, migration compatibility
 Supersedes: CVA as the long-term user-facing file identity
@@ -41,7 +41,7 @@ Reliquary (.rel)          Phylactery (.phy)
 typed non-user scopes     user-global Identity state
 ```
 
-Reliquary file kind and scope kind are now encoded in a mandatory typed physical header. The extension is a user-facing identifier, not the authority for container type. Phylactery retains the same requirement when its lifecycle is implemented.
+Reliquary and Phylactery file kinds are now encoded in the mandatory typed physical header. Reliquary additionally carries Organization, Project, or Connection scope identity; Phylactery carries no Reliquary scope. The extension is a user-facing identifier, not the authority for container type.
 
 ADR 0021 adds a second internal discriminator for the Reliquary scope kind and adopts the preferred human-facing filename shape `<name>.<scope-type>.rel`, currently including `.org.rel`, `.prj.rel`, and `.con.rel`. The internal type remains authoritative.
 
@@ -57,13 +57,13 @@ Project source/provenance remains a first-class part of the Project Reliquary mo
 
 ### Phylactery (`.phy`)
 
-Phylactery is the user-global Identity persistence domain. Its expected core is durable user Memories plus the indexes, vectors, graph/state, and maintenance metadata required to retrieve and evolve them.
+Phylactery is the user-global Identity persistence domain. The implemented `.phy` owner set is deliberately narrow: Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. These owners reuse the same low-level codecs/stores where their semantics are genuinely shared.
 
-A Phylactery Memory does not require source turns or a live pointer to an originating Reliquary. Source/provenance may be retained when policy permits, but source absence must remain valid.
+A Phylactery Memory does not require source turns or a live pointer to an originating Reliquary. In the current format, direct `.phy` Memory publication requires all REL-local Episode/node/conversation provenance fields to be absent. This is intentionally stricter than inventing a dangling cross-file pointer. A future explicit source-export/lineage representation may add permitted cross-scope provenance without making Project Archive retention a validity requirement.
 
-Phylactery must not become "a Reliquary with nullable provenance." The two file kinds may share codecs and low-level storage owners while enforcing different validity rules and permitted semantic owners.
+Phylactery must not become "a Reliquary with nullable provenance." Archive/history, Episodes, embedded Files/attachments, Insomnia work/completion state, Archive Vectors, Vector Generations, Workspace Metadata, and interaction-stream checkpoints are not Phylactery owners in the current implementation. The existing lexical index is also REL Archive-specific and is not reused as a fake user-Memory index.
 
-The exact minimum/maximum owner set for `.phy` is not yet fixed. In particular, Archive/Episode presence, source-copy representation, Dream/Graph ownership, and user-memory lifecycle machinery remain design work. Project-only owners must not appear in `.phy` merely because the shared container engine knows how to encode them.
+Graph and Memory-vector/profile state are valid Phylactery-owned durable/derived state, but Dream processing, cross-scope routing, export policy, and a purpose-built user-Memory lexical index remain later work.
 
 ## Shared implementation boundary
 
@@ -103,9 +103,9 @@ Existing `CVA*` record markers and `CVCFG` framing are not changed by this ADR a
 
 ## Open implementation decisions
 
-- Phylactery's exact use of the shared typed-header discriminator when `.phy` is implemented;
-- exact required, optional, and forbidden owner sets for each file/scope kind;
-- exact Phylactery source/provenance representation when source export is allowed;
+- whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memory/Graph/vector/profile core;
+- exact required, optional, and forbidden owner sets for Organization/Project/Connection Reliquaries as their policy surfaces diverge;
+- exact Phylactery cross-file source/provenance representation when source export is allowed;
 - legacy `.cva` → typed `.prj.rel` migration mechanics (legacy detection itself is implemented);
 - whether the internal/back-compat `Cva` type/name should eventually be removed; the public product-facing alias is now `Reliquary`;
 - file-association and shell UX for `.rel`, typed `.<scope>.rel`, and `.phy` in Warlock;

@@ -43,20 +43,37 @@ fn typed_reliquary_identity_roundtrips() {
 }
 
 #[test]
-fn reject_unimplemented_file_kind() {
-    let path = test_path("future.phy");
+fn typed_phylactery_identity_roundtrips() {
+    let path = test_path("identity.phy");
     let identity = crate::ContainerIdentity {
+        file_kind: crate::FileKind::Phylactery,
+        scope: None,
+    };
+    let created = Container::create_with_identity(&path, identity).unwrap();
+    assert_eq!(created.identity(), Some(identity));
+    drop(created);
+
+    let reopened = Container::open(&path).unwrap();
+    assert_eq!(reopened.identity(), Some(identity));
+}
+
+#[test]
+fn file_kind_and_scope_combinations_are_validated() {
+    let rel_without_scope = crate::ContainerIdentity {
         file_kind: crate::FileKind::Reliquary,
+        scope: None,
+    };
+    assert!(matches!(
+        Container::create_with_identity(test_path("bad.rel"), rel_without_scope),
+        Err(ContainerError::InvalidIdentity)
+    ));
+
+    let phy_with_scope = crate::ContainerIdentity {
+        file_kind: crate::FileKind::Phylactery,
         scope: Some(crate::ReliquaryScopeKind::Project),
     };
-    drop(Container::create_with_identity(&path, identity).unwrap());
-    let mut bytes = fs::read(&path).unwrap();
-    bytes[16] = 2;
-    bytes[17] = 0;
-    fs::write(&path, bytes).unwrap();
-
     assert!(matches!(
-        Container::open(path),
+        Container::create_with_identity(test_path("bad.phy"), phy_with_scope),
         Err(ContainerError::InvalidIdentity)
     ));
 }

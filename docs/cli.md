@@ -26,6 +26,10 @@ reliquary
 │   ├── create [--scope project|organization|connection]
 │   ├── info
 │   └── verify
+├── phy
+│   ├── create
+│   ├── info
+│   └── verify
 ├── import
 │   └── graph-jsonl
 ├── archive
@@ -65,9 +69,11 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 `config model set-general`, `set-insomnia`, and `set-dream` persist General-model route selection and accept `--reasoning` for `openai-codex` routes. For example, `config model set-general --provider openai-codex --model gpt-5.6-luna --credential codex --reasoning low` selects Luna at low reasoning; if `models.insomnia` is unset, Insomnia inherits that General route. `set-embedding` persists the separate embedding route. `config verify` performs route/credential compatibility validation without sending network requests.
 
-## REL and import behavior
+## REL, PHY, and import behavior
 
 `rel create` creates a typed Project REL by default; `--scope organization`, `--scope project`, and `--scope connection` select the authoritative internal Reliquary scope kind. `rel info` reports the stored scope and whether the file is a legacy CVA physical form. `rel verify` performs a normal `Reliquary::open`, so the same format/reopen/reference validation used by the library is exercised. The old `cva` command name remains a compatibility alias for `rel`.
+
+`phy create <path>` creates a typed user-global Phylactery with no Reliquary scope. `phy info` reports `kind: phylactery` plus Memory, Graph, packed-vector, Memory-vector, and compatibility-profile state. `phy verify` performs a normal `Phylactery::open`, including exact file-kind validation, source-independent Memory validation, Graph endpoint/global-version validation, and vector/profile reference validation. PHY has no `--scope` option.
 
 `import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target Project REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
 
@@ -85,7 +91,7 @@ cargo check --manifest-path cli/Cargo.toml
 cargo test --manifest-path cli/Cargo.toml
 ```
 
-Repository verification also performs command-level smoke tests for REL create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
+Repository verification also performs command-level smoke tests for REL create/info/verify and PHY create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
 
 ## Related docs
 

@@ -159,6 +159,13 @@ mod packed_vector_error;
 mod packed_vector_model;
 mod packed_vector_rebuild;
 mod packed_vector_store;
+pub mod phylactery;
+mod phylactery_compatibility_profiles;
+mod phylactery_error;
+mod phylactery_graph;
+mod phylactery_lifecycle;
+mod phylactery_memory_vectors;
+mod phylactery_packed_vectors;
 mod runtime_host;
 mod runtime_vector_step;
 mod search;
@@ -318,6 +325,8 @@ pub use openai_ready_embedding::{
 pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
+pub use phylactery::Phylactery;
+pub use phylactery_error::PhylacteryError;
 pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError};
 pub use search_error::SearchError;
 pub use search_model::{
@@ -435,6 +444,8 @@ mod openai_ready_embedding_tests;
 mod openai_ready_general_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod phylactery_tests;
 #[cfg(test)]
 mod reliquary_tests;
 #[cfg(test)]

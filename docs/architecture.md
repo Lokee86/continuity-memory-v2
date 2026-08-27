@@ -37,7 +37,28 @@ Reliquary (internal compatibility type: Cva)
 └── VectorGenerationStore
     └── vector_version: u64 + current generation per profile
 ```
-`Reliquary` is the public product-facing type; `Cva` remains the compatibility/internal implementation name. It owns physical composition and the single Container handle. New files carry authoritative Reliquary/scope identity in the header; no existing Archive/Memory/Graph/Insomnia/vector owner was removed or reduced by the rename.
+`Reliquary` is the public product-facing type; `Cva` remains the compatibility/internal implementation name. It owns physical composition and the single Container handle. New REL files carry authoritative Reliquary/scope identity in the header; no existing Archive/Memory/Graph/Insomnia/vector owner was removed or reduced by the rename.
+
+The same low-level container now also backs a distinct `Phylactery` type for user-global Identity state:
+
+```text
+Phylactery (.phy)
+├── Container
+│   └── global_version: u64
+├── Memories
+│   └── memory_version: u64 + immutable revisions
+├── Graph
+│   └── graph_version: u64 + Memory-to-Memory relationships
+├── PackedVectorStore
+│   └── immutable numeric matrices
+├── MemoryVectorStore
+│   └── immutable (profile, MemoryBodyId) -> packed row bindings
+└── CompatibilityProfileStore
+    └── immutable vector-space compatibility contracts
+```
+
+Phylactery does not own Archive/history, Episodes, Files/attachments, Insomnia state, Archive Vectors, Vector Generations, Workspace Metadata, interaction-stream checkpoints, or the existing Archive-specific lexical index. Its direct Memory publication accepts source-independent Memories and rejects REL-local provenance fields until an explicit cross-file lineage/export representation exists.
+
 Machine-local application configuration is a separate owner:
 ```text
 ReliquaryConfig
@@ -69,7 +90,7 @@ ReliquaryConfig
 ### Master key
 `MasterKeyStore` owns retrieval/creation of the 256-bit key that protects credential objects. The current `JsonMasterKeyStore` is a temporary implementation that stores plaintext `reliquary.master-key.json` beside `reliquary.cfg`; production storage will move behind the same ownership boundary to the operating-system credential store. Credential ciphertext uses AES-256-GCM with fresh nonces and object-key-bound authenticated data. The master key is machine-local and is never CVA semantic state.
 ### Container
-Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and CVA-global monotonic version tickets. Global version is ordering only.
+Container owns the fixed header, opaque length-prefixed chunks, `ChunkRef`, file I/O, sync, the single physical reopen scan, and file-global monotonic version tickets. Typed headers distinguish `FileKind::Reliquary` from `FileKind::Phylactery`; Reliquary requires an Organization/Project/Connection scope discriminator, while Phylactery requires no Reliquary scope. Legacy 16-byte headers remain Project Reliquary only. Global version is ordering only.
 ### Archive
 Archive owns source-history semantics: content-addressed content bytes, immutable conversation nodes, native source-turn attachments, standalone embedded file manifests, conversation-local parent ancestry, branch/session-head revisions, derived conversation/leaf inventory and exact-leaf transcript resolution, fragments, immutable deterministic Episodes, explicit file-to-Memory links, the dense Archive watermark, historical branch lookup, and Archive-owned derived indexes. A source turn with attachments enters through one `IncomingTurn` ingestion boundary: body and attachment bytes may be staged as content-addressed backing objects, but the node, attached file manifests, and source provenance become semantically visible together under one Archive publication. Source attachment provenance is therefore part of the source event, not a generic association operation. Later file-to-Memory relationships remain explicit stable-ID links and do not transfer file ownership to Memories.
 `archive_version` is a whole-Archive mutation cut. It is not conversation ancestry.
@@ -83,12 +104,16 @@ The same `InteractionRuntime` now also owns the bounded semantic background coor
 Episodes are contiguous ancestry ranges made from whole user-led response cycles. They are finalized by size, 15-minute configurable inactivity, finite-import end, or the narrow `create_memory` request. Finalizing an Episode never closes its conversation. No semantic topic detector participates in Episode identity.
 
 ### Memories
-Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. A Memory's `MemoryBodyId` is immutable across revisions: metadata/classification/lifecycle may change, but semantic title/content cannot mutate in place. Semantic corrections create another Memory rather than rewriting an existing body. Each published revision advances dense `memory_version` and consumes one CVA-global ordering ticket. Archive/Episode provenance is validated at write and reopen. Insomnia persists assistant-authored **authority provenance** in the existing `content_source_*` record fields only when the user adopts/retains that assistant proposition; separate `grounding_source_*` fields identify context used only to resolve a referent in a user-owned proposition. Grounding never supplies semantic authority. Memory authority does not depend on vector availability.
+Memories owns authoritative working-memory revisions. One stable `MemoryId` has immutable numbered revisions; publication requires the expected current revision and a stable mutation ID for idempotent replay. Title/content bodies are content-addressed separately from revision metadata. A Memory's `MemoryBodyId` is immutable across revisions: metadata/classification/lifecycle may change, but semantic title/content cannot mutate in place. Semantic corrections create another Memory rather than rewriting an existing body. Each published revision advances dense `memory_version` and consumes one file-global ordering ticket. Memory authority does not depend on vector availability.
+
+Reliquary Memory publication validates Archive/Episode provenance at write and reopen. Insomnia persists assistant-authored **authority provenance** in the existing `content_source_*` record fields only when the user adopts/retains that assistant proposition; separate `grounding_source_*` fields identify context used only to resolve a referent in a user-owned proposition. Grounding never supplies semantic authority.
+
+Phylactery reuses the Memory store/codec but applies a different validity rule: current `.phy` Memories must be source-independent, with all REL-local Episode/node/conversation provenance fields absent. This keeps user-global state valid without retaining an originating Project Archive. Cross-file source export/lineage is a separate future contract rather than a nullable Reliquary dependency.
 
 ### Graph
-Graph owns durable Memory-to-Memory semantic relationships. Stable `MemoryId` endpoints are mapped once to dense `arcana_graph::NodeId` values for topology operations; those dense IDs are an internal index and never replace Memory identity. Relationship mutations are oriented records with one of `topical`, `factual`, `causal`, `recurrent`, `references`, `duplicate-of`, `supersedes`, or `structural-parent`; one non-empty single-edge or multi-edge transaction advances dense `graph_version` once and consumes one CVA-global ordering ticket. Retraction records the same oriented relationship identity with `active=false` rather than deleting history. Processing or scheduling order does not determine edge direction.
+Graph owns durable Memory-to-Memory semantic relationships. Stable `MemoryId` endpoints are mapped once to dense `arcana_graph::NodeId` values for topology operations; those dense IDs are an internal index and never replace Memory identity. Relationship mutations are oriented records with one of `topical`, `factual`, `causal`, `recurrent`, `references`, `duplicate-of`, `supersedes`, or `structural-parent`; one non-empty single-edge or multi-edge transaction advances dense `graph_version` once and consumes one file-global ordering ticket. Retraction records the same oriented relationship identity with `active=false` rather than deleting history. Processing or scheduling order does not determine edge direction.
 
-Reliquary owns Graph durability, versioning, Memory endpoint validation, and reopen reconstruction. The pinned `arcana-graph` crate supplies repository-agnostic graph primitives, adjacency/topology structures, and traversal algorithms. Arcana repository identities, relation vocabulary, repository snapshots, and protocol semantics are not part of the CVA Graph owner. Pre-Graph CVAs reopen with an empty Graph owner and acquire the Graph format marker lazily on the first relationship write.
+Reliquary and Phylactery both use the same Graph durability/versioning and stable-Memory endpoint rules inside their own files. The pinned `arcana-graph` crate supplies repository-agnostic graph primitives, adjacency/topology structures, and traversal algorithms. Arcana repository identities, relation vocabulary, repository snapshots, and protocol semantics are not part of either file's Graph owner. Pre-Graph legacy CVAs reopen with an empty Graph owner and acquire the Graph format marker lazily on the first relationship write. Cross-file Graph edges are not represented by the current MemoryId-only endpoint format.
 
 ### Insomnia operational state
 Insomnia operational state owns finalized-Episode processing coordination rather than another semantic timeline. Every finalized Episode is work. Priority is immediate live (`create_memory`), normal live, then import/backfill, with oldest source chronology inside each class. Queue registration is idempotent. Claims use expiring lease tokens; stale tokens cannot finalize reclaimed work. Pending, processing, lease-renewal, and retryable-failure transitions are runtime-only and are re-derived as Pending after reopen when no final outcome exists. A Terminal outcome remains durable as one final work record; a successful outcome atomically publishes all newly created Memory records together with one compact Episode-completion transaction. Prior failed-attempt history is not retained as active history after success. This owner consumes no semantic version clock.
@@ -103,9 +128,15 @@ For whole-file import bring-up, `finalize_canonical_imports_and_queue` materiali
 
 Insomnia extraction may perform one bounded read-only Archive evidence round when an explicit callback, adopted/retained assistant proposition, or genuinely unresolved referent cannot be resolved from the authoritative Episode and nearby ancestry. The model may request at most four reads: an exact `(conversation_id, node_id)` turn, a maximum-64-node ancestry range, or lexical Archive search with at most five fragment hits. Returned evidence is deduplicated and capped globally at 64 turns / 128 KiB. Historical evidence can supply an assistant **authority source** only when the authoritative user turn explicitly adopts/retains that proposition, or a user/assistant **grounding source** used only to identify a referent. Neither form of evidence can provide user authority: `source_node_id` remains a user turn inside the authoritative Episode. External provenance is accepted only when that exact historical turn was actually returned in the bounded evidence set, and it may not postdate the user authority turn. A second evidence round is rejected.
 
+### Phylactery lifecycle
+
+`Phylactery::create` writes typed `FileKind::Phylactery` identity with no Reliquary scope and initializes only Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. `Phylactery::open` performs one container scan, rebuilds those owners in dependency order, validates source-independent Memory provenance and Memory/Graph global-version uniqueness, and rejects REL or legacy CVA identity. No Archive object is constructed merely to satisfy Memory validation.
+
+The current PHY slice intentionally does not run Insomnia or Dream. Insomnia ownership routing/export must decide which source-derived propositions may enter Phylactery, and Dream must become durable-scope aware before it can safely reason across or within PHY automatically.
+
 ### PackedVectorStore
 Packed vectors own immutable matrix bytes and physical row representation. `VectorSchema` defines dimensions and scalar representation; rows are fixed-width and contiguous. Equal schema+bytes deduplicate.
-Packed vectors do not know which Archive fragments or Memory bodies rows represent or which embedding space produced them.
+Packed vectors do not know which Archive fragments or Memory bodies rows represent or which embedding space produced them. The same store is valid in REL and PHY.
 ### MemoryVectorStore
 Memory Vectors are immutable derived bindings over shared `PackedVectorStore` matrices. Their durable identity is `(CompatibilityProfileId, MemoryBodyId)`, not Memory revision. Each profile/body pair may bind to exactly one packed row; metadata-only Memory revisions therefore require no vector work. A genuinely new compatibility profile may add another immutable vector for the same Memory body. Memory Vectors consume no semantic/global version clock and have no update/regeneration path.
 

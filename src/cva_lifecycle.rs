@@ -154,6 +154,13 @@ impl Cva {
             interaction_streams.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
+        if let Some(identity) = container.identity()
+            && identity.file_kind != crate::FileKind::Reliquary
+        {
+            return Err(CvaError::InvalidContainerIdentity(
+                "file is not a Reliquary",
+            ));
+        }
         let archive = archive_state.finish()?;
         archive.validate_references()?;
         let memories = memory_state.finish()?;

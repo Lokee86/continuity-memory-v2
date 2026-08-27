@@ -23,6 +23,10 @@ pub enum Command {
         #[command(subcommand)]
         command: RelCommand,
     },
+    Phy {
+        #[command(subcommand)]
+        command: PhyCommand,
+    },
     Import {
         #[command(subcommand)]
         command: ImportCommand,
@@ -62,6 +66,13 @@ pub enum RelCommand {
     Verify {
         path: PathBuf,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum PhyCommand {
+    Create { path: PathBuf },
+    Info { path: PathBuf },
+    Verify { path: PathBuf },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]

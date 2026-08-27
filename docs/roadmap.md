@@ -139,20 +139,20 @@ Planning work therefore needs explicit scope creation/editing, ownership routing
 
 ## Reliquary / Phylactery file-kind transition
 
-Typed Reliquary `.rel` identity is now implemented over the full former CVA model. Phylactery remains pending. Product file identities are fixed by ADR 0020 and amended by ADR 0021:
+Typed Reliquary `.rel` identity is implemented over the full former CVA model, and typed Phylactery `.phy` is implemented as the distinct User file kind. Product file identities are fixed by ADR 0020 and amended by ADR 0021:
 
 - Reliquary is the typed non-user scope family → `<name>.<scope-type>.rel`;
 - currently accepted Reliquary scope hints are `.org.rel`, `.prj.rel`, and `.con.rel`;
 - Phylactery user-global Identity state → `.phy`.
 
-The implementation preserves one shared low-level container/storage engine. New REL files encode and validate semantic file kind plus Reliquary scope kind inside a 24-byte header; filename extensions are human-facing hints, not semantic authority. Existing 16-byte CVA headers are detected explicitly as legacy Project Reliquaries.
+The implementation preserves one shared low-level container/storage engine. New REL and PHY files encode and validate semantic file kind inside a 24-byte header; REL additionally carries Reliquary scope kind, while PHY requires the scope byte to be zero. Filename extensions are human-facing hints, not semantic authority. Existing 16-byte CVA headers are detected explicitly as legacy Project Reliquaries.
 
 Remaining migration/product work should proceed in this order:
 
 1. add a safe explicit legacy `.cva` → typed `.prj.rel` migration operation while preserving deterministic IDs, record payloads, and hash/domain-separation constants;
-2. update Warlock file creation/open/association UX to use typed REL files and later distinguish `.phy` before retrieval/context assembly;
+2. update Warlock file creation/open/association UX to use typed REL and PHY files before retrieval/context assembly;
 3. implement filename-hint versus authoritative internal-type mismatch warnings;
-4. implement Phylactery `.phy` over shared low-level mechanics with its own semantic validity rules;
+4. define explicit cross-file Memory/source export and lineage semantics between REL and PHY;
 5. decide later whether the internal/back-compat `Cva` terminology should be removed.
 
 Do not implement `.phy` as a project Reliquary with provenance fields merely made nullable. Shared mechanics and separate semantic validation are both required.
@@ -163,7 +163,7 @@ Routine prompt tuning on the 11-Episode adversarial fixture is complete and froz
 
 1. port the validated dedicated metadata-classification ownership split into the authoritative runtime without allowing metadata to alter frozen semantic groups;
 2. design and fixture-test persistence ownership routing described in [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md). `user | project` remains a useful first implementation boundary, but the long-term router must also represent learned Organization and Connection state where publication authority permits it. Ownership classification must remain separate from authorization/governance so observed behaviour cannot silently become policy, permissions, contractual terms, or standing instructions. A dedicated narrow ownership-classification pass may be cleaner than adding this responsibility to ordinary metadata and must be compared explicitly;
-3. implement **Phylactery `.phy`** and cross-scope Memory/source export policy over the now-implemented typed Reliquary `.org.rel` / `.prj.rel` / `.con.rel` substrate;
+3. implement cross-scope Memory routing/export policy from REL into the now-implemented Phylactery `.phy`, including explicit source-export/lineage semantics rather than REL-local pointers;
 4. run the full 66-Episode gold-v3 corpus as milestone confirmation, not as another prompt-tuning loop;
 5. recalibrate worker concurrency and model/reasoning cost for the selected production semantic/metadata/scope/wording model mix;
 6. treat further semantic-quality work as a new capability boundary only when measured production failures justify it. Candidate escalation paths are documented in [Insomnia semantic validation — Future reliability architecture options](insomnia-semantic-validation-2026-08-24.md#future-reliability-architecture-options): targeted verifier/repair, selective multi-sample voting, deterministic clause-candidate preprocessing, ambiguity routing, a separate supersession resolver, provenance-specific verification, or a stronger/fine-tuned selector.
@@ -224,7 +224,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 ## Open decisions
 
 - storage and explicit management surfaces for Organization, Project, and Connection scopes, including ownership routing, authorization/governance, typed graph edges, hierarchy/composition, and runtime rendering;
-- Phylactery `.phy` owner composition/validation and the required/optional/forbidden owner policy for each scope kind; Reliquary header and internal scope discrimination are implemented.
+- Whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memories/Graph/Packed Vectors/Memory Vectors/Compatibility Profiles core, and how future user-Memory lexical retrieval should be represented without importing Archive semantics.
 - Legacy `.cva` → typed Project `.prj.rel` migration mechanics and whether `CVA` remains only as an internal generic-container term.
 - The exact ownership boundaries among user-global Phylactery, Organization Reliquary, Project Reliquary, and Connection Reliquary learned state.
 - Whether persistence ownership classification belongs in the existing metadata pass or a dedicated ownership-classification pass; if dedicated, its ordering relative to metadata and synthesis, and how the first `user | project` boundary expands to Organization/Connection learned state.

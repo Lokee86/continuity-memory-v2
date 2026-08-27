@@ -91,6 +91,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 76. **Canonical promotion is evidence-driven and deterministic.** Direct/correction authority promotes only configured current-state classes, duplicate corroboration requires distinct user authority anchors, canonical supersession transfers only through a unique active superseder, and age/model confidence/graph degree/reprocessing are never promotion evidence.
 77. **Dream temporal semantics are body/source-time derived.** Content-time anchors and recurrence patterns derive from immutable Memory text plus authoritative source chronology; `Memory.created_at_ns` is never semantic time, source-time proximity alone is not a relationship signal, and derived temporal analysis owns no semantic clock.
 78. **Reliquary identity is stored, not inferred.** New REL files carry authoritative file kind and Organization/Project/Connection scope kind in the physical header. A legacy 16-byte CVA header is explicitly Project Reliquary, and opening it must not silently rewrite the physical identity.
+79. **Phylactery identity is distinct and stored.** New PHY files carry authoritative Phylactery file kind with no Reliquary scope; REL, PHY, and legacy CVA lifecycles must reject one another when their semantic identities do not match.
+80. **Phylactery does not depend on Project Archive retention.** A current PHY Memory is valid without source turns, Episodes, Files, or a live originating REL. Direct PHY publication rejects REL-local provenance fields until an explicit cross-file lineage/export contract exists.
+81. **Shared codecs do not collapse file semantics.** Phylactery currently persists Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles only; REL-only owners cannot appear in PHY merely because the shared container can physically carry their bytes.
+82. **Current Graph endpoints are same-file Memory identities.** REL and PHY may each persist Memory Graph state, but the current `MemoryId`-only endpoint format does not establish cross-file Graph relationships.
 
 ## Safety boundaries
 

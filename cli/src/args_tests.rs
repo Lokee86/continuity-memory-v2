@@ -1,4 +1,6 @@
-use crate::args::{Cli, Command, InsomniaCommand, RelCommand, RelScopeArg, VectorsCommand};
+use crate::args::{
+    Cli, Command, InsomniaCommand, PhyCommand, RelCommand, RelScopeArg, VectorsCommand,
+};
 use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand, ReasoningArg};
 use clap::Parser;
 
@@ -9,6 +11,17 @@ fn parses_rel_command() {
         cli.command,
         Command::Rel {
             command: RelCommand::Info { .. }
+        }
+    ));
+}
+
+#[test]
+fn parses_phy_command() {
+    let cli = Cli::try_parse_from(["reliquary", "phy", "info", "user.phy"]).unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Phy {
+            command: PhyCommand::Info { .. }
         }
     ));
 }

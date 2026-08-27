@@ -14,7 +14,7 @@ Durable state is partitioned by semantic owner rather than stored in one global 
 
 Provisional implementation plan. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) amends Reliquary from a project-only concept into a typed family of non-user durable scopes.
 
-Typed Reliquary `.rel` files are now implemented over the existing full CVA storage model, including authoritative Organization/Project/Connection scope identity and explicit legacy `.cva` detection as Project Reliquary. Phylactery, multi-scope persistence routing, and scope-graph context resolution are not yet implemented.
+Typed Reliquary `.rel` files are implemented over the existing full CVA storage model, including authoritative Organization/Project/Connection scope identity and explicit legacy `.cva` detection as Project Reliquary. Typed Phylactery `.phy` is also implemented as the distinct User file kind with a source-independent Memory/Graph/vector/profile owner set. Multi-scope persistence routing, cross-file provenance/export, and scope-graph context resolution are not yet implemented.
 
 ## Problem
 
@@ -37,9 +37,9 @@ A company policy does not become Project state because it was used while working
 
 User-global state remains **Phylactery `.phy`**, a distinct semantic file kind rather than a Reliquary with fields removed.
 
-Its expected core is durable user Memory plus the indexes, graph/vector structures, and maintenance state required to retrieve and evolve it across projects and organizations.
+Its implemented core is durable user Memory plus same-file Graph state, Packed Vectors, Memory Vectors, and Compatibility Profiles. Archive/history, Episodes, Files/attachments, Insomnia state, Archive Vectors, Vector Generations, Workspace Metadata, interaction-stream checkpoints, and the current Archive-specific lexical index are not Phylactery owners.
 
-A Phylactery Memory does not require project source turns or a live pointer to an originating Reliquary. Source/provenance may be retained when policy permits, but source absence must remain valid.
+A Phylactery Memory does not require project source turns or a live pointer to an originating Reliquary. Current direct publication requires the existing REL-local Episode/node/conversation provenance fields to be absent. Future source export may retain permitted provenance only through an explicit cross-file lineage/snapshot representation; source absence must remain valid.
 
 ### Reliquary family
 
@@ -386,8 +386,8 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 
 ## Open decisions
 
-- exact `.phy` Phylactery owner set;
-- exact typed `.rel` header fields and internal scope-kind discriminator;
+- whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memory/Graph/vector/profile core;
+- exact cross-file source-lineage/export representation for permitted Phylactery provenance;
 - exact Organization, Project, and Connection owner sets;
 - whether bare `.rel` remains creatable or only supported for compatibility/migration;
 - representation and validation of learned versus governed state inside Organization and Connection;
@@ -400,7 +400,7 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 - source-copy versus lineage representation across scope boundaries;
 - memory/source export policy representation;
 - correction, supersession, deduplication, and retirement across each scope kind;
-- Dream/Graph operation across Phylactery and multiple Reliquary scope kinds;
+- Dream operation across Phylactery and multiple Reliquary scope kinds; same-file PHY Graph persistence is implemented, but Dream is not yet scope-aware;
 - Ego/context assembly budget and conflict resolution across inherited and associated scopes;
 - legacy `.cva` -> typed Project Reliquary migration mechanics.
 

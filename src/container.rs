@@ -20,6 +20,7 @@ pub struct FormatVersion {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FileKind {
     Reliquary,
+    Phylactery,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -76,8 +77,9 @@ impl Container {
         path: impl AsRef<Path>,
         identity: ContainerIdentity,
     ) -> Result<Self, ContainerError> {
-        if identity.scope.is_none() {
-            return Err(ContainerError::InvalidIdentity);
+        match (identity.file_kind, identity.scope) {
+            (FileKind::Reliquary, Some(_)) | (FileKind::Phylactery, None) => {}
+            _ => return Err(ContainerError::InvalidIdentity),
         }
         let path = path.as_ref();
         let mut file = OpenOptions::new()
@@ -197,6 +199,7 @@ fn encode_identity_header(identity: ContainerIdentity) -> [u8; IDENTITY_HEADER_L
     header[12..16].copy_from_slice(&(IDENTITY_HEADER_LEN as u32).to_le_bytes());
     header[16] = match identity.file_kind {
         FileKind::Reliquary => 1,
+        FileKind::Phylactery => 2,
     };
     header[17] = match identity.scope {
         None => 0,
@@ -246,6 +249,7 @@ fn read_header(
     }
     let file_kind = match identity_bytes[0] {
         1 => FileKind::Reliquary,
+        2 => FileKind::Phylactery,
         _ => return Err(ContainerError::InvalidIdentity),
     };
     let scope = match identity_bytes[1] {
@@ -255,8 +259,9 @@ fn read_header(
         3 => Some(ReliquaryScopeKind::Connection),
         _ => return Err(ContainerError::InvalidIdentity),
     };
-    if scope.is_none() {
-        return Err(ContainerError::InvalidIdentity);
+    match (file_kind, scope) {
+        (FileKind::Reliquary, Some(_)) | (FileKind::Phylactery, None) => {}
+        _ => return Err(ContainerError::InvalidIdentity),
     }
     Ok((
         version,
