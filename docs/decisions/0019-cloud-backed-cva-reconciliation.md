@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Graph/Insomnia replay, file-to-Memory reconciliation, structured semantic conflict reporting, and safe path-based canonical promotion are implemented; provider discovery/integration remains in progress.
+Accepted — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Graph/Insomnia replay, file-to-Memory reconciliation, structured semantic conflict reporting, and safe path-based canonical promotion are implemented; provider discovery/integration remains in progress. ADR 0022 supersedes this ADR's WorkspaceMetadata reconciliation identity with the typed owner ID.
 
 ## Purpose
 

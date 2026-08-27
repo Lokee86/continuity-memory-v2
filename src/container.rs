@@ -4,10 +4,12 @@ mod scan;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use uuid::Uuid;
 
 const MAGIC: [u8; 8] = *b"CVA\0\r\n\x1a\n";
 const LEGACY_HEADER_LEN: u64 = 16;
-const IDENTITY_HEADER_LEN: u64 = 24;
+const LEGACY_TYPED_HEADER_LEN: u64 = 24;
+const IDENTITY_HEADER_LEN: u64 = 40;
 const CHUNK_HEADER_LEN: u64 = 8;
 const CURRENT_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
 
@@ -48,6 +50,7 @@ pub struct Container {
     path: PathBuf,
     version: FormatVersion,
     identity: Option<ContainerIdentity>,
+    owner_uuid: Option<[u8; 16]>,
     pub(crate) header_len: u64,
     pub(crate) next_version: u64,
 }
@@ -68,6 +71,7 @@ impl Container {
             path: path.to_path_buf(),
             version: CURRENT_VERSION,
             identity: None,
+            owner_uuid: None,
             header_len: LEGACY_HEADER_LEN,
             next_version: 1,
         })
@@ -77,23 +81,29 @@ impl Container {
         path: impl AsRef<Path>,
         identity: ContainerIdentity,
     ) -> Result<Self, ContainerError> {
-        match (identity.file_kind, identity.scope) {
-            (FileKind::Reliquary, Some(_)) | (FileKind::Phylactery, None) => {}
-            _ => return Err(ContainerError::InvalidIdentity),
-        }
+        Self::create_with_identity_and_uuid(path, identity, *Uuid::new_v4().as_bytes())
+    }
+
+    pub(crate) fn create_with_identity_and_uuid(
+        path: impl AsRef<Path>,
+        identity: ContainerIdentity,
+        owner_uuid: [u8; 16],
+    ) -> Result<Self, ContainerError> {
+        validate_identity(identity)?;
         let path = path.as_ref();
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
             .create_new(true)
             .open(path)?;
-        file.write_all(&encode_identity_header(identity))?;
+        file.write_all(&encode_identity_header(identity, owner_uuid))?;
         file.sync_all()?;
         Ok(Self {
             file,
             path: path.to_path_buf(),
             version: CURRENT_VERSION,
             identity: Some(identity),
+            owner_uuid: Some(owner_uuid),
             header_len: IDENTITY_HEADER_LEN,
             next_version: 1,
         })
@@ -156,6 +166,16 @@ impl Container {
         self.identity
     }
 
+    pub fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.owner_uuid
+    }
+
+    pub fn owner_id(&self) -> Option<String> {
+        let identity = self.identity?;
+        let uuid = Uuid::from_bytes(self.owner_uuid?);
+        Some(format!("{}-{uuid}", owner_prefix(identity)))
+    }
+
     pub fn sync(&self) -> Result<(), ContainerError> {
         self.file.sync_all().map_err(ContainerError::Io)
     }
@@ -191,7 +211,10 @@ fn encode_header(version: FormatVersion) -> [u8; LEGACY_HEADER_LEN as usize] {
     header
 }
 
-fn encode_identity_header(identity: ContainerIdentity) -> [u8; IDENTITY_HEADER_LEN as usize] {
+fn encode_identity_header(
+    identity: ContainerIdentity,
+    owner_uuid: [u8; 16],
+) -> [u8; IDENTITY_HEADER_LEN as usize] {
     let mut header = [0_u8; IDENTITY_HEADER_LEN as usize];
     header[..8].copy_from_slice(&MAGIC);
     header[8..10].copy_from_slice(&CURRENT_VERSION.major.to_le_bytes());
@@ -207,12 +230,21 @@ fn encode_identity_header(identity: ContainerIdentity) -> [u8; IDENTITY_HEADER_L
         Some(ReliquaryScopeKind::Project) => 2,
         Some(ReliquaryScopeKind::Connection) => 3,
     };
+    header[24..40].copy_from_slice(&owner_uuid);
     header
 }
 
 fn read_header(
     file: &mut File,
-) -> Result<(FormatVersion, Option<ContainerIdentity>, u64), ContainerError> {
+) -> Result<
+    (
+        FormatVersion,
+        Option<ContainerIdentity>,
+        Option<[u8; 16]>,
+        u64,
+    ),
+    ContainerError,
+> {
     let mut header = [0_u8; LEGACY_HEADER_LEN as usize];
     file.read_exact(&mut header).map_err(|error| {
         if error.kind() == io::ErrorKind::UnexpectedEof {
@@ -236,9 +268,9 @@ fn read_header(
         // Legacy v1 has no embedded semantic discriminator. Reliquary treats
         // this physical form explicitly as legacy Project state while keeping
         // the missing identity visible so migration remains detectable.
-        return Ok((version, None, LEGACY_HEADER_LEN));
+        return Ok((version, None, None, LEGACY_HEADER_LEN));
     }
-    if length != IDENTITY_HEADER_LEN as u32 {
+    if length != LEGACY_TYPED_HEADER_LEN as u32 && length != IDENTITY_HEADER_LEN as u32 {
         return Err(ContainerError::InvalidHeaderLength(length));
     }
     let mut identity_bytes = [0_u8; 8];
@@ -259,15 +291,34 @@ fn read_header(
         3 => Some(ReliquaryScopeKind::Connection),
         _ => return Err(ContainerError::InvalidIdentity),
     };
-    match (file_kind, scope) {
-        (FileKind::Reliquary, Some(_)) | (FileKind::Phylactery, None) => {}
-        _ => return Err(ContainerError::InvalidIdentity),
+    let identity = ContainerIdentity { file_kind, scope };
+    validate_identity(identity)?;
+    let owner_uuid = if length == IDENTITY_HEADER_LEN as u32 {
+        let mut bytes = [0_u8; 16];
+        file.read_exact(&mut bytes)
+            .map_err(|_| ContainerError::TruncatedHeader)?;
+        Some(bytes)
+    } else {
+        None
+    };
+    Ok((version, Some(identity), owner_uuid, u64::from(length)))
+}
+
+fn validate_identity(identity: ContainerIdentity) -> Result<(), ContainerError> {
+    match (identity.file_kind, identity.scope) {
+        (FileKind::Reliquary, Some(_)) | (FileKind::Phylactery, None) => Ok(()),
+        _ => Err(ContainerError::InvalidIdentity),
     }
-    Ok((
-        version,
-        Some(ContainerIdentity { file_kind, scope }),
-        IDENTITY_HEADER_LEN,
-    ))
+}
+
+fn owner_prefix(identity: ContainerIdentity) -> &'static str {
+    match (identity.file_kind, identity.scope) {
+        (FileKind::Phylactery, None) => "phy",
+        (FileKind::Reliquary, Some(ReliquaryScopeKind::Project)) => "proj",
+        (FileKind::Reliquary, Some(ReliquaryScopeKind::Organization)) => "org",
+        (FileKind::Reliquary, Some(ReliquaryScopeKind::Connection)) => "con",
+        _ => unreachable!("validated container identity"),
+    }
 }
 
 fn read_u64(file: &mut File, offset: u64) -> Result<u64, ContainerError> {

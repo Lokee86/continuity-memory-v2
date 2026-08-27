@@ -16,8 +16,9 @@
 - [ADR 0014: Echo historical reasoning traces](0014-echo-historical-reasoning-traces.md) — **Accepted**, 2026-08-16.
 - [ADR 0015: ACP inline interaction stream](0015-acp-inline-interaction-stream.md) — **Accepted for ACP adapter capture semantics; amended by ADR 0016**, 2026-08-17.
 - [ADR 0016: Native product surface and shared interaction runtime](0016-native-product-surface-and-shared-interaction-runtime.md) — **Accepted for the shared interaction/runtime seam; standalone native-Reliquary-UI direction superseded by ADR 0017**, 2026-08-24.
-- [ADR 0017: CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md) — **Accepted**, 2026-08-24.
+- [ADR 0017: CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md) — **Accepted for Warlock host/workspace ownership; WorkspaceMetadata identity/type superseded by ADR 0022**, 2026-08-24.
 - [ADR 0018: Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md) — **Accepted**, 2026-08-24.
-- [ADR 0019: Cloud-backed CVA reconciliation](0019-cloud-backed-cva-reconciliation.md) — **Accepted; implementation in progress**, 2026-08-24.
+- [ADR 0019: Cloud-backed CVA reconciliation](0019-cloud-backed-cva-reconciliation.md) — **Accepted; WorkspaceMetadata reconciliation identity superseded by ADR 0022**, 2026-08-24.
 - [ADR 0020: Reliquary and Phylactery file kinds](0020-reliquary-and-phylactery-file-kinds.md) — **Accepted and implemented for typed REL/PHY identity; amended by ADR 0021**, 2026-08-24.
 - [ADR 0021: Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md) — **Accepted for logical scope ownership, typed Reliquary naming, and Connection modelling; concrete schema/context policy provisional**, 2026-08-25.
+- [ADR 0022: Durable typed owner identity](0022-durable-typed-owner-identity.md) — **Accepted and partially implemented**, 2026-08-26.

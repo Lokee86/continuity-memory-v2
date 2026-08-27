@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Supersedes the standalone native-Reliquary-UI product direction in ADR 0016; ADR 0016 remains authoritative for the shared transport-neutral interaction/runtime seam.
+Accepted — 2026-08-24. Supersedes the standalone native-Reliquary-UI product direction in ADR 0016; ADR 0016 remains authoritative for the shared transport-neutral interaction/runtime seam. The WorkspaceMetadata identity/type design in this ADR is superseded by ADR 0022.
 
 ## Purpose
 

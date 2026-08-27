@@ -23,12 +23,14 @@ impl Container {
             .write(true)
             .open(path)
             .map_err(ContainerError::Io)?;
-        let (version, identity, header_len) = read_header(&mut file).map_err(E::from)?;
+        let (version, identity, owner_uuid, header_len) =
+            read_header(&mut file).map_err(E::from)?;
         let mut container = Self {
             file,
             path: path.to_path_buf(),
             version,
             identity,
+            owner_uuid,
             header_len,
             next_version: 1,
         };

@@ -14,7 +14,7 @@ pub enum CvaRelation {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CvaComparison {
-    pub workspace_id: String,
+    pub owner_id: String,
     pub common_chunk_count: usize,
     pub left_chunk_count: usize,
     pub right_chunk_count: usize,
@@ -43,18 +43,10 @@ impl Cva {
     ) -> Result<CvaComparison, CvaReconcileError> {
         let mut left = Self::open(left_path)?;
         let mut right = Self::open(right_path)?;
-        let left_scope = left.scope_kind();
-        let right_scope = right.scope_kind();
-        if left_scope != right_scope {
-            return Err(CvaReconcileError::ScopeMismatch {
-                left: left_scope,
-                right: right_scope,
-            });
-        }
-        let left_id = workspace_id(&left, "left")?;
-        let right_id = workspace_id(&right, "right")?;
+        let left_id = owner_id(&left, "left")?;
+        let right_id = owner_id(&right, "right")?;
         if left_id != right_id {
-            return Err(CvaReconcileError::WorkspaceMismatch {
+            return Err(CvaReconcileError::OwnerMismatch {
                 left: left_id,
                 right: right_id,
             });
@@ -73,7 +65,7 @@ impl Cva {
         let right_chunk_count = right_chunks.len();
         let relation = classify(common_chunk_count, left_chunk_count, right_chunk_count);
         Ok(CvaComparison {
-            workspace_id: left_id,
+            owner_id: left_id,
             common_chunk_count,
             left_chunk_count,
             right_chunk_count,
@@ -124,10 +116,9 @@ fn empty_result(comparison: CvaComparison) -> CvaReconcileResult {
     }
 }
 
-fn workspace_id(cva: &Cva, side: &'static str) -> Result<String, CvaReconcileError> {
-    cva.workspace_metadata()
-        .map(|metadata| metadata.id.clone())
-        .ok_or(CvaReconcileError::MissingWorkspaceMetadata(side))
+fn owner_id(cva: &Cva, side: &'static str) -> Result<String, CvaReconcileError> {
+    cva.owner_id()
+        .ok_or(CvaReconcileError::MissingOwnerId(side))
 }
 
 fn classify(common: usize, left: usize, right: usize) -> CvaRelation {

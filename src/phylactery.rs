@@ -18,6 +18,14 @@ pub struct Phylactery {
 }
 
 impl Phylactery {
+    pub fn owner_id(&self) -> Option<String> {
+        self.container.owner_id()
+    }
+
+    pub fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.container.owner_uuid()
+    }
+
     pub fn publish_memory(
         &mut self,
         id: Option<MemoryId>,

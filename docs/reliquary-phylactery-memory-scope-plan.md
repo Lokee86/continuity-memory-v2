@@ -37,7 +37,7 @@ A company policy does not become Project state because it was used while working
 
 User-global state remains **Phylactery `.phy`**, a distinct semantic file kind rather than a Reliquary with fields removed.
 
-Its implemented core is durable user Memory plus same-file Graph state, Packed Vectors, Memory Vectors, and Compatibility Profiles. Archive/history, Episodes, Files/attachments, Insomnia state, Archive Vectors, Vector Generations, Workspace Metadata, interaction-stream checkpoints, and the current Archive-specific lexical index are not Phylactery owners.
+Its implemented core is durable user Memory plus same-file Graph state, Packed Vectors, Memory Vectors, and Compatibility Profiles. Archive/history, Episodes, Files/attachments, Insomnia state, Archive Vectors, Vector Generations, interaction-stream checkpoints, and the current Archive-specific lexical index are not Phylactery owners.
 
 A Phylactery Memory does not require project source turns or a live pointer to an originating Reliquary. Current direct publication requires the existing REL-local Episode/node/conversation provenance fields to be absent. Future source export may retain permitted provenance only through an explicit cross-file lineage/snapshot representation; source absence must remain valid.
 

@@ -60,7 +60,6 @@ mod cva_reconcile_promote;
 mod cva_reconcile_repack;
 mod cva_turn_ingest;
 mod cva_vector_generations;
-mod cva_workspace;
 mod dream_candidate_error;
 mod dream_candidate_model;
 mod dream_candidate_ranking;
@@ -184,10 +183,6 @@ mod vector_generation_model;
 mod vector_generation_rebuild;
 mod vector_generation_store;
 mod vector_generation_validation;
-mod workspace_metadata;
-mod workspace_metadata_codec;
-mod workspace_metadata_rebuild;
-mod workspace_metadata_store;
 
 pub use archive::Archive;
 pub use archive_error::ArchiveError;
@@ -338,10 +333,6 @@ pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
 pub use turn_ingest_model::{IncomingAttachment, IncomingTurn, IngestedTurn};
 pub use vector_generation_error::VectorGenerationError;
 pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGenerationStats};
-pub use workspace_metadata::{
-    MAX_WORKSPACE_ID_BYTES, MAX_WORKSPACE_NAME_BYTES, MAX_WORKSPACE_TYPE_BYTES, WorkspaceMetadata,
-    WorkspaceMetadataError,
-};
 
 #[cfg(test)]
 mod archive_inventory_tests;
@@ -466,5 +457,3 @@ mod turn_ingest_tests;
 mod vector_generation_tests;
 #[cfg(test)]
 mod vector_generation_validation_tests;
-#[cfg(test)]
-mod workspace_metadata_tests;

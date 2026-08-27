@@ -61,7 +61,7 @@ Phylactery is the user-global Identity persistence domain. The implemented `.phy
 
 A Phylactery Memory does not require source turns or a live pointer to an originating Reliquary. In the current format, direct `.phy` Memory publication requires all REL-local Episode/node/conversation provenance fields to be absent. This is intentionally stricter than inventing a dangling cross-file pointer. A future explicit source-export/lineage representation may add permitted cross-scope provenance without making Project Archive retention a validity requirement.
 
-Phylactery must not become "a Reliquary with nullable provenance." Archive/history, Episodes, embedded Files/attachments, Insomnia work/completion state, Archive Vectors, Vector Generations, Workspace Metadata, and interaction-stream checkpoints are not Phylactery owners in the current implementation. The existing lexical index is also REL Archive-specific and is not reused as a fake user-Memory index.
+Phylactery must not become "a Reliquary with nullable provenance." Archive/history, Episodes, embedded Files/attachments, Insomnia work/completion state, Archive Vectors, Vector Generations, and interaction-stream checkpoints are not Phylactery owners in the current implementation. The existing lexical index is also REL Archive-specific and is not reused as a fake user-Memory index.
 
 Graph and Memory-vector/profile state are valid Phylactery-owned durable/derived state, but Dream processing, cross-scope routing, export policy, and a purpose-built user-Memory lexical index remain later work.
 

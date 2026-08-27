@@ -10,7 +10,6 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_store::VectorGenerationStore;
-use crate::workspace_metadata_store::WorkspaceMetadataStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, CvaError,
     Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig, EpisodeId, EpisodeOrigin, FileId,
@@ -31,7 +30,6 @@ pub struct Cva {
     pub(crate) archive_vectors: ArchiveVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
     pub(crate) vector_generations: VectorGenerationStore,
-    pub(crate) workspace_metadata: WorkspaceMetadataStore,
     pub(crate) interaction_streams: InteractionStreamStore,
 }
 
@@ -45,6 +43,14 @@ impl Cva {
 
     pub fn is_legacy_cva(&self) -> bool {
         self.container.identity().is_none()
+    }
+
+    pub fn owner_id(&self) -> Option<String> {
+        self.container.owner_id()
+    }
+
+    pub fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.container.owner_uuid()
     }
 
     pub fn archive(&self) -> &Archive {

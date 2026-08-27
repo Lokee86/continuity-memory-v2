@@ -1,7 +1,7 @@
 use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
 use crate::{
     ConversationSummary, EpisodePolicy, InteractionCompletion, InteractionReceipt, InteractionRole,
-    InteractionSession, ResolvedInteractionTurn, WorkspaceMetadata,
+    InteractionSession, ResolvedInteractionTurn,
 };
 
 impl ReliquaryRuntimeHost {
@@ -18,10 +18,8 @@ impl ReliquaryRuntimeHost {
         action(&mut runtime)
     }
 
-    pub fn workspace_metadata(
-        &self,
-    ) -> Result<Option<WorkspaceMetadata>, ReliquaryRuntimeHostError> {
-        self.with_runtime(|runtime| Ok(runtime.cva().workspace_metadata().cloned()))
+    pub fn owner_id(&self) -> Result<Option<String>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| Ok(runtime.cva().owner_id()))
     }
 
     pub fn conversation_summaries(

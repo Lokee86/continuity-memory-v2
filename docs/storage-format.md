@@ -7,11 +7,11 @@ The shared append-only container now supports two typed semantic file kinds. A R
 
 ## Reliquary and Phylactery file identity — implemented
 
-New Reliquary files use a typed 24-byte header. The header carries authoritative `file_kind = Reliquary` plus an internal scope kind for Organization, Project, or Connection. Human-facing filenames should use `.org.rel`, `.prj.rel`, and `.con.rel`; filenames are hints only and do not determine semantic identity.
+New Reliquary files use a typed 40-byte header. The header carries authoritative `file_kind = Reliquary`, an internal scope kind for Organization, Project, or Connection, and a 16-byte durable owner UUID. Human-facing filenames should use `.org.rel`, `.prj.rel`, and `.con.rel`; filenames are hints only and do not determine semantic identity.
 
 The existing 16-byte `.cva` header remains readable as **legacy Project Reliquary** data. Legacy detection is explicit and no automatic rewrite occurs on open, so a later migration can preserve deterministic IDs, record payloads, and semantic history while still distinguishing old physical files from typed REL files.
 
-Phylactery `.phy` uses the same 24-byte typed header with authoritative `file_kind = Phylactery` and no Reliquary scope. A `.phy` is not a legacy CVA and cannot be opened through the Reliquary/CVA lifecycle. Conversely, Phylactery rejects typed REL and legacy CVA files. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
+Phylactery `.phy` uses the same 40-byte typed header with authoritative `file_kind = Phylactery`, no Reliquary scope, and its own durable owner UUID. A `.phy` is not a legacy CVA and cannot be opened through the Reliquary/CVA lifecycle. Conversely, Phylactery rejects typed REL and legacy CVA files. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
 ## Exact contract
 All integers and multi-byte scalar values are little-endian.
 ### Container header
@@ -20,10 +20,11 @@ All integers and multi-byte scalar values are little-endian.
 | `0` | 8 | magic | `CVA\0\r\n\x1a\n` |
 | `8` | 2 | major | `1` |
 | `10` | 2 | minor | `0` |
-| `12` | 4 | header length | `16` for legacy CVA; `24` for typed files |
+| `12` | 4 | header length | `16` for legacy CVA; `24` for earlier typed files; `40` for current typed files |
 | `16` | 1 | file kind | `1=Reliquary`; `2=Phylactery` |
 | `17` | 1 | semantic scope discriminator | Reliquary: `1=Organization`, `2=Project`, `3=Connection`; Phylactery: `0` |
 | `18` | 6 | reserved | zero |
+| `24` | 16 | durable owner UUID | UUID bytes; current typed files only |
 Physical chunks follow:
 ```text
 u64 payload_length
@@ -37,21 +38,11 @@ u64       global version
 ```
 Global versions begin at `1` and are semantically consecutive. Ordinary semantic owners persist one `CVAVERS1` ticket per version. `CVAINSC2` is the exception: it owns a contiguous embedded global-version range for the Memory records inside that completion transaction, so those versions do not require standalone ticket chunks. Global versions order semantic mutations across concrete databases; immutable backing objects do not independently consume versions.
 
-### Workspace metadata
-Format marker:
-```text
-8 bytes   "CVAWKFM1"
-```
+### Durable owner identity
 
-Optional singleton metadata record:
-```text
-8 bytes   "CVAWKSP1"
-string    stable workspace ID
-string    display name
-string    workspace type
-```
+Current typed REL/PHY files store a 16-byte UUID directly in the container header. The canonical external owner ID is derived from the authoritative type/scope plus that UUID: `proj-<uuid>`, `org-<uuid>`, `con-<uuid>`, or `phy-<uuid>`. Owner identity consumes no semantic/global version ticket. Copies, moves, renames, and reconciliation repacks preserve the UUID. Earlier 16-byte legacy CVA and 24-byte typed files have no header UUID and require explicit migration before owner-ID-based reconciliation.
 
-A current-format REL created by `Reliquary::create` contains the workspace format marker even when no metadata record has been initialized. `Reliquary::create_workspace` appends exactly one metadata record. Legacy CVAs that predate this owner may reopen without the marker; initializing workspace metadata on such a file first appends the marker and then the singleton record. Duplicate metadata records are rejected. Workspace metadata is purpose-built current workspace identity, not a generic property bag, and consumes no semantic/global version ticket.
+Legacy `CVAWKFM1` / `CVAWKSP1` workspace-metadata chunks may remain physically present in old RELs, but current runtime semantics ignore them and do not write them.
 
 ### Interaction-stream checkpoints
 
@@ -178,7 +169,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 ### Phylactery owner composition
 
-A current `.phy` initializes and requires only the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, Workspace Metadata, or interaction-stream checkpoints as Phylactery owners.
+A current `.phy` initializes and requires only the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
 The same Memory record codec is reused, but current Phylactery validity is stricter about provenance: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent. This allows user-global Memories to remain independently valid when an originating Project REL is unavailable or intentionally not retained. Cross-file provenance requires a future explicit lineage/export representation rather than storing REL-local IDs as dangling references.
 
@@ -455,7 +446,7 @@ N bytes UTF-8
 ## Historical semantics
 Archive, Memories, Graph, and Vector Generations have independent local watermarks. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
 ## Diagnostics and failure behavior
-`Cva::open` / `Reliquary::open` requires Reliquary identity (or the legacy 16-byte Project form) and exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Workspace metadata is a compatibility exception: pre-workspace CVAs may omit `CVAWKFM1`, while current `Cva::create` writes it exactly once. Graph is another narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
+`Cva::open` / `Reliquary::open` requires Reliquary type/scope identity (or the legacy 16-byte Project form) and exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Current 40-byte typed files also carry the durable owner UUID; earlier 16-byte and 24-byte forms remain readable for explicit migration but have no owner ID. Graph is a narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
 
 `Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds only Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, vector/profile references, and source-independent Memory provenance. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.

@@ -6,10 +6,11 @@ use reliquary_memory::{Reliquary, ReliquaryScopeKind};
 pub fn run(command: RelCommand) -> Result<()> {
     match command {
         RelCommand::Create { path, scope } => {
-            create(&path, scope)?;
+            let rel = create(&path, scope)?;
             println!(
-                "created REL: {} scope={}",
+                "created REL: {} id={} scope={}",
                 path.display(),
+                rel.owner_id().as_deref().unwrap_or("none"),
                 scope_name(scope)
             );
         }
@@ -17,8 +18,9 @@ pub fn run(command: RelCommand) -> Result<()> {
         RelCommand::Verify { path } => {
             let rel = Reliquary::open(&path)?;
             println!(
-                "REL ok: {} scope={} legacy_cva={} archive_version={} vector_version={}",
+                "REL ok: {} id={} scope={} legacy_cva={} archive_version={} vector_version={}",
                 path.display(),
+                rel.owner_id().as_deref().unwrap_or("none"),
                 scope_kind_name(rel.scope_kind()),
                 rel.is_legacy_cva(),
                 rel.archive_version(),
@@ -29,13 +31,12 @@ pub fn run(command: RelCommand) -> Result<()> {
     Ok(())
 }
 
-fn create(path: &std::path::Path, scope: RelScopeArg) -> Result<()> {
-    match scope {
+fn create(path: &std::path::Path, scope: RelScopeArg) -> Result<Reliquary> {
+    Ok(match scope {
         RelScopeArg::Organization => Reliquary::create_organization(path)?,
         RelScopeArg::Project => Reliquary::create_project(path)?,
         RelScopeArg::Connection => Reliquary::create_connection(path)?,
-    };
-    Ok(())
+    })
 }
 
 fn info(path: &std::path::Path) -> Result<()> {
@@ -48,6 +49,7 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("path: {}", path.display());
     println!("bytes: {}", file_len(path)?);
     println!("kind: reliquary");
+    println!("id: {}", rel.owner_id().as_deref().unwrap_or("none"));
     println!("scope: {}", scope_kind_name(rel.scope_kind()));
     println!("legacy_cva: {}", rel.is_legacy_cva());
     println!("archive_version: {}", rel.archive_version());

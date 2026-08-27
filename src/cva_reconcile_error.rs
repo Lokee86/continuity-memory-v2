@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
-    GraphError, InsomniaError, MemoryError, ReliquaryScopeKind,
+    GraphError, InsomniaError, MemoryError,
 };
 use std::fmt;
 use std::io;
@@ -15,15 +15,8 @@ pub enum CvaReconcileError {
     Insomnia(InsomniaError),
     CompatibilityProfile(CompatibilityProfileError),
     Io(io::Error),
-    MissingWorkspaceMetadata(&'static str),
-    WorkspaceMismatch {
-        left: String,
-        right: String,
-    },
-    ScopeMismatch {
-        left: ReliquaryScopeKind,
-        right: ReliquaryScopeKind,
-    },
+    MissingOwnerId(&'static str),
+    OwnerMismatch { left: String, right: String },
     OutputExists,
     UnsupportedSemanticOwner(&'static str),
     InvalidInsomniaCompletion(&'static str),
@@ -34,10 +27,7 @@ pub enum CvaReconcileError {
     PromotionPathsMustDiffer,
     CanonicalChangedDuringPromotion,
     PromotionFinalizationFailed(String),
-    PromotionRecoveryFailed {
-        failure: String,
-        recovery: String,
-    },
+    PromotionRecoveryFailed { failure: String, recovery: String },
 }
 
 impl fmt::Display for CvaReconcileError {
@@ -51,14 +41,11 @@ impl fmt::Display for CvaReconcileError {
             Self::Insomnia(error) => write!(f, "{error}"),
             Self::CompatibilityProfile(error) => write!(f, "{error}"),
             Self::Io(error) => write!(f, "{error}"),
-            Self::MissingWorkspaceMetadata(side) => {
-                write!(f, "{side} CVA has no workspace metadata")
+            Self::MissingOwnerId(side) => {
+                write!(f, "{side} Reliquary has no durable owner ID")
             }
-            Self::WorkspaceMismatch { left, right } => {
-                write!(f, "workspace mismatch: left={left} right={right}")
-            }
-            Self::ScopeMismatch { left, right } => {
-                write!(f, "Reliquary scope mismatch: left={left:?} right={right:?}")
+            Self::OwnerMismatch { left, right } => {
+                write!(f, "owner mismatch: left={left} right={right}")
             }
             Self::OutputExists => write!(f, "reconciliation output already exists"),
             Self::UnsupportedSemanticOwner(owner) => {

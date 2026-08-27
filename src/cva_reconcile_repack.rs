@@ -18,10 +18,9 @@ pub(crate) fn reconcile_diverged(
     let mut left = Cva::open(left_path)?;
     let mut right = Cva::open(right_path)?;
     let scope = left.scope_kind();
-    let metadata = left
-        .workspace_metadata()
-        .cloned()
-        .ok_or(CvaReconcileError::MissingWorkspaceMetadata("left"))?;
+    let owner_uuid = left
+        .owner_uuid()
+        .ok_or(CvaReconcileError::MissingOwnerId("left"))?;
     let derived_vectors_present =
         has_derived_vector_state(&left) || has_derived_vector_state(&right);
 
@@ -40,7 +39,7 @@ pub(crate) fn reconcile_diverged(
     )?;
 
     let merge_result = (|| {
-        let mut output = Cva::create_workspace_for_scope(output_path, metadata, scope)?;
+        let mut output = Cva::create_scope_with_uuid(output_path, scope, owner_uuid)?;
         replay_profiles(&mut output, left_profiles)?;
         replay_interaction_streams(&mut output, interaction_streams)?;
         replay_archive_tail(&mut output, &left_archive)?;

@@ -6,15 +6,20 @@ use reliquary_memory::Phylactery;
 pub fn run(command: PhyCommand) -> Result<()> {
     match command {
         PhyCommand::Create { path } => {
-            Phylactery::create(&path)?;
-            println!("created PHY: {}", path.display());
+            let phy = Phylactery::create(&path)?;
+            println!(
+                "created PHY: {} id={}",
+                path.display(),
+                phy.owner_id().as_deref().unwrap_or("none")
+            );
         }
         PhyCommand::Info { path } => info(&path)?,
         PhyCommand::Verify { path } => {
             let phy = Phylactery::open(&path)?;
             println!(
-                "PHY ok: {} memory_version={} graph_version={}",
+                "PHY ok: {} id={} memory_version={} graph_version={}",
                 path.display(),
+                phy.owner_id().as_deref().unwrap_or("none"),
                 phy.memory_version(),
                 phy.graph_version()
             );
@@ -34,6 +39,7 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("path: {}", path.display());
     println!("bytes: {}", file_len(path)?);
     println!("kind: phylactery");
+    println!("id: {}", phy.owner_id().as_deref().unwrap_or("none"));
     println!("memory_version: {}", phy.memory_version());
     println!("graph_version: {}", phy.graph_version());
     println!(
