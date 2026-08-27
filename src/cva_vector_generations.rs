@@ -1,9 +1,9 @@
 use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::vector_generation_validation::{validate_generation_reference, vector_generation_id};
 use crate::{
-    CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, PackedVectors, ScalarType,
-    VectorGeneration, VectorGenerationError, VectorGenerationId, VectorGenerationStats,
-    VectorSchema,
+    CompatibilityProfile, CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode,
+    PackedVectors, ScalarType, VectorGeneration, VectorGenerationError, VectorGenerationId,
+    VectorGenerationStats, VectorSchema,
 };
 
 impl Cva {
@@ -21,6 +21,15 @@ impl Cva {
         if !compatibility.compatible {
             return Err(VectorGenerationError::IncompatibleEndpoint);
         }
+        self.build_archive_vector_generation_verified(profile, endpoint)
+    }
+
+    pub(crate) fn build_archive_vector_generation_verified(
+        &mut self,
+        profile: CompatibilityProfile,
+        endpoint: &impl EmbeddingEndpoint,
+    ) -> Result<VectorGeneration, VectorGenerationError> {
+        let compatibility_profile_id = profile.id;
         let fragments = self.fragments();
         if fragments.is_empty() {
             return Err(VectorGenerationError::EmptyPopulation);

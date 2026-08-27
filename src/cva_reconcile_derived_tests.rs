@@ -97,7 +97,7 @@ fn reconcile_repacks_fragments_and_retires_stale_vector_state() {
 
     let result = Cva::reconcile(&left, &right, &output).unwrap();
     assert!(result.vector_rebuild_required);
-    let mut merged = Cva::open(output).unwrap();
+    let mut merged = Cva::open(&output).unwrap();
     assert_eq!(merged.fragments().len(), 3);
     assert_eq!(merged.compatibility_profile(profile.id).unwrap(), profile);
     assert_eq!(
@@ -116,5 +116,22 @@ fn reconcile_repacks_fragments_and_retires_stale_vector_state() {
     assert_eq!(
         merged.lexical_candidates("rightunique", 10).unwrap().len(),
         1
+    );
+
+    let recovery = merged.rebuild_derived_vectors(&endpoint).unwrap();
+    assert_eq!(recovery.compatibility_profile_id, profile.id);
+    assert!(recovery.memory_vectors_embedded > 0);
+    assert!(recovery.archive_generation_rebuilt);
+    merged.sync().unwrap();
+    drop(merged);
+
+    let reopened = Cva::open(output).unwrap();
+    assert!(reopened.packed_vector_stats().objects > 0);
+    assert!(reopened.memory_vector_stats().objects > 0);
+    assert!(reopened.archive_vector_stats().objects > 0);
+    let generation = reopened.current_vector_generation(profile.id).unwrap();
+    assert_eq!(
+        generation.source_archive_version,
+        reopened.archive_version()
     );
 }

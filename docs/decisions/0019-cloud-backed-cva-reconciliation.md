@@ -153,7 +153,7 @@ This is now a functional semantic merge, derived-state cleanup, and safe path-ba
 
 1. Extend owner-explicit replay as any later persisted semantic owners land; Graph is now covered and Dream's duplicate index remains derived/rebuildable state.
 2. Complete provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
-3. Add a host/runtime rebuild hook that can consume `vector_rebuild_required` and rebuild vectors when a verified embedding endpoint is available.
+3. Warlock now consumes `vector_rebuild_required` through `Cva::rebuild_derived_vectors` when a verified embedding endpoint is available, then reopens and validates the recovered file before marking the rebuild complete.
 4. Add Warlock-side presentation/resolution flows for the structured conflicts; Reliquary remains responsible only for typed conflict semantics.
 5. Test realistic provider-mediated multi-device cycles beyond the deterministic synthetic Graph/Archive/Memory fixtures, including offline capture, repeated conflict discovery, and provider file replacement.
 
@@ -180,7 +180,7 @@ This decision does not introduce:
 
 Tests now prove that comparison recognizes identical copies, strict extensions, independent divergent tails, and different workspace IDs. Reconciliation tests additionally prove unrelated source Nodes and attachments merge, immutable Episodes preserve Memory provenance, standalone and grouped Insomnia-produced Memory revisions are re-ticketed correctly, file-to-Memory links replay after their targets, identical completion receipts deduplicate, incompatible Branch/Memory/completion revisions fail closed, and failed merge output is removed. Graph-specific synthetic CVA fixtures prove disjoint divergent relationships merge, right-only Memories exist before Graph replay, atomic multi-relation transactions remain one destination Graph transaction, retractions survive, identical divergent Graph histories deduplicate, and re-presenting an already absorbed Graph-bearing copy is a byte-for-byte semantic no-op. Derived-state coverage proves a changed divergent result is a fresh repack, preserves/revalidates Fragments and compatibility profiles from both sides, rebuilds lexical retrieval from merged Fragments, removes packed/Memory/Archive vector state and Vector Generations, and reports that vector rebuilding is required. Promotion coverage also proves that presenting the same already-absorbed conflicted copy again is a semantic no-op that leaves the canonical CVA byte-for-byte unchanged and creates no persistent reconciliation metadata.
 
-Remaining work is provider-level conflicted-copy discovery/fixtures, host-triggered vector rebuilding, Warlock-side conflict presentation/resolution, repeated reconciliation-cycle testing, and eventual stronger writer coordination if real multi-process/cloud races require it.
+Remaining work is broader provider-level conflicted-copy discovery/fixtures, Warlock-side conflict presentation/resolution, repeated provider-mediated reconciliation-cycle testing, and eventual stronger writer coordination if real multi-process/cloud races require it.
 
 ## Related docs
 
