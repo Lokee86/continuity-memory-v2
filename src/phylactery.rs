@@ -1,4 +1,5 @@
 use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::dream_duplicate_index::DuplicateIndex;
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
@@ -12,6 +13,7 @@ pub struct Phylactery {
     pub(crate) container: Container,
     pub(crate) memories: MemoryStore,
     pub(crate) graph: GraphStore,
+    pub(crate) duplicate_index: DuplicateIndex,
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,

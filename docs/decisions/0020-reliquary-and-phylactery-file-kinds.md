@@ -63,7 +63,7 @@ A Phylactery Memory does not require source turns or a live pointer to an origin
 
 Phylactery must not become "a Reliquary with nullable provenance." Archive/history, Episodes, embedded Files/attachments, Insomnia work/completion state, Archive Vectors, Vector Generations, and interaction-stream checkpoints are not Phylactery owners in the current implementation. The existing lexical index is also REL Archive-specific and is not reused as a fake user-Memory index.
 
-Graph and Memory-vector/profile state are valid Phylactery-owned durable/derived state, but Dream processing, cross-scope routing, export policy, and a purpose-built user-Memory lexical index remain later work.
+Graph and Memory-vector/profile state are valid Phylactery-owned durable/derived state. Same-owner Dream processing is now implemented by ADR 0024 using persisted source-independent chronology. Dream does not federate candidates across owners; cross-scope context composition belongs to higher-level retrieval/Ego. Export policy and a purpose-built user-Memory lexical index remain later work.
 
 ## Shared implementation boundary
 

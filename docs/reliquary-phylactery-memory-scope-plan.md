@@ -125,7 +125,7 @@ Organization is therefore a genuine state scope, not merely a persistent instruc
 
 Project owns durable state specific to one bounded body of work.
 
-Project state includes project source/history, files, decisions, constraints, schedules, deliveries, issues, Memories, provenance, vectors, graph state, and later Dream/Ego-derived project context.
+Project state includes project source/history, files, decisions, constraints, schedules, deliveries, issues, Memories, provenance, vectors, Graph state, owner-local Dream-derived lifecycle/relationship state, and later Ego-derived project context.
 
 A Project may inherit/apply Organization and Connection context without transferring ownership of that inherited state into the Project.
 
@@ -391,7 +391,7 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 - source-copy versus lineage representation across scope boundaries;
 - memory/source export policy representation;
 - correction, supersession, deduplication, and retirement across each scope kind;
-- Dream operation across Phylactery and multiple Reliquary scope kinds; same-file PHY Graph persistence is implemented, but Dream is not yet scope-aware;
+- cross-owner context composition belongs to retrieval/Ego rather than Dream; Dream remains strictly owner-local and does not federate REL/PHY candidates or persist cross-file Graph relationships;
 - Ego/context assembly budget and conflict resolution across inherited and associated scopes;
 
 ## Related docs

@@ -1,11 +1,11 @@
 use crate::dream_owner_publisher::publish_dream_pair as publish_dream_pair_from_parts;
-use crate::dream_source_time::reliquary_source_timestamp_ns;
+use crate::dream_source_time::memory_source_timestamp_ns;
 use crate::{
-    Cva, DreamPairClassification, DreamPairVerification, DreamPublicationError,
-    DreamPublicationOutcome, DreamVerificationPolicy, Memory,
+    DreamPairClassification, DreamPairVerification, DreamPublicationError, DreamPublicationOutcome,
+    DreamVerificationPolicy, Memory, Phylactery,
 };
 
-impl Cva {
+impl Phylactery {
     pub fn publish_dream_pair(
         &mut self,
         classification: &DreamPairClassification,
@@ -13,8 +13,7 @@ impl Cva {
         policy: DreamVerificationPolicy,
         expected_graph_version: u64,
     ) -> Result<DreamPublicationOutcome, DreamPublicationError> {
-        let archive = &self.archive;
-        let source_time = |memory: &Memory| reliquary_source_timestamp_ns(archive, memory);
+        let source_time = |memory: &Memory| memory_source_timestamp_ns(memory);
         publish_dream_pair_from_parts(
             &mut self.container,
             &self.memories,

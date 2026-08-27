@@ -1,8 +1,8 @@
 use crate::{
-    CompatibilityProfileId, Cva, DreamCandidateConfig, DreamClassificationError, DreamClassifier,
-    DreamMemoryContext, DreamPairClassification, DreamPairVerification, DreamProcessError,
-    DreamProcessResult, DreamProcessedPair, DreamVerificationError, DreamVerificationPolicy,
-    DreamVerifier, GeneralEndpoint, MemoryId,
+    CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateSet, DreamClassificationError,
+    DreamClassifier, DreamMemoryContext, DreamPairClassification, DreamPairVerification,
+    DreamProcessError, DreamProcessResult, DreamProcessedPair, DreamVerificationError,
+    DreamVerificationPolicy, DreamVerifier, GeneralEndpoint, MemoryId, Phylactery,
 };
 use std::thread;
 
@@ -68,9 +68,95 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
         let candidates =
             cva.dream_candidates(compatibility_profile_id, source_id, candidate_config)?;
         let candidate_count = candidates.candidates.len();
-        let concurrency = pair_concurrency.max(1);
-        let mut evaluated = Vec::with_capacity(candidate_count);
+        let evaluated =
+            self.evaluate_candidates(&candidates, verification_policy, pair_concurrency)?;
+        let mut pairs = Vec::with_capacity(candidate_count);
+        for (classification, verification) in evaluated {
+            let publication = cva.publish_dream_pair(
+                &classification,
+                verification.as_ref(),
+                verification_policy,
+                cva.graph_version(),
+            )?;
+            pairs.push(DreamProcessedPair {
+                classification,
+                verification,
+                publication,
+            });
+        }
+        let lifecycle = cva.reconcile_dream_lifecycle(source_id)?;
+        Ok(DreamProcessResult {
+            source: lifecycle.source.clone(),
+            candidate_count,
+            pairs,
+            lifecycle,
+        })
+    }
 
+    pub fn process_phylactery_memory(
+        &self,
+        phylactery: &mut Phylactery,
+        compatibility_profile_id: CompatibilityProfileId,
+        source_id: MemoryId,
+        candidate_config: DreamCandidateConfig,
+        verification_policy: DreamVerificationPolicy,
+    ) -> Result<DreamProcessResult, DreamProcessError> {
+        self.process_phylactery_memory_with_pair_concurrency(
+            phylactery,
+            compatibility_profile_id,
+            source_id,
+            candidate_config,
+            verification_policy,
+            1,
+        )
+    }
+
+    pub fn process_phylactery_memory_with_pair_concurrency(
+        &self,
+        phylactery: &mut Phylactery,
+        compatibility_profile_id: CompatibilityProfileId,
+        source_id: MemoryId,
+        candidate_config: DreamCandidateConfig,
+        verification_policy: DreamVerificationPolicy,
+        pair_concurrency: usize,
+    ) -> Result<DreamProcessResult, DreamProcessError> {
+        let candidates =
+            phylactery.dream_candidates(compatibility_profile_id, source_id, candidate_config)?;
+        let candidate_count = candidates.candidates.len();
+        let evaluated =
+            self.evaluate_candidates(&candidates, verification_policy, pair_concurrency)?;
+        let mut pairs = Vec::with_capacity(candidate_count);
+        for (classification, verification) in evaluated {
+            let publication = phylactery.publish_dream_pair(
+                &classification,
+                verification.as_ref(),
+                verification_policy,
+                phylactery.graph_version(),
+            )?;
+            pairs.push(DreamProcessedPair {
+                classification,
+                verification,
+                publication,
+            });
+        }
+        let lifecycle = phylactery.reconcile_dream_lifecycle(source_id)?;
+        Ok(DreamProcessResult {
+            source: lifecycle.source.clone(),
+            candidate_count,
+            pairs,
+            lifecycle,
+        })
+    }
+
+    pub(crate) fn evaluate_candidates(
+        &self,
+        candidates: &DreamCandidateSet,
+        verification_policy: DreamVerificationPolicy,
+        pair_concurrency: usize,
+    ) -> Result<Vec<(DreamPairClassification, Option<DreamPairVerification>)>, DreamProcessError>
+    {
+        let concurrency = pair_concurrency.max(1);
+        let mut evaluated = Vec::with_capacity(candidates.candidates.len());
         for chunk in candidates.candidates.chunks(concurrency) {
             let chunk_results = thread::scope(|scope| {
                 let handles: Vec<_> = chunk
@@ -95,29 +181,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
             })?;
             evaluated.extend(chunk_results);
         }
-
-        let mut pairs = Vec::with_capacity(candidate_count);
-        for (classification, verification) in evaluated {
-            let publication = cva.publish_dream_pair(
-                &classification,
-                verification.as_ref(),
-                verification_policy,
-                cva.graph_version(),
-            )?;
-            pairs.push(DreamProcessedPair {
-                classification,
-                verification,
-                publication,
-            });
-        }
-
-        let lifecycle = cva.reconcile_dream_lifecycle(source_id)?;
-        Ok(DreamProcessResult {
-            source: lifecycle.source.clone(),
-            candidate_count,
-            pairs,
-            lifecycle,
-        })
+        Ok(evaluated)
     }
 
     fn evaluate_pair(

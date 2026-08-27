@@ -10,7 +10,7 @@ Dream's bounded candidate-retrieval, pair-classification, independent-verificati
 
 ## Overview
 
-Dream is implemented as a pair-oriented semantic layer over Memories, Memory Vectors, source provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, deterministic canonical promotion, the bounded end-to-end processor, deterministic temporal interpretation/retrieval, and bounded integration into the shared `InteractionRuntime` are implemented. Remaining Dream sophistication is measurement-driven; continuous wakeup/backoff belongs to the Warlock host loop rather than a separate Dream runtime.
+Dream is implemented as a pair-oriented semantic layer over Memories, Memory Vectors, source chronology/provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, deterministic canonical promotion, the bounded end-to-end processor, deterministic temporal interpretation/retrieval, and long-lived owner-local runtime coordination are implemented. ADR 0024 extends those mechanics independently across Reliquary and Phylactery without federating candidates or persisting cross-file Graph edges. Remaining Dream sophistication is measurement-driven.
 
 ## Responsibility
 
@@ -430,13 +430,14 @@ Only add cases demonstrated by tests/production evidence. Do not blindly reprodu
 
 ### Phase 10 — shared runtime integration — bounded coordinator implemented
 
-Dream is now integrated into the same `InteractionRuntime` boundary used for live interaction and Insomnia. `process_background_work` drains queued Insomnia work, establishes/reuses the Memory-vector profile and fills missing vectors, then derives Dream work from active current Memories still in `extracted` and processes a bounded batch on the same owned CVA. Successful lifecycle projection removes work from the derived backlog; failed Dream inference remains `extracted`, is reported, and does not block later Memories in that cycle. No separate Dream runtime, durable Dream queue, Container handle, daemon, or process is introduced.
+Dream is integrated into the same runtime boundary used for live interaction and Insomnia. `InteractionRuntime::process_background_work` remains the bounded Project-REL coordinator. `ReliquaryRuntimeHost` now continuously derives independent Dream backlogs for its active REL and optional attached PHY after each owner has its own compatible Memory-vector binding. Successful lifecycle projection removes work from that owner's derived backlog; classifier/verifier failure leaves the source `extracted` for retry. No separate Dream runtime, durable Dream queue, Container handle, daemon, or process is introduced.
 
-The remaining long-lived host work is operational rather than another Dream semantic owner:
+Long-lived inference snapshots one owner under its lock, performs classifier/verifier calls without REL/PHY/runtime locks, and revalidates the target Graph version plus participating Memory revisions before publication. Stale results are discarded rather than committed. PHY uses persisted `source_time_ns` and the same owner-local Graph/vector mechanics without constructing or consulting Archive. ADR 0024 freezes the same-owner boundary and rejects implicit REL↔PHY Graph mutation.
 
-- repeated wakeup/continuous scheduling from the Warlock host loop;
-- retry/backoff across cycles and inference heartbeat/cancellation;
-- measured concurrency beyond the existing internal Insomnia worker pool;
+Remaining long-lived host work is operational rather than another Dream semantic owner:
+
+- inference heartbeat/cancellation and richer retry telemetry;
+- measured Dream concurrency beyond current bounded pair execution;
 - resumable explicit rescans/migrations;
 - status and control surfaces.
 

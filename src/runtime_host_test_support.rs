@@ -211,6 +211,13 @@ pub(super) fn wait_vectors(host: &ReliquaryRuntimeHost, target: usize) {
     );
 }
 
+pub(super) fn wait_memory_revisions(host: &ReliquaryRuntimeHost, target: usize) {
+    wait_until(
+        || host.memory_stats().unwrap().revisions >= target,
+        "Reliquary Dream lifecycle",
+    );
+}
+
 pub(super) fn wait_phylactery_memory(host: &ReliquaryRuntimeHost, target: usize) {
     wait_until(
         || {
@@ -230,6 +237,17 @@ pub(super) fn wait_phylactery_vectors(host: &ReliquaryRuntimeHost, target: usize
                 .is_some_and(|stats| stats.bindings >= target)
         },
         "Phylactery vectorization",
+    );
+}
+
+pub(super) fn wait_phylactery_revisions(host: &ReliquaryRuntimeHost, target: usize) {
+    wait_until(
+        || {
+            host.phylactery_memory_stats()
+                .unwrap()
+                .is_some_and(|stats| stats.revisions >= target)
+        },
+        "Phylactery Dream lifecycle",
     );
 }
 

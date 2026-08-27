@@ -1,6 +1,6 @@
 use crate::runtime_host_test_support::{
     BlockingEmbeddingEndpoint, memory_endpoint, one_worker, queue_memory_episode, test_path,
-    wait_memory, wait_vectors,
+    wait_memory, wait_memory_revisions, wait_vectors,
 };
 use crate::{
     Cva, EpisodePolicy, InteractionRole, InteractionRuntime, ReliquaryRuntimeHost,
@@ -57,6 +57,9 @@ fn embedding_route_can_be_attached_after_memory_creation() {
     ))))
     .unwrap();
     wait_vectors(&host, 1);
+    wait_memory_revisions(&host, 2);
     assert_eq!(host.memory_vector_stats().unwrap().bindings, 1);
-    host.into_cva().unwrap();
+    let mut cva = host.into_cva().unwrap();
+    let id = cva.memory_ids()[0];
+    assert_eq!(cva.memory(id).unwrap().lifecycle_state, "canonical");
 }

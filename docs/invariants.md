@@ -78,7 +78,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 64. **Completion supersedes the stream journal by stable message ID.** Once a checkpointed message is published as a completed Archive node, transcript resolution uses the Archive turn and must not duplicate the journal copy.
 65. **Interaction-stream checkpoints are clock-neutral.** They consume physical append-only chunks but no Archive, Memory, Vector Generation, or CVA-global semantic version.
 66. **Graph owns Memory-to-Memory relationship authority.** Graph relationship state is not Memory metadata and does not belong to Archive, Dream runtime state, or the physical Container.
-67. **Graph endpoints cross owners by stable MemoryId.** Dense graph `NodeId` values are internal topology indexes and cannot become durable cross-owner identity.
+67. **Graph endpoints use stable MemoryId only inside one owner.** Dense graph `NodeId` values are internal topology indexes; a bare `MemoryId` is not durable cross-owner identity, and the current Graph format does not persist cross-owner endpoints.
 68. **Graph direction is semantic.** Processing, scheduling, candidate-selection, or comparison order cannot determine persisted relationship direction.
 69. **Graph retraction is historical mutation, not deletion.** Removing a visible relationship appends an inactive mutation for the same oriented identity and advances `graph_version`.
 70. **Graph topology is derived from versioned relationship state.** Adjacency and traversal structures may be rebuilt or replaced without changing semantic authority.
@@ -100,6 +100,9 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 85. **User-global export is conservative and source-independent.** Without an ownership classifier, Insomnia defaults to Project. A User-owned result may enter PHY only through an explicit routing target, and REL-local provenance is removed before PHY publication.
 86. **Cross-file Insomnia publication prefers durable truth over atomic illusion.** With no cross-file transaction manager, routed User Memories sync to PHY before the REL completion receipt; deterministic mutation IDs make a crash in between idempotently recoverable.
 87. **Source-independent does not mean time-free.** Insomnia resolves semantic source chronology while authoritative source evidence is available and persists it as optional `Memory.source_time_ns`; removing REL-local provenance for PHY publication must not replace that timestamp with Memory creation/update bookkeeping.
+88. **Dream Graph and lifecycle effects are owner-local.** A Dream pass over one REL or PHY may read and mutate only Memories/Graph/lifecycle state owned by that file; another owner cannot become a candidate or mutation target implicitly.
+89. **Unknown chronology stays unknown.** PHY Dream may use persisted `source_time_ns`; REL may additionally recover legacy source time from validated Archive provenance. Dream must never substitute `created_at_ns`/`updated_at_ns` for semantic chronology, and chronology-required duplicate ordering fails closed when source time is unavailable.
+90. **PHY canonicalization does not invent missing provenance.** Source-independent direct-authority and supersession rules may promote PHY Memories, but REL corroboration logic that requires independent source authority anchors does not acquire a weaker PHY surrogate.
 
 ## Safety boundaries
 

@@ -70,12 +70,13 @@ mod dream_classifier;
 mod dream_classifier_error;
 mod dream_classifier_model;
 mod dream_classifier_schema;
-mod dream_duplicate;
 mod dream_duplicate_index;
 mod dream_lifecycle;
 mod dream_lifecycle_error;
 mod dream_lifecycle_model;
 mod dream_owner_candidates;
+mod dream_owner_duplicate;
+mod dream_owner_publisher;
 mod dream_owner_vectors;
 mod dream_pair_context;
 mod dream_processor;
@@ -164,6 +165,10 @@ mod packed_vector_rebuild;
 mod packed_vector_store;
 pub mod phylactery;
 mod phylactery_compatibility_profiles;
+mod phylactery_dream_candidates;
+mod phylactery_dream_canonical;
+mod phylactery_dream_lifecycle;
+mod phylactery_dream_publisher;
 mod phylactery_error;
 mod phylactery_graph;
 mod phylactery_lifecycle;
@@ -444,6 +449,8 @@ mod openai_ready_embedding_tests;
 mod openai_ready_general_tests;
 #[cfg(test)]
 mod packed_vector_tests;
+#[cfg(test)]
+mod phylactery_dream_tests;
 #[cfg(test)]
 mod phylactery_tests;
 #[cfg(test)]

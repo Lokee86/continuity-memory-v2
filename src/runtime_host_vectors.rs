@@ -1,6 +1,6 @@
 use super::{
-    ReliquaryRuntimeHostError, Shared, VECTOR_RETRY_POLL, operation, stopped, wait_for_work,
-    wait_for_work_timeout,
+    ReliquaryRuntimeHostError, RuntimeMemoryProfiles, Shared, VECTOR_RETRY_POLL, notify_work,
+    operation, stopped, wait_for_work, wait_for_work_timeout,
 };
 use crate::compatibility_profile_probe::profile_from_endpoint;
 use crate::{
@@ -48,6 +48,11 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             active_endpoint = None;
             project_profile = None;
             user_profile = None;
+            *shared
+                .memory_profiles
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? =
+                RuntimeMemoryProfiles::default();
             seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
             continue;
         };
@@ -85,7 +90,15 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
                     .transpose()
                     .map_err(operation)?
             };
+            *shared
+                .memory_profiles
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = RuntimeMemoryProfiles {
+                project: project_profile.as_ref().map(|profile| profile.id),
+                user: user_profile.as_ref().map(|profile| profile.id),
+            };
             active_endpoint = Some(Arc::clone(&endpoint));
+            notify_work(&shared.signal)?;
         }
 
         let mut did_work = false;
@@ -155,7 +168,9 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             }
         }
 
-        if !did_work {
+        if did_work {
+            notify_work(&shared.signal)?;
+        } else {
             seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
         }
     }

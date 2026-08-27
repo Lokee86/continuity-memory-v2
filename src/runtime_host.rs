@@ -1,11 +1,15 @@
 use crate::{
-    EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint, InsomniaWorkerConfig, InteractionRuntime,
-    Phylactery,
+    CompatibilityProfileId, EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint,
+    InsomniaWorkerConfig, InteractionRuntime, Phylactery,
 };
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
+#[path = "runtime_host_dream.rs"]
+mod dream;
+#[path = "runtime_host_dream_owner.rs"]
+mod dream_owner;
 #[path = "runtime_host_insomnia.rs"]
 mod insomnia;
 #[path = "runtime_host_interaction.rs"]
@@ -14,6 +18,7 @@ mod interaction;
 mod vectors;
 
 pub(super) const IDLE_POLL: Duration = Duration::from_secs(1);
+pub(super) const DREAM_RETRY_POLL: Duration = Duration::from_secs(60);
 pub(super) const VECTOR_RETRY_POLL: Duration = Duration::from_secs(60);
 
 #[derive(Debug)]
@@ -40,12 +45,19 @@ pub(super) struct Control {
     pub(super) epoch: u64,
 }
 
+#[derive(Clone, Copy, Default)]
+pub(super) struct RuntimeMemoryProfiles {
+    pub(super) project: Option<CompatibilityProfileId>,
+    pub(super) user: Option<CompatibilityProfileId>,
+}
+
 pub(super) struct Shared {
     pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
     pub(super) general_endpoint: Arc<RwLock<Option<Arc<dyn GeneralEndpoint>>>>,
     pub(super) embedding_endpoint: Arc<RwLock<Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>>>,
     pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
+    pub(super) memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
     pub(super) config: InsomniaWorkerConfig,
     pub(super) episode_policy: EpisodePolicy,
 }
@@ -114,16 +126,18 @@ impl ReliquaryRuntimeHost {
         let general_endpoint = Arc::new(RwLock::new(general_endpoint));
         let embedding_endpoint = Arc::new(RwLock::new(embedding_endpoint));
         let phylactery = Arc::new(Mutex::new(phylactery));
+        let memory_profiles = Arc::new(Mutex::new(RuntimeMemoryProfiles::default()));
         let shared = Arc::new(Shared {
             runtime: Arc::clone(&runtime),
             signal: Arc::clone(&signal),
             general_endpoint: Arc::clone(&general_endpoint),
             embedding_endpoint: Arc::clone(&embedding_endpoint),
             phylactery: Arc::clone(&phylactery),
+            memory_profiles,
             config: config.clone(),
             episode_policy,
         });
-        let mut workers = Vec::with_capacity(config.workers.saturating_add(1));
+        let mut workers = Vec::with_capacity(config.workers.saturating_add(2));
         for index in 0..config.workers {
             let shared = Arc::clone(&shared);
             workers.push(thread::spawn(move || insomnia::worker_loop(shared, index)));
@@ -131,6 +145,10 @@ impl ReliquaryRuntimeHost {
         {
             let shared = Arc::clone(&shared);
             workers.push(thread::spawn(move || vectors::worker_loop(shared)));
+        }
+        {
+            let shared = Arc::clone(&shared);
+            workers.push(thread::spawn(move || dream::worker_loop(shared)));
         }
         Self {
             runtime: Some(runtime),

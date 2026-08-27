@@ -1,6 +1,7 @@
 use crate::runtime_host_test_support::{
     BlockingEndpoint, OmitEndpoint, UserMemoryEndpoint, one_worker, queue_memory_episode,
-    test_path, wait_complete, wait_phylactery_memory, wait_phylactery_vectors,
+    test_path, wait_complete, wait_phylactery_memory, wait_phylactery_revisions,
+    wait_phylactery_vectors,
 };
 use crate::{
     Cva, EpisodeConfig, EpisodePolicy, InteractionRole, InteractionRuntime, Phylactery,
@@ -108,6 +109,7 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
     wait_complete(&host, 1);
     wait_phylactery_memory(&host, 1);
     wait_phylactery_vectors(&host, 1);
+    wait_phylactery_revisions(&host, 2);
     assert_eq!(host.memory_stats().unwrap().memories, 0);
     assert_eq!(
         host.phylactery_owner_id().unwrap().as_deref(),
@@ -123,11 +125,10 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
     assert!(attempt.memory_ids.is_empty());
     assert_eq!(attempt.external_memory_refs.len(), 1);
     assert_eq!(attempt.external_memory_refs[0].owner_id, phy_owner);
-    assert_eq!(
-        phylactery
-            .memory(attempt.external_memory_refs[0].memory_id)
-            .unwrap()
-            .source_episode_id,
-        None
-    );
+    let memory = phylactery
+        .memory(attempt.external_memory_refs[0].memory_id)
+        .unwrap();
+    assert_eq!(memory.source_episode_id, None);
+    assert!(memory.source_time_ns.is_some());
+    assert_eq!(memory.lifecycle_state, "canonical");
 }

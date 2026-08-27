@@ -1,5 +1,6 @@
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::dream_duplicate_index::DuplicateIndex;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
 use crate::memory_rebuild::MemoryOpenState;
@@ -68,6 +69,7 @@ impl Phylactery {
             container,
             memories,
             graph,
+            duplicate_index: DuplicateIndex::empty(),
             packed_vectors,
             memory_vectors,
             compatibility_profiles,
@@ -114,6 +116,7 @@ impl Phylactery {
             container,
             memories,
             graph,
+            duplicate_index: DuplicateIndex::empty(),
             packed_vectors,
             memory_vectors,
             compatibility_profiles,
