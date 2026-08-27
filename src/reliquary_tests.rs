@@ -17,16 +17,19 @@ fn test_path(name: &str) -> PathBuf {
 fn new_reliquary_is_typed_project_rel() {
     let path = test_path("project.prj.rel");
     let rel = Reliquary::create(&path).unwrap();
+    let owner_id = rel.owner_id().unwrap();
+    assert!(owner_id.starts_with("proj-"));
     assert_eq!(rel.scope_kind(), ReliquaryScopeKind::Project);
     assert!(!rel.is_legacy_cva());
     drop(rel);
 
     let header = fs::read(&path).unwrap();
-    assert_eq!(u32::from_le_bytes(header[12..16].try_into().unwrap()), 24);
+    assert_eq!(u32::from_le_bytes(header[12..16].try_into().unwrap()), 40);
     assert_eq!(header[16], 1);
     assert_eq!(header[17], 2);
 
     let reopened = Reliquary::open(&path).unwrap();
+    assert_eq!(reopened.owner_id().as_deref(), Some(owner_id.as_str()));
     assert_eq!(reopened.scope_kind(), ReliquaryScopeKind::Project);
     assert!(!reopened.is_legacy_cva());
 }

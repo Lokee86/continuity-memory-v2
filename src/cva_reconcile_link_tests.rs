@@ -1,4 +1,4 @@
-use crate::{Cva, MemoryDraft, WorkspaceMetadata};
+use crate::{Cva, MemoryDraft};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -19,11 +19,7 @@ fn reconcile_replays_file_memory_links_after_targets() {
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
     let output = dir.join("merged.cva");
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    Cva::create_workspace(&left, metadata)
-        .unwrap()
-        .sync()
-        .unwrap();
+    Cva::create_project(&left).unwrap().sync().unwrap();
     fs::copy(&left, &right).unwrap();
 
     let mut left_cva = Cva::open(&left).unwrap();

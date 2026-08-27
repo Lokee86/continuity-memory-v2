@@ -1,6 +1,5 @@
 use crate::{
     Branch, Cva, CvaReconcileConflict, CvaReconcileError, IncomingAttachment, IncomingTurn,
-    WorkspaceMetadata,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,11 +16,7 @@ fn test_dir() -> PathBuf {
 }
 
 fn create_workspace(path: &Path) {
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    Cva::create_workspace(path, metadata)
-        .unwrap()
-        .sync()
-        .unwrap();
+    Cva::create_project(path).unwrap().sync().unwrap();
 }
 
 fn append(cva: &mut Cva, id: &str, conversation: &str, parent: Option<&str>, content: &str) {

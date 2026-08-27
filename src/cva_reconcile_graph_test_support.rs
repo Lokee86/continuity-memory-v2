@@ -1,4 +1,4 @@
-use crate::{Cva, GraphRelationKind, MemoryDraft, MemoryId, WorkspaceMetadata};
+use crate::{Cva, GraphRelationKind, MemoryDraft, MemoryId};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,8 +14,7 @@ pub(crate) fn test_dir() -> PathBuf {
 }
 
 pub(crate) fn create_workspace(path: &Path, memories: &[&str]) -> Vec<MemoryId> {
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    let mut cva = Cva::create_workspace(path, metadata).unwrap();
+    let mut cva = Cva::create_project(path).unwrap();
     let ids = memories
         .iter()
         .map(|name| publish_memory(&mut cva, name))

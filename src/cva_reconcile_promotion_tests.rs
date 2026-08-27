@@ -1,4 +1,4 @@
-use crate::{Cva, CvaReconcileError, WorkspaceMetadata};
+use crate::{Cva, CvaReconcileError};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,11 +14,7 @@ fn test_dir() -> PathBuf {
 }
 
 fn create_workspace(path: &Path) {
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    Cva::create_workspace(path, metadata)
-        .unwrap()
-        .sync()
-        .unwrap();
+    Cva::create_project(path).unwrap().sync().unwrap();
 }
 
 fn append(path: &Path, id: &str, content: &str) {
@@ -55,7 +51,10 @@ fn reconcile_and_promote_replaces_canonical_after_validation() {
     append(&conflicted, "right", "right state");
 
     let result = Cva::reconcile_and_promote(&canonical, &conflicted).unwrap();
-    assert_eq!(result.comparison.workspace_id, "workspace-1");
+    assert_eq!(
+        result.comparison.owner_id,
+        Cva::open(&canonical).unwrap().owner_id().unwrap()
+    );
     assert!(result.canonical_change_required);
     let promoted = Cva::open(&canonical).unwrap();
     assert_eq!(promoted.stats().nodes, 2);

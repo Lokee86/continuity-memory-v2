@@ -1,7 +1,4 @@
-use crate::{
-    Cva, FragmentConfig, MemoryDraft, SimulatedEmbeddingEndpoint, VectorNormalization,
-    WorkspaceMetadata,
-};
+use crate::{Cva, FragmentConfig, MemoryDraft, SimulatedEmbeddingEndpoint, VectorNormalization};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -67,8 +64,7 @@ fn reconcile_repacks_fragments_and_retires_stale_vector_state() {
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
     let output = dir.join("merged.cva");
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    let mut base = Cva::create_workspace(&left, metadata).unwrap();
+    let mut base = Cva::create_project(&left).unwrap();
     append_conversation(&mut base, "common", "commonunique");
     let endpoint = SimulatedEmbeddingEndpoint::new(12, VectorNormalization::L2, 77);
     let profile = base.establish_compatibility_profile(&endpoint).unwrap();

@@ -1,4 +1,4 @@
-use crate::{Cva, CvaReconcileConflict, CvaReconcileError, MemoryDraft, WorkspaceMetadata};
+use crate::{Cva, CvaReconcileConflict, CvaReconcileError, MemoryDraft};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,11 +14,7 @@ fn test_dir() -> PathBuf {
 }
 
 fn create_workspace(path: &Path) {
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    Cva::create_workspace(path, metadata)
-        .unwrap()
-        .sync()
-        .unwrap();
+    Cva::create_project(path).unwrap().sync().unwrap();
 }
 
 fn append(path: &Path, content: &str) {

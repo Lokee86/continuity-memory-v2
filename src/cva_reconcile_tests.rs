@@ -1,6 +1,6 @@
 use crate::{
     Cva, CvaReconcileError, CvaRelation, InteractionRole, InteractionRuntime,
-    InteractionStreamStatus, ReliquaryScopeKind, WorkspaceMetadata,
+    InteractionStreamStatus, ReliquaryScopeKind,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,17 +16,17 @@ fn test_dir() -> PathBuf {
     dir
 }
 
-fn metadata(id: &str) -> WorkspaceMetadata {
-    WorkspaceMetadata::new(id, "Project", "construction").unwrap()
+fn create_base(path: &Path) {
+    Cva::create_project(path).unwrap().sync().unwrap();
 }
 
-fn create_base(path: &Path, id: &str) {
-    let cva = Cva::create_workspace(path, metadata(id)).unwrap();
-    cva.sync().unwrap();
-}
-
-fn create_base_scope(path: &Path, id: &str, scope: ReliquaryScopeKind) {
-    let cva = Cva::create_workspace_for_scope(path, metadata(id), scope).unwrap();
+fn create_base_scope(path: &Path, scope: ReliquaryScopeKind) {
+    let cva = match scope {
+        ReliquaryScopeKind::Organization => Cva::create_organization(path),
+        ReliquaryScopeKind::Project => Cva::create_project(path),
+        ReliquaryScopeKind::Connection => Cva::create_connection(path),
+    }
+    .unwrap();
     cva.sync().unwrap();
 }
 
@@ -35,7 +35,7 @@ fn compare_identical_copies() {
     let dir = test_dir();
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
-    create_base(&left, "workspace-1");
+    create_base(&left);
     fs::copy(&left, &right).unwrap();
 
     let comparison = Cva::compare(&left, &right).unwrap();
@@ -49,7 +49,7 @@ fn compare_detects_one_side_ahead() {
     let dir = test_dir();
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
-    create_base(&left, "workspace-1");
+    create_base(&left);
     fs::copy(&left, &right).unwrap();
 
     let mut left_cva = Cva::open(&left).unwrap();
@@ -76,7 +76,7 @@ fn compare_detects_divergent_tails() {
     let dir = test_dir();
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
-    create_base(&left, "workspace-1");
+    create_base(&left);
     fs::copy(&left, &right).unwrap();
 
     for (path, id, content) in [
@@ -108,7 +108,7 @@ fn divergent_reconcile_preserves_interrupted_interaction_streams() {
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
     let output = dir.join("merged.cva");
-    create_base(&left, "workspace-1");
+    create_base(&left);
     fs::copy(&left, &right).unwrap();
 
     let mut left_cva = Cva::open(&left).unwrap();
@@ -157,7 +157,7 @@ fn divergent_reconcile_preserves_reliquary_scope() {
     let left = dir.join("left.org.rel");
     let right = dir.join("right.org.rel");
     let output = dir.join("merged.org.rel");
-    create_base_scope(&left, "workspace-1", ReliquaryScopeKind::Organization);
+    create_base_scope(&left, ReliquaryScopeKind::Organization);
     fs::copy(&left, &right).unwrap();
 
     for (path, id, content) in [
@@ -188,25 +188,25 @@ fn compare_rejects_different_reliquary_scopes() {
     let dir = test_dir();
     let left = dir.join("left.prj.rel");
     let right = dir.join("right.org.rel");
-    create_base_scope(&left, "workspace-1", ReliquaryScopeKind::Project);
-    create_base_scope(&right, "workspace-1", ReliquaryScopeKind::Organization);
+    create_base_scope(&left, ReliquaryScopeKind::Project);
+    create_base_scope(&right, ReliquaryScopeKind::Organization);
 
     assert!(matches!(
         Cva::compare(&left, &right),
-        Err(CvaReconcileError::ScopeMismatch { .. })
+        Err(CvaReconcileError::OwnerMismatch { .. })
     ));
 }
 
 #[test]
-fn compare_rejects_different_workspaces() {
+fn compare_rejects_different_owners() {
     let dir = test_dir();
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
-    create_base(&left, "workspace-1");
-    create_base(&right, "workspace-2");
+    create_base(&left);
+    create_base(&right);
 
     assert!(matches!(
         Cva::compare(&left, &right),
-        Err(CvaReconcileError::WorkspaceMismatch { .. })
+        Err(CvaReconcileError::OwnerMismatch { .. })
     ));
 }

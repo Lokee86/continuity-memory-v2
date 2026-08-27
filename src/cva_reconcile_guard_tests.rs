@@ -1,6 +1,6 @@
 use crate::{
     Cva, CvaReconcileConflict, CvaReconcileError, EpisodeBoundary, EpisodeConfig, EpisodeOrigin,
-    InsomniaPriority, WorkspaceMetadata,
+    InsomniaPriority,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,11 +17,7 @@ fn test_dir() -> PathBuf {
 }
 
 fn create_workspace(path: &Path) {
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    Cva::create_workspace(path, metadata)
-        .unwrap()
-        .sync()
-        .unwrap();
+    Cva::create_project(path).unwrap().sync().unwrap();
 }
 
 fn seed_episode(cva: &mut Cva) -> crate::Episode {

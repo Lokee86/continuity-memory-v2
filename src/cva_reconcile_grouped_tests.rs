@@ -1,6 +1,6 @@
 use crate::insomnia::completion::{InsomniaCompletion, InsomniaCompletionBody, encode_completion};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
-use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, MemoryDraft, WorkspaceMetadata};
+use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, MemoryDraft};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -75,11 +75,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
     let left = dir.join("left.cva");
     let right = dir.join("right.cva");
     let output = dir.join("merged.cva");
-    let metadata = WorkspaceMetadata::new("workspace-1", "Project", "construction").unwrap();
-    Cva::create_workspace(&left, metadata)
-        .unwrap()
-        .sync()
-        .unwrap();
+    Cva::create_project(&left).unwrap().sync().unwrap();
     fs::copy(&left, &right).unwrap();
     let mut left_cva = Cva::open(&left).unwrap();
     left_cva
