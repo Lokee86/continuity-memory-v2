@@ -20,6 +20,8 @@ mod community_codec;
 mod community_error;
 mod community_leiden;
 mod community_model;
+#[cfg(test)]
+mod community_routing;
 mod community_scan_merge;
 mod community_scan_merge_plan;
 mod community_scan_merge_reduce;
@@ -367,6 +369,14 @@ mod archive_inventory_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod community_routing_bench;
+#[cfg(test)]
+mod community_routing_bench_fixture;
+#[cfg(test)]
+mod community_routing_bench_support;
+#[cfg(test)]
+mod community_routing_tests;
 #[cfg(test)]
 mod community_scan_merge_bench;
 #[cfg(test)]

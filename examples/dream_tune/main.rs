@@ -14,8 +14,8 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use support::{
-    candidate_config_json, option_string, option_usize, single_memory_profile, write_gold_template,
-    write_json, write_partial_report,
+    candidate_config_json, option_string, option_usize, prepare_run_rel, single_memory_profile,
+    write_gold_template, write_json, write_partial_report,
 };
 
 fn main() {
@@ -28,7 +28,7 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() < 3 {
-        return Err("usage: dream_tune <config> <baseline-cva> <output-dir> [--limit N] [--source MEMORY_ID] [--candidate-limit N] [--pair-concurrency N] [--verification default|broad] [--retrieval-only] [--system-prompt-file PATH]".into());
+        return Err("usage: dream_tune <config> <baseline-rel-or-cva> <output-dir> [--limit N] [--source MEMORY_ID] [--candidate-limit N] [--pair-concurrency N] [--verification default|broad] [--retrieval-only] [--system-prompt-file PATH]".into());
     }
     let config_path = PathBuf::from(&args[0]);
     let baseline_path = PathBuf::from(&args[1]);
@@ -52,12 +52,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         other => return Err(format!("unsupported verification policy: {other}").into()),
     };
 
-    fs::create_dir_all(&output_dir)?;
-    let run_path = output_dir.join("dream-run.cva");
-    if run_path.exists() {
-        return Err(format!("run CVA already exists: {}", run_path.display()).into());
-    }
-    fs::copy(&baseline_path, &run_path)?;
+    let run_path = prepare_run_rel(&baseline_path, &output_dir)?;
 
     let config = ReliquaryConfig::open(&config_path)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;

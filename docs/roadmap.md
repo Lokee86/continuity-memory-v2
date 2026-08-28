@@ -184,12 +184,14 @@ The remaining redesign and implementation sequence are owned by [Dream implement
 
 ### Memory-web organization
 
-Owner-local derived Community snapshots now use the implemented graph-local Leiden scan-and-merge reduction. Remaining memory-web work is:
+Owner-local derived Community snapshots now use the implemented graph-local Leiden scan-and-merge reduction. A routing-only representative-vector experiment is also implemented over a correctly migrated, Dream-populated typed Project REL. The resulting 46-Memory / 155-relation / seven-community measurement does not yet justify production tiering because high-recall top-5 routing still admits roughly 77% of all Memory vectors. Remaining memory-web work is:
 
-- explicit split/merge lineage and continuity-preserving community identity where justified;
-- optional incremental invalidation/reduction reuse if real workloads show complete scan-and-merge is still materially expensive;
-- community-aware Graph traversal/pruning with measured retrieval/traversal benefit; and
-- Warlock presentation metadata for editable human-facing community names.
+- validate representative-vector routing on a larger persisted Dream Graph with materially more communities;
+- if that evidence gate passes, compare the current global Memory-vector baseline against selected-community fine search and a separate small global escape hatch before changing production retrieval;
+- only after retrieval benefit is demonstrated, make Graph traversal community-aware and measure nodes/edges/communities visited, boundary crossings, latency, context diversity, and token volume;
+- consider split/merge lineage or continuity-preserving IDs only if a concrete product need appears;
+- consider incremental invalidation/reduction reuse only if measured scan-and-merge cost becomes material; and
+- keep human-facing community naming as Warlock presentation metadata rather than semantic Memory-Web authority.
 
 ### Ego
 
