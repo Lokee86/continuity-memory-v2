@@ -52,7 +52,10 @@ impl CommunityStore {
                     .sum()
             }),
             derived_graph_version: latest.map(|snapshot| snapshot.derived_graph_version),
-            current: latest.is_some_and(|snapshot| snapshot.derived_graph_version == graph_version),
+            current: latest.is_some_and(|snapshot| {
+                snapshot.derived_graph_version == graph_version
+                    && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
+            }),
         }
     }
 
@@ -131,7 +134,7 @@ fn validate_snapshot(
     owner_uuid: [u8; 16],
     snapshot: &CommunitySnapshot,
 ) -> Result<(), CommunityError> {
-    if snapshot.algorithm_version != COMMUNITY_ALGORITHM_VERSION {
+    if snapshot.algorithm_version == 0 || snapshot.algorithm_version > COMMUNITY_ALGORITHM_VERSION {
         return Err(CommunityError::InvalidSnapshot(
             "unsupported algorithm version",
         ));

@@ -70,8 +70,9 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 
 ## Community/traversal limits
 
-- REL and PHY can persist a deterministic full-Graph Leiden community snapshot through `refresh_communities_leiden`; unchanged Graph state is an idempotent no-op and a later Graph mutation makes the prior snapshot stale.
-- The current baseline always reclusters the complete owner Graph. Affected-region scan-and-merge, split/merge lineage, and continuity-preserving IDs across membership changes are not implemented yet.
+- REL and PHY persist deterministic complete community snapshots through `refresh_communities_leiden`; algorithm v2 uses graph-local 2,048-node scan shards, bounded parallel leaf Leiden runs, and a binary weighted merge tree. Unchanged current state is an idempotent no-op and a later Graph mutation makes the prior snapshot stale.
+- Scan-and-merge reduces the serial reduction depth to logarithmic shard levels, but it still performs a complete Graph scan and is not incremental changed-region maintenance. Merge decisions are irreversible within one pass, so output may differ slightly from monolithic Leiden; the synthetic benchmark currently shows near-reference modularity on both locality-friendly and deliberately interleaved sparse community graphs.
+- Split/merge lineage and continuity-preserving IDs across membership changes are not implemented yet.
 - Existing graph traversal is not community-aware yet. Community-guided pruning/routing and traversal measurements remain the next functional use of this structure.
 - Reliquary persists no human-readable community name. Warlock-side editable display naming is presentation metadata and remains future product work.
 - A real divergent semantic reconciliation repack rebuilds Graph authority without replaying Community snapshots; callers must refresh communities afterward if needed. An already-absorbed no-op preserves canonical bytes and therefore preserves existing snapshots.

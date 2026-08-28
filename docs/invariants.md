@@ -105,8 +105,9 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 90. **PHY canonicalization does not invent missing provenance.** Source-independent direct-authority and supersession rules may promote PHY Memories, but REL corroboration logic that requires independent source authority anchors does not acquire a weaker PHY surrogate.
 91. **Communities are derived Graph structure.** Persisted community snapshots cannot add, remove, redirect, or redefine Graph relationships and consume no semantic/global version ticket.
 92. **Community detection is owner-local and graph-versioned.** One current snapshot partitions only Graph nodes from one REL or PHY and records the exact `graph_version` from which it was derived; cross-owner nodes cannot participate.
-93. **Baseline community identity is exact-membership identity, not continuity.** Community v1 derives identity from durable owner UUID plus sorted member `MemoryId`s; identity continuity across changed membership, splits, or merges requires an explicit later scan-and-merge/lineage contract.
-94. **Human community names are presentation metadata.** A Warlock display rename cannot change persisted membership, Graph authority, or traversal semantics.
+93. **Community identity is exact-membership identity, not continuity.** Community identity derives from durable owner UUID plus sorted member `MemoryId`s; identity continuity across changed membership, splits, or merges requires an explicit lineage contract.
+94. **Community scan-and-merge is deterministic derived computation.** Algorithm v2 uses deterministic graph-local shard order, fixed shard size/fan-in/Leiden configuration, and reduction output that cannot depend on worker scheduling. Every structural edge must participate exactly once in the reduction representation.
+95. **Human community names are presentation metadata.** A Warlock display rename cannot change persisted membership, Graph authority, or traversal semantics.
 
 ## Safety boundaries
 

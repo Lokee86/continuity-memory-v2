@@ -184,10 +184,10 @@ The remaining redesign and implementation sequence are owned by [Dream implement
 
 ### Memory-web organization
 
-The owner-local full-Graph Leiden baseline is implemented as derived Community snapshots. Remaining memory-web work is:
+Owner-local derived Community snapshots now use the implemented graph-local Leiden scan-and-merge reduction. Remaining memory-web work is:
 
-- affected-region scan-and-merge so Graph changes do not require full reclustering;
 - explicit split/merge lineage and continuity-preserving community identity where justified;
+- optional incremental invalidation/reduction reuse if real workloads show complete scan-and-merge is still materially expensive;
 - community-aware Graph traversal/pruning with measured retrieval/traversal benefit; and
 - Warlock presentation metadata for editable human-facing community names.
 

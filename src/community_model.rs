@@ -1,6 +1,6 @@
 use crate::MemoryId;
 
-pub const COMMUNITY_ALGORITHM_VERSION: u32 = 1;
+pub const COMMUNITY_ALGORITHM_VERSION: u32 = 2;
 pub const COMMUNITY_LEIDEN_SEED: u64 = 0x4c45_4944_454e_0001;
 pub const COMMUNITY_LEIDEN_RESOLUTION: f64 = 1.0;
 

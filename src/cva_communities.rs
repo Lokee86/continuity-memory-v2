@@ -1,4 +1,4 @@
-use crate::community_leiden::full_graph_snapshot;
+use crate::community_scan_merge::scan_merge_snapshot;
 use crate::{COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunitySnapshot, CommunityStats, Cva};
 
 impl Cva {
@@ -21,7 +21,7 @@ impl Cva {
             .owner_uuid()
             .ok_or(CommunityError::MissingOwnerIdentity)?;
         let generation = self.communities.next_generation()?;
-        let snapshot = full_graph_snapshot(&self.graph, owner_uuid, generation)?;
+        let snapshot = scan_merge_snapshot(&self.graph, owner_uuid, generation)?;
         self.communities.publish(
             &mut self.container,
             &self.graph,

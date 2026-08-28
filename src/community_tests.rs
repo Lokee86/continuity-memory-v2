@@ -1,10 +1,12 @@
+use crate::community_codec::encode_snapshot;
+use crate::community_scan_merge::scan_merge_snapshot;
 use crate::community_test_support::{edge, member_sets, path, phy_memory, rel_episode, rel_memory};
-use crate::{CommunityError, Cva, GraphRelationKind, Phylactery};
+use crate::{COMMUNITY_ALGORITHM_VERSION, CommunityError, Cva, GraphRelationKind, Phylactery};
 use std::collections::HashSet;
 use std::fs;
 
 #[test]
-fn leiden_baseline_detects_dense_regions_and_persists() {
+fn leiden_scan_merge_detects_dense_regions_and_persists() {
     let file = path("communities.prj.rel");
     let mut rel = Cva::create_project(&file).unwrap();
     let episode = rel_episode(&mut rel);
@@ -58,7 +60,7 @@ fn leiden_baseline_detects_dense_regions_and_persists() {
 }
 
 #[test]
-fn graph_change_marks_snapshot_stale_until_full_refresh() {
+fn graph_change_marks_snapshot_stale_until_refresh() {
     let file = path("stale.prj.rel");
     let mut rel = Cva::create_project(&file).unwrap();
     let episode = rel_episode(&mut rel);
@@ -108,4 +110,31 @@ fn legacy_owner_cannot_publish_community_identity() {
         rel.refresh_communities_leiden(),
         Err(CommunityError::MissingOwnerIdentity)
     ));
+}
+
+#[test]
+fn v1_snapshot_reopens_and_explicit_refresh_upgrades_to_v2() {
+    let file = path("community-v1-upgrade.prj.rel");
+    let mut rel = Cva::create_project(&file).unwrap();
+    let episode = rel_episode(&mut rel);
+    let a = rel_memory(&mut rel, &episode, "legacy-a");
+    let b = rel_memory(&mut rel, &episode, "legacy-b");
+    rel.set_memory_relations(&[edge(a, b)], 0).unwrap();
+
+    let owner_uuid = rel.owner_uuid().unwrap();
+    let mut legacy = scan_merge_snapshot(&rel.graph, owner_uuid, 1).unwrap();
+    legacy.algorithm_version = 1;
+    rel.container
+        .append(&encode_snapshot(&legacy).unwrap())
+        .unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+
+    let mut reopened = Cva::open_project(&file).unwrap();
+    assert_eq!(reopened.community_snapshot().unwrap().algorithm_version, 1);
+    assert!(!reopened.community_stats().current);
+    let upgraded = reopened.refresh_communities_leiden().unwrap();
+    assert_eq!(upgraded.algorithm_version, COMMUNITY_ALGORITHM_VERSION);
+    assert_eq!(upgraded.generation, 2);
+    assert!(reopened.community_stats().current);
 }

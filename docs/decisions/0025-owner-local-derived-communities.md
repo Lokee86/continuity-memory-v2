@@ -8,50 +8,68 @@ Accepted and implemented — 2026-08-27.
 
 ## Context
 
-Dream now publishes durable semantic relationships into the owner-local Memory Graph for both Reliquary and Phylactery. That Graph is authoritative relationship state, but a large connected Graph still needs deterministic structural regions that later traversal and presentation can use without asking a model to classify or name every region.
+Dream publishes durable semantic relationships into the owner-local Memory Graph for both Reliquary and Phylactery. That Graph is authoritative relationship state, but a large Graph also needs deterministic structural regions for traversal and presentation without asking a model to classify every region.
 
-Community detection must not become a second relationship authority. It must not rewrite Dream edges, create semantic supernodes, consume semantic version tickets, or introduce cross-owner Graph state. Human-facing labels are also presentation metadata rather than part of community identity.
+Community detection must not become a second relationship authority. It must not rewrite Dream edges, create semantic Graph supernodes, consume semantic version tickets, or introduce cross-owner Graph state. A monolithic Leiden baseline established the partition semantics, but synthetic scaling showed that one whole-Graph Leiden invocation becomes needlessly expensive as the Graph grows.
+
+Lexicon already uses a related deterministic scaling pattern: bounded parallel scans produce local results that are combined through a deterministic reduction tree. Community detection adopts that scan-and-merge pattern while preserving all structural edge evidence across shard boundaries.
 
 ## Decision
 
 Reliquary persists owner-local **derived community snapshots** over the current Graph.
 
-- A snapshot records its own monotonic `generation` plus the exact `derived_graph_version` it was computed from. Community generation is derived-state bookkeeping only; it is not a fifth semantic clock and consumes no `CVAVERS1` ticket.
-- A snapshot is current only while its `derived_graph_version` equals the owner's current `graph_version`.
-- The first implementation is an explicit full-Graph baseline. Every active same-file Graph relationship is projected to an undirected structural pair for clustering. Multiple active relationship identities between the same unordered Memory pair collapse to one unweighted structural edge.
-- Baseline clustering uses Leiden modularity with resolution `1.0`, a fixed seed, and deterministic sequential execution. The algorithm/configuration version is persisted with each snapshot.
-- Leiden never mutates Graph authority. The original oriented relationship vocabulary and histories remain entirely Graph-owned.
-- Every current Graph node belongs to exactly one community in a current snapshot. REL and PHY are clustered independently; no community may contain nodes from another durable owner.
-- Baseline `CommunityId` is deterministic exact-membership identity: SHA-256 over an explicit domain separator, the durable owner UUID, and the sorted member `MemoryId` values. The baseline makes no promise that an ID survives a membership change.
+- A snapshot records a monotonic derived `generation` plus the exact `derived_graph_version` from which it was computed. Community generation consumes no `CVAVERS1` semantic ticket.
+- A snapshot is current only when both its `derived_graph_version` and its community algorithm version match current state.
+- Active oriented Graph relationships project to unordered structural Memory pairs. Multiple active semantic relationships between the same unordered pair collapse to one unweighted structural edge. This projection is clustering input only.
+- Algorithm version `1` is the readable legacy monolithic Leiden baseline.
+- Algorithm version `2` uses deterministic graph-local scan-and-merge. A BFS scan order is divided into fixed 2,048-node leaf shards. Leaf Leiden runs may execute through a bounded worker pool. Their community summaries reduce through a fixed binary merge tree.
+- Every original structural edge enters the reduction exactly once. Same-shard edges enter the leaf run; a cross-shard edge enters the lowest merge parent containing both endpoint shards. Parent summaries preserve child structure as weighted coarse edges and self-loops.
+- Every Leiden invocation uses modularity resolution `1.0`, fixed seed `0x4c454944454e0001`, and deterministic internal execution. Worker count controls scheduling only and must not affect the resulting snapshot.
+- Reduction depth is logarithmic in leaf-shard count. Total work still necessarily scans the structural Graph; scan-and-merge is not a claim that complete clustering becomes `O(log N)`.
+- Merge decisions are irreversible within one pass, so v2 is a hierarchical approximation to one monolithic Leiden run rather than a guarantee of partition identity. Measured modularity and timing are tracked in [Community scan-and-merge benchmark — 2026-08-27](../community-scan-merge-benchmark-2026-08-27.md).
+- Leiden and scan-and-merge never mutate Graph authority. Every current Graph node belongs to exactly one community in a current snapshot. REL and PHY are always clustered independently.
+- `CommunityId` remains deterministic exact-membership identity: SHA-256 over the durable owner UUID plus sorted member `MemoryId`s. It does not promise continuity after a membership change.
 - Human-facing community names are outside the Reliquary identity contract. Warlock may attach or edit display names without changing membership, Graph relationships, or traversal semantics.
-- A real divergent semantic reconciliation repack may discard community snapshots and rebuild them from the merged Graph. A semantic no-op reconciliation preserves the canonical file byte-for-byte, including any current snapshot.
+- A real divergent semantic reconciliation repack may discard Community snapshots and rebuild them from merged Graph authority. A semantic no-op reconciliation preserves canonical bytes, including an existing snapshot.
 
-The Leiden implementation is isolated behind a private adapter. Reliquary owns only the projection policy and persisted derived snapshot semantics. If the generic graph layer later exposes a suitable Leiden primitive, the adapter can move behind that boundary without changing the persisted community contract.
+The Leiden dependency remains isolated behind private community machinery. Reliquary owns the semantic projection, deterministic scan/reduction policy, and persisted derived snapshot contract.
 
 ## Consequences
 
-The memory Graph gains deterministic, reopenable structural regions without adding model inference or another semantic authority. Callers can test snapshot freshness cheaply against `graph_version`, and unchanged refresh is an idempotent no-op.
+Large owner-local Graphs can use multiple cores for bounded leaf scans and reduction tasks instead of placing the entire Graph into one Leiden invocation. The serial reduction path grows with the number of merge levels rather than the number of shards.
 
-The baseline deliberately pays the cost of reclustering the full owner Graph after a change. Community identity also changes when exact membership changes. Incremental affected-region scan-and-merge, continuity-preserving split/merge lineage, and community-aware traversal are separate later work and must be designed from measured behavior rather than hidden inside the baseline.
+The computation remains a complete Graph organization pass. There is no changed-region invalidation or cached reduction-tree reuse yet. Those optimizations should be added only if real workloads show the complete pass is materially expensive.
+
+Older v1 snapshots remain reopenable because they are derived state rather than semantic authority. Explicit refresh republishes the current v2 partition as the next generation; an old algorithm version is not reported as current even when its Graph watermark still matches.
+
+Community identity still changes when exact membership changes. Split/merge lineage, continuity-preserving identity, community-aware traversal, and Warlock display naming remain separate concerns.
 
 ## Rejected alternatives
 
 ### Rewrite or augment Graph during clustering
 
-Rejected. Leiden detects communities implied by existing topology; it does not establish semantic Memory relationships. Persisting synthetic semantic edges or supernodes would create competing Graph authority.
+Rejected. Leiden detects organization implied by existing topology; it does not establish semantic Memory relationships. Persisting synthetic semantic edges or supernodes would create competing Graph authority.
 
 ### Use an LLM to define communities
 
 Rejected for the structural layer. Community membership is deterministic Graph-derived state. Optional human-readable naming belongs to presentation metadata and may be model-assisted later without becoming clustering authority.
 
+### Partition by dense node insertion order
+
+Rejected after benchmarking. It was fast but could cut deliberately interleaved semantic regions across every shard and materially reduce modularity. Deterministic graph-local BFS ordering retained the scaling benefit while substantially reducing that sensitivity.
+
 ### Implement an approximate home-grown Leiden/Louvain routine
 
-Rejected. The baseline uses an existing Leiden implementation behind a narrow adapter rather than introducing an algorithm that merely resembles Leiden while carrying the same name.
+Rejected. Each clustering stage uses the existing Leiden implementation behind a narrow adapter rather than introducing an algorithm that merely resembles Leiden.
 
 ### Promise stable IDs across membership changes now
 
-Rejected. Split/merge continuity requires explicit reconciliation semantics. Exact-membership IDs are sufficient for the full-rebuild baseline and avoid pretending that a changed cluster has an already-defined durable identity.
+Rejected. Split/merge continuity requires explicit reconciliation semantics. Exact-membership IDs avoid pretending that changed clusters already have a defined durable identity.
 
 ## Verification
 
-`src/community_tests.rs` verifies dense-region detection, deterministic persistence/reopen, unchanged-refresh idempotency, stale-on-Graph-change behavior, independent Phylactery operation, and rejection of community publication for legacy files without durable owner identity.
+`src/community_tests.rs` protects persistence/reopen, freshness, REL/PHY isolation, durable-owner requirements, and v1-to-v2 refresh compatibility.
+
+`src/community_scan_merge_tests.rs` protects cross-shard community recovery, parent-level merging, worker-count determinism, and equivalence between stored root quality and modularity recomputed over the final partition on the original structural Graph.
+
+The ignored release benchmark in `src/community_scan_merge_bench.rs` generates locality-friendly and deliberately interleaved sparse planted-community graphs and compares v2 wall time and modularity against monolithic Leiden. Frozen results are recorded in [Community scan-and-merge benchmark — 2026-08-27](../community-scan-merge-benchmark-2026-08-27.md).

@@ -20,6 +20,10 @@ mod community_codec;
 mod community_error;
 mod community_leiden;
 mod community_model;
+mod community_scan_merge;
+mod community_scan_merge_plan;
+mod community_scan_merge_reduce;
+mod community_scan_merge_workers;
 mod community_store;
 mod compatibility_profile_codec;
 mod compatibility_profile_error;
@@ -363,6 +367,10 @@ mod archive_inventory_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod community_scan_merge_bench;
+#[cfg(test)]
+mod community_scan_merge_tests;
 #[cfg(test)]
 mod community_test_support;
 #[cfg(test)]
