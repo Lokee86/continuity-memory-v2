@@ -37,6 +37,10 @@ impl GraphStore {
         &self.transaction_global_versions
     }
 
+    pub(crate) fn node_memory_ids(&self) -> Vec<MemoryId> {
+        self.nodes.iter().map(|node| node.memory_id).collect()
+    }
+
     pub(crate) fn node_id(&self, memory_id: MemoryId) -> Result<NodeId, GraphError> {
         self.node_by_memory
             .get(&memory_id)

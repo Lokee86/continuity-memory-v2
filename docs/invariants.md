@@ -103,6 +103,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 88. **Dream Graph and lifecycle effects are owner-local.** A Dream pass over one REL or PHY may read and mutate only Memories/Graph/lifecycle state owned by that file; another owner cannot become a candidate or mutation target implicitly.
 89. **Unknown chronology stays unknown.** PHY Dream may use persisted `source_time_ns`; REL may additionally recover legacy source time from validated Archive provenance. Dream must never substitute `created_at_ns`/`updated_at_ns` for semantic chronology, and chronology-required duplicate ordering fails closed when source time is unavailable.
 90. **PHY canonicalization does not invent missing provenance.** Source-independent direct-authority and supersession rules may promote PHY Memories, but REL corroboration logic that requires independent source authority anchors does not acquire a weaker PHY surrogate.
+91. **Communities are derived Graph structure.** Persisted community snapshots cannot add, remove, redirect, or redefine Graph relationships and consume no semantic/global version ticket.
+92. **Community detection is owner-local and graph-versioned.** One current snapshot partitions only Graph nodes from one REL or PHY and records the exact `graph_version` from which it was derived; cross-owner nodes cannot participate.
+93. **Baseline community identity is exact-membership identity, not continuity.** Community v1 derives identity from durable owner UUID plus sorted member `MemoryId`s; identity continuity across changed membership, splits, or merges requires an explicit later scan-and-merge/lineage contract.
+94. **Human community names are presentation metadata.** A Warlock display rename cannot change persisted membership, Graph authority, or traversal semantics.
 
 ## Safety boundaries
 

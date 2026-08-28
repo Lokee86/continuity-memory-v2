@@ -14,6 +14,7 @@ zeroize = "1"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 base64 = "0.22"
 regex = "1"
+leiden-rs = { version = "0.8.1", default-features = false }
 time = { version = "0.3", features = ["parsing"] }
 uuid = { version = "1", features = ["v4"] }
 

@@ -1,6 +1,7 @@
 use crate::archive_rebuild::ArchiveOpenState;
 use crate::archive_vector_rebuild::ArchiveVectorOpenState;
 use crate::archive_vector_store::ArchiveVectorStore;
+use crate::community_store::{CommunityOpenState, CommunityStore};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_global_validation::validate_semantic_global_versions;
@@ -118,6 +119,7 @@ impl Cva {
         let archive = Archive::empty();
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();
+        let communities = CommunityStore::default();
         let insomnia = InsomniaStore::empty();
         let lexical_index = LexicalIndex::default();
         let packed_vectors = PackedVectorStore::default();
@@ -142,6 +144,7 @@ impl Cva {
             memories,
             duplicate_index: DuplicateIndex::empty(),
             graph,
+            communities,
             insomnia,
             lexical_index,
             packed_vectors,
@@ -157,6 +160,7 @@ impl Cva {
         let mut archive_state = ArchiveOpenState::new();
         let mut memory_state = MemoryOpenState::new();
         let mut graph_state = GraphOpenState::new();
+        let mut community_state = CommunityOpenState::new();
         let mut insomnia_state = InsomniaOpenState::new();
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
@@ -168,6 +172,7 @@ impl Cva {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
+            community_state.ingest(payload)?;
             insomnia_state.ingest(chunk, payload)?;
             packed_state.ingest(chunk, payload)?;
             memory_vector_state.ingest(chunk, payload)?;
@@ -190,6 +195,7 @@ impl Cva {
         memories.validate_provenance(&archive)?;
         validate_file_memory_targets(&archive, &memories)?;
         let graph = graph_state.finish(&memories)?;
+        let communities = community_state.finish(&graph, container.owner_uuid())?;
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
         insomnia.rebuild_schedule(&archive)?;
@@ -212,6 +218,7 @@ impl Cva {
             memories,
             duplicate_index: DuplicateIndex::empty(),
             graph,
+            communities,
             insomnia,
             lexical_index,
             packed_vectors,

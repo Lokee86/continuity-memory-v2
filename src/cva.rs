@@ -1,4 +1,5 @@
 use crate::archive_vector_store::ArchiveVectorStore;
+use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_duplicate_index::DuplicateIndex;
@@ -22,6 +23,7 @@ pub struct Cva {
     pub(crate) archive: Archive,
     pub(crate) memories: MemoryStore,
     pub(crate) graph: GraphStore,
+    pub(crate) communities: CommunityStore,
     pub(crate) duplicate_index: DuplicateIndex,
     pub(crate) insomnia: InsomniaStore,
     pub(crate) lexical_index: LexicalIndex,

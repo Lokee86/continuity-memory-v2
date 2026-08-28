@@ -24,3 +24,4 @@
 - [ADR 0022: Durable typed owner identity](0022-durable-typed-owner-identity.md) — **Accepted and implemented**, 2026-08-26.
 - [ADR 0023: Insomnia durable owner routing](0023-insomnia-durable-owner-routing.md) — **Accepted and implemented**, 2026-08-27.
 - [ADR 0024: Owner-local Dream processing](0024-owner-local-dream-processing.md) — **Accepted and implemented**, 2026-08-27.
+- [ADR 0025: Owner-local derived Graph communities](0025-owner-local-derived-communities.md) — **Accepted and implemented**, 2026-08-27.

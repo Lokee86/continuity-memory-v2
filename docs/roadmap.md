@@ -182,6 +182,15 @@ Initial Dream semantic validation is complete across retrieval/inference and con
 
 The remaining redesign and implementation sequence are owned by [Dream implementation plan](dream-implementation-plan.md). That plan also records the indexed duplicate predecessor-chain design, implemented verification policy, and source-turn-timestamp-based temporal determinism.
 
+### Memory-web organization
+
+The owner-local full-Graph Leiden baseline is implemented as derived Community snapshots. Remaining memory-web work is:
+
+- affected-region scan-and-merge so Graph changes do not require full reclustering;
+- explicit split/merge lineage and continuity-preserving community identity where justified;
+- community-aware Graph traversal/pruning with measured retrieval/traversal benefit; and
+- Warlock presentation metadata for editable human-facing community names.
+
 ### Ego
 
 Add active context synthesis only after the shared runtime, Memory retrieval, and graph/lifecycle semantics are stable enough to provide trustworthy inputs.

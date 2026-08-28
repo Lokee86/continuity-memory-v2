@@ -16,6 +16,11 @@ mod archive_vector_error;
 mod archive_vector_model;
 mod archive_vector_rebuild;
 mod archive_vector_store;
+mod community_codec;
+mod community_error;
+mod community_leiden;
+mod community_model;
+mod community_store;
 mod compatibility_profile_codec;
 mod compatibility_profile_error;
 mod compatibility_profile_model;
@@ -38,6 +43,7 @@ mod credential_codec;
 mod credential_crypto;
 pub mod cva;
 mod cva_archive_vectors;
+mod cva_communities;
 mod cva_compatibility_profiles;
 mod cva_conversation;
 mod cva_error;
@@ -164,6 +170,7 @@ mod packed_vector_model;
 mod packed_vector_rebuild;
 mod packed_vector_store;
 pub mod phylactery;
+mod phylactery_communities;
 mod phylactery_compatibility_profiles;
 mod phylactery_dream_candidates;
 mod phylactery_dream_canonical;
@@ -200,6 +207,11 @@ pub use archive_model::{ArchiveStats, Branch, ContentId, ConversationSummary, No
 pub use archive_vector_error::ArchiveVectorError;
 pub use archive_vector_model::{
     ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet, ArchiveVectorStats,
+};
+pub use community_error::CommunityError;
+pub use community_model::{
+    COMMUNITY_ALGORITHM_VERSION, COMMUNITY_LEIDEN_RESOLUTION, COMMUNITY_LEIDEN_SEED, Community,
+    CommunityId, CommunitySnapshot, CommunityStats,
 };
 pub use compatibility_profile_error::CompatibilityProfileError;
 pub use compatibility_profile_model::{
@@ -351,6 +363,10 @@ mod archive_inventory_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod community_test_support;
+#[cfg(test)]
+mod community_tests;
 #[cfg(test)]
 mod compatibility_profile_tests;
 #[cfg(test)]

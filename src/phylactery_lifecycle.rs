@@ -1,3 +1,4 @@
+use crate::community_store::{CommunityOpenState, CommunityStore};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_duplicate_index::DuplicateIndex;
@@ -54,6 +55,7 @@ impl Phylactery {
     fn initialize(mut container: Container) -> Result<Self, PhylacteryError> {
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();
+        let communities = CommunityStore::default();
         let packed_vectors = PackedVectorStore::default();
         let memory_vectors = MemoryVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
@@ -69,6 +71,7 @@ impl Phylactery {
             container,
             memories,
             graph,
+            communities,
             duplicate_index: DuplicateIndex::empty(),
             packed_vectors,
             memory_vectors,
@@ -79,6 +82,7 @@ impl Phylactery {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
         let mut memory_state = MemoryOpenState::new();
         let mut graph_state = GraphOpenState::new();
+        let mut community_state = CommunityOpenState::new();
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
         let mut profile_state = CompatibilityProfileOpenState::new();
@@ -87,6 +91,7 @@ impl Phylactery {
             reject_rel_only_payload(payload)?;
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
+            community_state.ingest(payload)?;
             packed_state.ingest(chunk, payload)?;
             memory_vector_state.ingest(chunk, payload)?;
             profile_state.ingest(chunk, payload)?;
@@ -106,6 +111,7 @@ impl Phylactery {
         let memories = memory_state.finish()?;
         validate_source_independent_memories(&memories)?;
         let graph = graph_state.finish(&memories)?;
+        let communities = community_state.finish(&graph, container.owner_uuid())?;
         validate_global_versions(&memories, &graph)?;
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
@@ -116,6 +122,7 @@ impl Phylactery {
             container,
             memories,
             graph,
+            communities,
             duplicate_index: DuplicateIndex::empty(),
             packed_vectors,
             memory_vectors,
