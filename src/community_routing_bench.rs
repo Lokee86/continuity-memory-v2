@@ -9,7 +9,7 @@ const KS: [usize; 3] = [1, 3, 5];
 #[test]
 #[ignore = "routing-only experiment over a Dream-populated typed REL"]
 fn community_routing_strategy_benchmark() {
-    run_fixture("dream-rel-46", &load_fixture());
+    run_fixture("configured-project-rel", &load_fixture());
 }
 
 fn run_fixture(label: &str, fixture: &RoutingFixture) {

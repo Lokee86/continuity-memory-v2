@@ -6,8 +6,6 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 
-const DEFAULT_ROUTING_REL: &str = "target/dream-routing-live-sol-20260828/dream-run.prj.rel";
-
 pub(crate) struct RoutingFixture {
     pub(crate) vectors: HashMap<MemoryId, Vec<f32>>,
     pub(crate) snapshot: CommunitySnapshot,
@@ -27,7 +25,7 @@ pub(crate) fn load_fixture() -> RoutingFixture {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let rel_path = std::env::var_os("RELIQUARY_ROUTING_REL")
         .map(PathBuf::from)
-        .unwrap_or_else(|| root.join(DEFAULT_ROUTING_REL));
+        .expect("set RELIQUARY_ROUTING_REL to the current owner-split Dream Project REL; there is intentionally no default fixture");
     let mut rel = Cva::open(&rel_path)
         .unwrap_or_else(|error| panic!("open routing REL {} failed: {error}", rel_path.display()));
     assert!(!rel.is_legacy_cva(), "routing fixture must be a typed REL");
