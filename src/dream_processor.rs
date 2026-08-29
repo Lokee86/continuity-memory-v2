@@ -184,7 +184,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
         Ok(evaluated)
     }
 
-    fn evaluate_pair(
+    pub(crate) fn evaluate_pair(
         &self,
         verification_policy: DreamVerificationPolicy,
         source: &DreamMemoryContext,

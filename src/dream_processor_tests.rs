@@ -255,6 +255,50 @@ fn pair_inference_can_run_concurrently_while_publication_remains_ordered() {
 }
 
 #[test]
+fn memory_frontier_shares_one_global_inference_limit_and_preserves_source_order() {
+    let mut cva = Cva::create(test_path("processor-frontier.cva")).unwrap();
+    let first = memory_extracted(&mut cva, "first", "First", "Shared topic first.", 100);
+    let second = memory_extracted(&mut cva, "second", "Second", "Shared topic second.", 110);
+    let profile = install_vectors(&mut cva, &[first, second], &[&[1.0, 0.0], &[0.99, 0.01]]);
+    let active = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let processor = DreamProcessor::new(
+        TrackingClassifier {
+            active: active.clone(),
+            peak: peak.clone(),
+        },
+        SimulatedGeneralEndpoint::new("verifier", vec![]),
+    );
+
+    let outcomes = processor
+        .process_memories_with_concurrency(
+            &mut cva,
+            profile,
+            &[first, second],
+            DreamCandidateConfig {
+                limit: 1,
+                semantic_limit: 1,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 0,
+            },
+            DreamVerificationPolicy::default(),
+            2,
+            2,
+        )
+        .unwrap();
+
+    assert_eq!(outcomes.len(), 2);
+    assert_eq!(outcomes[0].memory_id, first);
+    assert_eq!(outcomes[1].memory_id, second);
+    assert!(outcomes.iter().all(|outcome| outcome.result.is_ok()));
+    assert_eq!(peak.load(Ordering::SeqCst), 2);
+    assert_eq!(active.load(Ordering::SeqCst), 0);
+    assert_eq!(cva.memory(first).unwrap().lifecycle_state, "knowledge");
+    assert_eq!(cva.memory(second).unwrap().lifecycle_state, "knowledge");
+}
+
+#[test]
 fn inference_failure_does_not_advance_source_lifecycle() {
     let mut cva = Cva::create(test_path("processor-failure.cva")).unwrap();
     let candidate = memory(

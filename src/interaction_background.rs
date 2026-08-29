@@ -1,7 +1,8 @@
 use crate::{
-    DreamCandidateConfig, DreamProcessError, DreamProcessor, DreamVerificationPolicy,
-    EmbeddingEndpoint, GeneralEndpoint, InsomniaDrainResult, InsomniaExtractor,
-    InsomniaWorkerConfig, InsomniaWorkerError, InteractionRuntime, MemoryError, MemoryId,
+    DEFAULT_DREAM_FRONTIER_SIZE, DEFAULT_DREAM_INFERENCE_CONCURRENCY, DreamCandidateConfig,
+    DreamProcessError, DreamProcessor, DreamVerificationPolicy, EmbeddingEndpoint, GeneralEndpoint,
+    InsomniaDrainResult, InsomniaExtractor, InsomniaWorkerConfig, InsomniaWorkerError,
+    InteractionRuntime, MemoryError, MemoryId,
 };
 use std::fmt;
 
@@ -12,6 +13,8 @@ pub struct RuntimeBackgroundConfig {
     pub insomnia: InsomniaWorkerConfig,
     pub dream_candidates: DreamCandidateConfig,
     pub dream_verification: DreamVerificationPolicy,
+    pub dream_frontier_size: usize,
+    pub dream_inference_concurrency: usize,
     pub max_dream_memories: usize,
 }
 
@@ -21,6 +24,8 @@ impl Default for RuntimeBackgroundConfig {
             insomnia: InsomniaWorkerConfig::default(),
             dream_candidates: DreamCandidateConfig::default(),
             dream_verification: DreamVerificationPolicy::default(),
+            dream_frontier_size: DEFAULT_DREAM_FRONTIER_SIZE,
+            dream_inference_concurrency: DEFAULT_DREAM_INFERENCE_CONCURRENCY,
             max_dream_memories: DEFAULT_RUNTIME_DREAM_BATCH,
         }
     }
@@ -108,6 +113,14 @@ impl InteractionRuntime {
         if config.max_dream_memories == 0 {
             return Err(RuntimeBackgroundError::InvalidConfig("max_dream_memories"));
         }
+        if config.dream_frontier_size == 0 {
+            return Err(RuntimeBackgroundError::InvalidConfig("dream_frontier_size"));
+        }
+        if config.dream_inference_concurrency == 0 {
+            return Err(RuntimeBackgroundError::InvalidConfig(
+                "dream_inference_concurrency",
+            ));
+        }
 
         let insomnia = self.cva.drain_insomnia_backlog(
             insomnia_extractor,
@@ -135,17 +148,22 @@ impl InteractionRuntime {
             .collect();
         let mut completed = Vec::new();
         let mut failures = Vec::new();
-
-        for memory_id in attempted_ids.iter().copied() {
-            match dream_processor.process_memory(
+        let outcomes = dream_processor
+            .process_memories_with_concurrency(
                 &mut self.cva,
                 profile_id,
-                memory_id,
+                &attempted_ids,
                 config.dream_candidates,
                 config.dream_verification,
-            ) {
+                config.dream_frontier_size,
+                config.dream_inference_concurrency,
+            )
+            .map_err(RuntimeBackgroundError::Dream)?;
+
+        for outcome in outcomes {
+            match outcome.result {
                 Ok(result) => completed.push(RuntimeDreamCompletion {
-                    memory_id,
+                    memory_id: outcome.memory_id,
                     candidate_count: result.candidate_count,
                     lifecycle_state: result.source.lifecycle_state,
                     archived: result.source.archived,
@@ -153,12 +171,10 @@ impl InteractionRuntime {
                 Err(
                     error @ (DreamProcessError::Classification(_)
                     | DreamProcessError::Verification(_)),
-                ) => {
-                    failures.push(RuntimeDreamFailure {
-                        memory_id,
-                        error: error.to_string(),
-                    });
-                }
+                ) => failures.push(RuntimeDreamFailure {
+                    memory_id: outcome.memory_id,
+                    error: error.to_string(),
+                }),
                 Err(error) => {
                     self.cva.sync().map_err(RuntimeBackgroundError::Sync)?;
                     return Err(RuntimeBackgroundError::Dream(error));

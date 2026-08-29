@@ -191,6 +191,73 @@ fn phy_dream_processor_publishes_duplicate_chain_and_archives_only_in_phy() {
 }
 
 #[test]
+fn phy_dream_frontier_processes_multiple_memories_with_one_inference_bound() {
+    let mut phy = Phylactery::create(test_path("frontier.phy")).unwrap();
+    let (first, _) = phy
+        .publish_memory(
+            None,
+            0,
+            draft(
+                "frontier-first",
+                "fact",
+                "identity",
+                "extracted",
+                "First frontier memory.",
+                100,
+            ),
+        )
+        .unwrap();
+    let (second, _) = phy
+        .publish_memory(
+            None,
+            0,
+            draft(
+                "frontier-second",
+                "fact",
+                "identity",
+                "extracted",
+                "Second frontier memory.",
+                110,
+            ),
+        )
+        .unwrap();
+    let profile = vectorize(&mut phy);
+    let processor = DreamProcessor::new(
+        SimulatedGeneralEndpoint::new(
+            "classifier",
+            vec![
+                json!({"relation": "none", "direction": "none", "evidence": []}),
+                json!({"relation": "none", "direction": "none", "evidence": []}),
+            ],
+        ),
+        SimulatedGeneralEndpoint::new("verifier", vec![]),
+    );
+
+    let outcomes = processor
+        .process_phylactery_memories_with_concurrency(
+            &mut phy,
+            profile,
+            &[first.id, second.id],
+            DreamCandidateConfig {
+                limit: 1,
+                semantic_limit: 1,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 0,
+            },
+            DreamVerificationPolicy::default(),
+            2,
+            2,
+        )
+        .unwrap();
+
+    assert_eq!(outcomes.len(), 2);
+    assert!(outcomes.iter().all(|outcome| outcome.result.is_ok()));
+    assert_eq!(phy.memory(first.id).unwrap().lifecycle_state, "knowledge");
+    assert_eq!(phy.memory(second.id).unwrap().lifecycle_state, "knowledge");
+}
+
+#[test]
 fn phy_lifecycle_does_not_invent_provenance_based_corroboration() {
     let mut phy = Phylactery::create(test_path("lifecycle.phy")).unwrap();
     let (preference, _) = phy

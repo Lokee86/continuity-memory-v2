@@ -94,6 +94,7 @@ mod dream_owner_vectors;
 mod dream_pair_context;
 mod dream_processor;
 mod dream_processor_error;
+mod dream_processor_frontier;
 mod dream_processor_model;
 mod dream_publisher;
 mod dream_publisher_error;
@@ -262,6 +263,9 @@ pub use dream_lifecycle_error::DreamLifecycleError;
 pub use dream_lifecycle_model::DreamLifecycleResult;
 pub use dream_processor::DreamProcessor;
 pub use dream_processor_error::DreamProcessError;
+pub use dream_processor_frontier::{
+    DEFAULT_DREAM_FRONTIER_SIZE, DEFAULT_DREAM_INFERENCE_CONCURRENCY, DreamMemoryProcessOutcome,
+};
 pub use dream_processor_model::{DreamProcessResult, DreamProcessedPair};
 pub use dream_publisher_error::DreamPublicationError;
 pub use dream_publisher_model::DreamPublicationOutcome;
