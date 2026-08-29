@@ -18,6 +18,28 @@ impl Cva {
         )
     }
 
+    pub fn search_with_result_limit(
+        &mut self,
+        compatibility_profile_id: CompatibilityProfileId,
+        endpoint: &impl EmbeddingEndpoint,
+        query: &str,
+        result_limit: usize,
+    ) -> Result<Vec<SearchCandidate>, SearchError> {
+        let candidate_limit = crate::DEFAULT_SEARCH_CANDIDATE_LIMIT
+            .max(result_limit)
+            .min(crate::MAX_SEMANTIC_SEARCH_LIMIT);
+        self.search_with_config(
+            compatibility_profile_id,
+            endpoint,
+            query,
+            RetrievalConfig {
+                candidate_limit,
+                result_limit,
+                ..RetrievalConfig::default()
+            },
+        )
+    }
+
     pub fn search_with_config(
         &mut self,
         compatibility_profile_id: CompatibilityProfileId,

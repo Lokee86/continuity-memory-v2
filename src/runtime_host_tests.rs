@@ -5,7 +5,7 @@ use crate::runtime_host_test_support::{
 };
 use crate::{
     Cva, EpisodeConfig, EpisodePolicy, InteractionRole, InteractionRuntime, Phylactery,
-    ReliquaryRuntimeHost, SimulatedEmbeddingEndpoint, VectorNormalization,
+    ReliquaryRuntimeHost, ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::sync::{Arc, Barrier};
 
@@ -32,8 +32,7 @@ fn inference_does_not_hold_the_interaction_runtime_lock() {
     });
     let host = ReliquaryRuntimeHost::start(
         InteractionRuntime::new(cva),
-        Some(endpoint),
-        None,
+        ReliquaryRuntimeRoutes::new(Some(endpoint), None, None, None, None),
         one_worker(),
         EpisodePolicy {
             episode: EpisodeConfig::default(),
@@ -63,8 +62,7 @@ fn live_completion_wakes_idle_insomnia_workers() {
     };
     let host = ReliquaryRuntimeHost::start(
         InteractionRuntime::new(cva),
-        Some(Arc::new(OmitEndpoint)),
-        None,
+        ReliquaryRuntimeRoutes::new(Some(Arc::new(OmitEndpoint)), None, None, None, None),
         one_worker(),
         policy,
     );
@@ -93,12 +91,17 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
     let host = ReliquaryRuntimeHost::start_with_phylactery(
         InteractionRuntime::new(cva),
         phylactery,
-        Some(Arc::new(UserMemoryEndpoint)),
-        Some(Arc::new(SimulatedEmbeddingEndpoint::new(
-            8,
-            VectorNormalization::L2,
-            7,
-        ))),
+        ReliquaryRuntimeRoutes::new(
+            Some(Arc::new(UserMemoryEndpoint)),
+            None,
+            None,
+            None,
+            Some(Arc::new(SimulatedEmbeddingEndpoint::new(
+                8,
+                VectorNormalization::L2,
+                7,
+            ))),
+        ),
         one_worker(),
         EpisodePolicy {
             episode: EpisodeConfig::default(),

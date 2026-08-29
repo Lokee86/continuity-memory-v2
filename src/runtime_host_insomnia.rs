@@ -37,26 +37,28 @@ pub(super) fn worker_loop(
         if index == 0 {
             sweep_inactive(&shared)?;
         }
-        let endpoint = shared
-            .general_endpoint
+        let routes = shared
+            .routes
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .clone();
-        let Some(endpoint) = endpoint else {
+        let Some(main) = routes.insomnia() else {
             seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
             continue;
         };
-        let general = SharedGeneralEndpoint(endpoint);
-        let extractor = if shared
+        let mut extractor = InsomniaExtractor::new(SharedGeneralEndpoint(main));
+        if let Some(metadata) = routes.insomnia_metadata() {
+            extractor = extractor.with_metadata_endpoint(SharedGeneralEndpoint(metadata));
+        }
+        if shared
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .is_some()
+            && let Some(ownership) = routes.insomnia_ownership()
         {
-            InsomniaExtractor::new(general.clone()).with_ownership_endpoint(general)
-        } else {
-            InsomniaExtractor::new(general)
-        };
+            extractor = extractor.with_ownership_endpoint(SharedGeneralEndpoint(ownership));
+        }
         let claim = {
             let mut runtime = shared
                 .runtime

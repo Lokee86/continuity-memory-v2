@@ -19,6 +19,9 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Unknown future config objects survive known-object replacement | `config_tests::unknown_objects_survive_known_config_replacement` |
 | Invalid config is rejected before replacing the existing file | `config_tests::invalid_values_do_not_replace_existing_config` |
 | Switchboard provider auth/capabilities are explicit | `model_switchboard_tests::provider_auth_and_capabilities_are_explicit` |
+| Insomnia ownership route policy prefers metadata and falls back to main Insomnia inside the library switchboard | `model_switchboard_tests::insomnia_ownership_prefers_metadata_then_main` |
+| Long-lived runtime routes keep Insomnia, metadata/ownership, Dream, and Embedding capabilities distinct and apply hosted fallback inside Reliquary | `runtime_host_route_tests::runtime_routes_keep_inference_capabilities_separate`, `runtime_host_route_tests::runtime_routes_apply_fallbacks_inside_reliquary` |
+| CLI production modules do not reconstruct configured runtime composition or retrieval candidate policy | `reliquary-cli` `boundary_tests::cli_does_not_own_runtime_composition_or_retrieval_policy` |
 | General/embedding routes and encrypted credentials round-trip together; route removal remains current-state replacement | `model_switchboard_tests::routes_and_credentials_round_trip_and_attach_auth_headers`, `model_switchboard_tests::clearing_model_routes_removes_them_from_current_config` |
 | Unsupported provider routes plus missing/wrong-kind credentials are rejected | `model_switchboard_tests::invalid_provider_routes_are_rejected`, `model_switchboard_tests::missing_or_wrong_credential_kind_is_rejected` |
 | OpenAI-ready and Codex credentials resolve to bearer auth; Codex also attaches ChatGPT account ID when present | `model_switchboard_tests::routes_and_credentials_round_trip_and_attach_auth_headers` |
@@ -65,7 +68,7 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 | Live Episode scheduling occurs only after source acknowledgement and can finalize/queue the durable session path independently | `interaction_session_tests::live_episode_scheduling_is_explicitly_after_turn_acknowledgement` |
 | A live completion preserves its durable source receipt even when the subsequent scheduling attempt fails | `interaction_session_tests::live_completion_preserves_durable_receipt_when_scheduling_fails` |
 | File-to-Memory links are explicit, idempotent, cross-owner validated, and reopenable | `file_memory_link_tests::file_memory_links_are_explicit_idempotent_and_reopenable`, `file_memory_link_tests::reopen_rejects_file_link_to_missing_memory` |
-| Fragment windows/tails remain append-only and branch-neutral | `fragment_tests::*` |
+| Fragment windows/tails remain append-only and branch-neutral; the default window policy is library-owned and reused by adapters | `fragment_tests::*`, `config_tests::default_config_saves_and_reopens` |
 | Packed-vector matrices round-trip beside Archive data in one CVA | `packed_vector_tests::packed_vectors_round_trip_inside_same_cva_as_archive` |
 | Equal packed matrices deduplicate by schema+bytes | `packed_vector_tests::identical_packed_matrix_is_content_addressed_once` |
 | Raw packed-vector backing objects consume no semantic clock | `packed_vector_tests::raw_packed_vectors_do_not_advance_semantic_clocks` |

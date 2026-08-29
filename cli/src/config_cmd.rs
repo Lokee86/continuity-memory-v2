@@ -2,8 +2,7 @@ use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
 use crate::util::{credential_id, normalization, provider, read_secret, reasoning};
 use anyhow::{Result, anyhow};
 use reliquary_memory::{
-    EmbeddingModelEndpoint, GeneralModelEndpoint, ModelSwitchboard, OpenAiCodexDeviceAuth,
-    ReliquaryConfig,
+    EmbeddingModelEndpoint, GeneralModelEndpoint, OpenAiCodexDeviceAuth, ReliquaryConfig,
 };
 use std::path::Path;
 
@@ -45,7 +44,7 @@ fn show(path: &Path) -> Result<()> {
 
 fn verify(path: &Path) -> Result<()> {
     let config = ReliquaryConfig::open(path)?;
-    ModelSwitchboard::new(config.models, config.credentials)?;
+    config.validate_runtime()?;
     println!("config ok: {}", path.display());
     Ok(())
 }
@@ -85,7 +84,7 @@ fn credential(path: &Path, command: CredentialCommand) -> Result<()> {
             if config.credentials.remove(&id).is_none() {
                 return Err(anyhow!("credential not found: {}", id.as_str()));
             }
-            ModelSwitchboard::new(config.models.clone(), config.credentials.clone())?;
+            config.validate_runtime()?;
             config.save()?;
             println!("removed credential: {}", id.as_str());
         }
@@ -198,7 +197,7 @@ fn load(path: &Path) -> Result<ReliquaryConfig> {
 }
 
 fn validate_runtime(config: &ReliquaryConfig) -> Result<()> {
-    ModelSwitchboard::new(config.models.clone(), config.credentials.clone())?;
+    config.validate_runtime()?;
     Ok(())
 }
 

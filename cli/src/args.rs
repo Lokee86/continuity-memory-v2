@@ -92,9 +92,9 @@ pub enum ImportCommand {
         input: PathBuf,
         #[arg(value_name = "REL")]
         cva: PathBuf,
-        #[arg(long, default_value_t = 8)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_FRAGMENT_TURNS)]
         turns: usize,
-        #[arg(long, default_value_t = 2)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_FRAGMENT_OVERLAP)]
         overlap: usize,
         #[arg(long)]
         leave_tail_open: bool,
@@ -145,9 +145,9 @@ pub enum VectorsCommand {
     Build {
         #[arg(value_name = "REL")]
         cva: PathBuf,
-        #[arg(long, default_value_t = 16)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE)]
         batch_size: usize,
-        #[arg(long, default_value_t = 16)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_REMOTE_EMBEDDING_CONCURRENCY)]
         concurrency: usize,
     },
 }
@@ -161,11 +161,11 @@ pub enum InsomniaCommand {
         phy: Option<PathBuf>,
         #[arg(long, default_value_t = reliquary_memory::DEFAULT_INSOMNIA_WORKERS)]
         workers: usize,
-        #[arg(long, default_value = "private")]
+        #[arg(long, default_value = reliquary_memory::DEFAULT_INSOMNIA_SCOPE)]
         scope: String,
-        #[arg(long, default_value_t = 16)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_REMOTE_EMBEDDING_BATCH_SIZE)]
         embedding_batch_size: usize,
-        #[arg(long, default_value_t = 16)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_REMOTE_EMBEDDING_CONCURRENCY)]
         embedding_concurrency: usize,
         #[arg(long)]
         existing_queue_only: bool,
@@ -207,7 +207,7 @@ pub enum DevCommand {
         drift: f32,
         #[arg(long)]
         semantic_only: bool,
-        #[arg(long, default_value_t = 10)]
+        #[arg(long, default_value_t = reliquary_memory::DEFAULT_SEARCH_RESULT_LIMIT)]
         limit: usize,
         #[arg(required = true, trailing_var_arg = true)]
         query: Vec<String>,

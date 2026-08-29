@@ -1,10 +1,7 @@
 use crate::args::DevCommand;
 use crate::util::{hex32, parse_normalization, parse_profile_id};
 use anyhow::Result;
-use reliquary_memory::{
-    Cva, DEFAULT_SEARCH_CANDIDATE_LIMIT, MAX_SEMANTIC_SEARCH_LIMIT, RetrievalConfig,
-    SimulatedEmbeddingEndpoint,
-};
+use reliquary_memory::{Cva, SimulatedEmbeddingEndpoint};
 
 pub fn run(command: DevCommand) -> Result<()> {
     match command {
@@ -103,15 +100,7 @@ fn search(
             );
         }
     } else {
-        let candidate_limit = DEFAULT_SEARCH_CANDIDATE_LIMIT
-            .max(limit)
-            .min(MAX_SEMANTIC_SEARCH_LIMIT);
-        let config = RetrievalConfig {
-            candidate_limit,
-            result_limit: limit,
-            ..RetrievalConfig::default()
-        };
-        for hit in cva.search_with_config(profile_id, &endpoint, query, config)? {
+        for hit in cva.search_with_result_limit(profile_id, &endpoint, query, limit)? {
             println!(
                 "{:.6}\tlex={:.6}\tsem={:.6}\t{}\t{}\t{}..{}",
                 hit.combined_score,

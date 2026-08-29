@@ -150,6 +150,21 @@ fn insomnia_route_falls_back_to_general_when_unset() {
 }
 
 #[test]
+fn insomnia_ownership_prefers_metadata_then_main() {
+    let models = configured_models();
+    let switchboard = ModelSwitchboard::new(models.clone(), configured_credentials()).unwrap();
+    assert_eq!(
+        switchboard.insomnia_ownership(),
+        switchboard.insomnia_metadata()
+    );
+
+    let mut without_metadata = models;
+    without_metadata.insomnia_metadata = None;
+    let switchboard = ModelSwitchboard::new(without_metadata, configured_credentials()).unwrap();
+    assert_eq!(switchboard.insomnia_ownership(), switchboard.insomnia());
+}
+
+#[test]
 fn dream_route_falls_back_to_general_when_unset() {
     let mut models = configured_models();
     models.dream = None;

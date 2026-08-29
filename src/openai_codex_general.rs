@@ -68,6 +68,21 @@ impl OpenAiCodexGeneralEndpoint {
         Self::from_route(route, auth)
     }
 
+    pub fn from_insomnia_ownership_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route =
+            switchboard
+                .insomnia_ownership()
+                .ok_or(GeneralEndpointError::InvalidConfiguration(
+                    "Insomnia ownership, metadata, and main routes are not configured",
+                ))?;
+        let auth = switchboard.insomnia_ownership_auth().ok_or(
+            GeneralEndpointError::InvalidConfiguration("Insomnia ownership auth is missing"),
+        )?;
+        Self::from_route(route, auth)
+    }
+
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

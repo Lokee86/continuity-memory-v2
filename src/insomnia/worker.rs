@@ -8,6 +8,7 @@ use std::fmt;
 mod runtime;
 
 pub const DEFAULT_INSOMNIA_WORKERS: usize = 48;
+pub const DEFAULT_INSOMNIA_SCOPE: &str = "private";
 pub const MAX_INSOMNIA_WORKERS: usize = 64;
 pub const DEFAULT_INSOMNIA_LEASE_NS: i64 = 15 * 60 * 1_000_000_000;
 pub const DEFAULT_INSOMNIA_RETRY_DELAY_NS: i64 = 5 * 1_000_000_000;
@@ -29,7 +30,7 @@ impl Default for InsomniaWorkerConfig {
     fn default() -> Self {
         Self {
             workers: DEFAULT_INSOMNIA_WORKERS,
-            scope: "private".into(),
+            scope: DEFAULT_INSOMNIA_SCOPE.into(),
             worker_id_prefix: "insomnia".into(),
             lease_duration_ns: DEFAULT_INSOMNIA_LEASE_NS,
             retry_delay_ns: DEFAULT_INSOMNIA_RETRY_DELAY_NS,

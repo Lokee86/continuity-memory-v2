@@ -1,10 +1,7 @@
 use crate::args::VectorsCommand;
 use crate::util::hex32;
 use anyhow::Result;
-use reliquary_memory::{
-    Cva, EmbeddingEndpoint, EmbeddingMode, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint,
-    ReliquaryConfig,
-};
+use reliquary_memory::{ConfiguredRuntime, Cva};
 use std::path::Path;
 
 pub fn run(config_path: &Path, command: VectorsCommand) -> Result<()> {
@@ -69,42 +66,23 @@ fn profiles(path: &Path) -> Result<()> {
 }
 
 fn probe(config_path: &Path, text: &str) -> Result<()> {
-    let endpoint = endpoint(config_path, 16, 16)?;
-    let vectors = endpoint.embed(EmbeddingMode::Query, &[text.to_owned()])?;
+    let report = ConfiguredRuntime::open(config_path)?.probe_embedding(text)?;
     println!(
         "embedding ok: vectors={} dimensions={} normalization={:?}",
-        vectors.len(),
-        vectors.first().map(Vec::len).unwrap_or(0),
-        endpoint.normalization()
+        report.vectors, report.dimensions, report.normalization
     );
     Ok(())
 }
 
 fn build(config_path: &Path, cva_path: &Path, batch_size: usize, concurrency: usize) -> Result<()> {
-    let endpoint = endpoint(config_path, batch_size, concurrency)?;
-    let mut cva = Cva::open(cva_path)?;
-    let profile = cva.establish_compatibility_profile(&endpoint)?;
-    let generation = cva.build_archive_vector_generation(profile.id, &endpoint)?;
-    cva.sync()?;
-    println!("profile: {}", hex32(&profile.id.0));
-    println!("generation: {}", hex32(&generation.id.0));
-    println!(
-        "source_archive_version: {}",
-        generation.source_archive_version
-    );
-    println!("vector_version: {}", generation.vector_version);
+    let report = ConfiguredRuntime::open(config_path)?.build_archive_vectors(
+        cva_path,
+        batch_size,
+        concurrency,
+    )?;
+    println!("profile: {}", hex32(&report.profile_id.0));
+    println!("generation: {}", hex32(&report.generation_id.0));
+    println!("source_archive_version: {}", report.source_archive_version);
+    println!("vector_version: {}", report.vector_version);
     Ok(())
-}
-
-fn endpoint(
-    config_path: &Path,
-    batch_size: usize,
-    concurrency: usize,
-) -> Result<OpenAiReadyEmbeddingEndpoint> {
-    let config = ReliquaryConfig::open(config_path)?;
-    let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
-    Ok(
-        OpenAiReadyEmbeddingEndpoint::from_switchboard(&switchboard)?
-            .with_batching(batch_size, concurrency)?,
-    )
 }

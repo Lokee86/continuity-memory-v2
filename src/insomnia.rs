@@ -44,8 +44,8 @@ pub use processor::{InsomniaProcessError, InsomniaProcessResult};
 pub(crate) use runtime_step::RuntimeInsomniaClaim;
 pub use worker::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
-    DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_WORKERS, InsomniaDrainResult,
-    InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_WORKERS,
+    DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS,
+    InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_WORKERS,
 };
 
 #[cfg(test)]

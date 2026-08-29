@@ -2,6 +2,8 @@ mod archive_cmd;
 mod args;
 #[cfg(test)]
 mod args_tests;
+#[cfg(test)]
+mod boundary_tests;
 mod config_args;
 mod config_cmd;
 mod dev_cmd;

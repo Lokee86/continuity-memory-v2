@@ -488,7 +488,7 @@ Archive, Memories, Graph, and Vector Generations have independent local watermar
 `Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Graph, optional Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, vector/profile references, and source-independent Memory provenance. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
-Default fragments use eight turns with two-turn overlap. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
+Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 ## Related docs
 - [Architecture](architecture.md)
 - [Rust API](api.md)

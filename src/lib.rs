@@ -41,6 +41,7 @@ mod config_error;
 mod config_io;
 mod config_object;
 mod configured_general;
+mod configured_runtime;
 pub mod container;
 mod container_error;
 mod container_version;
@@ -228,6 +229,10 @@ pub use compatibility_profile_model::{
 pub use config::ReliquaryConfig;
 pub use config_error::ConfigError;
 pub use configured_general::ConfiguredGeneralEndpoint;
+pub use configured_runtime::{
+    ArchiveVectorBuildReport, ConfiguredInsomniaOptions, ConfiguredInsomniaReport,
+    ConfiguredRuntime, ConfiguredRuntimeError, EmbeddingProbeReport, InsomniaTerminalFailure,
+};
 pub use container::{
     ChunkRef, Container, ContainerError, ContainerIdentity, FileKind, FormatVersion,
     ReliquaryScopeKind,
@@ -283,7 +288,9 @@ pub use episode_model::{
 pub use episode_policy::{DEFAULT_EPISODE_INACTIVITY_NS, EpisodePolicy};
 pub use file_memory_link_model::FileMemoryLink;
 pub use file_model::{FileId, FileSearchHit, StoredFile};
-pub use fragment_model::{Fragment, FragmentConfig, FragmentId};
+pub use fragment_model::{
+    DEFAULT_FRAGMENT_OVERLAP, DEFAULT_FRAGMENT_TURNS, Fragment, FragmentConfig, FragmentId,
+};
 pub use general_endpoint::{GeneralEndpoint, GeneralEndpointError, SimulatedGeneralEndpoint};
 pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
@@ -293,13 +300,13 @@ pub use graph_model::{
 };
 pub use insomnia::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
-    DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_WORKERS, EpisodeSchedulingResult,
-    INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, INSOMNIA_SYSTEM_PROMPT,
-    InsomniaAttempt, InsomniaCandidate, InsomniaDrainResult, InsomniaError, InsomniaEvidenceResult,
-    InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError, InsomniaExtractor,
-    InsomniaLeaseToken, InsomniaOwnership, InsomniaPriority, InsomniaProcessError,
-    InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork, InsomniaWorkState,
-    InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES,
+    DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS,
+    EpisodeSchedulingResult, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_OWNERSHIP_SYSTEM_PROMPT,
+    INSOMNIA_SYSTEM_PROMPT, InsomniaAttempt, InsomniaCandidate, InsomniaDrainResult, InsomniaError,
+    InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError,
+    InsomniaExtractor, InsomniaLeaseToken, InsomniaOwnership, InsomniaPriority,
+    InsomniaProcessError, InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork,
+    InsomniaWorkState, InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES,
     MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
     MAX_INSOMNIA_WORKERS, insomnia_schema,
 };
@@ -351,7 +358,7 @@ pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
-pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError};
+pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
 pub use search_error::SearchError;
 pub use search_model::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
@@ -489,6 +496,8 @@ mod phylactery_dream_tests;
 mod phylactery_tests;
 #[cfg(test)]
 mod reliquary_tests;
+#[cfg(test)]
+mod runtime_host_route_tests;
 #[cfg(test)]
 mod runtime_host_test_support;
 #[cfg(test)]

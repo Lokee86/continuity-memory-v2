@@ -40,10 +40,10 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             return Ok(());
         }
         let endpoint = shared
-            .embedding_endpoint
+            .routes
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .clone();
+            .embedding();
         let Some(endpoint) = endpoint else {
             active_endpoint = None;
             project_profile = None;

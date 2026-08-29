@@ -27,9 +27,11 @@ Secrets are not accepted as direct command-line values. Interactive secrets use 
 
 Core `cargo build/test` does not build or install the CLI. The CLI has its own lockfile and verification commands.
 
-`vectors probe` and `vectors build` now use live provider execution from the library. The CLI does not yet expose a normal live search command; `dev search` deliberately remains on the simulated embedding endpoint for deterministic bring-up without duplicating provider transport or retrieval semantics.
+Configured runtime composition is library-owned. `ConfiguredRuntime` resolves configured model/embedding routes and executes finite Insomnia and vector workflows; the CLI supplies operator options and renders the resulting reports. Ownership classification fallback (`insomnia_metadata` then `insomnia`) is likewise a `ModelSwitchboard` rule rather than CLI policy.
 
-The public library now exposes current branch inventory so a detached operator can enumerate conversations/branches without private-index access.
+`vectors probe` and `vectors build` use live provider execution through that library runtime surface. `dev search` remains on the simulated embedding endpoint for deterministic bring-up, while candidate sizing for a requested result limit is library-owned through `Cva::search_with_result_limit`.
+
+A CLI boundary regression test rejects direct command-module dependencies on runtime-composition and retrieval-policy types. The public library also exposes current branch inventory so a detached operator can enumerate conversations/branches without private-index access.
 
 ## Alternatives rejected
 

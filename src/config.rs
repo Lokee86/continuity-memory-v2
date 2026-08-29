@@ -99,6 +99,11 @@ impl ReliquaryConfig {
         JsonMasterKeyStore::new(master_key_path(&self.path)).load_or_create()
     }
 
+    pub fn validate_runtime(&self) -> Result<(), ConfigError> {
+        crate::ModelSwitchboard::new(self.models.clone(), self.credentials.clone())?;
+        Ok(())
+    }
+
     pub fn save(&self) -> Result<(), ConfigError> {
         validate_fragments(self.fragments)?;
         validate_retrieval(self.retrieval)?;

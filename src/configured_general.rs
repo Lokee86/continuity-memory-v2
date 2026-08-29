@@ -66,6 +66,25 @@ impl ConfiguredGeneralEndpoint {
         }
     }
 
+    pub fn from_insomnia_ownership_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let provider = switchboard
+            .insomnia_ownership()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Insomnia ownership, metadata, and main routes are not configured",
+            ))?
+            .provider;
+        match provider {
+            ModelProvider::OpenAiCodex => Ok(Self::OpenAiCodex(
+                OpenAiCodexGeneralEndpoint::from_insomnia_ownership_switchboard(switchboard)?,
+            )),
+            ModelProvider::OpenAiReady => Ok(Self::OpenAiReady(
+                OpenAiReadyGeneralEndpoint::from_insomnia_ownership_switchboard(switchboard)?,
+            )),
+        }
+    }
+
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

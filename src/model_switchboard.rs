@@ -16,6 +16,18 @@ pub enum ModelCapability {
     Embedding,
 }
 
+impl ModelCapability {
+    pub fn route_key(self) -> &'static str {
+        match self {
+            Self::General => "general",
+            Self::Insomnia => "insomnia",
+            Self::InsomniaMetadata => "insomnia_metadata",
+            Self::Dream => "dream",
+            Self::Embedding => "embedding",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ModelAuthKind {
     ChatGptDeviceCode,
@@ -172,6 +184,10 @@ impl ModelSwitchboard {
         self.config.insomnia_metadata.as_ref()
     }
 
+    pub fn insomnia_ownership(&self) -> Option<&GeneralModelEndpoint> {
+        self.insomnia_metadata().or_else(|| self.insomnia())
+    }
+
     pub fn dream(&self) -> Option<&GeneralModelEndpoint> {
         self.config.dream.as_ref().or(self.config.general.as_ref())
     }
@@ -202,6 +218,16 @@ impl ModelSwitchboard {
 
     pub fn insomnia_metadata_auth(&self) -> Option<ModelRequestAuth> {
         self.insomnia_metadata().map(|endpoint| {
+            resolve_auth(
+                endpoint.provider,
+                &endpoint.credential_id,
+                &self.credentials,
+            )
+        })
+    }
+
+    pub fn insomnia_ownership_auth(&self) -> Option<ModelRequestAuth> {
+        self.insomnia_ownership().map(|endpoint| {
             resolve_auth(
                 endpoint.provider,
                 &endpoint.credential_id,

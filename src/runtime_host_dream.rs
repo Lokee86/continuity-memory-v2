@@ -41,10 +41,10 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             return Ok(());
         }
         let endpoint = shared
-            .general_endpoint
+            .routes
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .clone();
+            .dream();
         let profiles = *shared
             .memory_profiles
             .lock()

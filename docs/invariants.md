@@ -61,7 +61,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 47. **Credential ciphertext is authenticated to its logical key.** Moving or modifying encrypted credential bytes must fail decryption rather than silently rebind a secret.
 48. **Executable model routing requires matching auth.** A runtime switchboard cannot resolve a route whose credential is missing or whose auth kind does not match the provider.
 49. **Current branch inventory is derived read state.** Enumerating current branches exposes the latest visible branch revision and adds no new Archive authority or persistent record.
-50. **The CLI owns no semantics.** The detachable `cli/` package may compose only public library operations; Reliquary, config, auth, and retrieval authority remain in the core library.
+50. **The CLI owns no semantics.** The detachable `cli/` package may parse/prompt/render/dispatch only public library operations; configured runtime composition, route fallback, persistence workflows, retrieval policy, and default policy values remain in the core library.
 51. **Source attachments are intrinsic source-event data.** Importers/runtimes submit a turn and its attachments together; they do not persist a file and then separately reconstruct its source-turn provenance.
 52. **A source turn and its attachments publish together.** The node, attached file manifests, and source-to-file relationship become visible through one Archive semantic mutation; unversioned staged content or turn payloads are inert.
 53. **Later file relationships remain explicit.** A file-to-Memory relationship crosses owners by stable `FileId`/`MemoryId` and does not transfer file authority into Memories.
@@ -108,6 +108,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 93. **Community identity is exact-membership identity, not continuity.** Community identity derives from durable owner UUID plus sorted member `MemoryId`s; identity continuity across changed membership, splits, or merges requires an explicit lineage contract.
 94. **Community scan-and-merge is deterministic derived computation.** Algorithm v2 uses deterministic graph-local shard order, fixed shard size/fan-in/Leiden configuration, and reduction output that cannot depend on worker scheduling. Every structural edge must participate exactly once in the reduction representation.
 95. **Human community names are presentation metadata.** A Warlock display rename cannot change persisted membership, Graph authority, or traversal semantics.
+96. **Hosted model adapters do not own Reliquary stage routing.** A host may supply exact provider endpoints for Reliquary capabilities, but effective Insomnia/Dream fallback, metadata/ownership selection, and background-worker dispatch remain library-owned and must match standalone configured execution semantics.
 
 ## Safety boundaries
 

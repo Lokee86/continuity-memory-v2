@@ -58,13 +58,13 @@ The completion transaction records the PHY `MemoryRef`, making the REL receipt a
 
 ## Runtime surfaces
 
-`Cva::process_claimed_insomnia_episode_routed` and `Cva::drain_insomnia_backlog_routed` accept an explicit mutable Phylactery. The repo-local CLI exposes this as:
+`Cva::process_claimed_insomnia_episode_routed` and `Cva::drain_insomnia_backlog_routed` accept an explicit mutable Phylactery. `ConfiguredRuntime::run_insomnia_files` owns configured endpoint resolution and the finite routed workflow; the repo-local CLI only exposes that operation as:
 
 ```text
 insomnia run <REL> --phy <PHY>
 ```
 
-Without `--phy`, the ownership pass is not enabled and current behavior remains Project-only. If a User-owned candidate reaches a commit without a routing target, publication fails closed.
+The ownership endpoint is resolved by the library switchboard: use `insomnia_metadata` when configured, otherwise fall back to the main `insomnia` route. Without `--phy`, the ownership pass is not enabled and current behavior remains Project-only. If a User-owned candidate reaches a commit without a routing target, publication fails closed.
 
 `ReliquaryRuntimeHost::start_with_phylactery` makes the long-lived host own both the active Project REL runtime and one optional user Phylactery. General-model inference remains outside the interaction-runtime lock. Routed publication acquires the REL and PHY only for bounded persistence work.
 
@@ -101,4 +101,6 @@ Current implementation is concentrated in:
 - `src/memory_model.rs`
 - `src/runtime_host*.rs`
 - `src/runtime_vector_step.rs`
-- `cli/src/insomnia_cmd.rs`
+- `src/configured_runtime*.rs`
+
+`cli/src/insomnia_cmd.rs` is an interface adapter only; it does not own endpoint selection or Insomnia workflow composition.

@@ -4,7 +4,7 @@ use crate::runtime_host_test_support::{
 };
 use crate::{
     Cva, EpisodePolicy, InteractionRole, InteractionRuntime, ReliquaryRuntimeHost,
-    SimulatedEmbeddingEndpoint, VectorNormalization,
+    ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::sync::{Arc, Barrier};
 
@@ -19,8 +19,7 @@ fn embedding_probe_does_not_hold_the_interaction_runtime_lock() {
     ));
     let host = ReliquaryRuntimeHost::start(
         InteractionRuntime::new(cva),
-        None,
-        Some(endpoint),
+        ReliquaryRuntimeRoutes::new(None, None, None, None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
     );
@@ -42,19 +41,24 @@ fn embedding_route_can_be_attached_after_memory_creation() {
     queue_memory_episode(&mut cva);
     let host = ReliquaryRuntimeHost::start(
         InteractionRuntime::new(cva),
-        Some(memory_endpoint()),
-        None,
+        ReliquaryRuntimeRoutes::new(Some(memory_endpoint()), None, None, None, None),
         one_worker(),
         EpisodePolicy::default(),
     );
 
     wait_memory(&host, 1);
     assert_eq!(host.memory_vector_stats().unwrap().bindings, 0);
-    host.set_embedding_endpoint(Some(Arc::new(SimulatedEmbeddingEndpoint::new(
-        8,
-        VectorNormalization::L2,
-        7,
-    ))))
+    host.set_routes(ReliquaryRuntimeRoutes::new(
+        Some(memory_endpoint()),
+        None,
+        None,
+        None,
+        Some(Arc::new(SimulatedEmbeddingEndpoint::new(
+            8,
+            VectorNormalization::L2,
+            7,
+        ))),
+    ))
     .unwrap();
     wait_vectors(&host, 1);
     wait_memory_revisions(&host, 2);

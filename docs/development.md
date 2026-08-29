@@ -15,10 +15,11 @@ Development uses deterministic local tests plus optional live provider execution
 ```text
 Cargo.toml / Cargo.lock              core library package + locked dependencies
 cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfile
-cli/src/*.rs                         operator command composition over public API
-src/config*.rs                      local config framing/object codecs/atomic replacement
+cli/src/*.rs                         interface parsing/prompting/rendering/dispatch over public API
+src/configured_runtime*.rs           configured finite Insomnia/vector runtime composition
+src/config*.rs                      local config framing/object codecs/validation/atomic replacement
 src/credential*.rs                 encrypted credentials + authenticated crypto/codecs
-src/model_switchboard*.rs           provider capabilities + general/embedding routing
+src/model_switchboard*.rs           provider capabilities + model/embedding/ownership route policy
 src/model_auth.rs                   credential validation + request auth attachment
 src/master_key*.rs                  generated master key + temporary JSON key store
 src/cva*.rs                         composition/public CVA lifecycle

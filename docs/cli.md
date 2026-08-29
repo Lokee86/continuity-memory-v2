@@ -56,9 +56,9 @@ reliquary
     └── search
 ```
 
-`vectors probe` and `vectors build` use the configured live `openai-ready` embedding route. `build` establishes/reuses the compatibility profile, embeds the Archive, and publishes one generation. `dev` commands deliberately remain on `SimulatedEmbeddingEndpoint` for deterministic development work.
+`vectors probe` and `vectors build` call `ConfiguredRuntime`, which owns configured live embedding-route resolution and vector execution. `build` establishes/reuses the compatibility profile, embeds the Archive, and publishes one generation inside the library. `dev` commands deliberately remain on `SimulatedEmbeddingEndpoint` for deterministic development work.
 
-`insomnia run <rel>` is the whole-file bring-up surface. Unless `--existing-queue-only` is supplied, it materializes/queues uncovered canonical import paths first. Without `--phy`, it remains Project-only and invokes the ordinary core drain. `--phy <phy>` opens an explicit user-global Phylactery, enables the dedicated `user | project` ownership classifier, routes User-owned Memories into that PHY, and records owner-qualified external Memory references in the REL completion receipt. Project-owned Memories remain in the REL. The command uses `--workers` concurrent processors (default 48, maximum 64), the dedicated Insomnia model route or General fallback, and the configured embedding route. The core drain automatically establishes/reuses compatibility profiles and embeds only Memory bodies still missing in each participating owner. `--embedding-batch-size` and `--embedding-concurrency` control that automatic derived-vector phase independently from Insomnia worker concurrency.
+`insomnia run <rel>` is the whole-file bring-up surface. The CLI passes file targets and operator options to `ConfiguredRuntime::run_insomnia_files`; queue finalization, endpoint construction, model-route selection, routed publication, vector completion, and sync are library-owned. Without `--phy`, the operation remains Project-only. With `--phy <phy>`, the library enables the dedicated `user | project` ownership classifier, routes User-owned Memories into that PHY, and records owner-qualified external Memory references in the REL completion receipt. Ownership inference uses the `insomnia_metadata` route when present and otherwise falls back to the main `insomnia` route. `--embedding-batch-size` and `--embedding-concurrency` remain operator controls for the derived-vector phase.
 
 ## Configuration and credentials
 
@@ -68,7 +68,7 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 `config credential login-codex <id>` performs the ChatGPT/Codex device-code flow directly. It requests a one-time code, prints the verification URL and code, waits for authorization, exchanges the resulting authorization code for OAuth ID/access/refresh tokens, extracts the ChatGPT account ID, and saves the credential under the requested ID. Manual token copy/paste is not part of the CLI. OAuth token refresh is not implemented yet.
 
-`config model set-general`, `set-insomnia`, and `set-dream` persist General-model route selection and accept `--reasoning` for `openai-codex` routes. For example, `config model set-general --provider openai-codex --model gpt-5.6-luna --credential codex --reasoning low` selects Luna at low reasoning; if `models.insomnia` is unset, Insomnia inherits that General route. `set-embedding` persists the separate embedding route. `config verify` performs route/credential compatibility validation without sending network requests.
+`config model set-general`, `set-insomnia`, `set-insomnia-metadata`, and `set-dream` persist model-route selection and accept `--reasoning` for `openai-codex` routes. If `models.insomnia` is unset, Insomnia inherits the General route. Ownership classification has no separate persisted route yet: library policy prefers `insomnia_metadata`, then falls back to `insomnia`. `set-embedding` persists the separate embedding route. `config verify` delegates route/credential compatibility validation to `ReliquaryConfig` without sending network requests.
 
 ## REL, PHY, and import behavior
 
@@ -106,4 +106,4 @@ Repository verification also performs command-level smoke tests for REL create/i
 
 ## Notes
 
-The CLI owns no HTTP protocol semantics; live embedding and General-model execution are supplied by the core provider endpoints and `ConfiguredGeneralEndpoint` dispatch. The CLI's Insomnia worker is a finite bring-up/drain command. Product/runtime and management work is tracked in [Roadmap](roadmap.md).
+The CLI owns only interface concerns: argument parsing, terminal interaction, human-readable rendering, and explicit operator command dispatch. Configured provider/model composition and finite Insomnia/vector workflows are owned by the library `ConfiguredRuntime`; retrieval policy remains library-owned. A CLI boundary regression test prevents the known low-level runtime-composition types from returning to command modules.

@@ -51,11 +51,57 @@ pub(super) struct RuntimeMemoryProfiles {
     pub(super) user: Option<CompatibilityProfileId>,
 }
 
+#[derive(Clone, Default)]
+pub struct ReliquaryRuntimeRoutes {
+    general: Option<Arc<dyn GeneralEndpoint>>,
+    insomnia: Option<Arc<dyn GeneralEndpoint>>,
+    insomnia_metadata: Option<Arc<dyn GeneralEndpoint>>,
+    dream: Option<Arc<dyn GeneralEndpoint>>,
+    embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+}
+
+impl ReliquaryRuntimeRoutes {
+    pub fn new(
+        general: Option<Arc<dyn GeneralEndpoint>>,
+        insomnia: Option<Arc<dyn GeneralEndpoint>>,
+        insomnia_metadata: Option<Arc<dyn GeneralEndpoint>>,
+        dream: Option<Arc<dyn GeneralEndpoint>>,
+        embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+    ) -> Self {
+        Self {
+            general,
+            insomnia,
+            insomnia_metadata,
+            dream,
+            embedding,
+        }
+    }
+
+    pub(crate) fn insomnia(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.insomnia.clone().or_else(|| self.general.clone())
+    }
+
+    pub(crate) fn insomnia_metadata(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.insomnia_metadata.clone()
+    }
+
+    pub(crate) fn insomnia_ownership(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.insomnia_metadata().or_else(|| self.insomnia())
+    }
+
+    pub(crate) fn dream(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.dream.clone().or_else(|| self.general.clone())
+    }
+
+    pub fn embedding(&self) -> Option<Arc<dyn EmbeddingEndpoint + Send + Sync>> {
+        self.embedding.clone()
+    }
+}
+
 pub(super) struct Shared {
     pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
-    pub(super) general_endpoint: Arc<RwLock<Option<Arc<dyn GeneralEndpoint>>>>,
-    pub(super) embedding_endpoint: Arc<RwLock<Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>>>,
+    pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
     pub(super) memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
     pub(super) config: InsomniaWorkerConfig,
@@ -65,8 +111,7 @@ pub(super) struct Shared {
 pub struct ReliquaryRuntimeHost {
     pub(crate) runtime: Option<Arc<Mutex<InteractionRuntime>>>,
     signal: Arc<(Mutex<Control>, Condvar)>,
-    general_endpoint: Arc<RwLock<Option<Arc<dyn GeneralEndpoint>>>>,
-    embedding_endpoint: Arc<RwLock<Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>>>,
+    routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     phylactery: Arc<Mutex<Option<Phylactery>>>,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
@@ -74,44 +119,27 @@ pub struct ReliquaryRuntimeHost {
 impl ReliquaryRuntimeHost {
     pub fn start(
         runtime: InteractionRuntime,
-        general_endpoint: Option<Arc<dyn GeneralEndpoint>>,
-        embedding_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+        routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
     ) -> Self {
-        Self::start_inner(
-            runtime,
-            None,
-            general_endpoint,
-            embedding_endpoint,
-            config,
-            episode_policy,
-        )
+        Self::start_inner(runtime, None, routes, config, episode_policy)
     }
 
     pub fn start_with_phylactery(
         runtime: InteractionRuntime,
         phylactery: Phylactery,
-        general_endpoint: Option<Arc<dyn GeneralEndpoint>>,
-        embedding_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+        routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
     ) -> Self {
-        Self::start_inner(
-            runtime,
-            Some(phylactery),
-            general_endpoint,
-            embedding_endpoint,
-            config,
-            episode_policy,
-        )
+        Self::start_inner(runtime, Some(phylactery), routes, config, episode_policy)
     }
 
     fn start_inner(
         runtime: InteractionRuntime,
         phylactery: Option<Phylactery>,
-        general_endpoint: Option<Arc<dyn GeneralEndpoint>>,
-        embedding_endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+        routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
     ) -> Self {
@@ -123,15 +151,13 @@ impl ReliquaryRuntimeHost {
             }),
             Condvar::new(),
         ));
-        let general_endpoint = Arc::new(RwLock::new(general_endpoint));
-        let embedding_endpoint = Arc::new(RwLock::new(embedding_endpoint));
+        let routes = Arc::new(RwLock::new(routes));
         let phylactery = Arc::new(Mutex::new(phylactery));
         let memory_profiles = Arc::new(Mutex::new(RuntimeMemoryProfiles::default()));
         let shared = Arc::new(Shared {
             runtime: Arc::clone(&runtime),
             signal: Arc::clone(&signal),
-            general_endpoint: Arc::clone(&general_endpoint),
-            embedding_endpoint: Arc::clone(&embedding_endpoint),
+            routes: Arc::clone(&routes),
             phylactery: Arc::clone(&phylactery),
             memory_profiles,
             config: config.clone(),
@@ -153,32 +179,20 @@ impl ReliquaryRuntimeHost {
         Self {
             runtime: Some(runtime),
             signal,
-            general_endpoint,
-            embedding_endpoint,
+            routes,
             phylactery,
             workers,
         }
     }
 
-    pub fn set_general_endpoint(
+    pub fn set_routes(
         &self,
-        endpoint: Option<Arc<dyn GeneralEndpoint>>,
+        routes: ReliquaryRuntimeRoutes,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         *self
-            .general_endpoint
+            .routes
             .write()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = endpoint;
-        self.wake()
-    }
-
-    pub fn set_embedding_endpoint(
-        &self,
-        endpoint: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
-    ) -> Result<(), ReliquaryRuntimeHostError> {
-        *self
-            .embedding_endpoint
-            .write()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = endpoint;
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = routes;
         self.wake()
     }
 

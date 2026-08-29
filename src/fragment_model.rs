@@ -9,6 +9,9 @@ pub struct Fragment {
     pub end_node_id: String,
 }
 
+pub const DEFAULT_FRAGMENT_TURNS: usize = 8;
+pub const DEFAULT_FRAGMENT_OVERLAP: usize = 2;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FragmentConfig {
     pub turns: usize,
@@ -18,8 +21,8 @@ pub struct FragmentConfig {
 impl Default for FragmentConfig {
     fn default() -> Self {
         Self {
-            turns: 8,
-            overlap: 2,
+            turns: DEFAULT_FRAGMENT_TURNS,
+            overlap: DEFAULT_FRAGMENT_OVERLAP,
         }
     }
 }
