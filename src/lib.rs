@@ -299,14 +299,15 @@ pub use graph_model::{
     GraphStats, MemoryGraphPath,
 };
 pub use insomnia::{
-    DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
-    DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS,
-    EpisodeSchedulingResult, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_OWNERSHIP_SYSTEM_PROMPT,
-    INSOMNIA_SYSTEM_PROMPT, InsomniaAttempt, InsomniaCandidate, InsomniaDrainResult, InsomniaError,
-    InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError,
-    InsomniaExtractor, InsomniaLeaseToken, InsomniaOwnership, InsomniaPriority,
-    InsomniaProcessError, InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork,
-    InsomniaWorkState, InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES,
+    DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS, DEFAULT_INSOMNIA_LEASE_NS,
+    DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS, DEFAULT_INSOMNIA_RETRY_DELAY_NS,
+    DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS, EpisodeSchedulingResult,
+    INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, INSOMNIA_SYSTEM_PROMPT,
+    InsomniaAttempt, InsomniaCandidate, InsomniaDrainResult, InsomniaError, InsomniaEvidenceResult,
+    InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError, InsomniaExtractor,
+    InsomniaLeaseToken, InsomniaOwnership, InsomniaPriority, InsomniaProcessError,
+    InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork, InsomniaWorkState,
+    InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES,
     MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
     MAX_INSOMNIA_WORKERS, insomnia_schema,
 };
@@ -498,6 +499,8 @@ mod phylactery_dream_tests;
 mod phylactery_tests;
 #[cfg(test)]
 mod reliquary_tests;
+#[cfg(test)]
+mod runtime_host_backpressure_tests;
 #[cfg(test)]
 mod runtime_host_route_tests;
 #[cfg(test)]

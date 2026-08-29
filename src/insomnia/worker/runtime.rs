@@ -9,7 +9,7 @@ use crate::{
     Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaWork, Phylactery,
 };
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -31,6 +31,7 @@ pub(super) struct DrainCounters {
     pub(super) user_existing: AtomicUsize,
     pub(super) rejected: AtomicUsize,
     pub(super) evidence_turns: AtomicUsize,
+    pub(super) paused_for_backpressure: AtomicBool,
 }
 
 pub(super) struct DrainShared<'a> {
@@ -46,6 +47,7 @@ enum ClaimState {
     Claimed(InsomniaWork),
     Idle,
     Done,
+    Paused,
 }
 
 pub(super) fn drain<E: GeneralEndpoint>(
@@ -115,6 +117,7 @@ fn drain_inner<E: GeneralEndpoint>(
         user_memories_existing: counters.user_existing.load(Ordering::Relaxed),
         rejected_candidates: counters.rejected.load(Ordering::Relaxed),
         evidence_turns: counters.evidence_turns.load(Ordering::Relaxed),
+        paused_for_backpressure: counters.paused_for_backpressure.load(Ordering::SeqCst),
         ..InsomniaDrainResult::default()
     })
 }
@@ -129,13 +132,13 @@ fn worker_loop<E: GeneralEndpoint>(
     let worker_id = format!("{}-{}", config.worker_id_prefix.trim(), index + 1);
     loop {
         let started_at_ns = now_ns();
-        let claim = match claim_next(shared, config, &worker_id, started_at_ns)? {
+        let claim = match claim_next(shared, config, counters, &worker_id, started_at_ns)? {
             ClaimState::Claimed(claim) => claim,
             ClaimState::Idle => {
                 sleep_ns(config.poll_interval_ns);
                 continue;
             }
-            ClaimState::Done => return Ok(()),
+            ClaimState::Done | ClaimState::Paused => return Ok(()),
         };
         let input = {
             let mut container = shared
@@ -175,9 +178,13 @@ fn worker_loop<E: GeneralEndpoint>(
 fn claim_next(
     shared: &DrainShared<'_>,
     config: &InsomniaWorkerConfig,
+    counters: &DrainCounters,
     worker_id: &str,
     started_at_ns: i64,
 ) -> Result<ClaimState, InsomniaWorkerError> {
+    if counters.paused_for_backpressure.load(Ordering::SeqCst) {
+        return Ok(ClaimState::Paused);
+    }
     // Global order for combined mutable access is Container -> semantic store.
     let mut container = shared
         .container
@@ -187,6 +194,9 @@ fn claim_next(
         .insomnia
         .lock()
         .map_err(|_| InsomniaWorkerError::LockPoisoned)?;
+    if counters.paused_for_backpressure.load(Ordering::SeqCst) {
+        return Ok(ClaimState::Paused);
+    }
     let claim = insomnia.claim_next(
         &mut container,
         worker_id,

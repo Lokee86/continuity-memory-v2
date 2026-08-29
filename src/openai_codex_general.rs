@@ -3,7 +3,7 @@ use crate::{
     ModelSwitchboard,
 };
 use reqwest::blocking::Client;
-use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, USER_AGENT};
+use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, RETRY_AFTER, USER_AGENT};
 use serde_json::{Value, json};
 use std::time::Duration;
 
@@ -179,9 +179,16 @@ impl GeneralEndpoint for OpenAiCodexGeneralEndpoint {
             .send()
             .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
         let status = response.status();
+        let retry_after = retry_after_header(response.headers());
         let text = response
             .text()
             .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
+        if status.as_u16() == 429 {
+            return Err(GeneralEndpointError::backpressure(
+                format!("HTTP {status}: {}", truncate(&text, 2048)),
+                retry_after.or_else(|| retry_after_body(&text)),
+            ));
+        }
         if !status.is_success() {
             return Err(GeneralEndpointError::Failure(format!(
                 "HTTP {status}: {}",
@@ -299,6 +306,26 @@ fn process_event(
 
 fn uses_responses_lite(model: &str) -> bool {
     model.starts_with("gpt-5.6-")
+}
+
+fn retry_after_header(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+    let seconds = headers
+        .get(RETRY_AFTER)?
+        .to_str()
+        .ok()?
+        .trim()
+        .parse::<u64>()
+        .ok()?;
+    Some(Duration::from_secs(seconds))
+}
+
+fn retry_after_body(body: &str) -> Option<Duration> {
+    let value: Value = serde_json::from_str(body).ok()?;
+    let seconds = value
+        .pointer("/error/resets_in_seconds")
+        .and_then(Value::as_u64)
+        .or_else(|| value.get("resets_in_seconds").and_then(Value::as_u64))?;
+    Some(Duration::from_secs(seconds))
 }
 
 fn truncate(value: &str, max: usize) -> &str {

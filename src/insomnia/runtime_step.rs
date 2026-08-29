@@ -1,3 +1,4 @@
+use super::backpressure;
 use super::evidence::{hydrate_evidence_parts, plan_evidence};
 use super::extraction::{InsomniaEvidenceRound, InsomniaExtractionError};
 use super::processor::{commit_application, prepare_application, publish_user_application};
@@ -145,7 +146,16 @@ impl Cva {
             .work
             .lease_token
             .ok_or(crate::InsomniaError::InvalidLease)?;
-        if retryable(error) && claim.work.attempt_count < config.max_attempts {
+        if let Some(retry_after_ns) = backpressure::retry_after_ns(error) {
+            self.fail_insomnia_episode(
+                claim.work.episode_id,
+                token,
+                claim.started_at_ns,
+                failed_at_ns,
+                failed_at_ns.saturating_add(retry_after_ns),
+                reason,
+            )?;
+        } else if retryable(error) && claim.work.attempt_count < config.max_attempts {
             self.fail_insomnia_episode(
                 claim.work.episode_id,
                 token,

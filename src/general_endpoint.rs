@@ -1,12 +1,37 @@
 use serde_json::Value;
 use std::fmt;
 use std::sync::Mutex;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum GeneralEndpointError {
     InvalidConfiguration(&'static str),
     Failure(String),
+    Backpressure {
+        message: String,
+        retry_after: Option<Duration>,
+    },
     InvalidResponse(&'static str),
+}
+
+impl GeneralEndpointError {
+    pub fn backpressure(message: impl Into<String>, retry_after: Option<Duration>) -> Self {
+        Self::Backpressure {
+            message: message.into(),
+            retry_after,
+        }
+    }
+
+    pub fn backpressure_retry_after(&self) -> Option<Duration> {
+        match self {
+            Self::Backpressure { retry_after, .. } => *retry_after,
+            _ => None,
+        }
+    }
+
+    pub fn is_backpressure(&self) -> bool {
+        matches!(self, Self::Backpressure { .. })
+    }
 }
 
 impl fmt::Display for GeneralEndpointError {
@@ -16,6 +41,9 @@ impl fmt::Display for GeneralEndpointError {
                 write!(f, "general endpoint configuration: {message}")
             }
             Self::Failure(message) => write!(f, "general endpoint failure: {message}"),
+            Self::Backpressure { message, .. } => {
+                write!(f, "general endpoint backpressure: {message}")
+            }
             Self::InvalidResponse(message) => write!(f, "general endpoint response: {message}"),
         }
     }

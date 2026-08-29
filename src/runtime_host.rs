@@ -2,6 +2,7 @@ use crate::{
     CompatibilityProfileId, EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint,
     InsomniaWorkerConfig, InteractionRuntime, Phylactery,
 };
+use std::sync::atomic::AtomicI64;
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -104,6 +105,7 @@ pub(super) struct Shared {
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
     pub(super) memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
+    pub(super) insomnia_backpressure_until_ns: Arc<AtomicI64>,
     pub(super) config: InsomniaWorkerConfig,
     pub(super) episode_policy: EpisodePolicy,
 }
@@ -113,6 +115,7 @@ pub struct ReliquaryRuntimeHost {
     signal: Arc<(Mutex<Control>, Condvar)>,
     routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     phylactery: Arc<Mutex<Option<Phylactery>>>,
+    insomnia_backpressure_until_ns: Arc<AtomicI64>,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
 
@@ -154,12 +157,14 @@ impl ReliquaryRuntimeHost {
         let routes = Arc::new(RwLock::new(routes));
         let phylactery = Arc::new(Mutex::new(phylactery));
         let memory_profiles = Arc::new(Mutex::new(RuntimeMemoryProfiles::default()));
+        let insomnia_backpressure_until_ns = Arc::new(AtomicI64::new(0));
         let shared = Arc::new(Shared {
             runtime: Arc::clone(&runtime),
             signal: Arc::clone(&signal),
             routes: Arc::clone(&routes),
             phylactery: Arc::clone(&phylactery),
             memory_profiles,
+            insomnia_backpressure_until_ns: Arc::clone(&insomnia_backpressure_until_ns),
             config: config.clone(),
             episode_policy,
         });
@@ -181,6 +186,7 @@ impl ReliquaryRuntimeHost {
             signal,
             routes,
             phylactery,
+            insomnia_backpressure_until_ns,
             workers,
         }
     }
@@ -193,6 +199,8 @@ impl ReliquaryRuntimeHost {
             .routes
             .write()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = routes;
+        self.insomnia_backpressure_until_ns
+            .store(0, std::sync::atomic::Ordering::SeqCst);
         self.wake()
     }
 

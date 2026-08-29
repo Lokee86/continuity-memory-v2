@@ -1,3 +1,4 @@
+pub(crate) mod backpressure;
 mod candidate;
 mod candidate_policy;
 mod candidate_receipt_policy;
@@ -22,6 +23,7 @@ pub(crate) mod store;
 mod synthesis;
 mod worker;
 
+pub use backpressure::DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS;
 pub use contract::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_SYSTEM_PROMPT, MAX_INSOMNIA_CANDIDATES,
     insomnia_schema,
@@ -74,6 +76,8 @@ mod queue_tests;
 mod scheduler_tests;
 #[cfg(test)]
 mod test_support;
+#[cfg(test)]
+mod worker_backpressure_tests;
 #[cfg(test)]
 mod worker_tests;
 #[cfg(test)]

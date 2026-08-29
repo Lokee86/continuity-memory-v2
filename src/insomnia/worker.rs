@@ -48,6 +48,7 @@ pub struct InsomniaDrainResult {
     pub completed_episodes: usize,
     pub failed_attempts: usize,
     pub terminal_episodes: usize,
+    pub paused_for_backpressure: bool,
     pub memories_created: usize,
     pub memories_existing: usize,
     pub user_memories_created: usize,

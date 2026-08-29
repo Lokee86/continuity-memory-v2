@@ -1,8 +1,13 @@
-use super::{ReliquaryRuntimeHostError, Shared, notify_work, operation, stopped, wait_for_work};
+use super::{
+    ReliquaryRuntimeHostError, Shared, notify_work, operation, stopped, wait_for_work,
+    wait_for_work_timeout,
+};
 use crate::insomnia::{InsomniaEvidenceRound, InsomniaExtractionStage, RuntimeInsomniaClaim};
 use crate::{GeneralEndpoint, GeneralEndpointError, InsomniaExtractor};
 use serde_json::Value;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
 
 #[derive(Clone)]
 struct SharedGeneralEndpoint(Arc<dyn GeneralEndpoint>);
@@ -36,6 +41,10 @@ pub(super) fn worker_loop(
         }
         if index == 0 {
             sweep_inactive(&shared)?;
+        }
+        if let Some(wait) = backpressure_wait(&shared) {
+            seen_epoch = wait_for_work_timeout(&shared.signal, seen_epoch, wait)?;
+            continue;
         }
         let routes = shared
             .routes
@@ -113,11 +122,25 @@ fn process_claim(
             drop(runtime);
             notify_work(&shared.signal)
         }
-        Err(error) => runtime
-            .cva
-            .fail_runtime_insomnia(&claim, &error, &shared.config)
-            .map_err(operation),
+        Err(error) => {
+            if let Some(retry_after_ns) = crate::insomnia::backpressure::retry_after_ns(&error) {
+                let until = crate::insomnia::runtime_step::now_ns().saturating_add(retry_after_ns);
+                shared
+                    .insomnia_backpressure_until_ns
+                    .fetch_max(until, Ordering::SeqCst);
+            }
+            runtime
+                .cva
+                .fail_runtime_insomnia(&claim, &error, &shared.config)
+                .map_err(operation)
+        }
     }
+}
+
+fn backpressure_wait(shared: &Shared) -> Option<Duration> {
+    let until = shared.insomnia_backpressure_until_ns.load(Ordering::SeqCst);
+    let remaining = until.saturating_sub(crate::insomnia::runtime_step::now_ns());
+    (remaining > 0).then(|| Duration::from_nanos(u64::try_from(remaining).unwrap_or(u64::MAX)))
 }
 
 fn finish_evidence(

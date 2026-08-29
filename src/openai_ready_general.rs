@@ -3,7 +3,7 @@ use crate::{
     ModelSwitchboard,
 };
 use reqwest::blocking::Client;
-use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
+use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, RETRY_AFTER};
 use serde_json::{Value, json};
 use std::thread::sleep;
 use std::time::Duration;
@@ -165,12 +165,20 @@ impl OpenAiReadyGeneralEndpoint {
                 Err(error) => return Err(GeneralEndpointError::Failure(error.to_string())),
             };
             let status = response.status();
+            let retry_after = retry_after_header(response.headers());
             let bytes = response
                 .bytes()
                 .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?
                 .to_vec();
             if status.is_success() {
                 return Ok(bytes);
+            }
+            if status.as_u16() == 429 {
+                let body = String::from_utf8_lossy(&bytes);
+                return Err(GeneralEndpointError::backpressure(
+                    format!("HTTP {status}: {}", truncate(&body, 1024)),
+                    retry_after.or_else(|| retry_after_body(&body)),
+                ));
             }
             if attempt + 1 < MAX_REQUEST_ATTEMPTS && retryable_status(status.as_u16()) {
                 sleep(retry_delay(attempt));
@@ -429,7 +437,27 @@ fn retryable_error(error: &reqwest::Error) -> bool {
 }
 
 fn retryable_status(status: u16) -> bool {
-    matches!(status, 408 | 409 | 429 | 500 | 502 | 503 | 504 | 524)
+    matches!(status, 408 | 409 | 500 | 502 | 503 | 504 | 524)
+}
+
+fn retry_after_header(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+    let seconds = headers
+        .get(RETRY_AFTER)?
+        .to_str()
+        .ok()?
+        .trim()
+        .parse::<u64>()
+        .ok()?;
+    Some(Duration::from_secs(seconds))
+}
+
+fn retry_after_body(body: &str) -> Option<Duration> {
+    let value: Value = serde_json::from_str(body).ok()?;
+    let seconds = value
+        .pointer("/error/resets_in_seconds")
+        .and_then(Value::as_u64)
+        .or_else(|| value.get("resets_in_seconds").and_then(Value::as_u64))?;
+    Some(Duration::from_secs(seconds))
 }
 
 fn retry_delay(attempt: usize) -> Duration {

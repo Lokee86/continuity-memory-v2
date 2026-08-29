@@ -36,13 +36,14 @@ pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
             );
             let drain = report.drain;
             println!(
-                "workers: configured={} peak_active={} claimed={} completed={} failed_attempts={} terminal={}",
+                "workers: configured={} peak_active={} claimed={} completed={} failed_attempts={} terminal={} paused_for_backpressure={}",
                 drain.workers,
                 drain.peak_active_workers,
                 drain.claimed_attempts,
                 drain.completed_episodes,
                 drain.failed_attempts,
-                drain.terminal_episodes
+                drain.terminal_episodes,
+                drain.paused_for_backpressure
             );
             println!(
                 "memories: project_created={} project_existing={} user_created={} user_existing={} rejected={} evidence_turns={}",

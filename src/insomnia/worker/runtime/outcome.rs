@@ -1,4 +1,5 @@
 use super::{DrainCounters, DrainShared, now_ns};
+use crate::insomnia::backpressure;
 use crate::insomnia::processor::{
     commit_application, prepare_application, publish_user_application,
 };
@@ -119,7 +120,29 @@ pub(super) fn record_failure(
 ) -> Result<(), crate::InsomniaWorkerError> {
     let failed_at_ns = now_ns();
     let reason = bounded_reason(error.to_string());
-    if retryable(&error) && claim.attempt_count < config.max_attempts {
+    if let Some(retry_after_ns) = backpressure::retry_after_ns(&error) {
+        let mut container = shared
+            .container
+            .lock()
+            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
+        let mut insomnia = shared
+            .insomnia
+            .lock()
+            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
+        insomnia.fail(
+            &mut container,
+            claim.episode_id,
+            claim.lease_token.unwrap(),
+            started_at_ns,
+            failed_at_ns,
+            failed_at_ns.saturating_add(retry_after_ns),
+            reason,
+        )?;
+        counters.failed.fetch_add(1, Ordering::Relaxed);
+        counters
+            .paused_for_backpressure
+            .store(true, Ordering::SeqCst);
+    } else if retryable(&error) && claim.attempt_count < config.max_attempts {
         let mut container = shared
             .container
             .lock()

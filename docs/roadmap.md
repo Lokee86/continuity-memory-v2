@@ -113,6 +113,7 @@ Add product-level file usability:
 - operating-system credential-store backed master-key persistence;
 - default OS application/config locations;
 - provider retry/backoff and rate-limit adaptation;
+- explicit credential/model fallback policy per capability: ordered fallback routes must bind provider + model + credential + reasoning together, distinguish retryable rate/quota/transport failures from invalid auth or semantic/model incompatibility, preserve the separate Insomnia-main / metadata-ownership / Dream capability contracts, apply cooldown/backpressure rather than terminalizing temporary quota exhaustion, and expose the active/fallback route in runtime status and diagnostics;
 - runtime observability without leaking secrets or user content;
 - crash-safe service restart and background-work recovery;
 - explicit local IPC/API authentication and authorization if a service boundary is exposed.
