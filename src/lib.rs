@@ -383,6 +383,8 @@ mod community_routing_bench_fixture;
 #[cfg(test)]
 mod community_routing_bench_support;
 #[cfg(test)]
+mod community_routing_scale_bench;
+#[cfg(test)]
 mod community_routing_tests;
 #[cfg(test)]
 mod community_scan_merge_bench;

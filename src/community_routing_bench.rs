@@ -22,9 +22,13 @@ fn run_fixture(label: &str, fixture: &RoutingFixture) {
         BenchStrategy::Structural(8),
     ];
     println!(
-        "fixture={label} vectors={} graph_memories={} communities={} gold_queries={} gold_targets={} semantic_queries={} semantic_targets={}",
+        "fixture={label} vectors={} graph_memories={} residual_memories={} communities={} gold_queries={} gold_targets={} semantic_queries={} semantic_targets={}",
         fixture.vectors.len(),
         fixture.memberships.len(),
+        fixture
+            .vectors
+            .len()
+            .saturating_sub(fixture.memberships.len()),
         fixture.snapshot.communities.len(),
         fixture.gold.len(),
         target_count(&fixture.gold),
@@ -33,6 +37,21 @@ fn run_fixture(label: &str, fixture: &RoutingFixture) {
     );
     println!(
         "strategy,reps,index_bytes,gold_r1,gold_r3,gold_r5,semantic_r1,semantic_r3,semantic_r5,admit1,admit3,admit5,avoid5,route_us"
+    );
+    let gold_oracle = evaluate_oracle(fixture, &fixture.gold);
+    let semantic_oracle = evaluate_oracle(fixture, &fixture.semantic);
+    println!(
+        "oracle,0,0,{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},0.000",
+        gold_oracle.recall[0],
+        gold_oracle.recall[1],
+        gold_oracle.recall[2],
+        semantic_oracle.recall[0],
+        semantic_oracle.recall[1],
+        semantic_oracle.recall[2],
+        semantic_oracle.admitted[0],
+        semantic_oracle.admitted[1],
+        semantic_oracle.admitted[2],
+        1.0 - semantic_oracle.admitted[2],
     );
     for strategy in strategies {
         let gold = evaluate(fixture, strategy, &fixture.gold);
@@ -84,14 +103,12 @@ fn evaluate(
             hits[slot] += probe
                 .targets
                 .iter()
-                .filter(|target| {
-                    fixture
-                        .memberships
-                        .get(target)
-                        .is_some_and(|community| selected.contains(community))
+                .filter(|target| match fixture.memberships.get(target) {
+                    Some(community) => selected.contains(community),
+                    None => true,
                 })
                 .count();
-            admitted[slot] += admitted_fraction(fixture, selected);
+            admitted[slot] += admitted_fraction(fixture, selected, probe.query);
         }
     }
     Evaluation {
@@ -102,19 +119,60 @@ fn evaluate(
     }
 }
 
-fn admitted_fraction(fixture: &RoutingFixture, selected: &[CommunityId]) -> f64 {
+fn evaluate_oracle(fixture: &RoutingFixture, probes: &[RoutingProbe]) -> Evaluation {
+    let mut hits = [0_usize; 3];
+    let mut admitted = [0.0_f64; 3];
+    let targets = target_count(probes);
+    for probe in probes {
+        let mut counts = std::collections::HashMap::<CommunityId, usize>::new();
+        let mut residual = 0_usize;
+        for target in &probe.targets {
+            match fixture.memberships.get(target) {
+                Some(community) => *counts.entry(*community).or_default() += 1,
+                None => residual += 1,
+            }
+        }
+        let mut ranked: Vec<_> = counts.into_iter().collect();
+        ranked.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+        for (slot, k) in KS.into_iter().enumerate() {
+            let selected: Vec<_> = ranked
+                .iter()
+                .take(k)
+                .map(|(community, _)| *community)
+                .collect();
+            hits[slot] += residual
+                + ranked
+                    .iter()
+                    .take(k)
+                    .map(|(_, count)| *count)
+                    .sum::<usize>();
+            admitted[slot] += admitted_fraction(fixture, &selected, probe.query);
+        }
+    }
+    Evaluation {
+        recall: hits.map(|hit| hit as f64 / targets.max(1) as f64),
+        admitted: admitted.map(|sum| sum / probes.len().max(1) as f64),
+        route_time: Duration::ZERO,
+        queries: probes.len().max(1),
+    }
+}
+
+fn admitted_fraction(
+    fixture: &RoutingFixture,
+    selected: &[CommunityId],
+    excluded: crate::MemoryId,
+) -> f64 {
     let selected: HashSet<_> = selected.iter().copied().collect();
     let admitted = fixture
         .vectors
         .keys()
-        .filter(|memory| {
-            fixture
-                .memberships
-                .get(memory)
-                .is_some_and(|community| selected.contains(community))
+        .filter(|memory| **memory != excluded)
+        .filter(|memory| match fixture.memberships.get(memory) {
+            Some(community) => selected.contains(community),
+            None => true,
         })
         .count();
-    admitted as f64 / fixture.vectors.len().max(1) as f64
+    admitted as f64 / fixture.vectors.len().saturating_sub(1).max(1) as f64
 }
 
 fn target_count(probes: &[RoutingProbe]) -> usize {

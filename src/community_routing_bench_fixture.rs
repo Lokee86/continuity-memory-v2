@@ -57,7 +57,7 @@ pub(crate) fn load_fixture() -> RoutingFixture {
     let memberships = membership_map(&snapshot);
     let positive_pairs = positive_gold_pairs(root.join("corpus/dream-web-gold-v1.json"));
     let gold = pair_probes(&positive_pairs, &memberships, &vectors);
-    let semantic = semantic_probes(&memberships, &vectors, crate::DEFAULT_DREAM_CANDIDATE_LIMIT);
+    let semantic = semantic_probes(&vectors, crate::DEFAULT_DREAM_CANDIDATE_LIMIT);
     RoutingFixture {
         vectors,
         snapshot,
@@ -117,7 +117,6 @@ fn pair_probes(
 }
 
 pub(crate) fn semantic_probes(
-    memberships: &HashMap<MemoryId, CommunityId>,
     vectors: &HashMap<MemoryId, Vec<f32>>,
     limit: usize,
 ) -> Vec<RoutingProbe> {
@@ -135,9 +134,7 @@ pub(crate) fn semantic_probes(
                 .then_with(|| left.0.0.cmp(&right.0.0))
         });
         for (id, _) in ranked.into_iter().take(limit) {
-            if memberships.contains_key(&id) {
-                targets.entry(query).or_default().insert(id);
-            }
+            targets.entry(query).or_default().insert(id);
         }
     }
     probes(targets)
