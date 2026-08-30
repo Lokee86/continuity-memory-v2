@@ -57,6 +57,25 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn conversation_transcript_page(
+        &self,
+        conversation_id: &str,
+        end_node_id: &str,
+        limit: usize,
+        include_stream_records: bool,
+    ) -> Result<(Vec<ResolvedInteractionTurn>, Option<String>), ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .conversation_transcript_page(
+                    conversation_id,
+                    end_node_id,
+                    limit,
+                    include_stream_records,
+                )
+                .map_err(operation)
+        })
+    }
+
     pub fn conversation_branch_start_node_ids(
         &self,
         conversation_id: &str,
@@ -67,6 +86,65 @@ impl ReliquaryRuntimeHost {
                 .cva()
                 .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
                 .map_err(operation)
+        })
+    }
+
+    pub fn set_conversation_title(
+        &self,
+        conversation_id: &str,
+        title: String,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            let changed = runtime
+                .cva
+                .set_conversation_title(conversation_id, title)
+                .map_err(operation)?;
+            if changed {
+                runtime.cva.sync().map_err(operation)?;
+            }
+            Ok(changed)
+        })
+    }
+
+    pub fn set_conversation_active(
+        &self,
+        conversation_id: &str,
+        active: bool,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            let changed = runtime
+                .cva
+                .set_conversation_active(conversation_id, active)
+                .map_err(operation)?;
+            if changed {
+                runtime.cva.sync().map_err(operation)?;
+            }
+            Ok(changed)
+        })
+    }
+
+    pub fn clear_active_conversations(&self) -> Result<usize, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            let active_ids = runtime
+                .conversation_summaries()
+                .into_iter()
+                .filter(|summary| summary.active)
+                .map(|summary| summary.conversation_id)
+                .collect::<Vec<_>>();
+            let mut changed = 0;
+            for conversation_id in active_ids {
+                if runtime
+                    .cva
+                    .set_conversation_active(&conversation_id, false)
+                    .map_err(operation)?
+                {
+                    changed += 1;
+                }
+            }
+            if changed > 0 {
+                runtime.cva.sync().map_err(operation)?;
+            }
+            Ok(changed)
         })
     }
 

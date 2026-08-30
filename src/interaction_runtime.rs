@@ -99,20 +99,60 @@ impl InteractionRuntime {
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedInteractionTurn>, ArchiveError> {
         let durable = self.cva.conversation_turns(conversation_id, leaf_node_id)?;
-        let path_ids = durable
-            .iter()
-            .map(|turn| turn.node_id.clone())
-            .collect::<std::collections::HashSet<_>>();
-        let mut transcript = durable
+        let mut transcript = self.resolve_interaction_turns(conversation_id, durable);
+        self.append_stream_records(conversation_id, &mut transcript);
+        transcript.sort_by_key(|turn| turn.timestamp_ns);
+        Ok(transcript)
+    }
+
+    pub fn conversation_transcript_page(
+        &mut self,
+        conversation_id: &str,
+        end_node_id: &str,
+        limit: usize,
+        include_stream_records: bool,
+    ) -> Result<(Vec<ResolvedInteractionTurn>, Option<String>), ArchiveError> {
+        let (durable, older_cursor) =
+            self.cva
+                .conversation_turn_page(conversation_id, end_node_id, limit)?;
+        let mut transcript = self.resolve_interaction_turns(conversation_id, durable);
+        if include_stream_records {
+            self.append_stream_records(conversation_id, &mut transcript);
+            transcript.sort_by_key(|turn| turn.timestamp_ns);
+        }
+        Ok((transcript, older_cursor))
+    }
+
+    fn resolve_interaction_turns(
+        &self,
+        conversation_id: &str,
+        durable: Vec<ResolvedTurn>,
+    ) -> Vec<ResolvedInteractionTurn> {
+        durable
             .into_iter()
-            .map(|turn| ResolvedInteractionTurn {
-                message_id: turn.node_id,
-                role: turn.role,
-                timestamp_ns: turn.timestamp_ns,
-                content: turn.content,
-                status: InteractionTurnStatus::Complete,
+            .map(|turn| {
+                let attachments = self.cva.files_for_source(conversation_id, &turn.node_id);
+                ResolvedInteractionTurn {
+                    message_id: turn.node_id,
+                    role: turn.role,
+                    timestamp_ns: turn.timestamp_ns,
+                    content: turn.content,
+                    attachments,
+                    status: InteractionTurnStatus::Complete,
+                }
             })
-            .collect::<Vec<_>>();
+            .collect()
+    }
+
+    fn append_stream_records(
+        &self,
+        conversation_id: &str,
+        transcript: &mut Vec<ResolvedInteractionTurn>,
+    ) {
+        let path_ids = transcript
+            .iter()
+            .map(|turn| turn.message_id.clone())
+            .collect::<std::collections::HashSet<_>>();
         for record in self.cva.interaction_streams_for_session(conversation_id) {
             if self
                 .cva
@@ -140,11 +180,10 @@ impl InteractionRuntime {
                 role: record.role.archive_role().into(),
                 timestamp_ns: record.timestamp_ns,
                 content: record.content,
+                attachments: Vec::new(),
                 status,
             });
         }
-        transcript.sort_by_key(|turn| turn.timestamp_ns);
-        Ok(transcript)
     }
 
     pub fn session_leaf_node_id(&self, session_id: &str) -> Result<String, InteractionError> {

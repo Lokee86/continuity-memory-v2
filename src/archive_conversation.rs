@@ -14,10 +14,10 @@ impl Archive {
         let mut summaries = grouped
             .into_iter()
             .map(|(conversation_id, nodes)| {
-                let title = self
-                    .conversation_metadata(conversation_id)
-                    .and_then(|metadata| metadata.title.clone());
-                summarize(conversation_id, title, nodes)
+                let metadata = self.conversation_metadata(conversation_id);
+                let title = metadata.and_then(|metadata| metadata.title.clone());
+                let active = metadata.is_some_and(|metadata| metadata.active);
+                summarize(conversation_id, title, active, nodes)
             })
             .collect::<Vec<_>>();
         summaries.sort_by(|left, right| {
@@ -37,15 +37,52 @@ impl Archive {
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
         self.branch_nodes(conversation_id, leaf_node_id)?
             .into_iter()
-            .map(|node| {
-                Ok(ResolvedTurn {
-                    node_id: node.id,
-                    role: node.role,
-                    timestamp_ns: node.timestamp_ns,
-                    content: self.content(container, node.content_id)?,
-                })
-            })
+            .map(|node| self.resolve_turn(container, node))
             .collect()
+    }
+
+    pub(crate) fn conversation_turn_page(
+        &self,
+        container: &mut Container,
+        conversation_id: &str,
+        end_node_id: &str,
+        limit: usize,
+    ) -> Result<(Vec<ResolvedTurn>, Option<String>), ArchiveError> {
+        let limit = limit.max(1);
+        let mut nodes = Vec::with_capacity(limit);
+        let mut seen = HashSet::new();
+        let mut current = Some(end_node_id.to_owned());
+        while nodes.len() < limit {
+            let Some(id) = current else { break };
+            if !seen.insert(id.clone()) {
+                return Err(ArchiveError::NodeCycle);
+            }
+            let node = self
+                .require_node(conversation_id, &id, ArchiveError::MissingNode)?
+                .clone();
+            current = node.parent_id.clone();
+            nodes.push(node);
+        }
+        let older_cursor = current;
+        nodes.reverse();
+        let turns = nodes
+            .into_iter()
+            .map(|node| self.resolve_turn(container, node))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok((turns, older_cursor))
+    }
+
+    fn resolve_turn(
+        &self,
+        container: &mut Container,
+        node: crate::Node,
+    ) -> Result<ResolvedTurn, ArchiveError> {
+        Ok(ResolvedTurn {
+            node_id: node.id,
+            role: node.role,
+            timestamp_ns: node.timestamp_ns,
+            content: self.content(container, node.content_id)?,
+        })
     }
 
     pub(crate) fn conversation_branch_start_node_ids(
@@ -79,6 +116,7 @@ impl Archive {
 fn summarize(
     conversation_id: &str,
     title: Option<String>,
+    active: bool,
     nodes: Vec<&crate::Node>,
 ) -> ConversationSummary {
     let parents = nodes
@@ -100,6 +138,7 @@ fn summarize(
     ConversationSummary {
         conversation_id: conversation_id.to_owned(),
         title,
+        active,
         leaf_node_ids: leaves.into_iter().map(|node| node.id.clone()).collect(),
         turn_count: nodes.len(),
         latest_timestamp_ns: nodes

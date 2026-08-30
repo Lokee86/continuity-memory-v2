@@ -1,4 +1,4 @@
-use crate::InteractionRole;
+use crate::{InteractionRole, StoredFile};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InteractionStreamStatus {
@@ -30,5 +30,6 @@ pub struct ResolvedInteractionTurn {
     pub role: String,
     pub timestamp_ns: i64,
     pub content: String,
+    pub attachments: Vec<StoredFile>,
     pub status: InteractionTurnStatus,
 }

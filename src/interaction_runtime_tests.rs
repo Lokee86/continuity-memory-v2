@@ -44,6 +44,15 @@ fn normalized_turn_is_durably_acknowledged() {
     assert_eq!(receipt.turn.node.conversation_id, "session-1");
     assert_eq!(receipt.turn.node.role, "user");
     assert_eq!(receipt.turn.attachments.len(), 1);
+    let transcript = runtime
+        .conversation_transcript("session-1", "message-1")
+        .unwrap();
+    assert_eq!(transcript[0].attachments.len(), 1);
+    assert_eq!(transcript[0].attachments[0].filename, "plan.pdf");
+    assert_eq!(
+        transcript[0].attachments[0].mime_type.as_deref(),
+        Some("application/pdf")
+    );
     drop(runtime);
 
     let reopened = Cva::open(path).unwrap();
@@ -132,6 +141,45 @@ fn checkpointed_stream_survives_reopen_as_interrupted() {
     assert_eq!(recovered.len(), 2);
     assert_eq!(recovered[1].content, "Partial answer");
     assert_eq!(recovered[1].status, InteractionTurnStatus::Interrupted);
+}
+
+#[test]
+fn transcript_pages_read_newest_window_then_older_cursor() {
+    let path = test_path();
+    let cva = Cva::create(path).unwrap();
+    let mut runtime = InteractionRuntime::new(cva);
+    let mut parent = None;
+    for index in 1..=205 {
+        let message_id = format!("message-{index}");
+        runtime
+            .accept_turn(InteractionTurn {
+                message_id: message_id.clone(),
+                session_id: "session-1".into(),
+                parent_message_id: parent.clone(),
+                role: InteractionRole::User,
+                timestamp_ns: index,
+                content: format!("turn {index}"),
+                attachments: Vec::new(),
+            })
+            .unwrap();
+        parent = Some(message_id);
+    }
+
+    let (newest, older_cursor) = runtime
+        .conversation_transcript_page("session-1", "message-205", 200, false)
+        .unwrap();
+    assert_eq!(newest.len(), 200);
+    assert_eq!(newest.first().unwrap().message_id, "message-6");
+    assert_eq!(newest.last().unwrap().message_id, "message-205");
+    assert_eq!(older_cursor.as_deref(), Some("message-5"));
+
+    let (older, final_cursor) = runtime
+        .conversation_transcript_page("session-1", older_cursor.as_deref().unwrap(), 200, false)
+        .unwrap();
+    assert_eq!(older.len(), 5);
+    assert_eq!(older.first().unwrap().message_id, "message-1");
+    assert_eq!(older.last().unwrap().message_id, "message-5");
+    assert_eq!(final_cursor, None);
 }
 
 #[test]

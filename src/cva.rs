@@ -90,11 +90,35 @@ impl Cva {
         conversation_id: &str,
         title: String,
     ) -> Result<bool, ArchiveError> {
+        let active = self
+            .archive
+            .conversation_metadata(conversation_id)
+            .is_some_and(|metadata| metadata.active);
         self.archive.put_conversation_metadata(
             &mut self.container,
             ConversationMetadata {
                 conversation_id: conversation_id.to_owned(),
                 title: Some(title),
+                active,
+            },
+        )
+    }
+
+    pub fn set_conversation_active(
+        &mut self,
+        conversation_id: &str,
+        active: bool,
+    ) -> Result<bool, ArchiveError> {
+        let title = self
+            .archive
+            .conversation_metadata(conversation_id)
+            .and_then(|metadata| metadata.title.clone());
+        self.archive.put_conversation_metadata(
+            &mut self.container,
+            ConversationMetadata {
+                conversation_id: conversation_id.to_owned(),
+                title,
+                active,
             },
         )
     }

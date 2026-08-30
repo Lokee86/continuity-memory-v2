@@ -168,6 +168,7 @@ mod memory_codec;
 mod memory_codec_scalar;
 mod memory_error;
 mod memory_model;
+mod memory_provenance_model;
 mod memory_rebuild;
 mod memory_retrieval;
 mod memory_retrieval_build;
@@ -366,6 +367,7 @@ pub use memory_error::MemoryError;
 pub use memory_model::{
     Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRevisionId, MemoryStats,
 };
+pub use memory_provenance_model::MemoryProvenance;
 pub use memory_retrieval_error::MemoryRetrievalError;
 pub use memory_retrieval_model::{
     DEFAULT_MEMORY_RETRIEVAL_BUDGET, DEFAULT_MEMORY_RETRIEVAL_COMMUNITIES,

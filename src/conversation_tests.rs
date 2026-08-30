@@ -1,3 +1,6 @@
+use crate::conversation_metadata_codec::{
+    LEGACY_CONVERSATION_METADATA_MAGIC, decode_conversation_metadata,
+};
 use crate::{Cva, IncomingTurn};
 use std::fs;
 use std::path::PathBuf;
@@ -40,6 +43,7 @@ fn conversation_summary_and_path_survive_reopen() {
     assert_eq!(summaries.len(), 1);
     assert_eq!(summaries[0].conversation_id, "c1");
     assert_eq!(summaries[0].title, None);
+    assert!(!summaries[0].active);
     assert_eq!(summaries[0].leaf_node_ids, vec!["u2"]);
     assert_eq!(summaries[0].turn_count, 2);
     assert_eq!(summaries[0].latest_timestamp_ns, 20);
@@ -48,6 +52,21 @@ fn conversation_summary_and_path_survive_reopen() {
     assert_eq!(turns.len(), 2);
     assert_eq!(turns[0].content, "First");
     assert_eq!(turns[1].content, "Second");
+}
+
+#[test]
+fn legacy_conversation_metadata_decodes_inactive() {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&LEGACY_CONVERSATION_METADATA_MAGIC);
+    bytes.extend_from_slice(&2u32.to_le_bytes());
+    bytes.extend_from_slice(b"c1");
+    bytes.extend_from_slice(&5u32.to_le_bytes());
+    bytes.extend_from_slice(b"Title");
+
+    let metadata = decode_conversation_metadata(&bytes).unwrap();
+    assert_eq!(metadata.conversation_id, "c1");
+    assert_eq!(metadata.title.as_deref(), Some("Title"));
+    assert!(!metadata.active);
 }
 
 #[test]
@@ -87,6 +106,27 @@ fn conversation_title_round_trips_and_is_idempotent() {
             .and_then(|metadata| metadata.title.as_deref()),
         Some("Imported title")
     );
+}
+
+#[test]
+fn conversation_active_round_trips_and_title_updates_preserve_it() {
+    let path = test_path();
+    let mut cva = Cva::create(&path).unwrap();
+    cva.ingest_turn(turn("u1", None, 10, "First")).unwrap();
+    assert!(cva.set_conversation_active("c1", true).unwrap());
+    assert!(!cva.set_conversation_active("c1", true).unwrap());
+    assert!(
+        cva.set_conversation_title("c1", "Active title".into())
+            .unwrap()
+    );
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(path).unwrap();
+    let metadata = reopened.conversation_metadata("c1").unwrap();
+    assert!(metadata.active);
+    assert_eq!(metadata.title.as_deref(), Some("Active title"));
+    assert!(reopened.conversation_summaries()[0].active);
 }
 
 #[test]

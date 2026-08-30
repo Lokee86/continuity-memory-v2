@@ -1,28 +1,56 @@
 use crate::{ArchiveError, ConversationMetadata};
 
-pub(crate) const CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV1";
+pub(crate) const CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV2";
+pub(crate) const LEGACY_CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV1";
 
 pub(crate) fn encode_conversation_metadata(
     metadata: &ConversationMetadata,
 ) -> Result<Vec<u8>, ArchiveError> {
-    let mut out = Vec::with_capacity(64 + metadata.conversation_id.len());
+    let mut out = Vec::with_capacity(65 + metadata.conversation_id.len());
     out.extend_from_slice(&CONVERSATION_METADATA_MAGIC);
     write_string(&mut out, &metadata.conversation_id)?;
     write_string(&mut out, metadata.title.as_deref().unwrap_or(""))?;
+    out.push(u8::from(metadata.active));
     Ok(out)
 }
 
 pub(crate) fn decode_conversation_metadata(
     bytes: &[u8],
 ) -> Result<ConversationMetadata, ArchiveError> {
-    if bytes.len() < 8 || bytes[..8] != CONVERSATION_METADATA_MAGIC {
+    if bytes.len() < 8 {
         return Err(ArchiveError::CorruptRecord(
             "invalid conversation metadata record",
         ));
     }
+    let legacy = if bytes[..8] == CONVERSATION_METADATA_MAGIC {
+        false
+    } else if bytes[..8] == LEGACY_CONVERSATION_METADATA_MAGIC {
+        true
+    } else {
+        return Err(ArchiveError::CorruptRecord(
+            "invalid conversation metadata record",
+        ));
+    };
     let mut cursor = 8;
     let conversation_id = read_string(bytes, &mut cursor)?;
     let title = read_string(bytes, &mut cursor)?;
+    let active = if legacy {
+        false
+    } else {
+        let flag = *bytes.get(cursor).ok_or(ArchiveError::CorruptRecord(
+            "missing conversation active flag",
+        ))?;
+        cursor += 1;
+        match flag {
+            0 => false,
+            1 => true,
+            _ => {
+                return Err(ArchiveError::CorruptRecord(
+                    "invalid conversation active flag",
+                ));
+            }
+        }
+    };
     if cursor != bytes.len() {
         return Err(ArchiveError::CorruptRecord(
             "conversation metadata trailing bytes",
@@ -31,6 +59,7 @@ pub(crate) fn decode_conversation_metadata(
     Ok(ConversationMetadata {
         conversation_id,
         title: (!title.is_empty()).then_some(title),
+        active,
     })
 }
 

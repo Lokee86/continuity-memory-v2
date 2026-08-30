@@ -13,10 +13,14 @@ mod archive_search;
 mod dream;
 #[path = "runtime_host_dream_owner.rs"]
 mod dream_owner;
+#[path = "runtime_host_files.rs"]
+mod files;
 #[path = "runtime_host_insomnia.rs"]
 mod insomnia;
 #[path = "runtime_host_interaction.rs"]
 mod interaction;
+#[path = "runtime_host_memory_provenance.rs"]
+mod memory_provenance;
 #[path = "runtime_host_memory_search.rs"]
 pub mod memory_search;
 #[path = "runtime_host_vectors.rs"]
