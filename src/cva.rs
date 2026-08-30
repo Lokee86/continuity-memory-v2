@@ -13,10 +13,10 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
-    Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, CvaError,
-    Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig, EpisodeId, EpisodeOrigin, FileId,
-    Fragment, FragmentConfig, FragmentId, Memory, MemoryDraft, MemoryError, MemoryId, MemoryStats,
-    Node, ResolvedTurn, StoredFile,
+    Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container,
+    ConversationMetadata, CvaError, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,
+    EpisodeId, EpisodeOrigin, FileId, Fragment, FragmentConfig, FragmentId, Memory, MemoryDraft,
+    MemoryError, MemoryId, MemoryStats, Node, ResolvedTurn, StoredFile,
 };
 
 pub struct Cva {
@@ -83,6 +83,24 @@ impl Cva {
 
     pub fn append_branch(&mut self, branch: Branch) -> Result<(), ArchiveError> {
         self.archive.append_branch(&mut self.container, branch)
+    }
+
+    pub fn set_conversation_title(
+        &mut self,
+        conversation_id: &str,
+        title: String,
+    ) -> Result<bool, ArchiveError> {
+        self.archive.put_conversation_metadata(
+            &mut self.container,
+            ConversationMetadata {
+                conversation_id: conversation_id.to_owned(),
+                title: Some(title),
+            },
+        )
+    }
+
+    pub fn conversation_metadata(&self, conversation_id: &str) -> Option<&ConversationMetadata> {
+        self.archive.conversation_metadata(conversation_id)
     }
 
     pub fn branch_turns(

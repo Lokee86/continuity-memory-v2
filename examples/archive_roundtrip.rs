@@ -24,6 +24,8 @@ enum Input {
         conversation_id: String,
         leaf_node_id: String,
         canonical: bool,
+        #[serde(default)]
+        title: Option<String>,
         path: Vec<String>,
     },
 }
@@ -67,6 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 conversation_id,
                 leaf_node_id,
                 canonical,
+                title,
                 path,
             } => {
                 archive.append_branch(Branch {
@@ -75,6 +78,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     leaf_node_id,
                     canonical,
                 })?;
+                if let Some(title) = title {
+                    archive.set_conversation_title(&conversation_id, title)?;
+                }
                 archive.materialize_branch_fragments(
                     &conversation_id,
                     &id,

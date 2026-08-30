@@ -3,6 +3,7 @@ use crate::archive_history_codec::{decode_archive_format, decode_record_version}
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::hash_content;
+use crate::conversation_metadata_index::ConversationMetadataIndex;
 use crate::episode_index::EpisodeIndex;
 use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
@@ -14,6 +15,7 @@ pub(crate) struct ArchiveOpenState {
     contents: ContentIndex,
     nodes: NodeIndex,
     branches: BranchIndex,
+    conversations: ConversationMetadataIndex,
     fragments: FragmentIndex,
     episodes: EpisodeIndex,
     files: FileIndex,
@@ -32,6 +34,7 @@ impl ArchiveOpenState {
             contents: Default::default(),
             nodes: Default::default(),
             branches: Default::default(),
+            conversations: Default::default(),
             fragments: Default::default(),
             episodes: Default::default(),
             files: Default::default(),
@@ -71,6 +74,7 @@ impl ArchiveOpenState {
             }
             record @ (ArchiveRecord::Node(_)
             | ArchiveRecord::Branch(_)
+            | ArchiveRecord::ConversationMetadata(_)
             | ArchiveRecord::Fragment(_)
             | ArchiveRecord::Episode(_)
             | ArchiveRecord::File(_)
@@ -91,6 +95,7 @@ impl ArchiveOpenState {
             contents: self.contents,
             nodes: self.nodes,
             branches: self.branches,
+            conversations: self.conversations,
             fragments: self.fragments,
             episodes: self.episodes,
             files: self.files,
@@ -143,6 +148,10 @@ impl ArchiveOpenState {
             ArchiveRecord::Node(node) => self.nodes.insert(node).map(|_| ()),
             ArchiveRecord::Branch(branch) => {
                 self.branches.put(branch);
+                Ok(())
+            }
+            ArchiveRecord::ConversationMetadata(metadata) => {
+                self.conversations.put(metadata);
                 Ok(())
             }
             ArchiveRecord::Fragment(fragment) => {

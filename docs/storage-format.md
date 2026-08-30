@@ -103,6 +103,13 @@ string    conversation ID
 string    leaf node ID
 ```
 Current branch enumeration is reconstructed from the latest visible revision for each `(conversation ID, branch ID)` pair; it adds no persistent record type.
+Conversation metadata:
+```text
+8 bytes   "CVACONV1"
+string    conversation ID
+string    title; empty = none
+```
+Conversation metadata is conversation-owned Archive semantic state, independent of branch topology. Records are append-only revisions keyed by conversation ID; reopening keeps the latest version, and identical metadata publication is idempotent.
 Fragment:
 ```text
 8 bytes   "CVAFRAG1"

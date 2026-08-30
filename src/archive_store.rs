@@ -9,6 +9,7 @@ impl Archive {
             contents: Default::default(),
             nodes: Default::default(),
             branches: Default::default(),
+            conversations: Default::default(),
             fragments: Default::default(),
             episodes: Default::default(),
             files: Default::default(),
@@ -101,6 +102,11 @@ impl Archive {
                 ArchiveError::MissingLeaf,
             )?;
             self.branch_nodes(&branch.conversation_id, &branch.leaf_node_id)?;
+        }
+        for metadata in self.conversations.iter() {
+            if !self.has_conversation(&metadata.conversation_id) {
+                return Err(ArchiveError::MissingConversation);
+            }
         }
         self.validate_fragments()?;
         self.validate_episodes()?;

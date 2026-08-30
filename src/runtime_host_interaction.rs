@@ -57,6 +57,19 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn conversation_branch_start_node_ids(
+        &self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<String>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cva()
+                .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
+                .map_err(operation)
+        })
+    }
+
     pub fn conversation_compactions(
         &self,
         conversation_id: &str,

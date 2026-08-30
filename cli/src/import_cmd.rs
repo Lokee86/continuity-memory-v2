@@ -33,6 +33,8 @@ enum Input {
         conversation_id: String,
         leaf_node_id: String,
         canonical: bool,
+        #[serde(default)]
+        title: Option<String>,
     },
 }
 
@@ -97,6 +99,7 @@ pub fn run(command: ImportCommand) -> Result<()> {
                         conversation_id,
                         leaf_node_id,
                         canonical,
+                        title,
                     } => {
                         archive.append_branch(Branch {
                             id: id.clone(),
@@ -104,6 +107,9 @@ pub fn run(command: ImportCommand) -> Result<()> {
                             leaf_node_id,
                             canonical,
                         })?;
+                        if let Some(title) = title {
+                            archive.set_conversation_title(&conversation_id, title)?;
+                        }
                         fragments += archive
                             .materialize_branch_fragments(
                                 &conversation_id,

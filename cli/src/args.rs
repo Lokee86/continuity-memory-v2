@@ -31,6 +31,11 @@ pub enum Command {
         source: PathBuf,
         output: PathBuf,
     },
+    MigrateConversationTitles {
+        source: PathBuf,
+        #[arg(value_name = "REL")]
+        rel: PathBuf,
+    },
     Import {
         #[command(subcommand)]
         command: ImportCommand,

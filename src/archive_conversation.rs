@@ -13,7 +13,12 @@ impl Archive {
 
         let mut summaries = grouped
             .into_iter()
-            .map(|(conversation_id, nodes)| summarize(conversation_id, nodes))
+            .map(|(conversation_id, nodes)| {
+                let title = self
+                    .conversation_metadata(conversation_id)
+                    .and_then(|metadata| metadata.title.clone());
+                summarize(conversation_id, title, nodes)
+            })
             .collect::<Vec<_>>();
         summaries.sort_by(|left, right| {
             right
@@ -42,9 +47,40 @@ impl Archive {
             })
             .collect()
     }
+
+    pub(crate) fn conversation_branch_start_node_ids(
+        &self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<String>, ArchiveError> {
+        let path = self.branch_nodes(conversation_id, leaf_node_id)?;
+        let mut child_counts = HashMap::<&str, usize>::new();
+        for node in self
+            .nodes
+            .iter()
+            .filter(|node| node.conversation_id == conversation_id)
+        {
+            if let Some(parent_id) = node.parent_id.as_deref() {
+                *child_counts.entry(parent_id).or_default() += 1;
+            }
+        }
+        Ok(path
+            .into_iter()
+            .filter(|node| {
+                node.parent_id.as_deref().is_some_and(|parent_id| {
+                    child_counts.get(parent_id).copied().unwrap_or_default() > 1
+                })
+            })
+            .map(|node| node.id)
+            .collect())
+    }
 }
 
-fn summarize(conversation_id: &str, nodes: Vec<&crate::Node>) -> ConversationSummary {
+fn summarize(
+    conversation_id: &str,
+    title: Option<String>,
+    nodes: Vec<&crate::Node>,
+) -> ConversationSummary {
     let parents = nodes
         .iter()
         .filter_map(|node| node.parent_id.as_deref())
@@ -63,6 +99,7 @@ fn summarize(conversation_id: &str, nodes: Vec<&crate::Node>) -> ConversationSum
 
     ConversationSummary {
         conversation_id: conversation_id.to_owned(),
+        title,
         leaf_node_ids: leaves.into_iter().map(|node| node.id.clone()).collect(),
         turn_count: nodes.len(),
         latest_timestamp_ns: nodes

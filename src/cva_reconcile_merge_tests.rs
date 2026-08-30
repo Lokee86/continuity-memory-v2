@@ -91,6 +91,31 @@ fn reconcile_replays_ingested_turn_attachments() {
 }
 
 #[test]
+fn reconcile_replays_conversation_metadata() {
+    let dir = test_dir();
+    let left = dir.join("left.cva");
+    let right = dir.join("right.cva");
+    let output = dir.join("merged.cva");
+    create_workspace(&left);
+    append_synced(&left, "root", "c", "root");
+    fs::copy(&left, &right).unwrap();
+
+    let mut right_cva = Cva::open(&right).unwrap();
+    right_cva
+        .set_conversation_title("c", "Imported title".into())
+        .unwrap();
+    right_cva.sync().unwrap();
+    drop(right_cva);
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let merged = Cva::open(output).unwrap();
+    assert_eq!(
+        merged.conversation_summaries()[0].title.as_deref(),
+        Some("Imported title")
+    );
+}
+
+#[test]
 fn reconcile_surfaces_conflicting_branch_revisions() {
     let dir = test_dir();
     let left = dir.join("left.cva");

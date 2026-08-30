@@ -2,14 +2,15 @@ use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::decode_record_version;
 use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{
-    ArchiveError, Branch, Cva, CvaReconcileError, Episode, FileMemoryLink, Fragment,
-    IncomingAttachment, IncomingTurn, StoredFile,
+    ArchiveError, Branch, ConversationMetadata, Cva, CvaReconcileError, Episode, FileMemoryLink,
+    Fragment, IncomingAttachment, IncomingTurn, StoredFile,
 };
 
 pub(crate) enum ArchiveReplayRecord {
     Node(IncomingTurn),
     IngestedTurn(IncomingTurn),
     Branch(Branch),
+    ConversationMetadata(ConversationMetadata),
     Episode(Episode),
     Fragment(Fragment),
     File(StoredFile, Vec<u8>),
@@ -71,6 +72,9 @@ pub(crate) fn read_archive_tail(
                 }));
             }
             ArchiveRecord::Branch(branch) => records.push(ArchiveReplayRecord::Branch(branch)),
+            ArchiveRecord::ConversationMetadata(metadata) => {
+                records.push(ArchiveReplayRecord::ConversationMetadata(metadata))
+            }
             ArchiveRecord::Episode(episode) => records.push(ArchiveReplayRecord::Episode(episode)),
             ArchiveRecord::File(file) => {
                 let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
@@ -120,6 +124,14 @@ pub(crate) fn replay_archive_tail(
             }
             ArchiveReplayRecord::Branch(branch) => {
                 if let Err(error) = destination.append_branch(branch.clone()) {
+                    return Err(archive_replay_error(destination, record, error));
+                }
+            }
+            ArchiveReplayRecord::ConversationMetadata(metadata) => {
+                if let Err(error) = destination
+                    .archive
+                    .put_conversation_metadata(&mut destination.container, metadata.clone())
+                {
                     return Err(archive_replay_error(destination, record, error));
                 }
             }

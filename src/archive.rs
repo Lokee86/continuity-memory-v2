@@ -2,6 +2,7 @@ use crate::archive_codec::{encode_branch, encode_node};
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::{hash_content, validate_text};
+use crate::conversation_metadata_index::ConversationMetadataIndex;
 use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
 use crate::source_attachment_index::SourceAttachmentIndex;
@@ -13,6 +14,7 @@ pub struct Archive {
     pub(crate) contents: ContentIndex,
     pub(crate) nodes: NodeIndex,
     pub(crate) branches: BranchIndex,
+    pub(crate) conversations: ConversationMetadataIndex,
     pub(crate) fragments: FragmentIndex,
     pub(crate) episodes: crate::episode_index::EpisodeIndex,
     pub(crate) files: FileIndex,

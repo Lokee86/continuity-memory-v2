@@ -30,6 +30,7 @@ pub struct ResolvedTurn {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConversationSummary {
     pub conversation_id: String,
+    pub title: Option<String>,
     pub leaf_node_ids: Vec<String>,
     pub turn_count: usize,
     pub latest_timestamp_ns: i64,

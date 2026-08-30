@@ -31,6 +31,7 @@ reliquary
 │   ├── info
 │   └── verify
 ├── migrate <source> <output>
+├── migrate-conversation-titles <canonical_conversations.csv[.gz]> <rel>
 ├── import
 │   └── graph-jsonl
 ├── archive
@@ -78,7 +79,9 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 `migrate <source> <output>` auto-detects a legacy 16-byte Project CVA or earlier 24-byte typed REL/PHY and semantically repacks it into a new 40-byte identified file. The source is never replaced in place. When an old REL contains `WorkspaceMetadata.id`, migration derives the new UUID deterministically from that ID so independently diverged copies retain the same logical owner identity; otherwise a new UUID is generated. Legacy WorkspaceMetadata itself is not copied into the output.
 
-`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target Project REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination.
+`migrate-conversation-titles <canonical_conversations.csv[.gz]> <rel>` backfills conversation-owned title metadata into an already-imported REL from the normalized ChatGPT canonical-conversation catalog. Only conversation IDs already present in the REL are updated; empty titles are skipped, repeated execution is idempotent, and the source catalog is read-only.
+
+`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch records. It creates the target Project REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination. Branch records may also carry an optional `title`; when present it is published through the conversation-metadata owner rather than stored on the Branch.
 
 The CLI does not expose a single-turn live-ingestion command, file-management commands, or a persistent capture service. The graph importer is currently the only CLI surface that drives turn ingestion.
 

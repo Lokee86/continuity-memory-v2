@@ -11,6 +11,7 @@ pub enum ArchiveError {
     MissingParent,
     MissingLeaf,
     MissingBranch,
+    MissingConversation,
     MissingNode,
     MissingContent,
     ConflictingNode,

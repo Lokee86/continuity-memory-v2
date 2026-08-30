@@ -13,4 +13,13 @@ impl Cva {
         self.archive
             .conversation_turns(&mut self.container, conversation_id, leaf_node_id)
     }
+
+    pub fn conversation_branch_start_node_ids(
+        &self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<String>, ArchiveError> {
+        self.archive
+            .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
+    }
 }

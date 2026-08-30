@@ -1,6 +1,7 @@
 pub mod archive;
 mod archive_codec;
 mod archive_conversation;
+mod archive_conversation_metadata;
 mod archive_error;
 mod archive_history;
 mod archive_history_codec;
@@ -50,6 +51,9 @@ mod conversation_compaction_allocator;
 mod conversation_compaction_codec;
 mod conversation_compaction_model;
 mod conversation_compaction_store;
+mod conversation_metadata_codec;
+mod conversation_metadata_index;
+mod conversation_metadata_model;
 mod conversation_search;
 mod conversation_search_model;
 mod credential;
@@ -260,6 +264,7 @@ pub use container::{
 pub use conversation_compaction_model::{
     ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
 };
+pub use conversation_metadata_model::ConversationMetadata;
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;

@@ -32,6 +32,9 @@ fn run() -> Result<()> {
         Command::Rel { command } => rel_cmd::run(command),
         Command::Phy { command } => phy_cmd::run(command),
         Command::Migrate { source, output } => migration_cmd::run(&source, &output),
+        Command::MigrateConversationTitles { source, rel } => {
+            migration_cmd::run_conversation_titles(&source, &rel)
+        }
         Command::Import { command } => import_cmd::run(command),
         Command::Archive { command } => archive_cmd::run(command),
         Command::Config { command } => config_cmd::run(&cli.config, command),
