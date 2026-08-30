@@ -1,12 +1,12 @@
 use crate::{
     Branch, Cva, EpisodeConfig, GeneralEndpoint, GeneralEndpointError, InsomniaExtractor,
-    InsomniaWorkerConfig, SimulatedEmbeddingEndpoint, VectorNormalization,
+    InsomniaProgressEvent, InsomniaWorkerConfig, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use serde_json::{Value, json};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -213,6 +213,249 @@ fn retryable_failure_is_reclaimed_and_completed_in_the_same_drain() {
     assert_eq!(result.completed_episodes, 1);
     assert_eq!(result.terminal_episodes, 0);
     assert_eq!(cva.insomnia_stats().attempts, 1);
+}
+
+struct InvalidLedgerOnceEndpoint {
+    calls: AtomicUsize,
+}
+
+impl GeneralEndpoint for InvalidLedgerOnceEndpoint {
+    fn model(&self) -> &str {
+        "invalid-ledger-once"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        assert_eq!(schema_name, "insomnia_authority_disposition_ledger");
+        let payload: Value = serde_json::from_str(user_payload).unwrap();
+        let id = payload["turns"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|turn| turn["role"] == "user")
+            .and_then(|turn| turn["id"].as_str())
+            .unwrap();
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        let clause = json!({
+            "disposition":"omit", "authority_kind":"none", "category":"none",
+            "type":"none", "lifecycle":"none", "proposition":"",
+            "authority_source_node_id":"", "grounding_source_node_id":"",
+            "reason":"No durable memory here."
+        });
+        Ok(json!({
+            "turns": {id: [clause]},
+            "evidence_requests": if call == 0 { json!("invalid") } else { json!([]) }
+        }))
+    }
+}
+
+#[test]
+fn invalid_model_output_is_retried_before_terminalizing() {
+    let path = test_path("invalid-output-retry.cva");
+    let mut cva = Cva::create(path).unwrap();
+    queue_import(&mut cva, "c1", 0);
+    let extractor = InsomniaExtractor::new(InvalidLedgerOnceEndpoint {
+        calls: AtomicUsize::new(0),
+    });
+    let config = InsomniaWorkerConfig {
+        workers: 1,
+        retry_delay_ns: 1_000_000,
+        poll_interval_ns: 100_000,
+        max_attempts: 3,
+        ..Default::default()
+    };
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let result = cva
+        .drain_insomnia_backlog(&extractor, &embedding, config)
+        .unwrap();
+
+    assert_eq!(result.claimed_attempts, 2);
+    assert_eq!(result.failed_attempts, 1);
+    assert_eq!(result.completed_episodes, 1);
+    assert_eq!(result.terminal_episodes, 0);
+    assert_eq!(cva.insomnia_stats().complete, 1);
+}
+
+struct MissingTypeRepairEndpoint {
+    calls: AtomicUsize,
+}
+
+impl GeneralEndpoint for MissingTypeRepairEndpoint {
+    fn model(&self) -> &str {
+        "missing-type-repair"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        match schema_name {
+            "insomnia_authority_disposition_ledger" => {
+                let payload: Value = serde_json::from_str(user_payload).unwrap();
+                let id = payload["turns"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|turn| turn["role"] == "user")
+                    .and_then(|turn| turn["id"].as_str())
+                    .unwrap();
+                Ok(json!({
+                    "turns": {id: [
+                        {
+                            "disposition":"retain", "authority_kind":"direct", "category":"fact",
+                            "lifecycle":"current", "proposition":"",
+                            "authority_source_node_id":"", "grounding_source_node_id":"",
+                            "reason":"Retain."
+                        },
+                        {
+                            "disposition":"retain", "authority_kind":"invalid-authority", "category":"fact",
+                            "lifecycle":"current", "proposition":"This is additional durable project state.",
+                            "authority_source_node_id":"", "grounding_source_node_id":"",
+                            "reason":"Retain."
+                        }
+                    ]},
+                    "evidence_requests": []
+                }))
+            }
+            "insomnia_authority_disposition_clause_repair" => Ok(json!({
+                "repairs": {
+                    "r000": {"proposition":"This is durable project state.", "type":"project"},
+                    "r001": {"authority_kind":"direct", "type":"project"}
+                }
+            })),
+            "insomnia_memory_wording" => Ok(json!({
+                "groups": {"g000": {
+                    "title":"Durable project state",
+                    "content":"This is durable project state. This is additional durable project state."
+                }}
+            })),
+            other => Err(GeneralEndpointError::Failure(format!(
+                "unexpected repair test schema {other}"
+            ))),
+        }
+    }
+}
+
+#[test]
+fn malformed_ledger_fields_are_batched_and_repaired_without_episode_retry() {
+    let path = test_path("missing-type-repair.cva");
+    let mut cva = Cva::create(path).unwrap();
+    queue_import(&mut cva, "c1", 0);
+    let calls = Arc::new(AtomicUsize::new(0));
+    struct SharedRepairEndpoint(Arc<AtomicUsize>);
+    impl GeneralEndpoint for SharedRepairEndpoint {
+        fn model(&self) -> &str {
+            "missing-type-repair"
+        }
+        fn complete_json(
+            &self,
+            system_prompt: &str,
+            user_payload: &str,
+            schema_name: &str,
+            schema: &Value,
+        ) -> Result<Value, GeneralEndpointError> {
+            let endpoint = MissingTypeRepairEndpoint {
+                calls: AtomicUsize::new(0),
+            };
+            self.0.fetch_add(1, Ordering::SeqCst);
+            endpoint.complete_json(system_prompt, user_payload, schema_name, schema)
+        }
+    }
+    let extractor = InsomniaExtractor::new(SharedRepairEndpoint(Arc::clone(&calls)));
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let result = cva
+        .drain_insomnia_backlog(
+            &extractor,
+            &embedding,
+            InsomniaWorkerConfig {
+                workers: 1,
+                poll_interval_ns: 100_000,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    assert_eq!(result.claimed_attempts, 1);
+    assert_eq!(result.failed_attempts, 0);
+    assert_eq!(result.completed_episodes, 1);
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+}
+
+#[test]
+fn progress_reports_episode_retries_and_completion() {
+    let path = test_path("progress.cva");
+    let mut cva = Cva::create(path).unwrap();
+    queue_import(&mut cva, "c1", 0);
+    let (endpoint, _, _) = tracking_endpoint(Duration::ZERO, 1, false);
+    let extractor = InsomniaExtractor::new(endpoint);
+    let config = InsomniaWorkerConfig {
+        workers: 1,
+        retry_delay_ns: 1_000_000,
+        poll_interval_ns: 100_000,
+        max_attempts: 3,
+        ..Default::default()
+    };
+    let embedding = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let sink_events = Arc::clone(&events);
+    let sink = move |event: &InsomniaProgressEvent| {
+        sink_events.lock().unwrap().push(event.clone());
+    };
+
+    cva.drain_insomnia_backlog_with_progress(&extractor, &embedding, config, &sink)
+        .unwrap();
+
+    let events = events.lock().unwrap();
+    assert!(matches!(
+        events.first(),
+        Some(InsomniaProgressEvent::DrainStarted {
+            total: 1,
+            complete: 0,
+            terminal: 0,
+            workers: 1,
+        })
+    ));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        InsomniaProgressEvent::EpisodeStage {
+            stage: crate::InsomniaSemanticStage::Ledger,
+            ..
+        }
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        InsomniaProgressEvent::EpisodeRetry {
+            attempt: 1,
+            backpressure: false,
+            ..
+        }
+    )));
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event, InsomniaProgressEvent::EpisodeStarted { .. }))
+            .count(),
+        2
+    );
+    assert!(events.iter().any(|event| matches!(
+        event,
+        InsomniaProgressEvent::EpisodeCompleted {
+            attempt: 2,
+            total: 1,
+            complete: 1,
+            terminal: 0,
+            ..
+        }
+    )));
 }
 
 #[test]

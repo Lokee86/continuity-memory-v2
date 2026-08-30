@@ -10,6 +10,7 @@ use std::time::Duration;
 
 const REQUEST_TIMEOUT_SECS: u64 = 180;
 const NOUS_REQUEST_TIMEOUT_SECS: u64 = 240;
+const BAI_REQUEST_TIMEOUT_SECS: u64 = 600;
 const MAX_REQUEST_ATTEMPTS: usize = 4;
 
 #[derive(Clone)]
@@ -126,6 +127,8 @@ impl OpenAiReadyGeneralEndpoint {
         let stream_tool_calls = url.contains("inference-api.nousresearch.com");
         let request_timeout = if stream_tool_calls {
             NOUS_REQUEST_TIMEOUT_SECS
+        } else if url.contains("api.b.ai") {
+            BAI_REQUEST_TIMEOUT_SECS
         } else {
             REQUEST_TIMEOUT_SECS
         };
@@ -247,12 +250,16 @@ impl GeneralEndpoint for OpenAiReadyGeneralEndpoint {
                 "parallel_tool_calls": false
             }),
         };
+        if let Some(reasoning_effort) = self.reasoning_effort {
+            body["reasoning_effort"] = json!(reasoning_effort.as_str());
+        }
         if self.stream_tool_calls && matches!(self.structured_mode, StructuredMode::ForcedTool) {
             body.as_object_mut().unwrap().remove("temperature");
             body["stream"] = json!(true);
             body["include_reasoning"] = json!(true);
-            let reasoning_effort = self.reasoning_effort.unwrap_or(ModelReasoningEffort::Low);
-            body["reasoning_effort"] = json!(reasoning_effort.as_str());
+            if self.reasoning_effort.is_none() {
+                body["reasoning_effort"] = json!(ModelReasoningEffort::Low.as_str());
+            }
         }
         let payload = serde_json::to_vec(&body)
             .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;

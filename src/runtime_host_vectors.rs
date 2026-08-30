@@ -59,16 +59,20 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
         let changed = active_endpoint
             .as_ref()
             .is_none_or(|current| !Arc::ptr_eq(current, &endpoint));
+        let candidate = if changed || user_profile.is_none() {
+            match profile_from_endpoint(&SharedEmbeddingEndpoint(Arc::clone(&endpoint))) {
+                Ok(candidate) => Some(candidate),
+                Err(_) => {
+                    seen_epoch =
+                        wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
         if changed {
-            let candidate =
-                match profile_from_endpoint(&SharedEmbeddingEndpoint(Arc::clone(&endpoint))) {
-                    Ok(candidate) => candidate,
-                    Err(_) => {
-                        seen_epoch =
-                            wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
-                        continue;
-                    }
-                };
+            let candidate = candidate.as_ref().expect("changed endpoint has profile");
             project_profile = Some({
                 let mut runtime = shared
                     .runtime
@@ -79,6 +83,17 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
                     .accept_runtime_compatibility_profile(candidate.clone())
                     .map_err(operation)?
             });
+            active_endpoint = Some(Arc::clone(&endpoint));
+        }
+        let has_phylactery = shared
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .is_some();
+        if has_phylactery && user_profile.is_none() {
+            let candidate = candidate.as_ref().ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("embedding profile is unavailable".into())
+            })?;
             user_profile = {
                 let mut phylactery = shared
                     .phylactery
@@ -90,14 +105,22 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
                     .transpose()
                     .map_err(operation)?
             };
-            *shared
-                .memory_profiles
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = RuntimeMemoryProfiles {
-                project: project_profile.as_ref().map(|profile| profile.id),
-                user: user_profile.as_ref().map(|profile| profile.id),
-            };
-            active_endpoint = Some(Arc::clone(&endpoint));
+        } else if !has_phylactery {
+            user_profile = None;
+        }
+        let next_profiles = RuntimeMemoryProfiles {
+            project: project_profile.as_ref().map(|profile| profile.id),
+            user: user_profile.as_ref().map(|profile| profile.id),
+        };
+        let mut published_profiles = shared
+            .memory_profiles
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if published_profiles.project != next_profiles.project
+            || published_profiles.user != next_profiles.user
+        {
+            *published_profiles = next_profiles;
+            drop(published_profiles);
             notify_work(&shared.signal)?;
         }
 

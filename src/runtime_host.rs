@@ -2,11 +2,13 @@ use crate::{
     CompatibilityProfileId, EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint,
     InsomniaWorkerConfig, InteractionRuntime, Phylactery,
 };
-use std::sync::atomic::AtomicI64;
+use std::sync::atomic::{AtomicBool, AtomicI64};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
+#[path = "runtime_host_archive_search.rs"]
+mod archive_search;
 #[path = "runtime_host_dream.rs"]
 mod dream;
 #[path = "runtime_host_dream_owner.rs"]
@@ -15,6 +17,8 @@ mod dream_owner;
 mod insomnia;
 #[path = "runtime_host_interaction.rs"]
 mod interaction;
+#[path = "runtime_host_memory_search.rs"]
+pub mod memory_search;
 #[path = "runtime_host_vectors.rs"]
 mod vectors;
 
@@ -105,6 +109,7 @@ pub(super) struct Shared {
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
     pub(super) memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
+    pub(super) insomnia_enabled: Arc<AtomicBool>,
     pub(super) insomnia_backpressure_until_ns: Arc<AtomicI64>,
     pub(super) config: InsomniaWorkerConfig,
     pub(super) episode_policy: EpisodePolicy,
@@ -115,6 +120,8 @@ pub struct ReliquaryRuntimeHost {
     signal: Arc<(Mutex<Control>, Condvar)>,
     routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     phylactery: Arc<Mutex<Option<Phylactery>>>,
+    memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
+    insomnia_enabled: Arc<AtomicBool>,
     insomnia_backpressure_until_ns: Arc<AtomicI64>,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
@@ -126,7 +133,16 @@ impl ReliquaryRuntimeHost {
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
     ) -> Self {
-        Self::start_inner(runtime, None, routes, config, episode_policy)
+        Self::start_inner(runtime, None, routes, config, episode_policy, true)
+    }
+
+    pub fn start_inactive(
+        runtime: InteractionRuntime,
+        routes: ReliquaryRuntimeRoutes,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+    ) -> Self {
+        Self::start_inner(runtime, None, routes, config, episode_policy, false)
     }
 
     pub fn start_with_phylactery(
@@ -136,7 +152,14 @@ impl ReliquaryRuntimeHost {
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
     ) -> Self {
-        Self::start_inner(runtime, Some(phylactery), routes, config, episode_policy)
+        Self::start_inner(
+            runtime,
+            Some(phylactery),
+            routes,
+            config,
+            episode_policy,
+            true,
+        )
     }
 
     fn start_inner(
@@ -145,6 +168,7 @@ impl ReliquaryRuntimeHost {
         routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
+        insomnia_enabled: bool,
     ) -> Self {
         let runtime = Arc::new(Mutex::new(runtime));
         let signal = Arc::new((
@@ -157,13 +181,15 @@ impl ReliquaryRuntimeHost {
         let routes = Arc::new(RwLock::new(routes));
         let phylactery = Arc::new(Mutex::new(phylactery));
         let memory_profiles = Arc::new(Mutex::new(RuntimeMemoryProfiles::default()));
+        let insomnia_enabled = Arc::new(AtomicBool::new(insomnia_enabled));
         let insomnia_backpressure_until_ns = Arc::new(AtomicI64::new(0));
         let shared = Arc::new(Shared {
             runtime: Arc::clone(&runtime),
             signal: Arc::clone(&signal),
             routes: Arc::clone(&routes),
             phylactery: Arc::clone(&phylactery),
-            memory_profiles,
+            memory_profiles: Arc::clone(&memory_profiles),
+            insomnia_enabled: Arc::clone(&insomnia_enabled),
             insomnia_backpressure_until_ns: Arc::clone(&insomnia_backpressure_until_ns),
             config: config.clone(),
             episode_policy,
@@ -186,6 +212,8 @@ impl ReliquaryRuntimeHost {
             signal,
             routes,
             phylactery,
+            memory_profiles,
+            insomnia_enabled,
             insomnia_backpressure_until_ns,
             workers,
         }
@@ -206,6 +234,51 @@ impl ReliquaryRuntimeHost {
 
     pub fn wake(&self) -> Result<(), ReliquaryRuntimeHostError> {
         notify_work(&self.signal)
+    }
+
+    pub fn set_insomnia_enabled(&self, enabled: bool) -> Result<(), ReliquaryRuntimeHostError> {
+        self.insomnia_enabled
+            .store(enabled, std::sync::atomic::Ordering::SeqCst);
+        self.wake()
+    }
+
+    pub fn has_phylactery(&self) -> Result<bool, ReliquaryRuntimeHostError> {
+        self.phylactery
+            .lock()
+            .map(|slot| slot.is_some())
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)
+    }
+
+    pub fn attach_phylactery(
+        &self,
+        phylactery: Phylactery,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let mut slot = self
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if slot.is_some() {
+            return Err(ReliquaryRuntimeHostError::Operation(
+                "Reliquary runtime already has a Phylactery attached".into(),
+            ));
+        }
+        *slot = Some(phylactery);
+        drop(slot);
+        self.wake()
+    }
+
+    pub fn detach_phylactery(&self) -> Result<Option<Phylactery>, ReliquaryRuntimeHostError> {
+        let phylactery = self
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .take();
+        self.memory_profiles
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .user = None;
+        self.wake()?;
+        Ok(phylactery)
     }
 
     pub fn into_cva(self) -> Result<crate::Cva, ReliquaryRuntimeHostError> {

@@ -50,4 +50,29 @@ impl InsomniaStore {
         self.replace_work(work.clone())?;
         Ok(work)
     }
+
+    pub(crate) fn retry_terminal(
+        &mut self,
+        container: &mut Container,
+        episode_id: EpisodeId,
+        now_ns: i64,
+    ) -> Result<InsomniaWork, InsomniaError> {
+        let current = self
+            .work(episode_id)
+            .cloned()
+            .ok_or(InsomniaError::MissingWork)?;
+        if current.state != InsomniaWorkState::Terminal {
+            return Err(InsomniaError::InvalidTransition);
+        }
+        let mut work = current;
+        work.state = InsomniaWorkState::Pending;
+        work.attempt_count = 0;
+        clear_lease(&mut work);
+        work.retry_after_ns = None;
+        work.last_error = None;
+        work.updated_at_ns = now_ns;
+        container.append(&encode_work(&work)?)?;
+        self.replace_work(work.clone())?;
+        Ok(work)
+    }
 }

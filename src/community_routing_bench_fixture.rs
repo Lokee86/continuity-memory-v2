@@ -138,7 +138,7 @@ pub(crate) fn semantic_probes(
             right
                 .1
                 .total_cmp(&left.1)
-                .then_with(|| left.0 .0.cmp(&right.0 .0))
+                .then_with(|| left.0.0.cmp(&right.0.0))
         });
         for (id, _) in ranked.into_iter().take(limit) {
             targets.entry(query).or_default().insert(id);

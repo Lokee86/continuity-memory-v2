@@ -109,6 +109,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 94. **Community scan-and-merge is deterministic derived computation.** Algorithm v2 uses deterministic graph-local shard order, fixed shard size/fan-in/Leiden configuration, and reduction output that cannot depend on worker scheduling. Every structural edge must participate exactly once in the reduction representation.
 95. **Human community names are presentation metadata.** A Warlock display rename cannot change persisted membership, Graph authority, or traversal semantics.
 96. **Hosted model adapters do not own Reliquary stage routing.** A host may supply exact provider endpoints for Reliquary capabilities, but effective Insomnia/Dream fallback, metadata/ownership selection, and background-worker dispatch remain library-owned and must match standalone configured execution semantics.
+97. **Live transcript search cannot broaden history.** The hot conversation search may inspect only the explicitly selected root-to-leaf ancestry (or the runtime's current open-session leaf), may derive Fragment windows transiently, and must not persist those windows, inspect sibling leaves, scan unrelated conversations, or advance semantic clocks.
 
 ## Safety boundaries
 

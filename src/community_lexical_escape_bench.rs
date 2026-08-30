@@ -1,5 +1,5 @@
-use crate::community_routing_bench_fixture::{load_fixture, RoutingFixture};
-use crate::community_routing_bench_support::{entries, route, BenchStrategy};
+use crate::community_routing_bench_fixture::{RoutingFixture, load_fixture};
+use crate::community_routing_bench_support::{BenchStrategy, entries, route};
 use crate::dream_candidate_ranking::lexical_score;
 use crate::{CommunityId, MemoryId};
 use std::collections::{HashMap, HashSet};
@@ -77,7 +77,7 @@ fn lexical_hits(fixture: &RoutingFixture, query: MemoryId, limit: usize) -> Vec<
         right
             .1
             .total_cmp(&left.1)
-            .then_with(|| left.0 .0.cmp(&right.0 .0))
+            .then_with(|| left.0.0.cmp(&right.0.0))
     });
     ranked.into_iter().take(limit).map(|(id, _)| id).collect()
 }

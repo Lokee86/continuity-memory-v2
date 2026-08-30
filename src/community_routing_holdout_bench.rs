@@ -1,5 +1,5 @@
-use crate::community_routing::{cosine, routing_profiles, RepresentativeStrategy};
-use crate::community_routing_bench_fixture::{load_fixture, RoutingFixture, RoutingProbe};
+use crate::community_routing::{RepresentativeStrategy, cosine, routing_profiles};
+use crate::community_routing_bench_fixture::{RoutingFixture, RoutingProbe, load_fixture};
 use crate::{CommunityId, MemoryId};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;

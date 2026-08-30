@@ -2,7 +2,7 @@ use crate::community_routing::cosine;
 use crate::community_routing_bench_fixture::load_fixture;
 use crate::community_subcentroid_routing::{build_subcentroids, route_subcentroids};
 use crate::community_traversal_bench_fixture::adjacency;
-use crate::community_traversal_bench_support::{traverse, TraversalPolicy};
+use crate::community_traversal_bench_support::{TraversalPolicy, traverse};
 use crate::{CommunityId, MemoryId};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -291,7 +291,7 @@ fn fine_seeds(
         right
             .1
             .total_cmp(&left.1)
-            .then_with(|| left.0 .0.cmp(&right.0 .0))
+            .then_with(|| left.0.0.cmp(&right.0.0))
     });
     ranked.into_iter().take(limit).map(|(id, _)| id).collect()
 }

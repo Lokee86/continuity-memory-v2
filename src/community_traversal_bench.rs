@@ -1,5 +1,5 @@
 use crate::community_routing_bench_fixture::load_fixture;
-use crate::community_traversal_bench_support::{evaluate, policy_name, TraversalPolicy};
+use crate::community_traversal_bench_support::{TraversalPolicy, evaluate, policy_name};
 
 const BUDGETS: [usize; 3] = [16, 32, 64];
 

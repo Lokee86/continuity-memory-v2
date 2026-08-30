@@ -156,6 +156,103 @@ impl Container {
         Ok(payload)
     }
 
+    pub(crate) fn write_chunk_prefix(
+        &mut self,
+        chunk: ChunkRef,
+        payload: &[u8],
+    ) -> Result<(), ContainerError> {
+        let payload_len =
+            u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
+        if payload_len > chunk.len {
+            return Err(ContainerError::InvalidChunkRef(chunk));
+        }
+        self.file.seek(SeekFrom::Start(chunk.offset))?;
+        if read_u64(&mut self.file, chunk.offset)? != chunk.len {
+            return Err(ContainerError::InvalidChunkRef(chunk));
+        }
+        self.file.write_all(payload)?;
+        Ok(())
+    }
+
+    pub(crate) fn split_chunk(
+        &mut self,
+        chunk: ChunkRef,
+        first_len: u64,
+        second_prefix: &[u8],
+    ) -> Result<(ChunkRef, ChunkRef), ContainerError> {
+        let second_len = chunk
+            .len
+            .checked_sub(first_len)
+            .and_then(|remaining| remaining.checked_sub(CHUNK_HEADER_LEN))
+            .ok_or(ContainerError::InvalidChunkRef(chunk))?;
+        if u64::try_from(second_prefix.len()).map_err(|_| ContainerError::ChunkTooLarge)?
+            > second_len
+        {
+            return Err(ContainerError::InvalidChunkRef(chunk));
+        }
+        self.file.seek(SeekFrom::Start(chunk.offset))?;
+        if read_u64(&mut self.file, chunk.offset)? != chunk.len {
+            return Err(ContainerError::InvalidChunkRef(chunk));
+        }
+        let second_offset = chunk
+            .offset
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|value| value.checked_add(first_len))
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        self.file.seek(SeekFrom::Start(second_offset))?;
+        self.file.write_all(&second_len.to_le_bytes())?;
+        self.file.write_all(second_prefix)?;
+        self.file.sync_data()?;
+        self.file.seek(SeekFrom::Start(chunk.offset))?;
+        self.file.write_all(&first_len.to_le_bytes())?;
+        self.file.sync_data()?;
+        Ok((
+            ChunkRef {
+                offset: chunk.offset,
+                len: first_len,
+            },
+            ChunkRef {
+                offset: second_offset,
+                len: second_len,
+            },
+        ))
+    }
+
+    pub(crate) fn merge_adjacent_chunks(
+        &mut self,
+        first: ChunkRef,
+        second: ChunkRef,
+    ) -> Result<ChunkRef, ContainerError> {
+        let expected_second = first
+            .offset
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|value| value.checked_add(first.len))
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        if second.offset != expected_second {
+            return Err(ContainerError::InvalidChunkRef(second));
+        }
+        self.file.seek(SeekFrom::Start(first.offset))?;
+        if read_u64(&mut self.file, first.offset)? != first.len {
+            return Err(ContainerError::InvalidChunkRef(first));
+        }
+        self.file.seek(SeekFrom::Start(second.offset))?;
+        if read_u64(&mut self.file, second.offset)? != second.len {
+            return Err(ContainerError::InvalidChunkRef(second));
+        }
+        let len = first
+            .len
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|value| value.checked_add(second.len))
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        self.file.seek(SeekFrom::Start(first.offset))?;
+        self.file.write_all(&len.to_le_bytes())?;
+        self.file.sync_data()?;
+        Ok(ChunkRef {
+            offset: first.offset,
+            len,
+        })
+    }
+
     pub fn chunks(&mut self) -> Result<Vec<ChunkRef>, ContainerError> {
         let file_len = self.file.metadata()?.len();
         let mut offset = self.header_len;
@@ -199,6 +296,20 @@ impl Container {
         let identity = self.identity?;
         let uuid = Uuid::from_bytes(self.owner_uuid?);
         Some(format!("{}-{uuid}", owner_prefix(identity)))
+    }
+
+    pub(crate) fn truncate_tail_chunk(&mut self, chunk: ChunkRef) -> Result<bool, ContainerError> {
+        let end = chunk
+            .offset
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|value| value.checked_add(chunk.len))
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        if self.file.metadata()?.len() != end {
+            return Ok(false);
+        }
+        self.file.set_len(chunk.offset)?;
+        self.file.sync_data()?;
+        Ok(true)
     }
 
     pub fn sync(&self) -> Result<(), ContainerError> {

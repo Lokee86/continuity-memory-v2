@@ -32,43 +32,48 @@ impl Archive {
         config: FragmentConfig,
         close_tail: bool,
     ) -> Result<Vec<Fragment>, ArchiveError> {
-        validate_config(config)?;
         let nodes = self.branch_nodes(conversation_id, leaf_node_id)?;
         let mut created = Vec::new();
-        if nodes.len() >= config.turns {
-            let stride = config.turns - config.overlap;
-            for start in (0..=nodes.len() - config.turns).step_by(stride) {
-                let end = start + config.turns - 1;
-                self.materialize_window(container, &nodes, start, end, &mut created)?;
+        for fragment in path_fragment_windows(&nodes, config, close_tail)? {
+            if self.put_fragment(container, fragment.clone())? {
+                created.push(fragment);
             }
-        }
-        if close_tail && !nodes.is_empty() {
-            let start = nodes.len().saturating_sub(config.turns);
-            self.materialize_window(container, &nodes, start, nodes.len() - 1, &mut created)?;
         }
         Ok(created)
     }
+}
 
-    fn materialize_window(
-        &mut self,
-        container: &mut Container,
-        nodes: &[crate::Node],
-        start: usize,
-        end: usize,
-        created: &mut Vec<Fragment>,
-    ) -> Result<(), ArchiveError> {
-        let first = &nodes[start];
-        let last = &nodes[end];
-        let fragment = Fragment {
-            id: fragment_id(&first.conversation_id, &first.id, &last.id),
-            conversation_id: first.conversation_id.clone(),
-            start_node_id: first.id.clone(),
-            end_node_id: last.id.clone(),
-        };
-        if self.put_fragment(container, fragment.clone())? {
-            created.push(fragment);
+pub(crate) fn path_fragment_windows(
+    nodes: &[crate::Node],
+    config: FragmentConfig,
+    close_tail: bool,
+) -> Result<Vec<Fragment>, ArchiveError> {
+    validate_config(config)?;
+    let mut windows = Vec::new();
+    if nodes.len() >= config.turns {
+        let stride = config.turns - config.overlap;
+        for start in (0..=nodes.len() - config.turns).step_by(stride) {
+            windows.push(fragment_for(nodes, start, start + config.turns - 1));
         }
-        Ok(())
+    }
+    if close_tail && !nodes.is_empty() {
+        let start = nodes.len().saturating_sub(config.turns);
+        let tail = fragment_for(nodes, start, nodes.len() - 1);
+        if windows.last().is_none_or(|existing| existing.id != tail.id) {
+            windows.push(tail);
+        }
+    }
+    Ok(windows)
+}
+
+fn fragment_for(nodes: &[crate::Node], start: usize, end: usize) -> Fragment {
+    let first = &nodes[start];
+    let last = &nodes[end];
+    Fragment {
+        id: fragment_id(&first.conversation_id, &first.id, &last.id),
+        conversation_id: first.conversation_id.clone(),
+        start_node_id: first.id.clone(),
+        end_node_id: last.id.clone(),
     }
 }
 

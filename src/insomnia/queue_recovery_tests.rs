@@ -130,6 +130,50 @@ fn transient_work_transitions_do_not_grow_the_cva() {
 }
 
 #[test]
+fn terminal_can_be_explicitly_retried_and_reopens_pending() {
+    let path = test_path("terminal-retry.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let episode = episode(
+        &mut cva,
+        "c1",
+        "e",
+        10,
+        EpisodeOrigin::Live,
+        EpisodeBoundary::Inactivity,
+    );
+    cva.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 20)
+        .unwrap();
+    let claim = cva.claim_insomnia_episode("w1", 30, 100).unwrap().unwrap();
+    cva.terminal_insomnia_episode(
+        episode.id,
+        claim.lease_token.unwrap(),
+        30,
+        31,
+        "bad model output".into(),
+    )
+    .unwrap();
+
+    let retried = cva.retry_terminal_insomnia_episode(episode.id, 40).unwrap();
+    assert_eq!(retried.state, InsomniaWorkState::Pending);
+    assert_eq!(retried.attempt_count, 0);
+    assert!(retried.last_error.is_none());
+    cva.sync().unwrap();
+    drop(cva);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.insomnia.scheduler_counts(), (1, 0, 0));
+    let pending = reopened.insomnia_work(episode.id).unwrap();
+    assert_eq!(pending.state, InsomniaWorkState::Pending);
+    assert_eq!(pending.attempt_count, 0);
+    assert!(
+        reopened
+            .claim_insomnia_episode("w2", 41, 100)
+            .unwrap()
+            .is_some()
+    );
+}
+
+#[test]
 fn final_terminal_outcome_remains_durable() {
     let path = test_path("terminal-final.cva");
     let mut cva = Cva::create(&path).unwrap();

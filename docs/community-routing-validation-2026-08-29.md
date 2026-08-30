@@ -8,6 +8,10 @@ Validate whether deterministic owner-local communities can actually reduce Memor
 
 This is the evidence gate requested by the earlier [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md).
 
+## Overview
+
+This document freezes the five-fold large-corpus evidence that selected four deterministic sub-centroids per Community and top-4 Community routing. The benchmark preceded production promotion; ADR 0026 subsequently implemented that operating point for owner-local REL/PHY Memory retrieval while retaining this document as the measurement record.
+
 ## Plain-language result
 
 **The approach works on this corpus.**
@@ -20,7 +24,7 @@ The locality gain is not coming from filling context with near-duplicate Memorie
 
 The evidence supports **four deterministic sub-centroids per community and top-4 community routing** as the normal production candidate. Top-3 remains a plausible explicitly cost-biased mode. Top-2 is too unstable for a general default.
 
-Production retrieval has **not** been changed by this benchmark.
+At the time of this frozen benchmark run, production retrieval had **not** yet been changed. The validated operating point was subsequently promoted into the owner-local production Memory retrieval primitive in [ADR 0026](decisions/0026-community-routed-memory-retrieval.md); the measurements below remain the pre-promotion evidence record.
 
 ## Fixture
 
@@ -169,7 +173,7 @@ The redundancy calculation is exact but linear in context-vector count: vectors 
 
 ## Timing note
 
-The validation benchmark also records routing, fine-search, global-search, and traversal wall time. The frozen run was a debug-profile test and is useful for instrumentation sanity, not as a production latency claim. The deterministic comparison-count result (`40.86%` vector work for K=4) is the current performance evidence to carry forward. Release-mode latency should be measured as part of production retrieval implementation.
+The validation benchmark also records routing, fine-search, global-search, and traversal wall time. The frozen run was a debug-profile test and is useful for instrumentation sanity, not as a production latency claim. The deterministic comparison-count result (`40.86%` vector work for K=4) is the current performance evidence to carry forward. Release-mode latency remains a separate runtime/Ego integration measurement; production promotion of the deterministic primitive does not turn these debug timings into a latency claim.
 
 ## Decision from this evidence
 
@@ -193,7 +197,7 @@ Constraints remain:
 3. Dream relationships remain authoritative.
 4. Communities do not become semantic supernodes.
 5. Production implementation must preserve exact Memory-level fine search inside selected communities.
-6. Release-mode latency and production integration tests should be measured when the primitive is implemented.
+6. Release-mode latency and repeated-query runtime/Ego integration should be measured separately from this frozen routing-quality gate.
 
 ## Benchmark implementation
 
@@ -203,11 +207,16 @@ The five-fold end-to-end validation and context-quality measurements live in:
 src/community_end_to_end_grid_bench.rs
 ```
 
-Supporting benchmark-only routing/traversal machinery remains under `src/community_*bench*.rs` and `src/community_subcentroid_routing.rs`. No production retrieval behavior is changed by these files.
+Supporting benchmark routing/traversal machinery remains under `src/community_*bench*.rs`. `src/community_subcentroid_routing.rs` is now only a benchmark compatibility shim that delegates sub-centroid construction/routing to the production `memory_retrieval` implementation, so rerunning the frozen benchmark exercises the same routing algorithm shipped by the owner-local retrieval primitive. The benchmark files themselves still do not own production behavior.
 
 ## Related docs
 
 - [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md)
 - [Community scan-and-merge benchmark — 2026-08-27](community-scan-merge-benchmark-2026-08-27.md)
 - [ADR 0025 — owner-local derived communities](decisions/0025-owner-local-derived-communities.md)
+- [ADR 0026 — Community-routed owner-local Memory retrieval](decisions/0026-community-routed-memory-retrieval.md)
 - [Roadmap](roadmap.md)
+
+## Notes
+
+The production-backed rerun after ADR 0026 promotion reproduced the frozen aggregate quality/comparison-count results exactly: K=4 remained at 92.31% top-12 route recall, 95.16% top-four seed preservation, and 40.86% fine-search vector work, with support recall 53.41% / 71.47% / 85.70% at 16 / 32 / 64 nodes. Timing varied as expected in the unoptimized test profile and remains non-authoritative.

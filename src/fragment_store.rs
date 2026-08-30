@@ -104,12 +104,31 @@ impl Archive {
         container: &mut Container,
         id: FragmentId,
     ) -> Result<String, ArchiveError> {
-        let turns = self.fragment_turns(container, id)?;
-        Ok(turns
+        let fragment = self
+            .fragments
+            .get(id)
+            .ok_or(ArchiveError::MissingFragment)?
+            .clone();
+        self.fragment_text_for(container, &fragment)
+    }
+
+    pub(crate) fn fragment_text_for(
+        &self,
+        container: &mut Container,
+        fragment: &Fragment,
+    ) -> Result<String, ArchiveError> {
+        let nodes = self.fragment_nodes_for(fragment)?;
+        nodes
             .into_iter()
-            .map(|turn| format!("{}: {}", turn.role, turn.content))
-            .collect::<Vec<_>>()
-            .join("\n"))
+            .map(|node| {
+                Ok(format!(
+                    "{}: {}",
+                    node.role,
+                    self.content(container, node.content_id)?
+                ))
+            })
+            .collect::<Result<Vec<_>, ArchiveError>>()
+            .map(|turns| turns.join("\n"))
     }
 
     pub fn fragments(&self) -> Vec<Fragment> {

@@ -6,7 +6,8 @@ use crate::insomnia::store::InsomniaStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaWork, Phylactery,
+    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaProgressEvent,
+    InsomniaProgressReporter, InsomniaSemanticStage, InsomniaWork, Phylactery,
 };
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -14,8 +15,10 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 mod outcome;
+mod progress;
 
 use outcome::{apply_success, record_failure, terminal_claim};
+use progress::{DrainProgress, heartbeat_loop};
 
 #[derive(Default)]
 pub(super) struct DrainCounters {
@@ -41,6 +44,7 @@ pub(super) struct DrainShared<'a> {
     pub(super) memories: Mutex<&'a mut MemoryStore>,
     pub(super) insomnia: Mutex<&'a mut InsomniaStore>,
     pub(super) phylactery: Option<Mutex<&'a mut Phylactery>>,
+    progress: DrainProgress<'a>,
 }
 
 enum ClaimState {
@@ -55,7 +59,16 @@ pub(super) fn drain<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-    drain_inner(cva, None, extractor, config)
+    drain_inner(cva, None, extractor, config, None)
+}
+
+pub(super) fn drain_with_progress<E: GeneralEndpoint>(
+    cva: &mut Cva,
+    extractor: &InsomniaExtractor<E>,
+    config: &InsomniaWorkerConfig,
+    progress: &dyn InsomniaProgressReporter,
+) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    drain_inner(cva, None, extractor, config, Some(progress))
 }
 
 pub(super) fn drain_routed<E: GeneralEndpoint>(
@@ -64,7 +77,17 @@ pub(super) fn drain_routed<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
-    drain_inner(cva, Some(phylactery), extractor, config)
+    drain_inner(cva, Some(phylactery), extractor, config, None)
+}
+
+pub(super) fn drain_routed_with_progress<E: GeneralEndpoint>(
+    cva: &mut Cva,
+    phylactery: &mut Phylactery,
+    extractor: &InsomniaExtractor<E>,
+    config: &InsomniaWorkerConfig,
+    progress: &dyn InsomniaProgressReporter,
+) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    drain_inner(cva, Some(phylactery), extractor, config, Some(progress))
 }
 
 fn drain_inner<E: GeneralEndpoint>(
@@ -72,7 +95,9 @@ fn drain_inner<E: GeneralEndpoint>(
     phylactery: Option<&mut Phylactery>,
     extractor: &InsomniaExtractor<E>,
     config: &InsomniaWorkerConfig,
+    reporter: Option<&dyn InsomniaProgressReporter>,
 ) -> Result<InsomniaDrainResult, InsomniaWorkerError> {
+    let initial_stats = cva.insomnia_stats();
     cva.lexical_index
         .ensure_current(&cva.archive, &mut cva.container)?;
     let shared = DrainShared {
@@ -82,9 +107,21 @@ fn drain_inner<E: GeneralEndpoint>(
         memories: Mutex::new(&mut cva.memories),
         insomnia: Mutex::new(&mut cva.insomnia),
         phylactery: phylactery.map(Mutex::new),
+        progress: DrainProgress::new(reporter, initial_stats),
     };
     let counters = DrainCounters::default();
-    let results = thread::scope(|scope| {
+    shared.progress.report(InsomniaProgressEvent::DrainStarted {
+        total: initial_stats.total,
+        complete: initial_stats.complete,
+        terminal: initial_stats.terminal,
+        workers: config.workers,
+    });
+    let monitor_stop = AtomicBool::new(false);
+    let (results, monitor_panicked) = thread::scope(|scope| {
+        let monitor = shared
+            .progress
+            .enabled()
+            .then(|| scope.spawn(|| heartbeat_loop(&shared, &counters, &monitor_stop)));
         let mut handles = Vec::with_capacity(config.workers);
         for index in 0..config.workers {
             let shared = &shared;
@@ -92,11 +129,17 @@ fn drain_inner<E: GeneralEndpoint>(
             handles
                 .push(scope.spawn(move || worker_loop(shared, extractor, config, counters, index)));
         }
-        handles
+        let results = handles
             .into_iter()
             .map(|handle| handle.join())
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        monitor_stop.store(true, Ordering::SeqCst);
+        let monitor_panicked = monitor.is_some_and(|handle| handle.join().is_err());
+        (results, monitor_panicked)
     });
+    if monitor_panicked {
+        return Err(InsomniaWorkerError::ThreadPanicked);
+    }
     for result in results {
         match result {
             Ok(Ok(())) => {}
@@ -157,19 +200,46 @@ fn worker_loop<E: GeneralEndpoint>(
         counters.claimed.fetch_add(1, Ordering::Relaxed);
         let active = counters.active.fetch_add(1, Ordering::SeqCst) + 1;
         counters.peak.fetch_max(active, Ordering::SeqCst);
-        let extraction = run_extraction(shared, extractor, &episode, &turns);
+        let (total, complete, terminal) = shared.progress.counts(counters);
+        shared
+            .progress
+            .report(InsomniaProgressEvent::EpisodeStarted {
+                episode_id: claim.episode_id,
+                worker_id: worker_id.clone(),
+                attempt: claim.attempt_count,
+                turns: turns.len(),
+                total,
+                complete,
+                terminal,
+            });
+        let stage_reporter = |stage: InsomniaSemanticStage, items: usize| {
+            shared.progress.report(InsomniaProgressEvent::EpisodeStage {
+                episode_id: claim.episode_id,
+                worker_id: worker_id.clone(),
+                attempt: claim.attempt_count,
+                stage,
+                items,
+            });
+        };
+        let extraction = run_extraction(shared, extractor, &episode, &turns, &stage_reporter);
         counters.active.fetch_sub(1, Ordering::SeqCst);
         match extraction {
-            Ok(extraction) => apply_success(
-                shared,
-                &claim,
-                &episode,
-                &turns,
-                extraction,
-                started_at_ns,
-                config,
-                counters,
-            )?,
+            Ok(extraction) => {
+                stage_reporter(
+                    InsomniaSemanticStage::Persistence,
+                    extraction.candidates.len(),
+                );
+                apply_success(
+                    shared,
+                    &claim,
+                    &episode,
+                    &turns,
+                    extraction,
+                    started_at_ns,
+                    config,
+                    counters,
+                )?
+            }
             Err(error) => record_failure(shared, &claim, started_at_ns, error, config, counters)?,
         }
     }
@@ -221,10 +291,12 @@ fn run_extraction<E: GeneralEndpoint>(
     extractor: &InsomniaExtractor<E>,
     episode: &crate::Episode,
     turns: &[crate::ResolvedTurn],
+    stage_reporter: &dyn Fn(InsomniaSemanticStage, usize),
 ) -> Result<crate::InsomniaExtraction, InsomniaExtractionError> {
-    match extractor.start(episode, turns)? {
+    match extractor.start_with_stage_reporter(episode, turns, stage_reporter)? {
         InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
         InsomniaExtractionStage::Evidence(round) => {
+            stage_reporter(InsomniaSemanticStage::Evidence, round.requests.len());
             let plans = plan_evidence(
                 shared.archive,
                 shared.lexical_index,
@@ -237,7 +309,14 @@ fn run_extraction<E: GeneralEndpoint>(
                 })?;
                 hydrate_evidence_parts(shared.archive, &mut container, &plans)?
             };
-            extractor.finish_evidence(episode, turns, round, results, evidence_turns)
+            extractor.finish_evidence_with_stage_reporter(
+                episode,
+                turns,
+                round,
+                results,
+                evidence_turns,
+                stage_reporter,
+            )
         }
     }
 }

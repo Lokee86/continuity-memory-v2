@@ -1,6 +1,6 @@
+use crate::MemoryId;
 use crate::community_routing::cosine;
 use crate::community_routing_bench_fixture::RoutingFixture;
-use crate::MemoryId;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) fn adjacency(fixture: &RoutingFixture) -> HashMap<MemoryId, Vec<MemoryId>> {
@@ -41,7 +41,7 @@ pub(crate) fn ranked_targets(
         right
             .1
             .total_cmp(&left.1)
-            .then_with(|| left.0 .0.cmp(&right.0 .0))
+            .then_with(|| left.0.0.cmp(&right.0.0))
     });
     ranked.into_iter().map(|(memory, _)| memory).collect()
 }

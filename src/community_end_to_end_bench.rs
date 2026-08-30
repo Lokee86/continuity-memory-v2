@@ -2,7 +2,7 @@ use crate::community_routing::cosine;
 use crate::community_routing_bench_fixture::load_fixture;
 use crate::community_subcentroid_routing::{build_subcentroids, route_subcentroids};
 use crate::community_traversal_bench_fixture::{adjacency, ranked_targets};
-use crate::community_traversal_bench_support::{traverse, TraversalPolicy};
+use crate::community_traversal_bench_support::{TraversalPolicy, traverse};
 use crate::{CommunityId, MemoryId};
 use std::collections::{HashMap, HashSet};
 
@@ -129,7 +129,9 @@ fn community_retrieval_traversal_end_to_end_benchmark() {
         totals.queries,
         router.len()
     );
-    println!("budget,global_support_recall,tiered_support_recall,tiered_edges,tiered_communities,tiered_crossings,tiered_tokens");
+    println!(
+        "budget,global_support_recall,tiered_support_recall,tiered_edges,tiered_communities,tiered_crossings,tiered_tokens"
+    );
     for (slot, budget) in BUDGETS.into_iter().enumerate() {
         println!(
             "{budget},{:.4},{:.4},{:.2},{:.2},{:.2},{:.1}",
@@ -167,7 +169,7 @@ fn fine_seeds(
         right
             .1
             .total_cmp(&left.1)
-            .then_with(|| left.0 .0.cmp(&right.0 .0))
+            .then_with(|| left.0.0.cmp(&right.0.0))
     });
     ranked.into_iter().take(limit).map(|(id, _)| id).collect()
 }

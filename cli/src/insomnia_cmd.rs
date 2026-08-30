@@ -1,7 +1,8 @@
 use crate::args::InsomniaCommand;
 use crate::util::hex32;
 use anyhow::Result;
-use reliquary_memory::{ConfiguredInsomniaOptions, ConfiguredRuntime};
+use reliquary_memory::{ConfiguredInsomniaOptions, ConfiguredRuntime, InsomniaProgressEvent};
+use std::io::{self, Write};
 use std::path::Path;
 
 pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
@@ -16,7 +17,16 @@ pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
             existing_queue_only,
         } => {
             let runtime = ConfiguredRuntime::open(config_path)?;
-            let report = runtime.run_insomnia_files(
+            println!(
+                "progress: state=initializing rel={} phy={} workers={workers}",
+                cva.display(),
+                phy.as_deref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "none".into())
+            );
+            let _ = io::stdout().flush();
+            let progress = |event: &InsomniaProgressEvent| print_progress(event);
+            let report = runtime.run_insomnia_files_with_progress(
                 &cva,
                 phy.as_deref(),
                 ConfiguredInsomniaOptions {
@@ -26,6 +36,7 @@ pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
                     embedding_concurrency,
                     existing_queue_only,
                 },
+                &progress,
             )?;
             println!(
                 "queue: before={} after_registration={} final_complete={} final_terminal={}",
@@ -92,4 +103,142 @@ pub fn run(config_path: &Path, command: InsomniaCommand) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn print_progress(event: &InsomniaProgressEvent) {
+    match event {
+        InsomniaProgressEvent::DrainStarted {
+            total,
+            complete,
+            terminal,
+            workers,
+        } => println!(
+            "progress: state=started queue={complete}/{total} terminal={terminal} remaining={} workers={workers}",
+            remaining(*total, *complete, *terminal)
+        ),
+        InsomniaProgressEvent::EpisodeStarted {
+            episode_id,
+            worker_id,
+            attempt,
+            turns,
+            total,
+            complete,
+            terminal,
+        } => println!(
+            "progress: state=episode_started worker={worker_id} episode={} attempt={attempt} turns={turns} queue={complete}/{total} remaining={}",
+            hex32(&episode_id.0),
+            remaining(*total, *complete, *terminal)
+        ),
+        InsomniaProgressEvent::EpisodeStage {
+            episode_id,
+            worker_id,
+            attempt,
+            stage,
+            items,
+        } => println!(
+            "progress: state=episode_stage worker={worker_id} episode={} attempt={attempt} stage={} items={items}",
+            hex32(&episode_id.0),
+            stage.as_str()
+        ),
+        InsomniaProgressEvent::Heartbeat {
+            elapsed_ms,
+            total,
+            complete,
+            terminal,
+            active_workers,
+            claimed_attempts,
+            failed_attempts,
+        } => println!(
+            "progress: state=running elapsed={} active={active_workers} claimed={claimed_attempts} failed_attempts={failed_attempts} queue={complete}/{total} remaining={}",
+            elapsed(*elapsed_ms),
+            remaining(*total, *complete, *terminal)
+        ),
+        InsomniaProgressEvent::EpisodeCompleted {
+            episode_id,
+            attempt,
+            elapsed_ms,
+            total,
+            complete,
+            terminal,
+            project_created,
+            project_existing,
+            user_created,
+            user_existing,
+            rejected,
+            evidence_turns,
+        } => println!(
+            "progress: state=episode_complete episode={} attempt={attempt} elapsed={} queue={complete}/{total} remaining={} project_created={project_created} project_existing={project_existing} user_created={user_created} user_existing={user_existing} rejected={rejected} evidence_turns={evidence_turns}",
+            hex32(&episode_id.0),
+            elapsed(*elapsed_ms),
+            remaining(*total, *complete, *terminal)
+        ),
+        InsomniaProgressEvent::EpisodeRetry {
+            episode_id,
+            attempt,
+            elapsed_ms,
+            retry_after_ms,
+            backpressure,
+            error,
+            total,
+            complete,
+            terminal,
+        } => println!(
+            "progress: state={} episode={} attempt={attempt} elapsed={} retry_in={} queue={complete}/{total} remaining={} error={:?}",
+            if *backpressure {
+                "backpressure"
+            } else {
+                "retry"
+            },
+            hex32(&episode_id.0),
+            elapsed(*elapsed_ms),
+            elapsed(*retry_after_ms),
+            remaining(*total, *complete, *terminal),
+            compact_error(error)
+        ),
+        InsomniaProgressEvent::EpisodeTerminal {
+            episode_id,
+            attempt,
+            elapsed_ms,
+            error,
+            total,
+            complete,
+            terminal,
+        } => println!(
+            "progress: state=terminal episode={} attempt={attempt} elapsed={} queue={complete}/{total} remaining={} error={:?}",
+            hex32(&episode_id.0),
+            elapsed(*elapsed_ms),
+            remaining(*total, *complete, *terminal),
+            compact_error(error)
+        ),
+        InsomniaProgressEvent::VectorizationStarted { owner, memories } => {
+            println!("progress: state=vectorizing owner={owner} memories={memories}")
+        }
+        InsomniaProgressEvent::VectorizationCompleted {
+            owner,
+            embedded,
+            already_present,
+        } => println!(
+            "progress: state=vectorization_complete owner={owner} embedded={embedded} already_present={already_present}"
+        ),
+    }
+    let _ = io::stdout().flush();
+}
+
+fn remaining(total: usize, complete: usize, terminal: usize) -> usize {
+    total.saturating_sub(complete.saturating_add(terminal))
+}
+
+fn elapsed(milliseconds: u64) -> String {
+    format!("{:.1}s", milliseconds as f64 / 1000.0)
+}
+
+fn compact_error(error: &str) -> String {
+    const LIMIT: usize = 512;
+    let one_line = error.split_whitespace().collect::<Vec<_>>().join(" ");
+    if one_line.chars().count() <= LIMIT {
+        return one_line;
+    }
+    let mut value: String = one_line.chars().take(LIMIT).collect();
+    value.push('…');
+    value
 }

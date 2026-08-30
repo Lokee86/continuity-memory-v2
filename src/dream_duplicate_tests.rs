@@ -113,9 +113,11 @@ fn middle_insertion_rewires_one_chain_transaction() {
     };
     assert_eq!(changes.len(), 3);
     assert!(changes.iter().all(|change| change.graph_version == 2));
-    assert!(changes
-        .windows(2)
-        .all(|pair| pair[0].global_version == pair[1].global_version));
+    assert!(
+        changes
+            .windows(2)
+            .all(|pair| pair[0].global_version == pair[1].global_version)
+    );
     assert_eq!(
         duplicate_edges(&cva),
         HashSet::from([(new, middle), (middle, old)])

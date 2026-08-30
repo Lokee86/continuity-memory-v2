@@ -256,6 +256,15 @@ impl Cva {
         )
     }
 
+    pub fn retry_terminal_insomnia_episode(
+        &mut self,
+        episode_id: EpisodeId,
+        now_ns: i64,
+    ) -> Result<InsomniaWork, InsomniaError> {
+        self.insomnia
+            .retry_terminal(&mut self.container, episode_id, now_ns)
+    }
+
     pub fn insomnia_work(&self, episode_id: EpisodeId) -> Option<&InsomniaWork> {
         self.insomnia.work(episode_id)
     }

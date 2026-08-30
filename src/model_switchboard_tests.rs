@@ -137,6 +137,16 @@ fn invalid_provider_routes_are_rejected() {
 }
 
 #[test]
+fn openai_ready_routes_allow_explicit_reasoning_effort() {
+    let mut models = configured_models();
+    models.insomnia.as_mut().unwrap().reasoning_effort = Some(crate::ModelReasoningEffort::Low);
+    models.insomnia_metadata.as_mut().unwrap().reasoning_effort =
+        Some(crate::ModelReasoningEffort::Low);
+    models.dream.as_mut().unwrap().reasoning_effort = Some(crate::ModelReasoningEffort::Low);
+    assert!(ModelSwitchboard::new(models, configured_credentials()).is_ok());
+}
+
+#[test]
 fn insomnia_route_falls_back_to_general_when_unset() {
     let mut models = configured_models();
     models.insomnia = None;

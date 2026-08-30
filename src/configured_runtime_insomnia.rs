@@ -1,8 +1,8 @@
 use super::{ConfiguredRuntime, ConfiguredRuntimeError, operation};
 use crate::{
     ConfiguredGeneralEndpoint, Cva, EpisodeConfig, EpisodeId, InsomniaDrainResult,
-    InsomniaExtractor, InsomniaStats, InsomniaWorkState, InsomniaWorkerConfig,
-    OpenAiReadyEmbeddingEndpoint, Phylactery,
+    InsomniaExtractor, InsomniaProgressReporter, InsomniaStats, InsomniaWorkState,
+    InsomniaWorkerConfig, OpenAiReadyEmbeddingEndpoint, Phylactery,
 };
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -37,6 +37,26 @@ impl ConfiguredRuntime {
         rel_path: &Path,
         phy_path: Option<&Path>,
         options: ConfiguredInsomniaOptions,
+    ) -> Result<ConfiguredInsomniaReport, ConfiguredRuntimeError> {
+        self.run_insomnia_files_inner(rel_path, phy_path, options, None)
+    }
+
+    pub fn run_insomnia_files_with_progress<P: InsomniaProgressReporter>(
+        &self,
+        rel_path: &Path,
+        phy_path: Option<&Path>,
+        options: ConfiguredInsomniaOptions,
+        progress: &P,
+    ) -> Result<ConfiguredInsomniaReport, ConfiguredRuntimeError> {
+        self.run_insomnia_files_inner(rel_path, phy_path, options, Some(progress))
+    }
+
+    fn run_insomnia_files_inner(
+        &self,
+        rel_path: &Path,
+        phy_path: Option<&Path>,
+        options: ConfiguredInsomniaOptions,
+        progress: Option<&dyn InsomniaProgressReporter>,
     ) -> Result<ConfiguredInsomniaReport, ConfiguredRuntimeError> {
         let main = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&self.switchboard)
             .map_err(operation)?;
@@ -74,11 +94,28 @@ impl ConfiguredRuntime {
             scope: options.scope,
             ..Default::default()
         };
-        let drain = match phy.as_mut() {
-            Some(phy) => rel
+        let drain = match (phy.as_mut(), progress) {
+            (Some(phy), Some(progress)) => rel
+                .drain_insomnia_backlog_routed_with_progress(
+                    phy,
+                    &extractor,
+                    &embedding,
+                    worker_config,
+                    progress,
+                )
+                .map_err(operation)?,
+            (Some(phy), None) => rel
                 .drain_insomnia_backlog_routed(phy, &extractor, &embedding, worker_config)
                 .map_err(operation)?,
-            None => rel
+            (None, Some(progress)) => rel
+                .drain_insomnia_backlog_with_progress(
+                    &extractor,
+                    &embedding,
+                    worker_config,
+                    progress,
+                )
+                .map_err(operation)?,
+            (None, None) => rel
                 .drain_insomnia_backlog(&extractor, &embedding, worker_config)
                 .map_err(operation)?,
         };

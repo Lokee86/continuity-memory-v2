@@ -25,6 +25,7 @@ src/master_key*.rs                  generated master key + temporary JSON key st
 src/cva*.rs                         composition/public CVA lifecycle
 src/container*.rs                   physical CVA substrate/global ordering
 src/archive*.rs / fragment*.rs      Archive semantics/history/fragments
+src/conversation_search*.rs         transient exact-live-branch lexical retrieval
 src/turn_ingest*.rs / file*.rs      native source-turn attachments + embedded files
 src/interaction_*.rs                normalized live session/stream runtime seam
 src/episode*.rs                     deterministic Archive Episodes

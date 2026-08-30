@@ -1,6 +1,6 @@
-use crate::community_routing_bench_fixture::{load_fixture, RoutingFixture, RoutingProbe};
-use crate::community_routing_bench_support::{entries, logical_index_bytes, route, BenchStrategy};
 use crate::CommunityId;
+use crate::community_routing_bench_fixture::{RoutingFixture, RoutingProbe, load_fixture};
+use crate::community_routing_bench_support::{BenchStrategy, entries, logical_index_bytes, route};
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 

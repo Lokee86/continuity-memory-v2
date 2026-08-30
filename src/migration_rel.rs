@@ -24,6 +24,7 @@ pub(super) fn migrate(
     let memory_vector_infos = source.memory_vector_infos();
     let archive_vector_infos = source.archive_vector_infos();
     let generations = source.vector_generations.generations().to_vec();
+    let compactions = source.conversation_compactions.all_records();
 
     let mut output = op(Cva::create_scope_with_uuid(output_path, scope, owner_uuid))?;
     for profile in profiles {
@@ -32,6 +33,14 @@ pub(super) fn migrate(
             .put(&mut output.container, profile))?;
     }
     op(replay_interaction_streams(&mut output, streams))?;
+    for compaction in compactions {
+        op(output.put_conversation_compaction(
+            compaction.conversation_id,
+            compaction.through_message_id,
+            compaction.summary,
+            None,
+        ))?;
+    }
     op(replay_archive_tail(&mut output, &archive))?;
     op(replay_memory_tail(&mut output, memories))?;
     op(replay_graph_tail(&mut output, &graph))?;

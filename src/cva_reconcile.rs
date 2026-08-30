@@ -52,15 +52,13 @@ impl Cva {
             });
         }
 
-        let left_chunks = left.container.chunks()?;
-        let right_chunks = right.container.chunks()?;
-        let mut common_chunk_count = 0;
-        for (left_chunk, right_chunk) in left_chunks.iter().zip(&right_chunks) {
-            if left.container.read(*left_chunk)? != right.container.read(*right_chunk)? {
-                break;
-            }
-            common_chunk_count += 1;
-        }
+        let left_chunks = semantic_chunk_payloads(&mut left)?;
+        let right_chunks = semantic_chunk_payloads(&mut right)?;
+        let common_chunk_count = left_chunks
+            .iter()
+            .zip(&right_chunks)
+            .take_while(|(left, right)| left == right)
+            .count();
         let left_chunk_count = left_chunks.len();
         let right_chunk_count = right_chunks.len();
         let relation = classify(common_chunk_count, left_chunk_count, right_chunk_count);
@@ -119,6 +117,18 @@ fn empty_result(comparison: CvaComparison) -> CvaReconcileResult {
 fn owner_id(cva: &Cva, side: &'static str) -> Result<String, CvaReconcileError> {
     cva.owner_id()
         .ok_or(CvaReconcileError::MissingOwnerId(side))
+}
+
+fn semantic_chunk_payloads(cva: &mut Cva) -> Result<Vec<Vec<u8>>, CvaReconcileError> {
+    let chunks = cva.container.chunks()?;
+    let mut payloads = Vec::with_capacity(chunks.len());
+    for chunk in chunks {
+        let payload = cva.container.read(chunk)?;
+        if !crate::conversation_compaction_codec::is_compaction_payload(&payload) {
+            payloads.push(payload);
+        }
+    }
+    Ok(payloads)
 }
 
 fn classify(common: usize, left: usize, right: usize) -> CvaRelation {

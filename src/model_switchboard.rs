@@ -284,9 +284,6 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
 }
 
 fn validate_general_endpoint(endpoint: &GeneralModelEndpoint) -> Result<(), ConfigError> {
-    if endpoint.provider == ModelProvider::OpenAiReady && endpoint.reasoning_effort.is_some() {
-        return Err(ConfigError::InvalidModelSwitchboard);
-    }
     validate_endpoint(endpoint.provider, &endpoint.model, endpoint.url.as_deref())
 }
 

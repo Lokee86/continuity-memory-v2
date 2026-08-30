@@ -93,6 +93,13 @@ fn legacy_typed_rel_migration_preserves_identity_and_state() {
         .unwrap();
     rel.build_archive_vector_generation(profile.id, &endpoint)
         .unwrap();
+    rel.put_conversation_compaction(
+        "conversation-old".into(),
+        "n5".into(),
+        "durable migrated summary".into(),
+        None,
+    )
+    .unwrap();
     append_legacy_workspace_id(&mut rel, "workspace-shared");
     rel.sync().unwrap();
     drop(rel);
@@ -112,6 +119,10 @@ fn legacy_typed_rel_migration_preserves_identity_and_state() {
     assert!(migrated.archive_vector_stats().objects > 0);
     assert_eq!(migrated.vector_generation_stats().generations, 1);
     assert!(migrated.current_vector_generation(profile.id).is_some());
+    let compactions = migrated.conversation_compactions("conversation-old");
+    assert_eq!(compactions.len(), 1);
+    assert_eq!(compactions[0].through_message_id, "n5");
+    assert_eq!(compactions[0].summary, "durable migrated summary");
 }
 
 #[test]
@@ -164,7 +175,9 @@ fn legacy_cva_migrates_once_to_current_project_rel() {
     assert!(!result.derived_from_legacy_workspace_id);
     assert_eq!(result.scope, Some(ReliquaryScopeKind::Project));
     assert!(result.owner_id.starts_with("proj-"));
-    assert_eq!(Cva::open(&output).unwrap().stats().nodes, 1);
+    let migrated = Cva::open(&output).unwrap();
+    assert_eq!(migrated.stats().nodes, 1);
+    assert!(migrated.conversation_compactions("c").is_empty());
 
     assert!(matches!(
         migrate_file(&output, &retry_output),

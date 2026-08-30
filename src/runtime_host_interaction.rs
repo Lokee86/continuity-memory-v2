@@ -57,6 +57,63 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn conversation_compactions(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Vec<crate::ConversationCompaction>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| Ok(runtime.cva().conversation_compactions(conversation_id)))
+    }
+
+    pub fn put_conversation_compaction(
+        &self,
+        conversation_id: String,
+        through_message_id: String,
+        summary: String,
+        supersedes_through_message_id: Option<&str>,
+    ) -> Result<crate::ConversationCompaction, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cva
+                .put_conversation_compaction(
+                    conversation_id,
+                    through_message_id,
+                    summary,
+                    supersedes_through_message_id,
+                )
+                .map_err(operation)
+        })
+    }
+
+    pub fn search_conversation_branch(
+        &self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::ConversationSearchHit>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .search_conversation_branch(conversation_id, leaf_node_id, query, limit)
+                .map_err(operation)
+        })
+    }
+
+    pub fn search_open_session(
+        &self,
+        session_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::ConversationSearchHit>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            let leaf = runtime
+                .session_leaf_node_id(session_id)
+                .map_err(operation)?;
+            runtime
+                .search_conversation_branch(session_id, &leaf, query, limit)
+                .map_err(operation)
+        })
+    }
+
     pub fn open_session(
         &self,
         session_id: String,

@@ -4,6 +4,9 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_store::{CommunityOpenState, CommunityStore};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::conversation_compaction_store::{
+    ConversationCompactionOpenState, ConversationCompactionStore,
+};
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::file_memory_link_store::validate_file_memory_targets;
@@ -128,6 +131,7 @@ impl Cva {
         let compatibility_profiles = CompatibilityProfileStore::default();
         let vector_generations = VectorGenerationStore::empty();
         let interaction_streams = InteractionStreamStore::default();
+        let conversation_compactions = ConversationCompactionStore::empty();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -153,6 +157,7 @@ impl Cva {
             compatibility_profiles,
             vector_generations,
             interaction_streams,
+            conversation_compactions,
         })
     }
 
@@ -168,7 +173,8 @@ impl Cva {
         let mut profile_state = CompatibilityProfileOpenState::new();
         let mut generation_state = VectorGenerationOpenState::new();
         let mut interaction_streams = InteractionStreamStore::default();
-        let container = Container::open_scanned(path, |chunk, payload, latest_global| {
+        let mut compaction_state = ConversationCompactionOpenState::default();
+        let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
@@ -180,6 +186,7 @@ impl Cva {
             profile_state.ingest(chunk, payload)?;
             generation_state.ingest(chunk, payload, latest_global)?;
             interaction_streams.ingest(payload)?;
+            compaction_state.ingest(chunk, payload)?;
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()
@@ -212,6 +219,7 @@ impl Cva {
             &compatibility_profiles,
         )?;
         validate_semantic_global_versions(&archive, &memories, &graph, &vector_generations)?;
+        let conversation_compactions = compaction_state.finish(&mut container)?;
         Ok(Self {
             container,
             archive,
@@ -227,6 +235,7 @@ impl Cva {
             compatibility_profiles,
             vector_generations,
             interaction_streams,
+            conversation_compactions,
         })
     }
 }

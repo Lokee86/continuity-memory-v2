@@ -82,6 +82,17 @@ impl InteractionRuntime {
         self.cva.conversation_turns(conversation_id, leaf_node_id)
     }
 
+    pub fn search_conversation_branch(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
+        self.cva
+            .search_conversation_branch(conversation_id, leaf_node_id, query, limit)
+    }
+
     pub fn conversation_transcript(
         &mut self,
         conversation_id: &str,
@@ -134,6 +145,10 @@ impl InteractionRuntime {
         }
         transcript.sort_by_key(|turn| turn.timestamp_ns);
         Ok(transcript)
+    }
+
+    pub fn session_leaf_node_id(&self, session_id: &str) -> Result<String, InteractionError> {
+        self.session_leaf(session_id)
     }
 
     pub fn cva(&self) -> &Cva {

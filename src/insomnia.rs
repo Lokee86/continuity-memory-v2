@@ -17,6 +17,7 @@ mod metadata;
 mod model;
 mod ownership;
 mod processor;
+mod progress;
 pub(crate) mod rebuild;
 pub(crate) mod runtime_step;
 pub(crate) mod store;
@@ -43,6 +44,10 @@ pub use model::{
 };
 pub use ownership::{INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, InsomniaOwnership};
 pub use processor::{InsomniaProcessError, InsomniaProcessResult};
+pub use progress::{
+    DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, InsomniaProgressEvent, InsomniaProgressReporter,
+    InsomniaSemanticStage,
+};
 pub(crate) use runtime_step::RuntimeInsomniaClaim;
 pub use worker::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,

@@ -14,6 +14,7 @@ use std::collections::{HashMap, HashSet};
 pub(crate) struct MemoryVectorStore {
     objects: HashMap<MemoryVectorId, MemoryVectorEntry>,
     bindings: HashMap<(CompatibilityProfileId, MemoryBodyId), MemoryVectorLocation>,
+    profile_binding_counts: HashMap<CompatibilityProfileId, usize>,
 }
 
 #[derive(Clone, Copy)]
@@ -150,6 +151,10 @@ impl MemoryVectorStore {
                 },
             );
         }
+        *self
+            .profile_binding_counts
+            .entry(info.compatibility_profile_id)
+            .or_default() += body_ids.len();
         self.objects
             .insert(info.id, MemoryVectorEntry { info, chunk });
         Ok(())
@@ -173,6 +178,13 @@ impl MemoryVectorStore {
             .copied()
             .filter(|body_id| !self.bindings.contains_key(&(profile_id, *body_id)))
             .collect()
+    }
+
+    pub(crate) fn binding_count(&self, profile_id: CompatibilityProfileId) -> usize {
+        self.profile_binding_counts
+            .get(&profile_id)
+            .copied()
+            .unwrap_or(0)
     }
 
     pub(crate) fn infos(&self) -> Vec<MemoryVectorInfo> {

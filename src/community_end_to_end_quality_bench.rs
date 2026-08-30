@@ -45,7 +45,9 @@ fn community_end_to_end_context_quality_benchmark() {
         evaluate_fold(&fixture, &graph, &held_out, &router, &mut totals);
     }
 
-    println!("budget,global_support,tiered_support,global_dominant_share,tiered_dominant_share,global_effective_communities,tiered_effective_communities,global_redundancy,tiered_redundancy,global_query_similarity,tiered_query_similarity,global_words,tiered_words");
+    println!(
+        "budget,global_support,tiered_support,global_dominant_share,tiered_dominant_share,global_effective_communities,tiered_effective_communities,global_redundancy,tiered_redundancy,global_query_similarity,tiered_query_similarity,global_words,tiered_words"
+    );
     let queries = totals.queries.max(1) as f64;
     for (slot, budget) in BUDGETS.into_iter().enumerate() {
         println!(

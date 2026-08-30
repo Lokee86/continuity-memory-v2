@@ -42,7 +42,10 @@ fn create(path: &std::path::Path, scope: RelScopeArg) -> Result<Reliquary> {
 fn info(path: &std::path::Path) -> Result<()> {
     let rel = Reliquary::open(path)?;
     let archive = rel.stats();
+    let memories = rel.memory_stats();
+    let graph = rel.graph_stats();
     let packed = rel.packed_vector_stats();
+    let memory_vectors = rel.memory_vector_stats();
     let bindings = rel.archive_vector_stats();
     let profiles = rel.compatibility_profile_stats();
     let generations = rel.vector_generation_stats();
@@ -53,6 +56,8 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("scope: {}", scope_kind_name(rel.scope_kind()));
     println!("legacy_cva: {}", rel.is_legacy_cva());
     println!("archive_version: {}", rel.archive_version());
+    println!("memory_version: {}", rel.memory_version());
+    println!("graph_version: {}", rel.graph_version());
     println!("vector_version: {}", rel.vector_version());
     println!(
         "archive: nodes={} branches={} fragments={} files={} source_attachments={} file_memory_links={} content_objects={}",
@@ -65,9 +70,15 @@ fn info(path: &std::path::Path) -> Result<()> {
         archive.content_objects
     );
     println!(
+        "memories: current={} revisions={} bodies={}",
+        memories.memories, memories.revisions, memories.bodies
+    );
+    println!("graph: active_relations={}", graph.active_relations);
+    println!(
         "packed_vectors: objects={} rows={} matrix_bytes={}",
         packed.objects, packed.rows, packed.matrix_bytes
     );
+    println!("memory_vectors: bindings={}", memory_vectors.bindings);
     println!(
         "archive_vectors: objects={} rows={}",
         bindings.objects, bindings.rows

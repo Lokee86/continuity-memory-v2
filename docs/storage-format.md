@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared append-only container now supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded files, durable interaction-stream checkpoints, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded files, durable interaction-stream checkpoints, mutable conversation-compaction state, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -65,6 +65,12 @@ These records are durable transcript state, not Archive semantic records. They c
 
 Divergent Reliquary reconciliation retains and merges interaction-stream records independently of Archive semantic history. Compatible prefix histories keep the longest visible content and retain `Interrupted` if either side recorded interruption; non-prefix text or immutable-metadata divergence is rejected rather than silently discarding user-visible output.
 
+### Conversation compaction store
+
+Conversation compaction is durable derived conversation state stored only in REL files. Records are keyed by conversation plus branch checkpoint (`through_message_id`) and carry a generation plus UTF-8 summary. The store uses variable-width physical chunks rather than append-only semantic publication. Replacement writes the new live record and syncs it before reclaiming the superseded allocation. Reclaimed chunks are marked free, reused before file growth, split when oversized, coalesced when adjacent, and physically truncated when a coalesced free extent reaches end-of-file.
+
+Free extents and obsolete/superseded allocations are allocator state, not durable semantic history. Reopen recovers incomplete supersession and completes reclamation. Sibling-branch live checkpoints may coexist. Compaction records consume no `CVAVERS1`, Archive version, Memory version, or Vector Generation version and are excluded from semantic ancestry comparison. Explicit legacy REL migration republishes only live compaction records; free/reclaimed physical extents are not copied.
+
 ### Archive records
 Format marker:
 ```text
@@ -105,6 +111,7 @@ string    conversation ID
 string    start node ID
 string    end node ID
 ```
+The same deterministic window calculation may also be used transiently for read-only live-branch search. Those transient windows are ordinary in-memory `Fragment` values only: search does not write `CVAFRAG1` or `CVAAREC1`, advance Archive/global clocks, or alter the persisted Fragment population.
 Episode:
 ```text
 8 bytes   "CVAEPIS1"

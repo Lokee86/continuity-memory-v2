@@ -39,6 +39,10 @@ pub(super) fn worker_loop(
         if stopped(&shared.signal)? {
             return Ok(());
         }
+        if !shared.insomnia_enabled.load(Ordering::SeqCst) {
+            seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
+            continue;
+        }
         if index == 0 {
             sweep_inactive(&shared)?;
         }

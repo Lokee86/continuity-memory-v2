@@ -1,6 +1,6 @@
 use crate::community_routing::cosine;
-use crate::community_routing_bench_fixture::{load_fixture, RoutingFixture};
-use crate::community_routing_bench_support::{entries, route, BenchStrategy};
+use crate::community_routing_bench_fixture::{RoutingFixture, load_fixture};
+use crate::community_routing_bench_support::{BenchStrategy, entries, route};
 use crate::{CommunityId, MemoryId};
 use std::collections::{HashMap, HashSet};
 
@@ -128,7 +128,7 @@ fn ranked_targets(
         right
             .1
             .total_cmp(&left.1)
-            .then_with(|| left.0 .0.cmp(&right.0 .0))
+            .then_with(|| left.0.0.cmp(&right.0.0))
     });
     ranked.into_iter().map(|(id, _)| id).collect()
 }

@@ -10,6 +10,7 @@ mod archive_model;
 mod archive_object_index;
 mod archive_rebuild;
 mod archive_record_index;
+mod archive_search;
 mod archive_store;
 mod archive_vector_codec;
 mod archive_vector_error;
@@ -45,6 +46,12 @@ mod configured_runtime;
 pub mod container;
 mod container_error;
 mod container_version;
+mod conversation_compaction_allocator;
+mod conversation_compaction_codec;
+mod conversation_compaction_model;
+mod conversation_compaction_store;
+mod conversation_search;
+mod conversation_search_model;
 mod credential;
 mod credential_codec;
 mod credential_crypto;
@@ -59,6 +66,7 @@ mod cva_global_validation;
 mod cva_graph;
 mod cva_lifecycle;
 mod cva_memory_publish;
+mod cva_memory_retrieval;
 mod cva_memory_vectors;
 mod cva_packed_vectors;
 mod cva_reconcile;
@@ -157,6 +165,13 @@ mod memory_codec_scalar;
 mod memory_error;
 mod memory_model;
 mod memory_rebuild;
+mod memory_retrieval;
+mod memory_retrieval_build;
+mod memory_retrieval_error;
+mod memory_retrieval_index;
+mod memory_retrieval_model;
+mod memory_retrieval_traversal;
+mod memory_retrieval_vectors;
 mod memory_store;
 mod memory_vector_codec;
 mod memory_vector_error;
@@ -187,6 +202,7 @@ mod phylactery_dream_publisher;
 mod phylactery_error;
 mod phylactery_graph;
 mod phylactery_lifecycle;
+mod phylactery_memory_retrieval;
 mod phylactery_memory_vectors;
 mod phylactery_packed_vectors;
 mod runtime_host;
@@ -212,6 +228,9 @@ pub use archive::Archive;
 pub use archive_error::ArchiveError;
 pub use archive_history_model::ArchiveRecordVersion;
 pub use archive_model::{ArchiveStats, Branch, ContentId, ConversationSummary, Node, ResolvedTurn};
+pub use archive_search::{
+    ArchiveSearchHit, MAX_ARCHIVE_SEARCH_QUERY_BYTES, MAX_ARCHIVE_SEARCH_RESULTS,
+};
 pub use archive_vector_error::ArchiveVectorError;
 pub use archive_vector_model::{
     ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet, ArchiveVectorStats,
@@ -238,6 +257,10 @@ pub use container::{
     ChunkRef, Container, ContainerError, ContainerIdentity, FileKind, FormatVersion,
     ReliquaryScopeKind,
 };
+pub use conversation_compaction_model::{
+    ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
+};
+pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
 pub type Reliquary = Cva;
@@ -304,16 +327,18 @@ pub use graph_model::{
 };
 pub use insomnia::{
     DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS, DEFAULT_INSOMNIA_LEASE_NS,
-    DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS, DEFAULT_INSOMNIA_RETRY_DELAY_NS,
+    DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
+    DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, DEFAULT_INSOMNIA_RETRY_DELAY_NS,
     DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS, EpisodeSchedulingResult,
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, INSOMNIA_SYSTEM_PROMPT,
     InsomniaAttempt, InsomniaCandidate, InsomniaDrainResult, InsomniaError, InsomniaEvidenceResult,
     InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError, InsomniaExtractor,
     InsomniaLeaseToken, InsomniaOwnership, InsomniaPriority, InsomniaProcessError,
-    InsomniaProcessResult, InsomniaRejection, InsomniaStats, InsomniaWork, InsomniaWorkState,
-    InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES,
-    MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
-    MAX_INSOMNIA_WORKERS, insomnia_schema,
+    InsomniaProcessResult, InsomniaProgressEvent, InsomniaProgressReporter, InsomniaRejection,
+    InsomniaSemanticStage, InsomniaStats, InsomniaWork, InsomniaWorkState, InsomniaWorkerConfig,
+    InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES, MAX_INSOMNIA_EVIDENCE_BYTES,
+    MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS, MAX_INSOMNIA_WORKERS,
+    insomnia_schema,
 };
 pub use interaction_background::{
     DEFAULT_RUNTIME_DREAM_BATCH, RuntimeBackgroundConfig, RuntimeBackgroundError,
@@ -335,6 +360,13 @@ pub use master_key::{
 pub use memory_error::MemoryError;
 pub use memory_model::{
     Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRevisionId, MemoryStats,
+};
+pub use memory_retrieval_error::MemoryRetrievalError;
+pub use memory_retrieval_model::{
+    DEFAULT_MEMORY_RETRIEVAL_BUDGET, DEFAULT_MEMORY_RETRIEVAL_COMMUNITIES,
+    DEFAULT_MEMORY_RETRIEVAL_MAX_DEPTH, DEFAULT_MEMORY_RETRIEVAL_SEEDS,
+    DEFAULT_MEMORY_RETRIEVAL_SUBCENTROIDS, MemoryRetrievalConfig, MemoryRetrievalHit,
+    MemoryRetrievalIndex, MemoryRetrievalMode, MemoryRetrievalResult,
 };
 pub use memory_vector_error::MemoryVectorError;
 pub use memory_vector_model::{
@@ -363,6 +395,9 @@ pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
+pub use runtime_host::memory_search::{
+    MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,
+};
 pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
 pub use search_error::SearchError;
 pub use search_model::{
@@ -378,6 +413,8 @@ pub use vector_generation_model::{VectorGeneration, VectorGenerationId, VectorGe
 #[cfg(test)]
 mod archive_inventory_tests;
 #[cfg(test)]
+mod archive_search_tests;
+#[cfg(test)]
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
@@ -392,25 +429,17 @@ mod community_retrieval_bench;
 #[cfg(test)]
 mod community_routing_bench;
 #[cfg(test)]
-mod community_routing_cached_bench;
-#[cfg(test)]
-mod community_routing_holdout_bench;
-#[cfg(test)]
-mod community_routing_score_bench;
-#[cfg(test)]
-mod community_subcentroid_routing;
-#[cfg(test)]
-mod community_traversal_bench;
-#[cfg(test)]
-mod community_traversal_bench_fixture;
-#[cfg(test)]
-mod community_traversal_bench_support;
-#[cfg(test)]
 mod community_routing_bench_fixture;
 #[cfg(test)]
 mod community_routing_bench_support;
 #[cfg(test)]
+mod community_routing_cached_bench;
+#[cfg(test)]
+mod community_routing_holdout_bench;
+#[cfg(test)]
 mod community_routing_scale_bench;
+#[cfg(test)]
+mod community_routing_score_bench;
 #[cfg(test)]
 mod community_routing_tests;
 #[cfg(test)]
@@ -418,15 +447,27 @@ mod community_scan_merge_bench;
 #[cfg(test)]
 mod community_scan_merge_tests;
 #[cfg(test)]
+mod community_subcentroid_routing;
+#[cfg(test)]
 mod community_test_support;
 #[cfg(test)]
 mod community_tests;
+#[cfg(test)]
+mod community_traversal_bench;
+#[cfg(test)]
+mod community_traversal_bench_fixture;
+#[cfg(test)]
+mod community_traversal_bench_support;
 #[cfg(test)]
 mod compatibility_profile_tests;
 #[cfg(test)]
 mod config_tests;
 #[cfg(test)]
 mod container_tests;
+#[cfg(test)]
+mod conversation_compaction_tests;
+#[cfg(test)]
+mod conversation_search_tests;
 #[cfg(test)]
 mod conversation_tests;
 #[cfg(test)]
@@ -501,6 +542,10 @@ mod lexical_index_tests;
 mod master_key_tests;
 #[cfg(test)]
 mod memory_codec_tests;
+#[cfg(test)]
+mod memory_retrieval_stale_tests;
+#[cfg(test)]
+mod memory_retrieval_tests;
 #[cfg(test)]
 mod memory_tests;
 #[cfg(test)]

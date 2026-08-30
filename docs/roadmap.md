@@ -185,15 +185,14 @@ The remaining redesign and implementation sequence are owned by [Dream implement
 
 ### Memory-web organization
 
-Owner-local derived Community snapshots use the implemented graph-local Leiden scan-and-merge reduction. The larger real Memory-Web retrieval evidence gate is now complete and frozen in [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md): five deterministic folds over a 1,087-vector / 12-community Project REL validate four deterministic sub-centroids per community and top-4 community routing as the normal production candidate. That path uses 40.86% of global vector-comparison work, preserves 95.16% of exact global top-four Memory seeds, improves support recall at 16- and 32-node traversal budgets, is within 0.18 percentage points of global at 64 nodes, sharply reduces graph boundary wandering, and does not materially increase semantic redundancy or context volume.
+Owner-local derived Community snapshots use the implemented graph-local Leiden scan-and-merge reduction, and owner-local Memory retrieval now implements the validated Community-routing primitive described in [ADR 0026](decisions/0026-community-routed-memory-retrieval.md). Both REL and PHY can build a reusable transient `MemoryRetrievalIndex`; the default derives four sub-centroids per current Community, routes to four Communities plus the unclustered residual lane, exact-scores admitted Memories, selects four seeds, and traverses by Graph depth with Community locality only inside equal depth. An explicit/global fallback path remains available.
 
-Remaining memory-web work is therefore implementation rather than another routing-quality gate:
+Remaining memory-web work is integration and measurement rather than another routing-quality gate:
 
-- promote the benchmark-only routing profile into deterministic derived retrieval-index machinery without making Community vectors semantic authority;
-- implement top-4 selected-community exact Memory-vector fine search with the always-admitted unclustered residual lane;
-- implement depth-first graph traversal with community preference only within equal depth;
-- measure release-mode production latency and integration behaviour against the current global Memory-vector baseline while preserving an explicit rollback path during rollout;
-- keep K=3 only as a possible explicit cost-biased mode; K=2 is not supported as a general default by the five-fold validation;
+- attach reusable `MemoryRetrievalIndex` lifecycle to Ego/runtime so repeated queries cache the derived index and deterministically rebuild on stale Memory/Graph/Community watermarks;
+- compose owner-local REL and PHY retrieval above these primitives without introducing cross-owner Dream/Graph authority;
+- measure release-mode production latency and integration behaviour against the explicit `GlobalExact` reference path while preserving an easy rollback during rollout;
+- keep K=3 only as a possible explicit cost-biased mode if production economics justify exposing it; K=2 is not supported as a general default by the five-fold validation;
 - consider split/merge lineage or continuity-preserving IDs only if a concrete product need appears;
 - consider incremental invalidation/reduction reuse only if measured scan-and-merge cost becomes material; and
 - keep human-facing community naming as Warlock presentation metadata rather than semantic Memory-Web authority.

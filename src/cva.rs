@@ -1,6 +1,7 @@
 use crate::archive_vector_store::ArchiveVectorStore;
 use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::conversation_compaction_store::ConversationCompactionStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::graph_store::GraphStore;
@@ -32,6 +33,7 @@ pub struct Cva {
     pub(crate) archive_vectors: ArchiveVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
     pub(crate) vector_generations: VectorGenerationStore,
+    pub(crate) conversation_compactions: ConversationCompactionStore,
     pub(crate) interaction_streams: InteractionStreamStore,
 }
 
@@ -283,6 +285,31 @@ impl Cva {
 
     pub fn file_bytes(&mut self, id: FileId) -> Result<Vec<u8>, ArchiveError> {
         self.archive.file_bytes(&mut self.container, id)
+    }
+
+    pub fn conversation_compactions(
+        &self,
+        conversation_id: &str,
+    ) -> Vec<crate::ConversationCompaction> {
+        self.conversation_compactions
+            .for_conversation(conversation_id)
+    }
+
+    pub fn put_conversation_compaction(
+        &mut self,
+        conversation_id: String,
+        through_message_id: String,
+        summary: String,
+        supersedes_through_message_id: Option<&str>,
+    ) -> Result<crate::ConversationCompaction, CvaError> {
+        let record = self.conversation_compactions.put(
+            &mut self.container,
+            conversation_id,
+            through_message_id,
+            summary,
+            supersedes_through_message_id,
+        )?;
+        Ok(record)
     }
 
     pub(crate) fn put_interaction_stream(

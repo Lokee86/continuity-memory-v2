@@ -1,6 +1,6 @@
+use crate::MemoryId;
 use crate::community_routing_bench_fixture::RoutingFixture;
 use crate::community_traversal_bench_fixture::{adjacency, ranked_targets};
-use crate::MemoryId;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
