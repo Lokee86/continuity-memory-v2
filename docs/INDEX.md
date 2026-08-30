@@ -9,7 +9,8 @@
 - [Development](development.md) — repository workflow, tests, and smoke example.
 - [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md) — frozen semantic/metadata/wording tuning architecture, corrected evaluator scope, Sol/Ox/Luna comparison, and provider compatibility findings.
 - [Community scan-and-merge benchmark — 2026-08-27](community-scan-merge-benchmark-2026-08-27.md) — synthetic scaling and modularity comparison for community algorithm v2 against monolithic Leiden.
-- [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md) — **superseded/quarantined** monolithic 46-Memory routing run; records why it is not valid owner-split evidence and the required replacement fixture path.
+- [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md) — small owner-split routing and synthetic scale evidence that established the requirements for a larger real Memory-Web validation.
+- [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md) — five-fold 1,087-Memory validation of four-sub-centroid/top-4 routing, end-to-end traversal quality, vector-work reduction, and context-diversity checks.
 - [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) — provisional durable-scope ownership architecture covering Phylactery plus typed Organization, Project, and Connection Reliquaries, scope-graph composition, provenance/export policy, and ownership-classification options.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.

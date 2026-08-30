@@ -12,7 +12,7 @@ The benchmark now has two complementary lanes: a real persisted owner-local Drea
 
 ## Status
 
-**Promising test-only routing evidence. Not yet a production retrieval path.**
+**Superseded as the final routing-quality gate by [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md).** This document remains the frozen small owner-split and synthetic scale baseline that motivated the larger real-corpus validation.
 
 The old 46-Memory Project-only run remains superseded and quarantined under:
 
