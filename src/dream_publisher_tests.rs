@@ -96,7 +96,7 @@ fn undirected_relation_publishes_reciprocal_edges_in_one_graph_transaction() {
 }
 
 #[test]
-fn pair_reconciliation_retracts_old_relation_and_adds_new_one_atomically() {
+fn later_positive_relation_adds_without_retracting_existing_relation() {
     let (mut cva, a, b) = pair();
     let topical = classification(
         a,
@@ -117,26 +117,27 @@ fn pair_reconciliation_retracts_old_relation_and_adds_new_one_atomically() {
         .publish_dream_pair(&factual, None, DreamVerificationPolicy::default(), 1)
         .unwrap();
     let DreamPublicationOutcome::Published(changes) = outcome else {
-        panic!("expected replacement publication");
+        panic!("expected additive publication");
     };
-    assert_eq!(changes.len(), 3);
-    assert!(changes.iter().all(|change| change.graph_version == 2));
-    assert!(
-        changes
-            .windows(2)
-            .all(|pair| pair[0].global_version == pair[1].global_version)
-    );
+    assert_eq!(changes.len(), 1);
+    assert_eq!(changes[0].graph_version, 2);
     assert_eq!(cva.graph_version(), 2);
-    assert_eq!(cva.graph_stats().relation_mutations, 5);
+    assert_eq!(cva.graph_stats().relation_mutations, 3);
     let relations = cva.graph_relations();
-    assert_eq!(relations.len(), 1);
-    assert_eq!(relations[0].source, b);
-    assert_eq!(relations[0].target, a);
-    assert_eq!(relations[0].kind, GraphRelationKind::Factual);
+    assert_eq!(relations.len(), 3);
+    assert!(relations.iter().any(|relation| {
+        relation.source == a && relation.target == b && relation.kind == GraphRelationKind::Topical
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == b && relation.target == a && relation.kind == GraphRelationKind::Topical
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == b && relation.target == a && relation.kind == GraphRelationKind::Factual
+    }));
 }
 
 #[test]
-fn none_clears_primary_dream_relation_without_touching_structural_graph_data() {
+fn none_is_a_no_op_and_cannot_retract_existing_relations() {
     let (mut cva, a, b) = pair();
     cva.set_memory_relation(a, b, GraphRelationKind::StructuralParent, true, 0)
         .unwrap();
@@ -149,12 +150,23 @@ fn none_clears_primary_dream_relation_without_touching_structural_graph_data() {
     cva.publish_dream_pair(&causal, None, DreamVerificationPolicy::default(), 1)
         .unwrap();
     let none = classification(a, b, DreamRelationKind::None, DreamRelationDirection::None);
-    cva.publish_dream_pair(&none, None, DreamVerificationPolicy::default(), 2)
-        .unwrap();
+    assert_eq!(
+        cva.publish_dream_pair(&none, None, DreamVerificationPolicy::default(), 2)
+            .unwrap(),
+        DreamPublicationOutcome::NoChange
+    );
 
+    assert_eq!(cva.graph_version(), 2);
     let relations = cva.graph_relations();
-    assert_eq!(relations.len(), 1);
-    assert_eq!(relations[0].kind, GraphRelationKind::StructuralParent);
+    assert_eq!(relations.len(), 2);
+    assert!(relations.iter().any(|relation| {
+        relation.source == a
+            && relation.target == b
+            && relation.kind == GraphRelationKind::StructuralParent
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == a && relation.target == b && relation.kind == GraphRelationKind::Causal
+    }));
 }
 
 #[test]

@@ -55,27 +55,10 @@ where
     let existing: HashSet<_> = graph
         .active_relations()
         .into_iter()
-        .filter(|relation| {
-            is_primary_dream_kind(relation.kind)
-                && same_pair(
-                    classification.a,
-                    classification.b,
-                    relation.source,
-                    relation.target,
-                )
-        })
         .map(|relation| (relation.source, relation.target, relation.kind))
         .collect();
 
     let mut changes = Vec::new();
-    for &(source, target, kind) in existing.difference(&desired) {
-        changes.push(GraphRelationChange {
-            source,
-            target,
-            kind,
-            active: false,
-        });
-    }
     for &(source, target, kind) in desired.difference(&existing) {
         changes.push(GraphRelationChange {
             source,
@@ -189,19 +172,4 @@ fn desired_relations(
         DreamRelationDirection::None => return Err(DreamPublicationError::InvalidClassification),
     }
     Ok(desired)
-}
-
-fn same_pair(a: MemoryId, b: MemoryId, source: MemoryId, target: MemoryId) -> bool {
-    (source == a && target == b) || (source == b && target == a)
-}
-
-fn is_primary_dream_kind(kind: GraphRelationKind) -> bool {
-    matches!(
-        kind,
-        GraphRelationKind::Topical
-            | GraphRelationKind::Factual
-            | GraphRelationKind::Causal
-            | GraphRelationKind::Recurrent
-            | GraphRelationKind::Supersedes
-    )
 }

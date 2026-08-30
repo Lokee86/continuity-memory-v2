@@ -113,11 +113,9 @@ fn middle_insertion_rewires_one_chain_transaction() {
     };
     assert_eq!(changes.len(), 3);
     assert!(changes.iter().all(|change| change.graph_version == 2));
-    assert!(
-        changes
-            .windows(2)
-            .all(|pair| pair[0].global_version == pair[1].global_version)
-    );
+    assert!(changes
+        .windows(2)
+        .all(|pair| pair[0].global_version == pair[1].global_version));
     assert_eq!(
         duplicate_edges(&cva),
         HashSet::from([(new, middle), (middle, old)])
@@ -179,7 +177,7 @@ fn reopened_chain_rebuilds_derived_index_before_next_insertion() {
 }
 
 #[test]
-fn duplicate_reclassification_retracts_old_primary_pair_state_atomically() {
+fn duplicate_assertion_preserves_existing_nonduplicate_pair_state() {
     let mut cva = Cva::create(test_path("duplicate-reclassify.cva")).unwrap();
     let old = memory(&mut cva, "reclassify-old", "Old", "same", 10, false);
     let new = memory(&mut cva, "reclassify-new", "New", "same", 20, false);
@@ -196,14 +194,24 @@ fn duplicate_reclassification_retracts_old_primary_pair_state_atomically() {
         .unwrap();
 
     let DreamPublicationOutcome::Published(changes) = publish_duplicate(&mut cva, old, new) else {
-        panic!("duplicate reclassification must publish");
+        panic!("duplicate assertion must publish");
     };
-    assert_eq!(changes.len(), 3);
-    assert!(changes.iter().all(|change| change.graph_version == 2));
+    assert_eq!(changes.len(), 1);
+    assert_eq!(changes[0].graph_version, 2);
     let relations = cva.graph_relations();
-    assert_eq!(relations.len(), 1);
-    assert_eq!(relations[0].kind, GraphRelationKind::DuplicateOf);
-    assert_eq!((relations[0].source, relations[0].target), (new, old));
+    assert_eq!(relations.len(), 3);
+    assert_eq!(
+        relations
+            .iter()
+            .filter(|relation| relation.kind == GraphRelationKind::Topical)
+            .count(),
+        2
+    );
+    let duplicate = relations
+        .iter()
+        .find(|relation| relation.kind == GraphRelationKind::DuplicateOf)
+        .unwrap();
+    assert_eq!((duplicate.source, duplicate.target), (new, old));
 }
 
 #[test]

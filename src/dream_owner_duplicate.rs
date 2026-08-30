@@ -32,16 +32,6 @@ where
     let relations = graph.active_relations();
     let mut next_index = duplicate_index.clone();
     let mut changes = next_index.plan_union(a, a_key, b, b_key, &relations);
-    for relation in relations.iter().filter(|relation| {
-        same_pair(a, b, relation.source, relation.target) && is_nonduplicate_primary(relation.kind)
-    }) {
-        changes.push(crate::GraphRelationChange {
-            source: relation.source,
-            target: relation.target,
-            kind: relation.kind,
-            active: false,
-        });
-    }
     changes.sort_by_key(|change| {
         (
             change.source.0,
@@ -103,19 +93,4 @@ where
     let timestamp_ns =
         source_time(&memory).ok_or(DreamPublicationError::MissingSourceTimestamp(memory_id))?;
     Ok(DuplicateTemporalKey::new(timestamp_ns, memory_id))
-}
-
-fn same_pair(a: MemoryId, b: MemoryId, source: MemoryId, target: MemoryId) -> bool {
-    (source == a && target == b) || (source == b && target == a)
-}
-
-fn is_nonduplicate_primary(kind: GraphRelationKind) -> bool {
-    matches!(
-        kind,
-        GraphRelationKind::Topical
-            | GraphRelationKind::Factual
-            | GraphRelationKind::Causal
-            | GraphRelationKind::Recurrent
-            | GraphRelationKind::Supersedes
-    )
 }
