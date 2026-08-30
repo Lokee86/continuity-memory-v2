@@ -25,6 +25,8 @@ Reliquary (internal compatibility type: Cva)
 │   └── owner-local derived Leiden snapshots keyed to graph_version
 ├── InsomniaOperational
 │   └── queue / priority / leases / retries / compact completion receipt
+├── EchoStore
+│   └── ordered turn-attached reasoning / tool / activity evidence
 ├── PackedVectorStore
 │   └── immutable numeric matrices
 ├── MemoryVectorStore

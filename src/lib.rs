@@ -125,6 +125,9 @@ mod dream_verifier;
 mod dream_verifier_error;
 mod dream_verifier_model;
 mod dream_verifier_schema;
+mod echo_codec;
+mod echo_model;
+mod echo_store;
 mod embedding_endpoint;
 mod episode_builder;
 mod episode_codec;
@@ -310,6 +313,7 @@ pub use dream_verifier_model::{
     DreamVerificationSignal, DreamVerificationVerdict,
 };
 pub use dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
+pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
@@ -525,6 +529,8 @@ mod dream_publisher_tests;
 mod dream_temporal_tests;
 #[cfg(test)]
 mod dream_verifier_tests;
+#[cfg(test)]
+mod echo_tests;
 #[cfg(test)]
 mod episode_tests;
 #[cfg(test)]

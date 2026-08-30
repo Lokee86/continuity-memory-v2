@@ -155,6 +155,27 @@ impl ReliquaryRuntimeHost {
         self.with_runtime(|runtime| Ok(runtime.cva().conversation_compactions(conversation_id)))
     }
 
+    pub fn put_echo_event(
+        &self,
+        event: crate::EchoEvent,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            let changed = runtime.cva.put_echo_event(event).map_err(operation)?;
+            if changed {
+                runtime.cva.sync().map_err(operation)?;
+            }
+            Ok(changed)
+        })
+    }
+
+    pub fn echo_events(
+        &self,
+        conversation_id: &str,
+        message_id: &str,
+    ) -> Result<Vec<crate::EchoEvent>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| Ok(runtime.cva().echo_events(conversation_id, message_id)))
+    }
+
     pub fn put_conversation_compaction(
         &self,
         conversation_id: String,

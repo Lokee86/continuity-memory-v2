@@ -4,8 +4,9 @@ use crate::runtime_host_test_support::{
     wait_phylactery_vectors,
 };
 use crate::{
-    Cva, EpisodeConfig, EpisodePolicy, InteractionRole, InteractionRuntime, Phylactery,
-    ReliquaryRuntimeHost, ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
+    Cva, EchoEvent, EchoEventKind, EpisodeConfig, EpisodePolicy, InteractionRole,
+    InteractionRuntime, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::sync::{Arc, Barrier};
 
@@ -80,6 +81,42 @@ fn live_completion_wakes_idle_insomnia_workers() {
     wait_complete(&host, 1);
     assert!(host.insomnia_stats().unwrap().complete >= 1);
     host.into_cva().unwrap();
+}
+
+#[test]
+fn runtime_host_persists_echo_inside_rel() {
+    let path = test_path("echo-runtime.prj.rel");
+    let cva = Cva::create_project(&path).unwrap();
+    let host = ReliquaryRuntimeHost::start_inactive(
+        InteractionRuntime::new(cva),
+        ReliquaryRuntimeRoutes::default(),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+    let event = EchoEvent {
+        conversation_id: "conversation".into(),
+        message_id: "assistant".into(),
+        sequence: 0,
+        timestamp_ns: 1,
+        model_round: Some(1),
+        kind: EchoEventKind::ReasoningTrace,
+        correlation_id: None,
+        name: None,
+        content: "raw trace".into(),
+    };
+
+    assert!(host.put_echo_event(event).unwrap());
+    assert_eq!(
+        host.echo_events("conversation", "assistant").unwrap()[0].content,
+        "raw trace"
+    );
+    drop(host);
+
+    let reopened = Cva::open(path).unwrap();
+    assert_eq!(
+        reopened.echo_events("conversation", "assistant")[0].content,
+        "raw trace"
+    );
 }
 
 #[test]

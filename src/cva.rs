@@ -4,6 +4,7 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::conversation_compaction_store::ConversationCompactionStore;
 use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_duplicate_index::DuplicateIndex;
+use crate::echo_store::EchoStore;
 use crate::graph_store::GraphStore;
 use crate::insomnia::store::InsomniaStore;
 use crate::interaction_stream_store::InteractionStreamStore;
@@ -35,6 +36,7 @@ pub struct Cva {
     pub(crate) vector_generations: VectorGenerationStore,
     pub(crate) conversation_compactions: ConversationCompactionStore,
     pub(crate) interaction_streams: InteractionStreamStore,
+    pub(crate) echo: EchoStore,
 }
 
 impl Cva {
@@ -370,6 +372,18 @@ impl Cva {
 
     pub(crate) fn interaction_stream_records(&self) -> Vec<crate::InteractionStreamRecord> {
         self.interaction_streams.all_records()
+    }
+
+    pub fn put_echo_event(&mut self, event: crate::EchoEvent) -> Result<bool, CvaError> {
+        Ok(self.echo.put(&mut self.container, event)?)
+    }
+
+    pub fn echo_events(&self, conversation_id: &str, message_id: &str) -> Vec<crate::EchoEvent> {
+        self.echo.for_turn(conversation_id, message_id)
+    }
+
+    pub(crate) fn echo_records(&self) -> Vec<crate::EchoEvent> {
+        self.echo.all_records()
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

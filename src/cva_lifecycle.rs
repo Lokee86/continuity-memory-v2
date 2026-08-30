@@ -9,6 +9,7 @@ use crate::conversation_compaction_store::{
 };
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::dream_duplicate_index::DuplicateIndex;
+use crate::echo_store::EchoStore;
 use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
@@ -132,6 +133,7 @@ impl Cva {
         let vector_generations = VectorGenerationStore::empty();
         let interaction_streams = InteractionStreamStore::default();
         let conversation_compactions = ConversationCompactionStore::empty();
+        let echo = EchoStore::default();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -158,6 +160,7 @@ impl Cva {
             vector_generations,
             interaction_streams,
             conversation_compactions,
+            echo,
         })
     }
 
@@ -174,6 +177,7 @@ impl Cva {
         let mut generation_state = VectorGenerationOpenState::new();
         let mut interaction_streams = InteractionStreamStore::default();
         let mut compaction_state = ConversationCompactionOpenState::default();
+        let mut echo = EchoStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -187,6 +191,7 @@ impl Cva {
             generation_state.ingest(chunk, payload, latest_global)?;
             interaction_streams.ingest(payload)?;
             compaction_state.ingest(chunk, payload)?;
+            echo.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()
@@ -236,6 +241,7 @@ impl Cva {
             vector_generations,
             interaction_streams,
             conversation_compactions,
+            echo,
         })
     }
 }

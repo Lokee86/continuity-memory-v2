@@ -33,6 +33,8 @@ pub(crate) fn reconcile_diverged(
     let right_graph_divergent = read_graph_tail(&mut right, comparison.common_chunk_count)?;
     let left_profiles = left.compatibility_profiles();
     let right_profiles = right.compatibility_profiles();
+    let left_echo = left.echo_records();
+    let right_echo = right.echo_records();
     let (interaction_streams, right_stream_change) = merge_interaction_streams(
         left.interaction_stream_records(),
         right.interaction_stream_records(),
@@ -46,6 +48,7 @@ pub(crate) fn reconcile_diverged(
         replay_memory_tail(&mut output, left_memory)?;
         replay_graph_tail(&mut output, &left_graph)?;
         replay_file_memory_links(&mut output, &left_archive.file_memory_links)?;
+        replay_echo(&mut output, left_echo)?;
 
         let before_right = output.container.chunks()?.len();
         replay_profiles(&mut output, right_profiles)?;
@@ -55,6 +58,7 @@ pub(crate) fn reconcile_diverged(
             reconcile_right_graph_tail(&mut output, &left_graph_divergent, &right_graph_divergent)?;
         let file_memory_links =
             replay_file_memory_links(&mut output, &right_archive.file_memory_links)?;
+        replay_echo(&mut output, right_echo)?;
         let canonical_change_required =
             output.container.chunks()?.len() > before_right || right_stream_change;
 
@@ -101,6 +105,13 @@ pub(crate) fn reconcile_diverged(
         canonical_change_required,
         vector_rebuild_required: canonical_change_required && derived_vectors_present,
     })
+}
+
+fn replay_echo(output: &mut Cva, events: Vec<crate::EchoEvent>) -> Result<(), CvaReconcileError> {
+    for event in events {
+        output.put_echo_event(event)?;
+    }
+    Ok(())
 }
 
 fn replay_profiles(

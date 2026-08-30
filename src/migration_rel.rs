@@ -25,6 +25,7 @@ pub(super) fn migrate(
     let archive_vector_infos = source.archive_vector_infos();
     let generations = source.vector_generations.generations().to_vec();
     let compactions = source.conversation_compactions.all_records();
+    let echo = source.echo_records();
 
     let mut output = op(Cva::create_scope_with_uuid(output_path, scope, owner_uuid))?;
     for profile in profiles {
@@ -48,6 +49,9 @@ pub(super) fn migrate(
         &mut output,
         &archive.file_memory_links,
     ))?;
+    for event in echo {
+        op(output.put_echo_event(event))?;
+    }
 
     copy_vectors(
         &mut source,

@@ -1,6 +1,6 @@
 use crate::{
-    Cva, FragmentConfig, GraphRelationKind, MemoryDraft, MigrationError, Phylactery,
-    ReliquaryScopeKind, SimulatedEmbeddingEndpoint, VectorNormalization, migrate_file,
+    Cva, EchoEvent, EchoEventKind, FragmentConfig, GraphRelationKind, MemoryDraft, MigrationError,
+    Phylactery, ReliquaryScopeKind, SimulatedEmbeddingEndpoint, VectorNormalization, migrate_file,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -100,6 +100,18 @@ fn legacy_typed_rel_migration_preserves_identity_and_state() {
         None,
     )
     .unwrap();
+    rel.put_echo_event(EchoEvent {
+        conversation_id: "c".into(),
+        message_id: "n1".into(),
+        sequence: 0,
+        timestamp_ns: 1,
+        model_round: Some(1),
+        kind: EchoEventKind::ReasoningTrace,
+        correlation_id: None,
+        name: None,
+        content: "migrated reasoning".into(),
+    })
+    .unwrap();
     append_legacy_workspace_id(&mut rel, "workspace-shared");
     rel.sync().unwrap();
     drop(rel);
@@ -123,6 +135,10 @@ fn legacy_typed_rel_migration_preserves_identity_and_state() {
     assert_eq!(compactions.len(), 1);
     assert_eq!(compactions[0].through_message_id, "n5");
     assert_eq!(compactions[0].summary, "durable migrated summary");
+    let echo = migrated.echo_events("c", "n1");
+    assert_eq!(echo.len(), 1);
+    assert_eq!(echo[0].kind, EchoEventKind::ReasoningTrace);
+    assert_eq!(echo[0].content, "migrated reasoning");
 }
 
 #[test]

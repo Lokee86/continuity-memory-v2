@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-16. Refined from provider-export inspection on 2026-08-16/17.
+Accepted — 2026-08-16. Refined from provider-export inspection on 2026-08-16/17 and provider-neutral Warlock execution semantics on 2026-08-30.
 
 ## Context
 
@@ -30,6 +30,14 @@ Ego       = what is synthesized into active context
 ```
 
 Echo remains a separate purpose-built CVA owner rather than being folded into Archive fragments, Memory revisions, Dream lifecycle state, or Insomnia operational logs.
+
+### 2026-08-30 provider-neutral refinement
+
+Warlock now normalizes provider execution before Echo storage. Echo is a turn-attached sidecar inside the REL and preserves the ordered semantic execution record: provider reasoning summaries, provider commentary, raw reasoning traces when available, tool calls/results, and deterministic Warlock activity. These records may be displayed alongside the conversation and may contribute to transient per-turn context assembly, but they remain outside the main Archive/Memory vectorized transcript layer.
+
+Opaque `ProviderState` required only to continue a stateless provider/tool loop is a separate runtime concern. It may be retained as needed for continuation or crash recovery, but it is not Echo semantic evidence. This refinement supersedes older language below that proposed storing encrypted/signature-only continuation payloads as Echo records. `CurrentContext` is likewise a transient framework assembly, not another persisted duplicate of transcript and Echo text.
+
+The implemented first storage format is native binary `CVAECHO1`, keyed by conversation ID, turn/message ID, and sequence. Existing RELs need no rewrite when this owner is introduced: absence of Echo chunks means an empty Echo store. Explicit legacy REL repacks and divergent REL reconciliation preserve any Echo records that are present.
 
 ### Retrieval boundary: exactly one visible source
 

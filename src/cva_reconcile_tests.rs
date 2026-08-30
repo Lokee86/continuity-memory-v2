@@ -1,6 +1,6 @@
 use crate::{
-    Cva, CvaReconcileError, CvaRelation, InteractionRole, InteractionRuntime,
-    InteractionStreamStatus, ReliquaryScopeKind,
+    Cva, CvaReconcileError, CvaRelation, EchoEvent, EchoEventKind, InteractionRole,
+    InteractionRuntime, InteractionStreamStatus, ReliquaryScopeKind,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -149,6 +149,67 @@ fn divergent_reconcile_preserves_interrupted_interaction_streams() {
     assert_eq!(streams.len(), 1);
     assert_eq!(streams[0].content, "Visible partial");
     assert_eq!(streams[0].status, InteractionStreamStatus::Interrupted);
+}
+
+#[test]
+fn divergent_reconcile_preserves_echo_from_both_copies() {
+    let dir = test_dir();
+    let left = dir.join("left.rel");
+    let right = dir.join("right.rel");
+    let output = dir.join("merged.rel");
+    let mut base = Cva::create_project(&left).unwrap();
+    base.append_node(
+        "assistant-common".into(),
+        "conversation".into(),
+        None,
+        "assistant".into(),
+        1,
+        "common answer",
+    )
+    .unwrap();
+    base.sync().unwrap();
+    drop(base);
+    fs::copy(&left, &right).unwrap();
+
+    for (path, sequence, echo, node) in [
+        (&left, 0, "left reasoning", "left-node"),
+        (&right, 1, "right commentary", "right-node"),
+    ] {
+        let mut rel = Cva::open(path).unwrap();
+        rel.put_echo_event(EchoEvent {
+            conversation_id: "conversation".into(),
+            message_id: "assistant-common".into(),
+            sequence,
+            timestamp_ns: 2 + sequence as i64,
+            model_round: Some(1),
+            kind: if sequence == 0 {
+                EchoEventKind::ReasoningTrace
+            } else {
+                EchoEventKind::Commentary
+            },
+            correlation_id: None,
+            name: None,
+            content: echo.into(),
+        })
+        .unwrap();
+        rel.append_node(
+            node.into(),
+            format!("{node}-conversation"),
+            None,
+            "user".into(),
+            3,
+            node,
+        )
+        .unwrap();
+        rel.sync().unwrap();
+    }
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let merged = Cva::open(output).unwrap();
+    let echo = merged.echo_events("conversation", "assistant-common");
+    assert_eq!(echo.len(), 2);
+    assert_eq!(echo[0].content, "left reasoning");
+    assert_eq!(echo[1].content, "right commentary");
 }
 
 #[test]

@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded files, durable interaction-stream checkpoints, mutable conversation-compaction state, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded files, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -64,6 +64,28 @@ Strings in this record use `u32 byte_length + UTF-8 bytes`. Interaction-stream r
 These records are durable transcript state, not Archive semantic records. They consume no `CVAVERS1`, Archive version, Memory version, or Vector Generation version. A live runtime may expose the latest `Streaming` checkpoint as streaming only while the matching in-memory message is still active; after restart that same on-disk record is interpreted as interrupted. If the same message ID later exists as a completed Archive node, transcript resolution suppresses the checkpoint copy and uses the completed Archive turn.
 
 Divergent Reliquary reconciliation retains and merges interaction-stream records independently of Archive semantic history. Compatible prefix histories keep the longest visible content and retain `Interrupted` if either side recorded interruption; non-prefix text or immutable-metadata divergence is rejected rather than silently discarding user-visible output.
+
+### Echo sidecar records
+
+Echo is durable turn-attached execution evidence stored inside REL files but outside the Archive/Memory semantic search populations. The initial record is append-only and keyed by `(conversation_id, message_id, sequence)`:
+
+```text
+8 bytes   "CVAECHO1"
+string    conversation ID
+string    message/turn ID
+u64       sequence
+i64       timestamp_ns
+u8        model round present
+optional  u32 model round
+u8        event kind
+optional  string correlation ID
+optional  string name
+string    content
+```
+
+Event kinds are `ReasoningSummary`, `Commentary`, `ReasoningTrace`, `ToolCall`, `ToolResult`, `ActivityStarted`, `ActivityCompleted`, and `ActivityFailed`. Records use typed binary fields and length-prefixed UTF-8 strings; they do not embed a JSON envelope. Sequence is authoritative for execution order. Identical replay is idempotent; conflicting events at the same turn sequence fail closed.
+
+Echo consumes no global, Archive, Memory, Graph, or Vector Generation version. Existing current REL files require no physical rewrite: absence of `CVAECHO1` means the Echo store is empty, and new records may be appended normally. Explicit legacy REL migration republishes Echo records into the new REL, and divergent REL reconciliation preserves Echo from both copies. Provider continuation state is not Echo semantic evidence and is not represented by this record family.
 
 ### Conversation compaction store
 
