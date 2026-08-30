@@ -6,6 +6,8 @@ use crate::{
 };
 use std::thread;
 
+const DREAM_INFERENCE_RETRY_LIMIT: usize = 2;
+
 pub struct DreamProcessor<C, V> {
     classifier: DreamClassifier<C>,
     verifier: DreamVerifier<V>,
@@ -163,7 +165,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                     .iter()
                     .map(|candidate| {
                         scope.spawn(|| {
-                            self.evaluate_pair(
+                            self.evaluate_pair_with_retries(
                                 verification_policy,
                                 &candidates.source,
                                 &candidate.context,
@@ -182,6 +184,23 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
             evaluated.extend(chunk_results);
         }
         Ok(evaluated)
+    }
+
+    pub(crate) fn evaluate_pair_with_retries(
+        &self,
+        verification_policy: DreamVerificationPolicy,
+        source: &DreamMemoryContext,
+        candidate: &DreamMemoryContext,
+    ) -> Result<(DreamPairClassification, Option<DreamPairVerification>), DreamProcessError> {
+        for attempt in 0..=DREAM_INFERENCE_RETRY_LIMIT {
+            match self.evaluate_pair(verification_policy, source, candidate) {
+                Ok(result) => return Ok(result),
+                Err(error) if error.is_backpressure() => return Err(error),
+                Err(error) if attempt == DREAM_INFERENCE_RETRY_LIMIT => return Err(error),
+                Err(_) => continue,
+            }
+        }
+        unreachable!("Dream inference retry loop always returns")
     }
 
     pub(crate) fn evaluate_pair(

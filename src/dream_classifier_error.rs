@@ -20,6 +20,12 @@ impl fmt::Display for DreamClassificationError {
 
 impl std::error::Error for DreamClassificationError {}
 
+impl DreamClassificationError {
+    pub fn is_backpressure(&self) -> bool {
+        matches!(self, Self::Endpoint(error) if error.is_backpressure())
+    }
+}
+
 impl From<GeneralEndpointError> for DreamClassificationError {
     fn from(value: GeneralEndpointError) -> Self {
         Self::Endpoint(value)

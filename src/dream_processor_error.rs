@@ -27,6 +27,16 @@ impl fmt::Display for DreamProcessError {
 
 impl std::error::Error for DreamProcessError {}
 
+impl DreamProcessError {
+    pub fn is_backpressure(&self) -> bool {
+        match self {
+            Self::Classification(error) => error.is_backpressure(),
+            Self::Verification(error) => error.is_backpressure(),
+            Self::Candidate(_) | Self::Publication(_) | Self::Lifecycle(_) => false,
+        }
+    }
+}
+
 impl From<DreamCandidateError> for DreamProcessError {
     fn from(value: DreamCandidateError) -> Self {
         Self::Candidate(value)

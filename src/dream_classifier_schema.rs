@@ -40,6 +40,8 @@ Direction rules:
 - topical, recurrent, duplicate_of -> direction undirected.
 - factual, causal, supersedes -> direction a_to_b or b_to_a according to meaning.
 
+Direction ownership: for none, topical, recurrent, and duplicate_of, direction is mechanically implied by relation and Dream canonicalizes it deterministically. Do not spend semantic judgment on those directions. Only factual, causal, and supersedes require a directional judgment from the model.
+
 Source timestamps are chronology context only. Deterministic temporal anchors/patterns are evidence about dates, ranges, and recurrence, but are not by themselves proof of causality, supersession, or recurrence between the two Memories. Existing Graph relations are supplemental context only and are not proof of the pair conclusion.
 
 For every non-none conclusion, provide exactly two short verbatim evidence quotes: one copied from A title/content and one copied from B title/content. The quotes must support the direct semantic relationship, not merely broad shared context. For none, evidence must be empty. Do not paraphrase evidence.

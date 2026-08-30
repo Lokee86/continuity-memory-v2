@@ -22,6 +22,12 @@ impl fmt::Display for DreamVerificationError {
 
 impl std::error::Error for DreamVerificationError {}
 
+impl DreamVerificationError {
+    pub fn is_backpressure(&self) -> bool {
+        matches!(self, Self::Endpoint(error) if error.is_backpressure())
+    }
+}
+
 impl From<GeneralEndpointError> for DreamVerificationError {
     fn from(value: GeneralEndpointError) -> Self {
         Self::Endpoint(value)

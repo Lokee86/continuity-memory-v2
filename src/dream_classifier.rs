@@ -70,8 +70,8 @@ fn parse_output(
     output: &Value,
 ) -> Result<DreamPairClassification, DreamClassificationError> {
     let relation = parse_relation(required_string(output, "relation")?)?;
-    let direction = parse_direction(required_string(output, "direction")?)?;
-    validate_relation_direction(relation, direction)?;
+    let reported_direction = parse_direction(required_string(output, "direction")?)?;
+    let direction = canonical_relation_direction(relation, reported_direction)?;
     let evidence = parse_evidence(output, relation, a, b)?;
     Ok(DreamPairClassification {
         model: model.to_owned(),
@@ -131,25 +131,24 @@ fn parse_evidence(
     Ok(parsed)
 }
 
-fn validate_relation_direction(
+fn canonical_relation_direction(
     relation: DreamRelationKind,
-    direction: DreamRelationDirection,
-) -> Result<(), DreamClassificationError> {
-    let valid = match relation {
-        DreamRelationKind::None => direction == DreamRelationDirection::None,
+    reported: DreamRelationDirection,
+) -> Result<DreamRelationDirection, DreamClassificationError> {
+    match relation {
+        DreamRelationKind::None => Ok(DreamRelationDirection::None),
         DreamRelationKind::Topical
         | DreamRelationKind::Recurrent
-        | DreamRelationKind::DuplicateOf => direction == DreamRelationDirection::Undirected,
+        | DreamRelationKind::DuplicateOf => Ok(DreamRelationDirection::Undirected),
         DreamRelationKind::Factual | DreamRelationKind::Causal | DreamRelationKind::Supersedes => {
-            matches!(
-                direction,
-                DreamRelationDirection::AToB | DreamRelationDirection::BToA
-            )
+            match reported {
+                DreamRelationDirection::AToB | DreamRelationDirection::BToA => Ok(reported),
+                DreamRelationDirection::None | DreamRelationDirection::Undirected => {
+                    Err(invalid("directed relation requires a_to_b or b_to_a"))
+                }
+            }
         }
-    };
-    valid
-        .then_some(())
-        .ok_or_else(|| invalid("relation/direction mismatch"))
+    }
 }
 
 fn parse_relation(value: &str) -> Result<DreamRelationKind, DreamClassificationError> {

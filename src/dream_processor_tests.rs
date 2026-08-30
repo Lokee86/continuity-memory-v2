@@ -298,6 +298,131 @@ fn memory_frontier_shares_one_global_inference_limit_and_preserves_source_order(
     assert_eq!(cva.memory(second).unwrap().lifecycle_state, "knowledge");
 }
 
+#[derive(Clone)]
+struct RetryThenSucceedClassifier {
+    calls: Arc<AtomicUsize>,
+}
+
+impl GeneralEndpoint for RetryThenSucceedClassifier {
+    fn model(&self) -> &str {
+        "retry-then-succeed"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
+        if call <= 2 {
+            return Ok(json!({
+                "relation": "topical",
+                "direction": "undirected",
+                "evidence": [{"side": "a", "quote": "not verbatim"}]
+            }));
+        }
+        Ok(json!({"relation": "none", "direction": "none", "evidence": []}))
+    }
+}
+
+#[test]
+fn ordinary_inference_failure_retries_twice_in_same_pass() {
+    let mut cva = Cva::create(test_path("processor-retry.cva")).unwrap();
+    let candidate = memory(
+        &mut cva,
+        "candidate",
+        "Candidate",
+        "Candidate memory.",
+        100,
+        false,
+    );
+    let source = memory_extracted(&mut cva, "source", "Source", "Source memory.", 110);
+    let profile = install_vectors(&mut cva, &[source, candidate], &[&[1.0, 0.0], &[0.9, 0.1]]);
+    let calls = Arc::new(AtomicUsize::new(0));
+    let processor = DreamProcessor::new(
+        RetryThenSucceedClassifier {
+            calls: calls.clone(),
+        },
+        SimulatedGeneralEndpoint::new("verifier", vec![]),
+    );
+
+    let result = processor
+        .process_memory(
+            &mut cva,
+            profile,
+            source,
+            DreamCandidateConfig::default(),
+            DreamVerificationPolicy::default(),
+        )
+        .unwrap();
+
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+    assert_eq!(result.source.lifecycle_state, "knowledge");
+}
+
+#[derive(Clone)]
+struct BackpressureClassifier {
+    calls: Arc<AtomicUsize>,
+}
+
+impl GeneralEndpoint for BackpressureClassifier {
+    fn model(&self) -> &str {
+        "backpressure"
+    }
+
+    fn complete_json(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Err(GeneralEndpointError::backpressure("quota exhausted", None))
+    }
+}
+
+#[test]
+fn frontier_backpressure_stops_population_without_retry_or_publication() {
+    let mut cva = Cva::create(test_path("processor-frontier-backpressure.cva")).unwrap();
+    let first = memory_extracted(&mut cva, "first", "First", "Shared first.", 100);
+    let second = memory_extracted(&mut cva, "second", "Second", "Shared second.", 110);
+    let profile = install_vectors(&mut cva, &[first, second], &[&[1.0, 0.0], &[0.99, 0.01]]);
+    let calls = Arc::new(AtomicUsize::new(0));
+    let processor = DreamProcessor::new(
+        BackpressureClassifier {
+            calls: calls.clone(),
+        },
+        SimulatedGeneralEndpoint::new("verifier", vec![]),
+    );
+
+    let error = processor
+        .process_memories_with_concurrency(
+            &mut cva,
+            profile,
+            &[first, second],
+            DreamCandidateConfig {
+                limit: 1,
+                semantic_limit: 1,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 0,
+            },
+            DreamVerificationPolicy::default(),
+            2,
+            1,
+        )
+        .unwrap_err();
+
+    assert!(error.is_backpressure());
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(cva.memory(first).unwrap().lifecycle_state, "extracted");
+    assert_eq!(cva.memory(second).unwrap().lifecycle_state, "extracted");
+    assert_eq!(cva.graph_relations().len(), 0);
+}
+
 #[test]
 fn inference_failure_does_not_advance_source_lifecycle() {
     let mut cva = Cva::create(test_path("processor-failure.cva")).unwrap();

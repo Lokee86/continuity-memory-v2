@@ -176,14 +176,14 @@ fn directional_relation_is_validated_without_using_memory_creation_time() {
 }
 
 #[test]
-fn invalid_relation_direction_and_nonverbatim_evidence_are_rejected() {
+fn deterministic_directions_are_canonicalized_and_invalid_directed_relations_are_rejected() {
     let (left, right) = pair_contexts();
     let (a, b) = if left.memory.id.0 < right.memory.id.0 {
         (&left, &right)
     } else {
         (&right, &left)
     };
-    let bad_direction = SimulatedGeneralEndpoint::new(
+    let duplicate_with_spurious_direction = SimulatedGeneralEndpoint::new(
         "dream-model",
         vec![json!({
             "relation": "duplicate_of",
@@ -194,8 +194,33 @@ fn invalid_relation_direction_and_nonverbatim_evidence_are_rejected() {
             ]
         })],
     );
+    let duplicate = DreamClassifier::new(duplicate_with_spurious_direction)
+        .classify_pair(&left, &right)
+        .unwrap();
+    assert_eq!(duplicate.direction, DreamRelationDirection::Undirected);
+
+    let none_with_spurious_direction = SimulatedGeneralEndpoint::new(
+        "dream-model",
+        vec![json!({"relation": "none", "direction": "b_to_a", "evidence": []})],
+    );
+    let none = DreamClassifier::new(none_with_spurious_direction)
+        .classify_pair(&left, &right)
+        .unwrap();
+    assert_eq!(none.direction, DreamRelationDirection::None);
+
+    let factual_without_direction = SimulatedGeneralEndpoint::new(
+        "dream-model",
+        vec![json!({
+            "relation": "factual",
+            "direction": "undirected",
+            "evidence": [
+                {"side": "a", "quote": a.memory.title},
+                {"side": "b", "quote": b.memory.title}
+            ]
+        })],
+    );
     assert!(matches!(
-        DreamClassifier::new(bad_direction).classify_pair(&left, &right),
+        DreamClassifier::new(factual_without_direction).classify_pair(&left, &right),
         Err(DreamClassificationError::InvalidOutput(_))
     ));
 

@@ -3,7 +3,7 @@ use crate::{
     DreamPairVerification, DreamProcessError, DreamProcessResult, DreamProcessedPair,
     DreamProcessor, DreamVerificationPolicy, GeneralEndpoint, MemoryId, Phylactery,
 };
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 
 pub const DEFAULT_DREAM_FRONTIER_SIZE: usize = 6;
@@ -51,7 +51,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                 })
                 .collect::<Result<Vec<_>, DreamProcessError>>()?;
             let evaluated =
-                self.evaluate_frontier(&staged, verification_policy, inference_concurrency.max(1));
+                self.evaluate_frontier(&staged, verification_policy, inference_concurrency.max(1))?;
 
             for ((source_id, candidates), pair_results) in staged.into_iter().zip(evaluated) {
                 let candidate_count = candidates.candidates.len();
@@ -122,7 +122,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                 })
                 .collect::<Result<Vec<_>, DreamProcessError>>()?;
             let evaluated =
-                self.evaluate_frontier(&staged, verification_policy, inference_concurrency.max(1));
+                self.evaluate_frontier(&staged, verification_policy, inference_concurrency.max(1))?;
 
             for ((source_id, candidates), pair_results) in staged.into_iter().zip(evaluated) {
                 let candidate_count = candidates.candidates.len();
@@ -170,7 +170,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
         staged: &[(MemoryId, DreamCandidateSet)],
         verification_policy: DreamVerificationPolicy,
         inference_concurrency: usize,
-    ) -> Vec<Vec<PairEvaluation>> {
+    ) -> Result<Vec<Vec<PairEvaluation>>, DreamProcessError> {
         let mut work = Vec::new();
         let max_candidates = staged
             .iter()
@@ -202,23 +202,35 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
         let worker_count = inference_concurrency.min(work.len());
         if worker_count > 0 {
             let next = AtomicUsize::new(0);
+            let stop = AtomicBool::new(false);
             let results = thread::scope(|scope| {
                 let handles: Vec<_> = (0..worker_count)
                     .map(|_| {
                         scope.spawn(|| {
                             let mut local = Vec::new();
                             loop {
+                                if stop.load(Ordering::Acquire) {
+                                    break;
+                                }
                                 let work_index = next.fetch_add(1, Ordering::Relaxed);
                                 let Some(&(memory_index, candidate_index, source, candidate)) =
                                     work.get(work_index)
                                 else {
                                     break;
                                 };
-                                local.push((
-                                    memory_index,
-                                    candidate_index,
-                                    self.evaluate_pair(verification_policy, source, candidate),
-                                ));
+                                let result = self.evaluate_pair_with_retries(
+                                    verification_policy,
+                                    source,
+                                    candidate,
+                                );
+                                let backpressure = result
+                                    .as_ref()
+                                    .is_err_and(DreamProcessError::is_backpressure);
+                                local.push((memory_index, candidate_index, result));
+                                if backpressure {
+                                    stop.store(true, Ordering::Release);
+                                    break;
+                                }
                             }
                             local
                         })
@@ -233,11 +245,14 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                     .collect::<Vec<_>>()
             });
             for (memory_index, candidate_index, result) in results {
-                evaluated[memory_index][candidate_index] = Some(result);
+                match result {
+                    Err(error) if error.is_backpressure() => return Err(error),
+                    result => evaluated[memory_index][candidate_index] = Some(result),
+                }
             }
         }
 
-        evaluated
+        Ok(evaluated
             .into_iter()
             .map(|memory| {
                 memory
@@ -245,7 +260,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                     .map(|result| result.expect("Dream frontier pair was not evaluated"))
                     .collect()
             })
-            .collect()
+            .collect())
     }
 }
 
