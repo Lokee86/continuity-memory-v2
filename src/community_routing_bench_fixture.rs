@@ -1,6 +1,6 @@
 use crate::community_routing::cosine;
 use crate::dream_owner_vectors::load_memory_vectors;
-use crate::{CommunityId, CommunitySnapshot, Cva, GraphRelation, MemoryId};
+use crate::{CommunityId, CommunitySnapshot, Cva, GraphRelation, Memory, MemoryId};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -8,6 +8,7 @@ use std::path::PathBuf;
 
 pub(crate) struct RoutingFixture {
     pub(crate) vectors: HashMap<MemoryId, Vec<f32>>,
+    pub(crate) memories: HashMap<MemoryId, Memory>,
     pub(crate) snapshot: CommunitySnapshot,
     pub(crate) relations: Vec<GraphRelation>,
     pub(crate) memberships: HashMap<MemoryId, CommunityId>,
@@ -54,12 +55,18 @@ pub(crate) fn load_fixture() -> RoutingFixture {
         }
     }
 
+    let mut memories = HashMap::new();
+    for id in rel.memory_ids() {
+        memories.insert(id, rel.memory(id).unwrap());
+    }
+
     let memberships = membership_map(&snapshot);
     let positive_pairs = positive_gold_pairs(root.join("corpus/dream-web-gold-v1.json"));
     let gold = pair_probes(&positive_pairs, &memberships, &vectors);
     let semantic = semantic_probes(&vectors, crate::DEFAULT_DREAM_CANDIDATE_LIMIT);
     RoutingFixture {
         vectors,
+        memories,
         snapshot,
         relations,
         memberships,
@@ -131,7 +138,7 @@ pub(crate) fn semantic_probes(
             right
                 .1
                 .total_cmp(&left.1)
-                .then_with(|| left.0.0.cmp(&right.0.0))
+                .then_with(|| left.0 .0.cmp(&right.0 .0))
         });
         for (id, _) in ranked.into_iter().take(limit) {
             targets.entry(query).or_default().insert(id);

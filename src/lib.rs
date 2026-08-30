@@ -382,7 +382,29 @@ mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
 #[cfg(test)]
+mod community_end_to_end_bench;
+#[cfg(test)]
+mod community_end_to_end_grid_bench;
+#[cfg(test)]
+mod community_lexical_escape_bench;
+#[cfg(test)]
+mod community_retrieval_bench;
+#[cfg(test)]
 mod community_routing_bench;
+#[cfg(test)]
+mod community_routing_cached_bench;
+#[cfg(test)]
+mod community_routing_holdout_bench;
+#[cfg(test)]
+mod community_routing_score_bench;
+#[cfg(test)]
+mod community_subcentroid_routing;
+#[cfg(test)]
+mod community_traversal_bench;
+#[cfg(test)]
+mod community_traversal_bench_fixture;
+#[cfg(test)]
+mod community_traversal_bench_support;
 #[cfg(test)]
 mod community_routing_bench_fixture;
 #[cfg(test)]

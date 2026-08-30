@@ -1,6 +1,6 @@
+use crate::community_routing_bench_fixture::{load_fixture, RoutingFixture, RoutingProbe};
+use crate::community_routing_bench_support::{entries, logical_index_bytes, route, BenchStrategy};
 use crate::CommunityId;
-use crate::community_routing_bench_fixture::{RoutingFixture, RoutingProbe, load_fixture};
-use crate::community_routing_bench_support::{BenchStrategy, entries, logical_index_bytes, route};
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
@@ -9,18 +9,39 @@ const KS: [usize; 3] = [1, 3, 5];
 #[test]
 #[ignore = "routing-only experiment over a Dream-populated typed REL"]
 fn community_routing_strategy_benchmark() {
-    run_fixture("configured-project-rel", &load_fixture());
+    let fixture = load_fixture();
+    run_fixture(
+        "configured-project-rel",
+        &fixture,
+        &[
+            BenchStrategy::Centroid,
+            BenchStrategy::Medoid,
+            BenchStrategy::Diverse(4),
+            BenchStrategy::Diverse(8),
+            BenchStrategy::Structural(4),
+            BenchStrategy::Structural(8),
+        ],
+    );
 }
 
-fn run_fixture(label: &str, fixture: &RoutingFixture) {
-    let strategies = [
-        BenchStrategy::Centroid,
-        BenchStrategy::Medoid,
-        BenchStrategy::Diverse(4),
-        BenchStrategy::Diverse(8),
-        BenchStrategy::Structural(4),
-        BenchStrategy::Structural(8),
-    ];
+#[test]
+#[ignore = "scalable routing strategies over a larger Dream-populated typed REL"]
+fn community_routing_scalable_strategy_benchmark() {
+    let fixture = load_fixture();
+    run_fixture(
+        "configured-project-rel-scalable",
+        &fixture,
+        &[
+            BenchStrategy::Centroid,
+            BenchStrategy::Structural(1),
+            BenchStrategy::Structural(2),
+            BenchStrategy::Structural(4),
+            BenchStrategy::Structural(8),
+        ],
+    );
+}
+
+fn run_fixture(label: &str, fixture: &RoutingFixture, strategies: &[BenchStrategy]) {
     println!(
         "fixture={label} vectors={} graph_memories={} residual_memories={} communities={} gold_queries={} gold_targets={} semantic_queries={} semantic_targets={}",
         fixture.vectors.len(),
@@ -53,7 +74,7 @@ fn run_fixture(label: &str, fixture: &RoutingFixture) {
         semantic_oracle.admitted[2],
         1.0 - semantic_oracle.admitted[2],
     );
-    for strategy in strategies {
+    for &strategy in strategies {
         let gold = evaluate(fixture, strategy, &fixture.gold);
         let semantic = evaluate(fixture, strategy, &fixture.semantic);
         let reps = entries(fixture, strategy, None).len();
