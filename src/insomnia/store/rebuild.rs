@@ -40,7 +40,10 @@ fn persisted_final_work(
 }
 
 fn priority_for_episode(episode: &Episode) -> InsomniaPriority {
-    if episode.boundary == EpisodeBoundary::CreateMemory {
+    if matches!(
+        episode.boundary,
+        EpisodeBoundary::CreateMemory | EpisodeBoundary::Explicit
+    ) {
         InsomniaPriority::ImmediateLive
     } else {
         match episode.origin {

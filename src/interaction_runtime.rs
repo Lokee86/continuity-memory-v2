@@ -70,6 +70,20 @@ impl InteractionRuntime {
         Ok(result)
     }
 
+    pub fn finalize_explicit_session(
+        &mut self,
+        session_id: &str,
+        policy: EpisodePolicy,
+        now_ns: i64,
+    ) -> Result<EpisodeSchedulingResult, InteractionError> {
+        let leaf = self.session_leaf(session_id)?;
+        let result = self
+            .cva
+            .finalize_explicit_path_and_queue(session_id, &leaf, policy, now_ns)?;
+        self.cva.sync()?;
+        Ok(result)
+    }
+
     pub fn conversation_summaries(&self) -> Vec<ConversationSummary> {
         self.cva.conversation_summaries()
     }

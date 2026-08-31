@@ -238,11 +238,42 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn finalize_explicit_session(
+        &self,
+        session_id: &str,
+        now_ns: i64,
+    ) -> Result<crate::EpisodeSchedulingResult, ReliquaryRuntimeHostError> {
+        let policy = self.episode_policy;
+        let result = self.with_runtime(|runtime| {
+            runtime
+                .finalize_explicit_session(session_id, policy, now_ns)
+                .map_err(operation)
+        })?;
+        self.wake()?;
+        Ok(result)
+    }
+
     pub fn close_session(
         &self,
         session_id: &str,
     ) -> Result<InteractionSession, ReliquaryRuntimeHostError> {
-        self.with_runtime(|runtime| runtime.close_session(session_id).map_err(operation))
+        let policy = self.episode_policy;
+        let now_ns = crate::insomnia::runtime_step::now_ns();
+        let session = self.with_runtime(|runtime| {
+            let has_durable_turn = runtime
+                .session(session_id)
+                .ok_or_else(|| operation("interaction session is not open"))?
+                .leaf_message_id
+                .is_some();
+            if has_durable_turn {
+                runtime
+                    .finalize_explicit_session(session_id, policy, now_ns)
+                    .map_err(operation)?;
+            }
+            runtime.close_session(session_id).map_err(operation)
+        })?;
+        self.wake()?;
+        Ok(session)
     }
 
     pub fn begin_message(

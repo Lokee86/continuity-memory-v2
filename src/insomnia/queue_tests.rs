@@ -73,6 +73,42 @@ fn scheduling_priority_is_immediate_then_live_then_import() {
 }
 
 #[test]
+fn explicit_finalization_queues_the_tail_immediately() {
+    let path = test_path("explicit.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    cva.append_node(
+        "u0".into(),
+        "c1".into(),
+        None,
+        "user".into(),
+        10,
+        "Finish this episode.",
+    )
+    .unwrap();
+    cva.append_node(
+        "a0".into(),
+        "c1".into(),
+        Some("u0".into()),
+        "assistant".into(),
+        20,
+        "done",
+    )
+    .unwrap();
+
+    let result = cva
+        .finalize_explicit_path_and_queue("c1", "a0", EpisodePolicy::default(), 30)
+        .unwrap();
+    assert_eq!(result.episodes.created.len(), 1);
+    assert_eq!(
+        result.episodes.created[0].boundary,
+        EpisodeBoundary::Explicit
+    );
+    assert_eq!(result.queued.len(), 1);
+    assert_eq!(result.queued[0].priority, InsomniaPriority::ImmediateLive);
+    assert_eq!(result.queued[0].state, InsomniaWorkState::Pending);
+}
+
+#[test]
 fn create_memory_closes_only_the_tail_and_queues_it_immediately() {
     let path = test_path("create-memory.cva");
     let mut cva = Cva::create(&path).unwrap();

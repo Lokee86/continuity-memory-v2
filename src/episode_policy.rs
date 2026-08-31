@@ -57,6 +57,22 @@ impl Cva {
         .map(Some)
     }
 
+    pub fn finalize_explicit_path(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+        config: EpisodeConfig,
+        now_ns: i64,
+    ) -> Result<EpisodeBuildResult, ArchiveError> {
+        self.materialize_path_episodes(
+            conversation_id,
+            leaf_node_id,
+            config,
+            EpisodeOrigin::Live,
+            Some((EpisodeBoundary::Explicit, now_ns)),
+        )
+    }
+
     pub fn finalize_create_memory_path(
         &mut self,
         conversation_id: &str,

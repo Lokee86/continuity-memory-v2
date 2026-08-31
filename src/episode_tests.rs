@@ -266,6 +266,44 @@ fn inactivity_finalization_is_derived_from_durable_source_time() {
 }
 
 #[test]
+fn explicit_finalization_closes_only_the_current_tail_and_allows_continuation() {
+    let path = test_path("explicit.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append_turn(&mut cva, "c1", "u0", None, "user", 10, "first");
+    append_turn(&mut cva, "c1", "a0", Some("u0"), "assistant", 20, "reply");
+
+    let explicit = cva
+        .finalize_explicit_path("c1", "a0", EpisodeConfig::default(), 25)
+        .unwrap();
+    assert_eq!(explicit.created.len(), 1);
+    assert_eq!(explicit.created[0].boundary, EpisodeBoundary::Explicit);
+    assert!(!explicit.has_open_tail);
+
+    append_turn(&mut cva, "c1", "u1", Some("a0"), "user", 30, "second");
+    append_turn(
+        &mut cva,
+        "c1",
+        "a1",
+        Some("u1"),
+        "assistant",
+        40,
+        "reply two",
+    );
+    let open = cva
+        .materialize_path_episodes(
+            "c1",
+            "a1",
+            EpisodeConfig::default(),
+            EpisodeOrigin::Live,
+            None,
+        )
+        .unwrap();
+    assert!(open.created.is_empty());
+    assert!(open.has_open_tail);
+    assert_eq!(open.open_from_node_id.as_deref(), Some("u1"));
+}
+
+#[test]
 fn create_memory_helper_only_finalizes_available_source() {
     let path = test_path("create-memory.cva");
     let mut cva = Cva::create(&path).unwrap();

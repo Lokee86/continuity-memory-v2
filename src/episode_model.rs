@@ -34,6 +34,7 @@ pub enum EpisodeBoundary {
     Inactivity,
     CreateMemory,
     ImportEnd,
+    Explicit,
 }
 
 impl EpisodeBoundary {
@@ -43,6 +44,7 @@ impl EpisodeBoundary {
             Self::Inactivity => 2,
             Self::CreateMemory => 3,
             Self::ImportEnd => 4,
+            Self::Explicit => 5,
         }
     }
 
@@ -52,6 +54,7 @@ impl EpisodeBoundary {
             2 => Some(Self::Inactivity),
             3 => Some(Self::CreateMemory),
             4 => Some(Self::ImportEnd),
+            5 => Some(Self::Explicit),
             _ => None,
         }
     }

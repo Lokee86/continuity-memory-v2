@@ -70,6 +70,22 @@ impl Cva {
         }
     }
 
+    pub fn finalize_explicit_path_and_queue(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+        policy: EpisodePolicy,
+        now_ns: i64,
+    ) -> Result<EpisodeSchedulingResult, InsomniaError> {
+        let policy = policy
+            .validate()
+            .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
+        let episodes = self
+            .finalize_explicit_path(conversation_id, leaf_node_id, policy.episode, now_ns)
+            .map_err(|_| InsomniaError::InvalidField("explicit episode"))?;
+        self.queue_episode_result(episodes, InsomniaPriority::ImmediateLive, now_ns)
+    }
+
     pub fn request_create_memory(
         &mut self,
         conversation_id: &str,

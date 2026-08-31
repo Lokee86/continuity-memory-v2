@@ -4,7 +4,7 @@ use crate::runtime_host_test_support::{
     wait_phylactery_vectors,
 };
 use crate::{
-    Cva, EchoEvent, EchoEventKind, EpisodeConfig, EpisodePolicy, InteractionRole,
+    Cva, EchoEvent, EchoEventKind, EpisodeBoundary, EpisodeConfig, EpisodePolicy, InteractionRole,
     InteractionRuntime, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
     SimulatedEmbeddingEndpoint, VectorNormalization,
 };
@@ -81,6 +81,34 @@ fn live_completion_wakes_idle_insomnia_workers() {
     wait_complete(&host, 1);
     assert!(host.insomnia_stats().unwrap().complete >= 1);
     host.into_cva().unwrap();
+}
+
+#[test]
+fn runtime_host_close_session_finalizes_nonempty_tail_explicitly() {
+    let cva = Cva::create(test_path("close-explicit.cva")).unwrap();
+    let host = ReliquaryRuntimeHost::start_inactive(
+        InteractionRuntime::new(cva),
+        ReliquaryRuntimeRoutes::default(),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+
+    host.open_session("live".into(), None).unwrap();
+    host.begin_message("live", "u1".into(), InteractionRole::User, 1)
+        .unwrap();
+    host.append_text("live", "u1", "Question").unwrap();
+    host.complete_message("live", "u1").unwrap();
+    host.begin_message("live", "a1".into(), InteractionRole::Agent, 2)
+        .unwrap();
+    host.append_text("live", "a1", "Answer").unwrap();
+    host.complete_message("live", "a1").unwrap();
+
+    host.close_session("live").unwrap();
+    assert_eq!(host.insomnia_stats().unwrap().pending, 1);
+    let cva = host.into_cva().unwrap();
+    let episodes = cva.episodes_for_conversation("live");
+    assert_eq!(episodes.len(), 1);
+    assert_eq!(episodes[0].boundary, EpisodeBoundary::Explicit);
 }
 
 #[test]

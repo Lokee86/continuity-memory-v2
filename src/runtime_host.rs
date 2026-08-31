@@ -127,6 +127,7 @@ pub struct ReliquaryRuntimeHost {
     memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
     insomnia_enabled: Arc<AtomicBool>,
     insomnia_backpressure_until_ns: Arc<AtomicI64>,
+    episode_policy: EpisodePolicy,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
 
@@ -219,6 +220,7 @@ impl ReliquaryRuntimeHost {
             memory_profiles,
             insomnia_enabled,
             insomnia_backpressure_until_ns,
+            episode_policy,
             workers,
         }
     }
