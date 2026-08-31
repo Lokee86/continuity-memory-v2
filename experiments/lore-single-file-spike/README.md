@@ -18,7 +18,7 @@ The important merge constraint is that Lore's high-level `merge_start` currently
 
 ## Verified behavior
 
-`cargo test` currently passes 5/5 tests covering:
+`cargo test` currently passes 6/6 tests covering:
 
 - Lore immutable-store `put`/`get`/`query` behavior through `write_content`/`read`;
 - Lore mutable-store `load`/`store`/compare-and-swap with reopen persistence;
@@ -64,4 +64,12 @@ This is deliberately not a production storage engine. In particular:
 - no cross-process writer lock is implemented; and
 - Lore's high-level merge API still expects a conventional working tree.
 
-Those limitations do not block gate 1. The next roadmap milestone is the ordinary working-tree proof, including normal filesystem edits and reconstruction of a deleted working folder from the single artifact.
+Those limitations do not block gate 1.
+
+## Ordinary working-tree proof
+
+Roadmap milestone 3 is also proven in isolation against the same backend. A test creates a conventional project directory containing text, nested files, and a 512 KiB binary, then uses Lore's normal recursive filesystem scan/stage and commit path. It subsequently performs ordinary filesystem operations: text edit, file rename, cross-directory move, file add, explicit delete, and a small binary modification, then scans/stages and commits again.
+
+The proof verifies the first revision directly from Lore history, including the original text and pre-rename/pre-delete paths. It then closes the REL, deletes the entire working directory, reopens only the single REL, recreates an empty target directory, and uses Lore revision sync to materialize the latest committed tree. The reconstructed folder contains the edited/renamed/moved/added binary and text files, preserves the deletion, and creates no `.urc` repository directory.
+
+This establishes the intended operating model for migration work: the working folder is disposable editable materialization; the REL remains authoritative and sufficient to rebuild it.

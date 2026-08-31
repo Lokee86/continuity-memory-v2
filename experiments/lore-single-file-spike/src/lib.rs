@@ -6,6 +6,9 @@ pub use store::SingleFileStore;
 mod revision_tests;
 
 #[cfg(test)]
+mod working_tree_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use bytes::Bytes;
