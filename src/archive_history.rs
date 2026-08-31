@@ -1,6 +1,6 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::{encode_archive_format, encode_record_version};
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, ChunkRef, Container};
+use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, Container, ObjectRef};
 
 impl Archive {
     pub(crate) fn initialize_history_format(
@@ -49,7 +49,7 @@ impl Archive {
     pub(crate) fn publish_record(
         &mut self,
         container: &mut Container,
-        record: ChunkRef,
+        record: ObjectRef,
     ) -> Result<ArchiveRecordVersion, ArchiveError> {
         let archive_version = self.next_archive_version;
         let next_archive_version = archive_version

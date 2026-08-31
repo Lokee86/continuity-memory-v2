@@ -1,5 +1,5 @@
 use super::codec::{InsomniaRecord, decode_format, decode_record};
-use crate::{ChunkRef, InsomniaError};
+use crate::{InsomniaError, ObjectRef};
 
 pub(crate) struct InsomniaOpenState {
     store: super::store::InsomniaStore,
@@ -14,7 +14,11 @@ impl InsomniaOpenState {
         }
     }
 
-    pub(crate) fn ingest(&mut self, _chunk: ChunkRef, payload: &[u8]) -> Result<(), InsomniaError> {
+    pub(crate) fn ingest(
+        &mut self,
+        _chunk: ObjectRef,
+        payload: &[u8],
+    ) -> Result<(), InsomniaError> {
         if let Some(completion) =
             super::completion::decode_completion(payload).map_err(InsomniaError::CorruptRecord)?
         {

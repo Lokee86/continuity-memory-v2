@@ -262,7 +262,7 @@ pub use configured_runtime::{
     ConfiguredRuntime, ConfiguredRuntimeError, EmbeddingProbeReport, InsomniaTerminalFailure,
 };
 pub use container::{
-    ChunkRef, Container, ContainerError, ContainerIdentity, FileKind, FormatVersion,
+    Container, ContainerError, ContainerIdentity, FileKind, FormatVersion, ObjectRef,
     ReliquaryScopeKind,
 };
 pub use conversation_compaction_model::{

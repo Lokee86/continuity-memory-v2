@@ -1,5 +1,6 @@
 use super::{
-    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, read_header, read_u64, truncated_or_io,
+    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, read_u64,
+    truncated_or_io,
 };
 use std::fs::OpenOptions;
 use std::io::{Read, Seek, SeekFrom};
@@ -12,7 +13,7 @@ impl Container {
 
     pub(crate) fn open_scanned<E>(
         path: impl AsRef<Path>,
-        mut visitor: impl FnMut(ChunkRef, &[u8], u64) -> Result<(), E>,
+        mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
     ) -> Result<Self, E>
     where
         E: From<ContainerError>,
@@ -40,7 +41,7 @@ impl Container {
 
     fn scan_payloads<E>(
         &mut self,
-        visitor: &mut impl FnMut(ChunkRef, &[u8], u64) -> Result<(), E>,
+        visitor: &mut impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
     ) -> Result<(), E>
     where
         E: From<ContainerError>,
@@ -70,9 +71,9 @@ impl Container {
             self.file
                 .read_exact(&mut payload)
                 .map_err(|error| E::from(truncated_or_io(error, offset)))?;
-            let chunk = ChunkRef { offset, len };
+            let object = ObjectRef::from_chunk(ChunkRef { offset, len });
             self.observe_version_payload(&payload).map_err(E::from)?;
-            visitor(chunk, &payload, self.latest_version())?;
+            visitor(object, &payload, self.latest_version())?;
             offset = end;
         }
         Ok(())

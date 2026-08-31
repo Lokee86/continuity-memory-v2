@@ -1,11 +1,11 @@
 use crate::archive_lookup::DenseLookup;
-use crate::{ArchiveError, ChunkRef, ContentId, Fragment, FragmentId};
+use crate::{ArchiveError, ContentId, Fragment, FragmentId, ObjectRef};
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
 #[derive(Default)]
 pub(crate) struct ContentIndex {
-    records: HashMap<ContentId, ChunkRef>,
+    records: HashMap<ContentId, ObjectRef>,
 }
 
 impl ContentIndex {
@@ -13,7 +13,7 @@ impl ContentIndex {
         self.records.len()
     }
 
-    pub(crate) fn get(&self, id: ContentId) -> Option<ChunkRef> {
+    pub(crate) fn get(&self, id: ContentId) -> Option<ObjectRef> {
         self.records.get(&id).copied()
     }
 
@@ -21,7 +21,7 @@ impl ContentIndex {
         self.records.contains_key(&id)
     }
 
-    pub(crate) fn insert(&mut self, id: ContentId, chunk: ChunkRef) -> bool {
+    pub(crate) fn insert(&mut self, id: ContentId, chunk: ObjectRef) -> bool {
         if self.records.contains_key(&id) {
             return false;
         }

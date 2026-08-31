@@ -6,12 +6,12 @@ use crate::vector_generation_codec::{
 };
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::vector_generation_validation::{validate_generation_reference, vector_generation_id};
-use crate::{Archive, ChunkRef, VectorGeneration, VectorGenerationError};
+use crate::{Archive, ObjectRef, VectorGeneration, VectorGenerationError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct VectorGenerationOpenState {
-    pending: HashMap<ChunkRef, GenerationPayload>,
-    versioned: HashSet<ChunkRef>,
+    pending: HashMap<ObjectRef, GenerationPayload>,
+    versioned: HashSet<ObjectRef>,
     generations: Vec<VectorGeneration>,
     next_vector_version: u64,
     format_seen: bool,
@@ -30,7 +30,7 @@ impl VectorGenerationOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
         latest_global: u64,
     ) -> Result<(), VectorGenerationError> {
@@ -49,7 +49,7 @@ impl VectorGenerationOpenState {
                     .generations
                     .last()
                     .is_some_and(|last| last.global_version >= version.global_version)
-                || version.record.offset >= chunk.offset
+                || !version.record.precedes(chunk)
             {
                 return Err(VectorGenerationError::InvalidGenerationVersion);
             }

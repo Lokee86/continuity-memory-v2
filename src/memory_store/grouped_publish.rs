@@ -99,7 +99,7 @@ impl MemoryStore {
 
     pub(crate) fn apply_grouped_bodies(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         bodies: &[InsomniaCompletionBody],
     ) -> Result<(), MemoryError> {
         for body in bodies {

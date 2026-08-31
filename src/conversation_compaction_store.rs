@@ -1,19 +1,19 @@
 use crate::conversation_compaction_codec::{DecodedCompactionChunk, decode, encode_live};
-use crate::{ChunkRef, Container, ConversationCompaction, ConversationCompactionError};
-use std::collections::BTreeMap;
+use crate::{Container, ConversationCompaction, ConversationCompactionError, ObjectRef};
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug)]
 pub(crate) enum StoredCompactionChunk {
-    Free(ChunkRef),
+    Free(ObjectRef),
     Live {
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         record: ConversationCompaction,
         supersedes: Option<String>,
     },
 }
 
 impl StoredCompactionChunk {
-    pub(crate) fn chunk(&self) -> ChunkRef {
+    pub(crate) fn chunk(&self) -> ObjectRef {
         match self {
             Self::Free(chunk) | Self::Live { chunk, .. } => *chunk,
         }
@@ -26,14 +26,14 @@ impl StoredCompactionChunk {
 
 #[derive(Default)]
 pub(crate) struct ConversationCompactionOpenState {
-    chunks: BTreeMap<u64, StoredCompactionChunk>,
+    chunks: BTreeMap<ObjectRef, StoredCompactionChunk>,
     next_generation: u64,
 }
 
 impl ConversationCompactionOpenState {
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), ConversationCompactionError> {
         let Some(decoded) = decode(payload)? else {
@@ -55,7 +55,7 @@ impl ConversationCompactionOpenState {
                 }
             }
         };
-        self.chunks.insert(chunk.offset, stored);
+        self.chunks.insert(chunk, stored);
         Ok(())
     }
 
@@ -74,7 +74,7 @@ impl ConversationCompactionOpenState {
 
 #[derive(Default)]
 pub(crate) struct ConversationCompactionStore {
-    pub(crate) chunks: BTreeMap<u64, StoredCompactionChunk>,
+    pub(crate) chunks: BTreeMap<ObjectRef, StoredCompactionChunk>,
     pub(crate) next_generation: u64,
 }
 
@@ -139,7 +139,7 @@ impl ConversationCompactionStore {
         container.write_chunk_prefix(chunk, &encoded)?;
         container.sync()?;
         self.chunks.insert(
-            chunk.offset,
+            chunk,
             StoredCompactionChunk::Live {
                 chunk,
                 record: record.clone(),
@@ -147,10 +147,10 @@ impl ConversationCompactionStore {
             },
         );
         if let Some(old_through) = supersedes
-            && let Some(old_offset) = self.find_record_offset(&record.conversation_id, old_through)
-            && old_offset != chunk.offset
+            && let Some(old_object) = self.find_record_object(&record.conversation_id, old_through)
+            && old_object != chunk
         {
-            self.free_and_coalesce(container, old_offset)?;
+            self.free_and_coalesce(container, old_object)?;
             container.sync()?;
         }
         Ok(record)
@@ -160,40 +160,38 @@ impl ConversationCompactionStore {
         let live = self
             .chunks
             .iter()
-            .filter_map(|(offset, chunk)| match chunk {
+            .filter_map(|(object, chunk)| match chunk {
                 StoredCompactionChunk::Live {
                     record, supersedes, ..
-                } => Some((*offset, record.clone(), supersedes.clone())),
+                } => Some((*object, record.clone(), supersedes.clone())),
                 _ => None,
             })
             .collect::<Vec<_>>();
-        let mut stale = Vec::new();
-        for (offset, record, supersedes) in &live {
+        let mut stale = BTreeSet::new();
+        for (object, record, supersedes) in &live {
             if let Some(old) = supersedes
-                && let Some(old_offset) = self.find_record_offset(&record.conversation_id, old)
-                && old_offset != *offset
+                && let Some(old_object) = self.find_record_object(&record.conversation_id, old)
+                && old_object != *object
             {
-                stale.push(old_offset);
+                stale.insert(old_object);
             }
-            for (other_offset, other, _) in &live {
-                if other_offset != offset
+            for (other_object, other, _) in &live {
+                if other_object != object
                     && other.conversation_id == record.conversation_id
                     && other.through_message_id == record.through_message_id
                     && other.generation < record.generation
                 {
-                    stale.push(*other_offset);
+                    stale.insert(*other_object);
                 }
             }
         }
-        stale.sort_unstable();
-        stale.dedup();
-        for offset in stale {
+        for object in stale {
             if self
                 .chunks
-                .get(&offset)
+                .get(&object)
                 .is_some_and(|chunk| !chunk.is_free())
             {
-                self.free_and_coalesce(container, offset)?;
+                self.free_and_coalesce(container, object)?;
             }
         }
         if !self.chunks.is_empty() {
@@ -202,13 +200,17 @@ impl ConversationCompactionStore {
         Ok(())
     }
 
-    pub(crate) fn find_record_offset(&self, conversation_id: &str, through: &str) -> Option<u64> {
-        self.chunks.iter().find_map(|(offset, chunk)| match chunk {
+    pub(crate) fn find_record_object(
+        &self,
+        conversation_id: &str,
+        through: &str,
+    ) -> Option<ObjectRef> {
+        self.chunks.iter().find_map(|(object, chunk)| match chunk {
             StoredCompactionChunk::Live { record, .. }
                 if record.conversation_id == conversation_id
                     && record.through_message_id == through =>
             {
-                Some(*offset)
+                Some(*object)
             }
             _ => None,
         })

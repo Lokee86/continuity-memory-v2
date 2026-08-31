@@ -1,6 +1,6 @@
 use crate::compatibility_profile_codec::{decode_format, decode_profile};
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::{ChunkRef, CompatibilityProfileError};
+use crate::{CompatibilityProfileError, ObjectRef};
 
 pub(crate) struct CompatibilityProfileOpenState {
     store: CompatibilityProfileStore,
@@ -17,7 +17,7 @@ impl CompatibilityProfileOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        _chunk: ChunkRef,
+        _chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), CompatibilityProfileError> {
         if decode_format(payload)? {

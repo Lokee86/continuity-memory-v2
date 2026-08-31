@@ -1,7 +1,7 @@
 use super::completion::decode_completion;
 use crate::{
-    ChunkRef, Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaExtractor,
-    InsomniaPriority, InsomniaWorkState, SimulatedGeneralEndpoint,
+    Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaExtractor, InsomniaPriority,
+    InsomniaWorkState, ObjectRef, SimulatedGeneralEndpoint,
 };
 use serde_json::{Value, json};
 use std::fs;
@@ -136,7 +136,7 @@ fn fail_processing_once(cva: &mut Cva, now: i64) {
     .unwrap();
 }
 
-fn completion_chunk(cva: &mut Cva) -> ChunkRef {
+fn completion_chunk(cva: &mut Cva) -> ObjectRef {
     cva.container
         .chunks()
         .unwrap()
@@ -307,19 +307,21 @@ fn truncated_completion_is_recovered_for_zero_one_and_many_memories_then_retries
         drop(cva);
 
         let original = fs::read(&path).unwrap();
-        let full_end = commit.offset + 8 + commit.len;
+        let commit_offset = commit.legacy_offset();
+        let commit_len = commit.legacy_len();
+        let full_end = commit_offset + 8 + commit_len;
         let mut cuts = vec![
-            commit.offset + 1,
-            commit.offset + 7,
-            commit.offset + 8,
-            commit.offset + 9,
-            commit.offset + 8 + commit.len / 3,
-            commit.offset + 8 + commit.len / 2,
+            commit_offset + 1,
+            commit_offset + 7,
+            commit_offset + 8,
+            commit_offset + 9,
+            commit_offset + 8 + commit_len / 3,
+            commit_offset + 8 + commit_len / 2,
             full_end - 1,
         ];
         cuts.sort_unstable();
         cuts.dedup();
-        cuts.retain(|cut| *cut > commit.offset && *cut < full_end);
+        cuts.retain(|cut| *cut > commit_offset && *cut < full_end);
 
         for (iteration, cut) in cuts.into_iter().enumerate() {
             fs::write(&path, &original[..cut as usize]).unwrap();
@@ -331,7 +333,7 @@ fn truncated_completion_is_recovered_for_zero_one_and_many_memories_then_retries
                 InsomniaWorkState::Pending
             );
             assert!(reopened.insomnia_attempts(episode.id).is_empty());
-            assert_eq!(fs::metadata(&path).unwrap().len(), commit.offset);
+            assert_eq!(fs::metadata(&path).unwrap().len(), commit_offset);
 
             let retry = process(&mut reopened, count, 1_000 + iteration as i64 * 10);
             let retry_ids: Vec<_> = retry.created.iter().map(|memory| memory.id).collect();

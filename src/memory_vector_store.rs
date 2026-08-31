@@ -3,9 +3,9 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_codec::{decode_object, encode_format, encode_object};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    ChunkRef, CompatibilityProfileId, Container, MemoryBodyId, MemoryVectorError, MemoryVectorId,
-    MemoryVectorInfo, MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, PackedVectorId,
-    ScalarType,
+    CompatibilityProfileId, Container, MemoryBodyId, MemoryVectorError, MemoryVectorId,
+    MemoryVectorInfo, MemoryVectorLocation, MemoryVectorSet, MemoryVectorStats, ObjectRef,
+    PackedVectorId, ScalarType,
 };
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -20,7 +20,7 @@ pub(crate) struct MemoryVectorStore {
 #[derive(Clone, Copy)]
 struct MemoryVectorEntry {
     info: MemoryVectorInfo,
-    chunk: ChunkRef,
+    chunk: ObjectRef,
 }
 
 impl MemoryVectorStore {
@@ -117,7 +117,7 @@ impl MemoryVectorStore {
     pub(crate) fn insert_rebuilt(
         &mut self,
         info: MemoryVectorInfo,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         body_ids: &[MemoryBodyId],
     ) -> Result<(), MemoryVectorError> {
         if let Some(existing) = self.objects.get(&info.id) {
@@ -132,7 +132,7 @@ impl MemoryVectorStore {
     fn insert_entry(
         &mut self,
         info: MemoryVectorInfo,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         body_ids: &[MemoryBodyId],
     ) -> Result<(), MemoryVectorError> {
         if body_ids.iter().any(|body_id| {

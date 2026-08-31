@@ -1,6 +1,7 @@
 #[path = "container_scan.rs"]
 mod scan;
 
+use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -38,10 +39,64 @@ pub struct ContainerIdentity {
     pub scope: Option<ReliquaryScopeKind>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct ChunkRef {
-    pub offset: u64,
-    pub len: u64,
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct ChunkRef {
+    offset: u64,
+    len: u64,
+}
+
+/// Storage-neutral identity for one durable object.
+///
+/// The legacy Container currently backs this with a physical chunk reference,
+/// but callers outside the storage boundary cannot observe that representation.
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ObjectRef {
+    physical: ChunkRef,
+}
+
+impl fmt::Debug for ObjectRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ObjectRef(..)")
+    }
+}
+
+impl ObjectRef {
+    fn from_chunk(chunk: ChunkRef) -> Self {
+        Self { physical: chunk }
+    }
+
+    fn into_chunk(self) -> ChunkRef {
+        self.physical
+    }
+
+    pub(crate) fn from_legacy_bytes(bytes: [u8; 16]) -> Self {
+        Self::from_chunk(ChunkRef {
+            offset: u64::from_le_bytes(bytes[..8].try_into().unwrap()),
+            len: u64::from_le_bytes(bytes[8..].try_into().unwrap()),
+        })
+    }
+
+    pub(crate) fn legacy_bytes(self) -> [u8; 16] {
+        let chunk = self.into_chunk();
+        let mut bytes = [0_u8; 16];
+        bytes[..8].copy_from_slice(&chunk.offset.to_le_bytes());
+        bytes[8..].copy_from_slice(&chunk.len.to_le_bytes());
+        bytes
+    }
+
+    pub(crate) fn precedes(self, later: Self) -> bool {
+        self.into_chunk().offset < later.into_chunk().offset
+    }
+
+    #[cfg(test)]
+    pub(crate) fn legacy_offset(self) -> u64 {
+        self.into_chunk().offset
+    }
+
+    #[cfg(test)]
+    pub(crate) fn legacy_len(self) -> u64 {
+        self.into_chunk().len
+    }
 }
 
 #[derive(Debug)]
@@ -134,19 +189,20 @@ impl Container {
         })
     }
 
-    pub fn append(&mut self, payload: &[u8]) -> Result<ChunkRef, ContainerError> {
+    pub fn append(&mut self, payload: &[u8]) -> Result<ObjectRef, ContainerError> {
         let len = u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
         let offset = self.file.seek(SeekFrom::End(0))?;
         self.file.write_all(&len.to_le_bytes())?;
         self.file.write_all(payload)?;
-        Ok(ChunkRef { offset, len })
+        Ok(ObjectRef::from_chunk(ChunkRef { offset, len }))
     }
 
-    pub fn read(&mut self, chunk: ChunkRef) -> Result<Vec<u8>, ContainerError> {
+    pub fn read(&mut self, object: ObjectRef) -> Result<Vec<u8>, ContainerError> {
+        let chunk = object.into_chunk();
         self.file.seek(SeekFrom::Start(chunk.offset))?;
         let stored_len = read_u64(&mut self.file, chunk.offset)?;
         if stored_len != chunk.len {
-            return Err(ContainerError::InvalidChunkRef(chunk));
+            return Err(ContainerError::InvalidChunkRef(object));
         }
         let len = usize::try_from(stored_len).map_err(|_| ContainerError::ChunkTooLarge)?;
         let mut payload = vec![0_u8; len];
@@ -158,17 +214,18 @@ impl Container {
 
     pub(crate) fn write_chunk_prefix(
         &mut self,
-        chunk: ChunkRef,
+        object: ObjectRef,
         payload: &[u8],
     ) -> Result<(), ContainerError> {
+        let chunk = object.into_chunk();
         let payload_len =
             u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
         if payload_len > chunk.len {
-            return Err(ContainerError::InvalidChunkRef(chunk));
+            return Err(ContainerError::InvalidChunkRef(object));
         }
         self.file.seek(SeekFrom::Start(chunk.offset))?;
         if read_u64(&mut self.file, chunk.offset)? != chunk.len {
-            return Err(ContainerError::InvalidChunkRef(chunk));
+            return Err(ContainerError::InvalidChunkRef(object));
         }
         self.file.write_all(payload)?;
         Ok(())
@@ -176,23 +233,24 @@ impl Container {
 
     pub(crate) fn split_chunk(
         &mut self,
-        chunk: ChunkRef,
+        object: ObjectRef,
         first_len: u64,
         second_prefix: &[u8],
-    ) -> Result<(ChunkRef, ChunkRef), ContainerError> {
+    ) -> Result<(ObjectRef, ObjectRef), ContainerError> {
+        let chunk = object.into_chunk();
         let second_len = chunk
             .len
             .checked_sub(first_len)
             .and_then(|remaining| remaining.checked_sub(CHUNK_HEADER_LEN))
-            .ok_or(ContainerError::InvalidChunkRef(chunk))?;
+            .ok_or(ContainerError::InvalidChunkRef(object))?;
         if u64::try_from(second_prefix.len()).map_err(|_| ContainerError::ChunkTooLarge)?
             > second_len
         {
-            return Err(ContainerError::InvalidChunkRef(chunk));
+            return Err(ContainerError::InvalidChunkRef(object));
         }
         self.file.seek(SeekFrom::Start(chunk.offset))?;
         if read_u64(&mut self.file, chunk.offset)? != chunk.len {
-            return Err(ContainerError::InvalidChunkRef(chunk));
+            return Err(ContainerError::InvalidChunkRef(object));
         }
         let second_offset = chunk
             .offset
@@ -207,37 +265,39 @@ impl Container {
         self.file.write_all(&first_len.to_le_bytes())?;
         self.file.sync_data()?;
         Ok((
-            ChunkRef {
+            ObjectRef::from_chunk(ChunkRef {
                 offset: chunk.offset,
                 len: first_len,
-            },
-            ChunkRef {
+            }),
+            ObjectRef::from_chunk(ChunkRef {
                 offset: second_offset,
                 len: second_len,
-            },
+            }),
         ))
     }
 
     pub(crate) fn merge_adjacent_chunks(
         &mut self,
-        first: ChunkRef,
-        second: ChunkRef,
-    ) -> Result<ChunkRef, ContainerError> {
+        first_object: ObjectRef,
+        second_object: ObjectRef,
+    ) -> Result<ObjectRef, ContainerError> {
+        let first = first_object.into_chunk();
+        let second = second_object.into_chunk();
         let expected_second = first
             .offset
             .checked_add(CHUNK_HEADER_LEN)
             .and_then(|value| value.checked_add(first.len))
             .ok_or(ContainerError::ChunkTooLarge)?;
         if second.offset != expected_second {
-            return Err(ContainerError::InvalidChunkRef(second));
+            return Err(ContainerError::InvalidChunkRef(second_object));
         }
         self.file.seek(SeekFrom::Start(first.offset))?;
         if read_u64(&mut self.file, first.offset)? != first.len {
-            return Err(ContainerError::InvalidChunkRef(first));
+            return Err(ContainerError::InvalidChunkRef(first_object));
         }
         self.file.seek(SeekFrom::Start(second.offset))?;
         if read_u64(&mut self.file, second.offset)? != second.len {
-            return Err(ContainerError::InvalidChunkRef(second));
+            return Err(ContainerError::InvalidChunkRef(second_object));
         }
         let len = first
             .len
@@ -247,13 +307,26 @@ impl Container {
         self.file.seek(SeekFrom::Start(first.offset))?;
         self.file.write_all(&len.to_le_bytes())?;
         self.file.sync_data()?;
-        Ok(ChunkRef {
+        Ok(ObjectRef::from_chunk(ChunkRef {
             offset: first.offset,
             len,
-        })
+        }))
     }
 
-    pub fn chunks(&mut self) -> Result<Vec<ChunkRef>, ContainerError> {
+    pub(crate) fn object_capacity(&self, object: ObjectRef) -> u64 {
+        object.into_chunk().len
+    }
+
+    pub(crate) fn objects_adjacent(&self, left: ObjectRef, right: ObjectRef) -> bool {
+        let left = left.into_chunk();
+        let right = right.into_chunk();
+        left.offset
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|value| value.checked_add(left.len))
+            == Some(right.offset)
+    }
+
+    pub fn chunks(&mut self) -> Result<Vec<ObjectRef>, ContainerError> {
         let file_len = self.file.metadata()?.len();
         let mut offset = self.header_len;
         let mut chunks = Vec::new();
@@ -270,7 +343,7 @@ impl Container {
             if end > file_len {
                 return Err(ContainerError::TruncatedChunk(offset));
             }
-            chunks.push(ChunkRef { offset, len });
+            chunks.push(ObjectRef::from_chunk(ChunkRef { offset, len }));
             offset = end;
         }
         Ok(chunks)
@@ -298,7 +371,11 @@ impl Container {
         Some(format!("{}-{uuid}", owner_prefix(identity)))
     }
 
-    pub(crate) fn truncate_tail_chunk(&mut self, chunk: ChunkRef) -> Result<bool, ContainerError> {
+    pub(crate) fn truncate_tail_chunk(
+        &mut self,
+        object: ObjectRef,
+    ) -> Result<bool, ContainerError> {
+        let chunk = object.into_chunk();
         let end = chunk
             .offset
             .checked_add(CHUNK_HEADER_LEN)
@@ -326,7 +403,7 @@ pub enum ContainerError {
     UnsupportedVersion(FormatVersion),
     InvalidHeaderLength(u32),
     InvalidIdentity,
-    InvalidChunkRef(ChunkRef),
+    InvalidChunkRef(ObjectRef),
     InvalidVersionRecord,
     VersionExhausted,
     ChunkTooLarge,

@@ -1,6 +1,6 @@
 use crate::packed_vector_codec::{decode_object, encode_format, encode_object};
 use crate::{
-    ChunkRef, Container, PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats,
+    Container, ObjectRef, PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats,
 };
 use lodestone_packed::{PackedVectors, VectorSchema};
 use sha2::{Digest, Sha256};
@@ -14,7 +14,7 @@ pub(crate) struct PackedVectorStore {
 #[derive(Clone, Copy)]
 struct PackedVectorEntry {
     info: PackedVectorInfo,
-    chunk: ChunkRef,
+    chunk: ObjectRef,
 }
 
 impl PackedVectorStore {
@@ -68,7 +68,7 @@ impl PackedVectorStore {
     pub(crate) fn insert_rebuilt(
         &mut self,
         info: PackedVectorInfo,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
     ) -> Result<(), PackedVectorError> {
         if let Some(existing) = self.objects.get(&info.id) {
             if existing.info != info {

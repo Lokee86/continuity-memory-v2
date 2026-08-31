@@ -1,6 +1,6 @@
 use crate::packed_vector_codec::{decode_format, decode_object};
 use crate::packed_vector_store::{PackedVectorStore, packed_vector_id};
-use crate::{ChunkRef, PackedVectorError, PackedVectorInfo};
+use crate::{ObjectRef, PackedVectorError, PackedVectorInfo};
 
 pub(crate) struct PackedVectorOpenState {
     store: PackedVectorStore,
@@ -17,7 +17,7 @@ impl PackedVectorOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), PackedVectorError> {
         if decode_format(payload)? {

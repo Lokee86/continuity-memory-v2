@@ -8,7 +8,7 @@ use crate::episode_index::EpisodeIndex;
 use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
 use crate::source_attachment_index::SourceAttachmentIndex;
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, ChunkRef};
+use crate::{Archive, ArchiveError, ArchiveRecordVersion, ObjectRef};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct ArchiveOpenState {
@@ -22,8 +22,8 @@ pub(crate) struct ArchiveOpenState {
     source_attachments: SourceAttachmentIndex,
     file_memory_links: FileMemoryLinkIndex,
     record_versions: Vec<ArchiveRecordVersion>,
-    pending_records: HashMap<ChunkRef, ArchiveRecord>,
-    versioned_records: HashSet<ChunkRef>,
+    pending_records: HashMap<ObjectRef, ArchiveRecord>,
+    versioned_records: HashSet<ObjectRef>,
     next_archive_version: u64,
     format_seen: bool,
 }
@@ -50,7 +50,7 @@ impl ArchiveOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), ArchiveError> {
@@ -108,7 +108,7 @@ impl ArchiveOpenState {
 
     fn ingest_version(
         &mut self,
-        metadata_chunk: ChunkRef,
+        metadata_chunk: ObjectRef,
         version: ArchiveRecordVersion,
         latest_global_version: u64,
     ) -> Result<(), ArchiveError> {
@@ -119,7 +119,7 @@ impl ArchiveOpenState {
                 .record_versions
                 .last()
                 .is_some_and(|last| last.global_version >= version.global_version)
-            || version.record.offset >= metadata_chunk.offset
+            || !version.record.precedes(metadata_chunk)
         {
             return Err(ArchiveError::InvalidArchiveRecordVersion);
         }

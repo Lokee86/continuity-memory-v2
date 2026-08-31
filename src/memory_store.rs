@@ -3,14 +3,14 @@ use crate::memory_codec::{
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
-    ChunkRef, Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats,
+    Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats, ObjectRef,
 };
 use std::collections::HashMap;
 
 mod grouped_publish;
 
 pub(crate) struct MemoryStore {
-    bodies: HashMap<MemoryBodyId, ChunkRef>,
+    bodies: HashMap<MemoryBodyId, ObjectRef>,
     records: Vec<MemoryRecord>,
     current: HashMap<MemoryId, usize>,
     by_mutation: HashMap<String, usize>,
@@ -191,7 +191,7 @@ impl MemoryStore {
         }
     }
 
-    pub(crate) fn insert_body(&mut self, id: MemoryBodyId, chunk: ChunkRef) -> bool {
+    pub(crate) fn insert_body(&mut self, id: MemoryBodyId, chunk: ObjectRef) -> bool {
         if self.bodies.contains_key(&id) {
             return false;
         }

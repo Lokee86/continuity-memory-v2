@@ -12,9 +12,7 @@ impl fmt::Display for ContainerError {
                 write!(f, "unsupported CVA format {}.{}", v.major, v.minor)
             }
             Self::InvalidHeaderLength(length) => write!(f, "invalid CVA header length {length}"),
-            Self::InvalidChunkRef(chunk) => {
-                write!(f, "invalid CVA chunk reference at {}", chunk.offset)
-            }
+            Self::InvalidChunkRef(_) => write!(f, "invalid CVA object reference"),
             Self::InvalidVersionRecord => write!(f, "invalid CVA version record"),
             Self::VersionExhausted => write!(f, "CVA global version counter exhausted"),
             Self::ChunkTooLarge => write!(f, "CVA chunk is too large"),

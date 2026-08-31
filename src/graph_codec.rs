@@ -1,4 +1,4 @@
-use crate::{ChunkRef, GraphError, GraphRelationKind, MemoryId};
+use crate::{GraphError, GraphRelationKind, MemoryId, ObjectRef};
 use arcana_graph::NodeId;
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAGFMT1";
@@ -26,7 +26,7 @@ pub(crate) struct GraphMutationPayload {
 pub(crate) struct GraphVersionPayload {
     pub global_version: u64,
     pub graph_version: u64,
-    pub mutation: ChunkRef,
+    pub mutation: ObjectRef,
 }
 
 pub(crate) fn encode_format() -> [u8; 12] {
@@ -157,8 +157,7 @@ pub(crate) fn encode_version(version: GraphVersionPayload) -> [u8; 40] {
     out[..8].copy_from_slice(VERSION_MAGIC);
     out[8..16].copy_from_slice(&version.global_version.to_le_bytes());
     out[16..24].copy_from_slice(&version.graph_version.to_le_bytes());
-    out[24..32].copy_from_slice(&version.mutation.offset.to_le_bytes());
-    out[32..40].copy_from_slice(&version.mutation.len.to_le_bytes());
+    out[24..40].copy_from_slice(&version.mutation.legacy_bytes());
     out
 }
 
@@ -172,10 +171,7 @@ pub(crate) fn decode_version(bytes: &[u8]) -> Result<Option<GraphVersionPayload>
     Ok(Some(GraphVersionPayload {
         global_version: read_u64(bytes, 8)?,
         graph_version: read_u64(bytes, 16)?,
-        mutation: ChunkRef {
-            offset: read_u64(bytes, 24)?,
-            len: read_u64(bytes, 32)?,
-        },
+        mutation: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
     }))
 }
 

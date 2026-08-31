@@ -2,7 +2,7 @@ use crate::archive_vector_codec::{decode_object, encode_format, encode_object};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
     Archive, ArchiveVectorError, ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet,
-    ArchiveVectorStats, ChunkRef, Container, FragmentId, PackedVectorId,
+    ArchiveVectorStats, Container, FragmentId, ObjectRef, PackedVectorId,
 };
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -15,7 +15,7 @@ pub(crate) struct ArchiveVectorStore {
 #[derive(Clone, Copy)]
 struct ArchiveVectorEntry {
     info: ArchiveVectorInfo,
-    chunk: ChunkRef,
+    chunk: ObjectRef,
 }
 
 impl ArchiveVectorStore {
@@ -85,7 +85,7 @@ impl ArchiveVectorStore {
     pub(crate) fn insert_rebuilt(
         &mut self,
         info: ArchiveVectorInfo,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
     ) -> Result<(), ArchiveVectorError> {
         if let Some(existing) = self.objects.get(&info.id) {
             if existing.info != info {

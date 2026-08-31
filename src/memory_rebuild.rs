@@ -1,11 +1,11 @@
 use crate::memory_codec::{decode_body, decode_format, decode_record, decode_version};
 use crate::memory_model::{MemoryRecord, memory_body_id};
-use crate::{ChunkRef, MemoryError};
+use crate::{MemoryError, ObjectRef};
 use std::collections::HashMap;
 
 pub(crate) struct MemoryOpenState {
     store: crate::memory_store::MemoryStore,
-    pending_records: HashMap<ChunkRef, MemoryRecord>,
+    pending_records: HashMap<ObjectRef, MemoryRecord>,
     format_seen: bool,
 }
 
@@ -20,7 +20,7 @@ impl MemoryOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), MemoryError> {

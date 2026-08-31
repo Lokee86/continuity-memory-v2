@@ -1,5 +1,5 @@
 use crate::{
-    ArchiveVectorId, ChunkRef, CompatibilityProfileId, VectorGenerationError, VectorGenerationId,
+    ArchiveVectorId, CompatibilityProfileId, ObjectRef, VectorGenerationError, VectorGenerationId,
 };
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAVGFM2";
@@ -19,7 +19,7 @@ pub(crate) struct GenerationPayload {
 pub(crate) struct GenerationVersion {
     pub global_version: u64,
     pub vector_version: u64,
-    pub record: ChunkRef,
+    pub record: ObjectRef,
 }
 
 pub(crate) fn encode_format() -> [u8; 12] {
@@ -75,8 +75,7 @@ pub(crate) fn encode_version(version: GenerationVersion) -> [u8; 40] {
     out[..8].copy_from_slice(VERSION_MAGIC);
     out[8..16].copy_from_slice(&version.global_version.to_le_bytes());
     out[16..24].copy_from_slice(&version.vector_version.to_le_bytes());
-    out[24..32].copy_from_slice(&version.record.offset.to_le_bytes());
-    out[32..40].copy_from_slice(&version.record.len.to_le_bytes());
+    out[24..40].copy_from_slice(&version.record.legacy_bytes());
     out
 }
 
@@ -92,10 +91,7 @@ pub(crate) fn decode_version(
     Ok(Some(GenerationVersion {
         global_version: read_u64(bytes, 8)?,
         vector_version: read_u64(bytes, 16)?,
-        record: ChunkRef {
-            offset: read_u64(bytes, 24)?,
-            len: read_u64(bytes, 32)?,
-        },
+        record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
     }))
 }
 

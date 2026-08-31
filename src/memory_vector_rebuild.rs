@@ -3,7 +3,7 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_codec::{decode_format, decode_object};
 use crate::memory_vector_store::{MemoryVectorStore, memory_vector_id, validate_mapping};
 use crate::packed_vector_store::PackedVectorStore;
-use crate::{ChunkRef, MemoryBodyId, MemoryVectorError, MemoryVectorInfo};
+use crate::{MemoryBodyId, MemoryVectorError, MemoryVectorInfo, ObjectRef};
 
 pub(crate) struct MemoryVectorOpenState {
     records: Vec<PendingMemoryVectors>,
@@ -12,7 +12,7 @@ pub(crate) struct MemoryVectorOpenState {
 
 struct PendingMemoryVectors {
     info: MemoryVectorInfo,
-    chunk: ChunkRef,
+    chunk: ObjectRef,
     body_ids: Vec<MemoryBodyId>,
 }
 
@@ -26,7 +26,7 @@ impl MemoryVectorOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), MemoryVectorError> {
         if decode_format(payload)? {

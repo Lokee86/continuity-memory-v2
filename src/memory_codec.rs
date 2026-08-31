@@ -2,7 +2,7 @@ use crate::memory_codec_scalar::{
     read_i64, read_optional_episode, read_optional_i64, write_optional_episode, write_optional_i64,
 };
 use crate::memory_model::MemoryRecord;
-use crate::{ChunkRef, MemoryBodyId, MemoryError, MemoryId};
+use crate::{MemoryBodyId, MemoryError, MemoryId, ObjectRef};
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAMEMF2";
 const BODY_MAGIC: [u8; 8] = *b"CVAMBDY1";
@@ -14,7 +14,7 @@ const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 pub(crate) struct MemoryVersion {
     pub global_version: u64,
     pub memory_version: u64,
-    pub record: ChunkRef,
+    pub record: ObjectRef,
 }
 
 pub(crate) fn encode_format() -> Vec<u8> {
@@ -171,8 +171,7 @@ pub(crate) fn encode_version(version: MemoryVersion) -> Vec<u8> {
     out.extend_from_slice(&VERSION_MAGIC);
     out.extend_from_slice(&version.global_version.to_le_bytes());
     out.extend_from_slice(&version.memory_version.to_le_bytes());
-    out.extend_from_slice(&version.record.offset.to_le_bytes());
-    out.extend_from_slice(&version.record.len.to_le_bytes());
+    out.extend_from_slice(&version.record.legacy_bytes());
     out
 }
 
@@ -186,10 +185,7 @@ pub(crate) fn decode_version(bytes: &[u8]) -> Result<Option<MemoryVersion>, Memo
     Ok(Some(MemoryVersion {
         global_version: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
         memory_version: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-        record: ChunkRef {
-            offset: u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
-            len: u64::from_le_bytes(bytes[32..40].try_into().unwrap()),
-        },
+        record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
     }))
 }
 

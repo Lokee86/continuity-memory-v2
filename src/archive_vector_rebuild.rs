@@ -1,7 +1,7 @@
 use crate::archive_vector_codec::{decode_format, decode_object};
 use crate::archive_vector_store::{ArchiveVectorStore, archive_vector_id, validate_mapping};
 use crate::packed_vector_store::PackedVectorStore;
-use crate::{Archive, ArchiveVectorError, ArchiveVectorInfo, ChunkRef, FragmentId};
+use crate::{Archive, ArchiveVectorError, ArchiveVectorInfo, FragmentId, ObjectRef};
 
 pub(crate) struct ArchiveVectorOpenState {
     records: Vec<PendingArchiveVectors>,
@@ -10,7 +10,7 @@ pub(crate) struct ArchiveVectorOpenState {
 
 struct PendingArchiveVectors {
     info: ArchiveVectorInfo,
-    chunk: ChunkRef,
+    chunk: ObjectRef,
     fragment_ids: Vec<FragmentId>,
 }
 
@@ -24,7 +24,7 @@ impl ArchiveVectorOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), ArchiveVectorError> {
         if decode_format(payload)? {

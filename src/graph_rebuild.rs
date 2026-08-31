@@ -4,13 +4,13 @@ use crate::graph_codec::{
 };
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
-use crate::{ChunkRef, GraphError, GraphNodeRecord, GraphRelation};
+use crate::{GraphError, GraphNodeRecord, GraphRelation, ObjectRef};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct GraphOpenState {
     nodes: Vec<GraphNodePayload>,
-    pending: HashMap<ChunkRef, Vec<GraphMutationPayload>>,
-    versioned: HashSet<ChunkRef>,
+    pending: HashMap<ObjectRef, Vec<GraphMutationPayload>>,
+    versioned: HashSet<ObjectRef>,
     transactions: Vec<Vec<GraphRelation>>,
     next_graph_version: u64,
     format_seen: bool,
@@ -30,7 +30,7 @@ impl GraphOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         payload: &[u8],
         latest_global: u64,
     ) -> Result<(), GraphError> {
@@ -87,7 +87,7 @@ impl GraphOpenState {
 
     fn ingest_version(
         &mut self,
-        chunk: ChunkRef,
+        chunk: ObjectRef,
         version: crate::graph_codec::GraphVersionPayload,
         latest_global: u64,
     ) -> Result<(), GraphError> {
@@ -99,7 +99,7 @@ impl GraphOpenState {
                 .last()
                 .and_then(|transaction| transaction.first())
                 .is_some_and(|last| last.global_version >= version.global_version)
-            || version.mutation.offset >= chunk.offset
+            || !version.mutation.precedes(chunk)
         {
             return Err(GraphError::InvalidGraphVersion);
         }
