@@ -1,42 +1,10 @@
 use crate::args::ImportCommand;
+use crate::import_input::{Input, InputAttachment};
 use anyhow::{Context, Result, anyhow};
-use reliquary_memory::{Branch, Cva, FragmentConfig, IncomingAttachment, IncomingTurn};
-use serde::Deserialize;
+use reliquary_memory::{Branch, Cva, EchoEvent, FragmentConfig, IncomingAttachment, IncomingTurn};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
-
-#[derive(Deserialize)]
-struct InputAttachment {
-    path: PathBuf,
-    filename: Option<String>,
-    mime_type: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(tag = "kind")]
-enum Input {
-    #[serde(rename = "node")]
-    Node {
-        id: String,
-        conversation_id: String,
-        parent_id: Option<String>,
-        role: String,
-        timestamp_ns: i64,
-        content: String,
-        #[serde(default)]
-        attachments: Vec<InputAttachment>,
-    },
-    #[serde(rename = "branch")]
-    Branch {
-        id: String,
-        conversation_id: String,
-        leaf_node_id: String,
-        canonical: bool,
-        #[serde(default)]
-        title: Option<String>,
-    },
-}
+use std::path::Path;
 
 pub fn run(command: ImportCommand) -> Result<()> {
     match command {
@@ -62,6 +30,7 @@ pub fn run(command: ImportCommand) -> Result<()> {
             let mut nodes = 0_usize;
             let mut attachments = 0_usize;
             let mut branches = 0_usize;
+            let mut echo_events = 0_usize;
             let mut fragments = 0_usize;
             for line in BufReader::new(File::open(&input)?).lines() {
                 let line = line?;
@@ -120,14 +89,38 @@ pub fn run(command: ImportCommand) -> Result<()> {
                             .len();
                         branches += 1;
                     }
+                    Input::Echo {
+                        conversation_id,
+                        message_id,
+                        sequence,
+                        timestamp_ns,
+                        model_round,
+                        event_kind,
+                        correlation_id,
+                        name,
+                        content,
+                    } => {
+                        echo_events += usize::from(archive.put_echo_event(EchoEvent {
+                            conversation_id,
+                            message_id,
+                            sequence,
+                            timestamp_ns,
+                            model_round,
+                            kind: event_kind.into(),
+                            correlation_id,
+                            name,
+                            content,
+                        })?);
+                    }
                 }
             }
             archive.sync()?;
             println!(
-                "imported: nodes={} attachments={} branches={} new_fragments={} rel={}",
+                "imported: nodes={} attachments={} branches={} echo_events={} new_fragments={} rel={}",
                 nodes,
                 attachments,
                 branches,
+                echo_events,
                 fragments,
                 cva.display()
             );

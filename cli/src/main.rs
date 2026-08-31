@@ -8,6 +8,9 @@ mod config_args;
 mod config_cmd;
 mod dev_cmd;
 mod import_cmd;
+mod import_input;
+#[cfg(test)]
+mod import_tests;
 mod insomnia_cmd;
 mod migration_cmd;
 mod phy_cmd;
