@@ -23,6 +23,8 @@ mod interaction;
 mod memory_provenance;
 #[path = "runtime_host_memory_search.rs"]
 pub mod memory_search;
+#[path = "runtime_host_status.rs"]
+pub mod status;
 #[path = "runtime_host_vectors.rs"]
 mod vectors;
 

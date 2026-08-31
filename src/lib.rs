@@ -409,6 +409,7 @@ pub use phylactery_error::PhylacteryError;
 pub use runtime_host::memory_search::{
     MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,
 };
+pub use runtime_host::status::RuntimeBackgroundStatus;
 pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
 pub use search_error::SearchError;
 pub use search_model::{

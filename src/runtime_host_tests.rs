@@ -105,6 +105,9 @@ fn runtime_host_close_session_finalizes_nonempty_tail_explicitly() {
 
     host.close_session("live").unwrap();
     assert_eq!(host.insomnia_stats().unwrap().pending, 1);
+    let status = host.background_status().unwrap();
+    assert!(!status.quiescent());
+    assert_eq!(status.insomnia.pending, 1);
     let cva = host.into_cva().unwrap();
     let episodes = cva.episodes_for_conversation("live");
     assert_eq!(episodes.len(), 1);
