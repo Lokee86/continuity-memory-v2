@@ -1,0 +1,27 @@
+[package]
+name = "lore-single-file-spike"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[package.metadata.lore]
+upstream = "https://github.com/EpicGames/lore.git"
+revision = "c49390be048fa273ab47ff7d43bc4994ba7be8ce"
+version = "0.9.1-nightly"
+
+[dependencies]
+async-trait = "0.1"
+blake3 = "1"
+bytes = "1"
+lore-base = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
+lore-revision = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
+lore-storage = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
+lore-transport = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio-stream = "0.1"
+
+# Lore's pinned workspace commit carries this patch at the workspace root. Cargo does not
+# propagate a dependency workspace's [patch] table into a standalone consumer, so the spike
+# restates the same vendored quinn-proto patch from the verified c49390b checkout.
+[patch.crates-io]
+quinn-proto = { path = "../../../lore-upstream/vendor/quinn-proto" }
