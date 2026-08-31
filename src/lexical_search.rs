@@ -31,6 +31,38 @@ impl Cva {
         Ok(self.lexical_index.search_raw(&terms, limit))
     }
 
+    pub(crate) fn lexical_candidates_from_fragments(
+        &mut self,
+        query: &str,
+        fragments: &[Fragment],
+        limit: usize,
+    ) -> Result<Vec<LexicalHit>, SearchError> {
+        let terms = lexical_terms(query);
+        if terms.is_empty() || limit == 0 {
+            return Ok(Vec::new());
+        }
+        let mut hits = Vec::new();
+        for (position, fragment) in fragments.iter().cloned().enumerate() {
+            let text = self
+                .archive
+                .fragment_text_for(&mut self.container, &fragment)?;
+            let score = lexical_score(&text, &terms);
+            if score > 0.0 {
+                hits.push((LexicalHit { fragment, score }, position));
+            }
+        }
+        hits.sort_by(|left, right| {
+            right
+                .0
+                .score
+                .total_cmp(&left.0.score)
+                .then_with(|| right.1.cmp(&left.1))
+                .then_with(|| left.0.fragment.id.0.cmp(&right.0.fragment.id.0))
+        });
+        hits.truncate(limit);
+        Ok(hits.into_iter().map(|(hit, _)| hit).collect())
+    }
+
     pub fn search_files(
         &mut self,
         query: &str,

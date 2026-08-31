@@ -3,8 +3,9 @@ use crate::runtime_host_test_support::{
     wait_memory, wait_memory_revisions, wait_vectors,
 };
 use crate::{
-    Cva, EpisodePolicy, InteractionRole, InteractionRuntime, ReliquaryRuntimeHost,
-    ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
+    Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, EpisodePolicy, FragmentConfig,
+    InteractionRole, InteractionRuntime, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::sync::{Arc, Barrier};
 
@@ -66,4 +67,93 @@ fn embedding_route_can_be_attached_after_memory_creation() {
     let mut cva = host.into_cva().unwrap();
     let id = cva.memory_ids()[0];
     assert_eq!(cva.memory(id).unwrap().lifecycle_state, "canonical");
+}
+
+#[test]
+fn live_transcript_search_uses_embedding_route_and_branch_scope() {
+    let mut cva = Cva::create(test_path("live-search-embedding.cva")).unwrap();
+    append_search_node(&mut cva, "root", None, "shared anchor");
+    append_search_node(&mut cva, "left-1", Some("root"), "left ordinary");
+    append_search_node(
+        &mut cva,
+        "left-2",
+        Some("left-1"),
+        "meaning-target selected branch",
+    );
+    append_search_node(
+        &mut cva,
+        "right-1",
+        Some("root"),
+        "meaning-target sibling branch",
+    );
+    append_search_node(
+        &mut cva,
+        "right-2",
+        Some("right-1"),
+        "meaning-target sibling branch again",
+    );
+    cva.materialize_path_fragments("live", "left-2", FragmentConfig::default(), true)
+        .unwrap();
+    cva.materialize_path_fragments("live", "right-2", FragmentConfig::default(), true)
+        .unwrap();
+    let endpoint = LiveSearchEmbedding;
+    let profile = cva.establish_compatibility_profile(&endpoint).unwrap();
+    cva.build_archive_vector_generation(profile.id, &endpoint)
+        .unwrap();
+    let host = ReliquaryRuntimeHost::start(
+        InteractionRuntime::new(cva),
+        ReliquaryRuntimeRoutes::new(None, None, None, None, Some(Arc::new(endpoint))),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+    host.open_session("live".into(), Some("left-2".into()))
+        .unwrap();
+
+    let hits = host
+        .search_open_session("live", "semantic-topic", 10)
+        .unwrap();
+
+    assert!(!hits.is_empty());
+    assert!(hits.iter().all(|hit| !hit.text.contains("sibling")));
+    assert!(hits.iter().any(|hit| hit.text.contains("selected branch")));
+    host.into_cva().unwrap();
+}
+
+struct LiveSearchEmbedding;
+
+impl EmbeddingEndpoint for LiveSearchEmbedding {
+    fn dimensions(&self) -> u32 {
+        2
+    }
+
+    fn normalization(&self) -> VectorNormalization {
+        VectorNormalization::L2
+    }
+
+    fn embed(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        Ok(inputs
+            .iter()
+            .map(|text| match mode {
+                EmbeddingMode::Query if text.contains("semantic-topic") => vec![1.0, 0.0],
+                EmbeddingMode::Document if text.contains("meaning-target") => vec![1.0, 0.0],
+                _ => vec![0.0, 1.0],
+            })
+            .collect())
+    }
+}
+
+fn append_search_node(cva: &mut Cva, id: &str, parent: Option<&str>, text: &str) {
+    cva.append_node(
+        id.into(),
+        "live".into(),
+        parent.map(str::to_owned),
+        "user".into(),
+        cva.archive_version() as i64 + 1,
+        text,
+    )
+    .unwrap();
 }

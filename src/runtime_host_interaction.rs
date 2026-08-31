@@ -1,7 +1,7 @@
 use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
 use crate::{
-    ConversationSummary, EpisodePolicy, InteractionCompletion, InteractionReceipt, InteractionRole,
-    InteractionSession, ResolvedInteractionTurn,
+    ConversationSummary, EmbeddingMode, EpisodePolicy, InteractionCompletion, InteractionReceipt,
+    InteractionRole, InteractionSession, ResolvedInteractionTurn,
 };
 
 impl ReliquaryRuntimeHost {
@@ -203,10 +203,21 @@ impl ReliquaryRuntimeHost {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::ConversationSearchHit>, ReliquaryRuntimeHostError> {
-        self.with_runtime(|runtime| {
-            runtime
+        let semantic = self.live_search_vector(query)?;
+        self.with_runtime(|runtime| match semantic.as_ref() {
+            Some((profile, vector)) => runtime
+                .search_conversation_branch_with_vector(
+                    *profile,
+                    vector,
+                    conversation_id,
+                    leaf_node_id,
+                    query,
+                    limit,
+                )
+                .map_err(operation),
+            None => runtime
                 .search_conversation_branch(conversation_id, leaf_node_id, query, limit)
-                .map_err(operation)
+                .map_err(operation),
         })
     }
 
@@ -216,14 +227,41 @@ impl ReliquaryRuntimeHost {
         query: &str,
         limit: usize,
     ) -> Result<Vec<crate::ConversationSearchHit>, ReliquaryRuntimeHostError> {
-        self.with_runtime(|runtime| {
-            let leaf = runtime
-                .session_leaf_node_id(session_id)
-                .map_err(operation)?;
-            runtime
-                .search_conversation_branch(session_id, &leaf, query, limit)
-                .map_err(operation)
-        })
+        let leaf = self
+            .with_runtime(|runtime| runtime.session_leaf_node_id(session_id).map_err(operation))?;
+        self.search_conversation_branch(session_id, &leaf, query, limit)
+    }
+
+    fn live_search_vector(
+        &self,
+        query: &str,
+    ) -> Result<Option<(crate::CompatibilityProfileId, Vec<f32>)>, ReliquaryRuntimeHostError> {
+        if query.trim().is_empty() {
+            return Ok(None);
+        }
+        let endpoint = self
+            .routes
+            .read()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .embedding();
+        let Some(endpoint) = endpoint else {
+            return Ok(None);
+        };
+        let profile = self.ensure_reliquary_embedding_profile()?;
+        let has_generation = self.with_runtime(|runtime| {
+            Ok(runtime.cva().current_vector_generation(profile).is_some())
+        })?;
+        if !has_generation {
+            return Ok(None);
+        }
+        let vectors = endpoint
+            .embed(EmbeddingMode::Query, &[query.to_owned()])
+            .map_err(operation)?;
+        let vector = vectors
+            .into_iter()
+            .next()
+            .ok_or_else(|| operation("embedding route returned no query vector"))?;
+        Ok(Some((profile, vector)))
     }
 
     pub fn open_session(

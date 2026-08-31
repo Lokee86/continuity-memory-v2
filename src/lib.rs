@@ -239,6 +239,7 @@ mod runtime_vector_step;
 mod search;
 mod search_error;
 mod search_model;
+mod search_rank;
 mod semantic_search;
 mod semantic_search_error;
 mod semantic_search_model;

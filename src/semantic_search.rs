@@ -1,8 +1,9 @@
 use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
 use crate::{
-    CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, MAX_SEMANTIC_SEARCH_LIMIT,
-    ScalarType, SemanticSearchError, SemanticSearchHit,
+    CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode, FragmentId,
+    MAX_SEMANTIC_SEARCH_LIMIT, ScalarType, SemanticSearchError, SemanticSearchHit,
 };
+use std::collections::HashSet;
 
 impl Cva {
     pub fn semantic_search(
@@ -31,7 +32,20 @@ impl Cva {
         let query_vector = vectors
             .first()
             .ok_or(SemanticSearchError::InvalidQueryVector)?;
-        self.search_current_generation(compatibility_profile_id, query_vector, limit)
+        self.semantic_search_vector(compatibility_profile_id, query_vector, limit, None)
+    }
+
+    pub(crate) fn semantic_search_vector(
+        &mut self,
+        compatibility_profile_id: CompatibilityProfileId,
+        query: &[f32],
+        limit: usize,
+        allowed_fragments: Option<&HashSet<FragmentId>>,
+    ) -> Result<Vec<SemanticSearchHit>, SemanticSearchError> {
+        if !(1..=MAX_SEMANTIC_SEARCH_LIMIT).contains(&limit) {
+            return Err(SemanticSearchError::InvalidLimit);
+        }
+        self.search_current_generation(compatibility_profile_id, query, limit, allowed_fragments)
     }
 
     fn search_current_generation(
@@ -39,6 +53,7 @@ impl Cva {
         compatibility_profile_id: CompatibilityProfileId,
         query: &[f32],
         limit: usize,
+        allowed_fragments: Option<&HashSet<FragmentId>>,
     ) -> Result<Vec<SemanticSearchHit>, SemanticSearchError> {
         let generation = self
             .vector_generations
@@ -63,6 +78,13 @@ impl Cva {
         let query_norm = vector_norm(query).ok_or(SemanticSearchError::InvalidQueryVector)?;
         let mut scores = Vec::with_capacity(packed.count());
         for ordinal in 0..packed.count() {
+            let fragment_id = *binding
+                .fragment_ids
+                .get(ordinal)
+                .ok_or(SemanticSearchError::CorruptMatrix("row binding"))?;
+            if allowed_fragments.is_some_and(|allowed| !allowed.contains(&fragment_id)) {
+                continue;
+            }
             let row = packed
                 .row(ordinal)
                 .ok_or(SemanticSearchError::CorruptMatrix("missing row"))?;

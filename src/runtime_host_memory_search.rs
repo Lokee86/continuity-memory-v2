@@ -34,7 +34,7 @@ impl ReliquaryRuntimeHost {
         query_vector: &[f32],
         config: MemoryRetrievalConfig,
     ) -> Result<MemorySearchLane, ReliquaryRuntimeHostError> {
-        let profile = self.ensure_reliquary_memory_profile()?;
+        let profile = self.ensure_reliquary_embedding_profile()?;
         let runtime = self.runtime.as_ref().cloned().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
         })?;
@@ -80,7 +80,7 @@ impl ReliquaryRuntimeHost {
         hydrate_phylactery(phy, owner_id, retrieval).map(Some)
     }
 
-    fn ensure_reliquary_memory_profile(
+    pub(crate) fn ensure_reliquary_embedding_profile(
         &self,
     ) -> Result<crate::CompatibilityProfileId, ReliquaryRuntimeHostError> {
         if let Some(profile) = self

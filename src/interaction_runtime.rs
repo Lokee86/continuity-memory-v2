@@ -107,6 +107,25 @@ impl InteractionRuntime {
             .search_conversation_branch(conversation_id, leaf_node_id, query, limit)
     }
 
+    pub(crate) fn search_conversation_branch_with_vector(
+        &mut self,
+        compatibility_profile_id: crate::CompatibilityProfileId,
+        query_vector: &[f32],
+        conversation_id: &str,
+        leaf_node_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<crate::ConversationSearchHit>, crate::SearchError> {
+        self.cva.search_conversation_branch_with_vector(
+            compatibility_profile_id,
+            query_vector,
+            conversation_id,
+            leaf_node_id,
+            query,
+            limit,
+        )
+    }
+
     pub fn conversation_transcript(
         &mut self,
         conversation_id: &str,
