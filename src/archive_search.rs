@@ -23,10 +23,12 @@ impl Cva {
         if !(1..=MAX_ARCHIVE_SEARCH_RESULTS).contains(&limit) {
             return Err(SearchError::InvalidConfig);
         }
-        self.lexical_candidates(query, limit)?
+        self.raw_archive_candidates(query, limit)?
             .into_iter()
             .map(|hit| {
-                let text = self.fragment_text(hit.fragment.id)?;
+                let text = self
+                    .archive
+                    .fragment_text_for(&mut self.container, &hit.fragment)?;
                 Ok(ArchiveSearchHit {
                     fragment: hit.fragment,
                     text,

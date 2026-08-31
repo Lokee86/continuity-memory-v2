@@ -1,4 +1,6 @@
 use crate::lexical_search::{LexicalHit, term_counts};
+
+mod raw;
 use crate::{Archive, ArchiveError, Container, FileSearchHit, Fragment, StoredFile};
 use std::collections::HashMap;
 
@@ -6,6 +8,8 @@ use std::collections::HashMap;
 pub(crate) struct LexicalIndex {
     fragments: Vec<IndexedFragment>,
     postings: HashMap<String, Vec<Posting>>,
+    raw_turns: Vec<IndexedRawTurn>,
+    raw_postings: HashMap<String, Vec<Posting>>,
     files: Vec<StoredFile>,
     file_postings: HashMap<String, Vec<FilePosting>>,
 }
@@ -14,6 +18,12 @@ pub(crate) struct LexicalIndex {
 struct IndexedFragment {
     fragment: Fragment,
     archive_version: u64,
+}
+
+#[derive(Clone)]
+struct IndexedRawTurn {
+    fragment: Fragment,
+    timestamp_ns: i64,
 }
 
 #[derive(Clone, Copy)]

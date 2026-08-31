@@ -18,6 +18,17 @@ impl Cva {
         Ok(self.lexical_index.search(&terms, limit))
     }
 
+    pub(crate) fn raw_archive_candidates(
+        &mut self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<LexicalHit>, SearchError> {
+        let terms = lexical_terms(query);
+        self.lexical_index
+            .ensure_raw_current(&self.archive, &mut self.container)?;
+        Ok(self.lexical_index.search_raw(&terms, limit))
+    }
+
     pub fn search_files(
         &mut self,
         query: &str,
