@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Graph/Insomnia replay, file-to-Memory reconciliation, structured semantic conflict reporting, and safe path-based canonical promotion are implemented; provider discovery/integration remains in progress. ADR 0022 supersedes this ADR's WorkspaceMetadata reconciliation identity with the typed owner ID.
+Accepted for current-format REL/PHY reconciliation — 2026-08-24. Comparison, fresh semantic repacking, derived-state cleanup, Archive/Memory/Graph/Insomnia replay, file-to-Memory reconciliation, structured semantic conflict reporting, and safe path-based canonical promotion are implemented. ADR 0022 supersedes this ADR's WorkspaceMetadata reconciliation identity with the typed owner ID. ADR 0027 freezes further expansion of this architecture and assigns project/file history to the universal Lore/Git project repository; future REL/PHY reconciliation is a narrower semantic-database synchronization problem.
 
 ## Purpose
 
@@ -151,11 +151,14 @@ This is now a functional semantic merge, derived-state cleanup, and safe path-ba
 
 ## Next implementation slices
 
-1. Extend owner-explicit replay as any later persisted semantic owners land; Graph is now covered and Dream's duplicate index remains derived/rebuildable state.
-2. Complete provider-facing conflicted-copy discovery around the library comparison/reconciliation/promotion operations.
-3. Warlock now consumes `vector_rebuild_required` through `Cva::rebuild_derived_vectors` when a verified embedding endpoint is available, then reopens and validates the recovered file before marking the rebuild complete.
-4. Add Warlock-side presentation/resolution flows for the structured conflicts; Reliquary remains responsible only for typed conflict semantics.
-5. Test realistic provider-mediated multi-device cycles beyond the deterministic synthetic Graph/Archive/Memory fixtures, including offline capture, repeated conflict discovery, and provider file replacement.
+ADR 0027 freezes this path as current-format compatibility machinery rather than the future project-history architecture. Remaining work is limited to:
+
+1. correctness fixes for persisted semantic owners already covered by reconciliation;
+2. provider-facing conflicted-copy discovery/presentation only where needed to support existing REL/PHY cloud workflows;
+3. verified derived-state rebuild after changed semantic reconciliation; and
+4. reassessment of a smaller REL/PHY semantic-database synchronization design once project files universally resolve through Lore/Git history.
+
+Do not add project-repository history, uploaded-file storage, or new file-VCS responsibilities to whole-REL semantic replay.
 
 ## Non-goals
 
@@ -187,5 +190,6 @@ Remaining work is broader provider-level conflicted-copy discovery/fixtures, War
 - [ADR 0003](0003-layered-version-clocks-and-local-ancestry.md)
 - [ADR 0005](0005-cva-composition-and-packed-vector-objects.md)
 - [ADR 0017](0017-cva-workspace-and-warlock-host-application.md)
+- [ADR 0027](0027-warlock-project-repositories-and-reliquary-storage-boundary.md)
 - [Architecture](../architecture.md)
 - [Roadmap](../roadmap.md)

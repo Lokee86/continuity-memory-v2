@@ -8,13 +8,158 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 ## Overview
 
-Future work is organized around productization first, with intelligence quality and storage/history work proceeding in parallel where they do not block the usable product surface. New semantic owners remain purpose-built and shared mechanics are introduced only where concrete owners or runtime requirements justify them.
+The immediate storage/history direction is split cleanly between project repositories and Reliquary/Phylactery semantic state. Every Warlock project gets project history from Git or Lore; REL/PHY keep their purpose-built semantic storage rather than migrating wholesale onto a VCS substrate.
+
+Further investment in REL project/file VCS machinery is frozen except for compatibility and correctness work. Productization and semantic-quality work may continue against the existing REL/PHY semantic APIs and `ObjectRef` physical seam.
+
+Lore is the automatic managed project repository for projects that do not already use Git or explicitly choose Git. Git remains the advanced/user-owned repository case. Reliquary continues to own Archive, Memory, provenance, Insomnia, Dream, Graph, Echo, retrieval, scopes, transcript, and other agent/context state. See [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md).
 
 ## Product direction
 
 Reliquary is moving from a storage/retrieval substrate toward the durable workspace/context layer of the broader Warlock product.
 
 One Reliquary REL maps to one non-user Warlock scope/workspace; the current Warlock host uses Project RELs. Warlock owns the native application surface and long-lived application orchestration; Reliquary remains the Rust semantic/storage subsystem linked into that application core. External agent protocols such as ACP remain interoperability adapters into the same normalized interaction seam and are not canonical storage schemas. See [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md) and [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md).
+
+## Immediate roadmap — universal project repository boundary
+
+ADR 0027 replaces the planned wholesale REL/PHY-to-Lore migration. The completed Lore feasibility spike remains useful evidence and implementation material, but Lore now belongs at the **project repository** boundary rather than beneath every Reliquary semantic owner.
+
+### Target operating model
+
+```text
+Warlock project
+|
++-- project working tree
+|    |
+|    +-- Git repository       (existing/explicit advanced case)
+|    |
+|    `-- Lore repository      (automatic default otherwise)
+|
++-- project REL
+|    `-- transcript, Memory, provenance, Graph, Echo, vectors, runtime state
+|
+`-- user PHY
+     `-- user-global Memory and associated semantic state
+```
+
+Every project therefore has one authoritative project-history system. Reliquary stores references to historical repository file states when transcript/provenance needs exact project context, but it does not duplicate project-file history internally.
+
+### 1. Preserve purpose-built REL/PHY storage
+
+Do **not** migrate Memory bodies, Graph records, Episodes/Fragments, Echo, vectors, compatibility profiles, transcript, or other semantic owners onto Lore merely to share a physical/VCS substrate.
+
+Requirements:
+
+- keep the existing purpose-built REL/PHY semantic and physical storage architecture;
+- retain the opaque `ObjectRef` seam so semantic owners remain decoupled from physical offsets;
+- continue measurement-driven physical-store improvements behind that seam when justified;
+- preserve domain-local revision/version semantics where they carry application meaning; and
+- avoid new abstractions that make project-repository history authoritative over Memory/Graph/etc.
+
+The completed `ObjectRef` seam remains valid architecture independent of Lore.
+
+### 2. Preserve the Lore feasibility work as project-repository evidence
+
+The isolated Lore spike has already established that the selected Lore revision can support the repository capabilities Warlock needs, including ordinary working-tree reconstruction, branches/history/merge, chunking/dedup/compression, binary revisions, copy/reopen, interrupted-tail recovery, and divergent-history merge from a known common ancestor.
+
+The spike and cloud-transport benchmark should be retained as implementation evidence, not expanded into production REL/PHY substrate migration.
+
+Future Lore work should move toward the managed project-repository integration rather than migrating semantic Reliquary backing objects.
+
+### 3. Guarantee one project repository
+
+Implement project repository selection at project open/create time:
+
+- if a Git repository already owns the project, use Git;
+- allow explicit Git selection for advanced users;
+- otherwise automatically initialize and manage Lore;
+- do not create a hidden Lore repository alongside Git; and
+- record enough repository identity/configuration for Warlock to reopen the same project relationship safely.
+
+Normal Lore operation is managed infrastructure: Warlock may checkpoint automatically without requiring VCS knowledge from the user. Advanced Lore controls may expose explicit branch/history/merge operations when requested.
+
+Git operation is user-owned/advanced by default. Repository mutations by agents must be surfaced clearly and performed like ordinary explicit agent Git work rather than hidden housekeeping on the user's active history.
+
+### 4. Add repository-backed historical file references
+
+Define a narrow durable reference that transcript, Archive/provenance, and artifact records can use to identify the exact project-file state supplied as context.
+
+The reference must support both Lore and Git without making either repository implementation part of Memory semantics. It should include or resolve:
+
+- repository identity/kind;
+- revision/commit reference;
+- exact file identity/path at that revision; and
+- exact content identity where useful for integrity/deduplication.
+
+Historical references remain stable after later rename, move, edit, or deletion of the working-tree file.
+
+### 5. Make uploads normal project files in Lore projects
+
+Uploaded files are context-ingestion events, not a separate permanent blob store.
+
+For Lore-managed projects:
+
+1. hash the incoming bytes;
+2. search eligible tracked files in the current project state for exact-content matches;
+3. ignore inappropriate dedupe targets such as untracked/ignored/generated/temp locations and a small set of obviously disposable filename patterns;
+4. reuse the first deterministic eligible exact match when one exists;
+5. otherwise materialize the upload under `uploads/` using deterministic collision handling;
+6. checkpoint the resulting project state; and
+7. point transcript/provenance at the exact historical repository file state used for context.
+
+Once materialized, the file is an ordinary project file and may be moved, renamed, edited, or deleted normally.
+
+### 6. Preserve exact upload context in Git without silent branch commits
+
+For Git projects:
+
+- exact-content matches already tracked at the current commit can be referenced directly;
+- otherwise materialize the upload under `uploads/` so it is available to the project/agent;
+- do not silently commit the file onto the user's active branch;
+- capture the exact uploaded bytes through a Warlock-owned Git snapshot/ref or equivalent Git-native historical object/reference mechanism; and
+- make any later normal Git add/commit/move operations explicit.
+
+Do not introduce a secondary Lore repository or REL-local uploaded-file blob store for this case.
+
+### 7. Retire redundant REL project/VCS machinery
+
+As repository-backed equivalents become available, remove or simplify REL machinery whose primary purpose is duplicating project repository capabilities.
+
+Candidates include:
+
+- project/blob file-history ownership inside REL;
+- project-file ancestry/history reconstruction;
+- project-file branch/merge/replay machinery;
+- file-state history that can instead resolve through Lore/Git revisions; and
+- whole-project historical recovery paths whose remaining purpose is covered by the project repository.
+
+Do **not** remove semantic/domain history merely because it uses versions. Memory revisions, Graph versions, Episode lifecycle, provenance, semantic supersession, vector generations, runtime durability, crash recovery, and database-local checkpoints remain Reliquary responsibilities.
+
+### 8. Re-scope REL/PHY reconciliation as semantic database synchronization
+
+`Cva::compare`, `Cva::reconcile`, and `Cva::reconcile_and_promote` remain implemented current-format compatibility behavior, but the path is frozen for broad new project/file functionality.
+
+Once project files universally live behind Git/Lore history, reassess reconciliation around the smaller remaining problem: divergent agent/context databases.
+
+Future work should:
+
+- stop replaying project-file history that is authoritative in the project repository;
+- retain owner-explicit Memory/Graph/Episode/etc. semantic validation where required;
+- preserve safe database promotion/recovery behavior until a simpler replacement is proven;
+- treat REL/PHY cloud transport independently from project-repository transport; and
+- avoid assuming Lore project ancestry can resolve semantic conflicts inside REL/PHY.
+
+### Explicitly not planned
+
+The immediate roadmap does not include:
+
+- embedding Lore as the general physical substrate for REL/PHY;
+- migrating Memory/Graph/vector/Echo storage onto Lore;
+- maintaining a hidden Lore repository beside Git;
+- a separate permanent uploaded-file store;
+- a virtual or copy-on-write filesystem;
+- filesystem drivers; or
+- mandatory hosted/server infrastructure for the project repository.
 
 ## Near-term productization sequence
 
@@ -61,9 +206,9 @@ Remaining host integration work includes:
 - model/agent configuration seams required by the host;
 - background Episode/Insomnia execution;
 - basic health/status visibility; and
-- cloud-backed conflicted-copy detection/reconciliation through Reliquary rather than a Warlock-owned sync service.
+- maintain existing REL/PHY cloud-conflict handling only as needed for current-format compatibility while semantic-database synchronization is reassessed separately from project repository history.
 
-`Cva::compare` verifies shared durable owner ID and classifies identical, one-side-ahead, or physically diverged histories. `Cva::reconcile` handles true divergence by semantic replay into a fresh validated CVA when the candidate contributes new state. If a physically divergent candidate is already semantically absorbed, `canonical_change_required` is false and reconciliation preserves an exact copy of the canonical CVA instead of persisting reconciliation receipts or retiring vector state. Real changed merges replay Archive source state, Files, Branches, immutable Episodes/Fragments, Memory revisions, durable Insomnia completion receipts, file-to-Memory links, and compatibility profiles; stale packed/vector bindings and Vector Generations are then intentionally retired and `vector_rebuild_required` exposes the need for verified re-embedding. `Cva::reconcile_and_promote` skips replacement for no-ops and otherwise provides canonical fingerprint guarding, a synced recovery copy, atomic replacement, post-replacement validation/recovery, and temporary-artifact cleanup. Known semantic merge collisions surface as typed `CvaReconcileConflict` values for host presentation rather than raw Archive/Memory/Insomnia errors. Remaining work is provider-level conflicted-copy discovery, host-triggered vector rebuild, Warlock-side conflict presentation/resolution, and realistic repeated multi-device/provider fixtures. See [ADR 0019](decisions/0019-cloud-backed-cva-reconciliation.md).
+`Cva::compare`, `Cva::reconcile`, and `Cva::reconcile_and_promote` remain current behavior and are documented by [ADR 0019](decisions/0019-cloud-backed-cva-reconciliation.md), but their architecture is now **frozen rather than extended**. Do not add project-repository history or uploaded-file storage to this path. The future problem is narrower REL/PHY semantic-database reconciliation because Lore/Git now owns project-file history universally; see [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md).
 
 The TypeScript presentation layer consumes Warlock application commands/state and must not parse REL files or implement Reliquary lifecycle semantics directly.
 
@@ -203,20 +348,18 @@ Add active context synthesis only after the shared runtime, Memory retrieval, an
 
 ## Storage, scale, and historical recovery
 
-Keep these measurement-driven and independent from product-surface work:
+Reliquary/Phylactery storage remains purpose-built. Project-file history is delegated to the project repository (Lore by default, Git when explicitly owned by the user). Keep physical and retrieval work measurement-driven behind existing semantic boundaries.
 
-- Archive checkpoint representation/cadence;
-- bounded packing/compression;
+Keep these separate and measurement-driven:
+
 - mapped/segmented vector scanning and ANN acceleration;
 - persistent lexical acceleration only if reopen/query measurements justify it;
 - quantized searchable representations;
 - explicit vector-generation retirement;
-- whole-CVA historical views and restore-and-continue;
-- retention, reachability, compaction, and vacuum;
-- concurrent append/version reservation;
-- owner-explicit reconciliation support for each later persisted semantic owner as it lands; Graph is now covered, while derived indexes such as Dream's duplicate index rebuild instead of becoming CVA synchronization state.
+- REL/PHY packing, compaction, retention, and recovery where measured semantic-store needs justify them; and
+- derived-state rebuild/invalidation policy for semantic owners.
 
-Whole-CVA historical recovery has its own future-only plan in [Versioning, historical cuts, and rollback](version-history-plan.md).
+The older whole-CVA versioning/rollback plan remains useful as a record of requirements and unresolved semantics, but project-file/history requirements should now be reassessed against the universal Lore/Git project repository. REL/PHY historical requirements should be retained only where they serve semantic/database recovery rather than duplicate project VCS. See [Versioning, historical cuts, and rollback](version-history-plan.md).
 
 ## Product acceptance gates
 
@@ -245,10 +388,11 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - How the implemented dedicated `user | project` ownership classifier expands to Organization/Connection learned state without conflating ownership with authorization/governance.
 - Richer Reliquary policy for permitting/denying user-Memory export and optional source/lineage export into Phylactery; the current routing slice strips REL-local provenance and records only the resulting owner-qualified Memory reference.
 - Normalized interaction vocabulary for tool/session/artifact events beyond completed user/agent turns.
-- Whether any future headless/remote product mode justifies adding a service/IPC boundary around the in-process Rust integration.
-- Which CVA mutations are safe to expose as direct user actions before whole-history retention semantics exist.
+- How REL/PHY semantic databases should synchronize across devices now that project-file history is owned separately by Lore/Git, including whether ordinary cloud-drive conflicted-copy transport remains sufficient or a later coordination layer is justified.
+- Which Reliquary mutations are safe to expose as direct user actions once project-file history no longer depends on whole-REL historical assumptions.
 - Adapter failure policy and privacy controls for automatic capture.
-- File path/tree ownership and rename/move identity semantics.
+- Exact repository-backed `ProjectFileRef` / revision-reference schema shared by transcript, provenance, and artifact records across Lore/Git.
+- File path/tree ownership and rename/move identity semantics within the universal project repository.
 - Artifact provenance vocabulary across uploaded, generated, imported, and provider-managed artifacts.
 - Archive checkpoint representation, packing/compression choices, and retention policy.
 - Whole-CVA restore/timeline terminology and retention semantics.
@@ -263,6 +407,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md)
 - [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md)
 - [ADR 0019](decisions/0019-cloud-backed-cva-reconciliation.md)
+- [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md)
 
 ## Notes
 
