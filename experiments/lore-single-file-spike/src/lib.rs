@@ -3,6 +3,9 @@ mod store;
 pub use store::SingleFileStore;
 
 #[cfg(test)]
+mod cloud_conflict_tests;
+
+#[cfg(test)]
 mod revision_tests;
 
 #[cfg(test)]
