@@ -10,7 +10,7 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 The immediate storage/history direction is split cleanly between project repositories and Reliquary/Phylactery semantic state. Every Warlock project gets project history from Git or Lore; REL/PHY keep their purpose-built semantic storage rather than migrating wholesale onto a VCS substrate.
 
-Further investment in REL project/file VCS machinery is frozen except for compatibility and correctness work. Productization and semantic-quality work may continue against the existing REL/PHY semantic APIs and `ObjectRef` physical seam.
+Further investment in REL machinery that duplicates project/file VCS is frozen except for compatibility and correctness work. REL/PHY semantic history, historical cuts/versioning, recovery, and domain-local revision machinery remain first-class requirements. Productization and semantic-quality work may continue against the existing REL/PHY semantic APIs and `ObjectRef` physical seam.
 
 Lore is the automatic managed project repository for projects that do not already use Git or explicitly choose Git. Git remains the advanced/user-owned repository case. Reliquary continues to own Archive, Memory, provenance, Insomnia, Dream, Graph, Echo, retrieval, scopes, transcript, and other agent/context state. See [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md).
 
@@ -36,13 +36,16 @@ Warlock project
 |    `-- Lore repository      (automatic default otherwise)
 |
 +-- project REL
-|    `-- transcript, Memory, provenance, Graph, Echo, vectors, runtime state
+|    `-- transcript, Memory, provenance, Graph, Echo, vectors,
+|        semantic history/versioning, runtime state
 |
 `-- user PHY
      `-- user-global Memory and associated semantic state
 ```
 
-Every project therefore has one authoritative project-history system. Reliquary stores references to historical repository file states when transcript/provenance needs exact project context, but it does not duplicate project-file history internally.
+Every project therefore has one authoritative project-file history system plus an independent REL semantic history. Reliquary stores references to historical repository file states when transcript/provenance needs exact project context, but it does not duplicate project-file history internally.
+
+The two timelines are correlated rather than merged. A REL historical cut/checkpoint may carry the associated Lore/Git revision so historical reconstruction can answer both what Warlock knew and what project state that knowledge was grounded against.
 
 ### 1. Preserve purpose-built REL/PHY storage
 
@@ -121,7 +124,7 @@ For Git projects:
 
 Do not introduce a secondary Lore repository or REL-local uploaded-file blob store for this case.
 
-### 7. Retire redundant REL project/VCS machinery
+### 7. Preserve REL semantic history; retire only duplicate project VCS
 
 As repository-backed equivalents become available, remove or simplify REL machinery whose primary purpose is duplicating project repository capabilities.
 
@@ -131,9 +134,11 @@ Candidates include:
 - project-file ancestry/history reconstruction;
 - project-file branch/merge/replay machinery;
 - file-state history that can instead resolve through Lore/Git revisions; and
-- whole-project historical recovery paths whose remaining purpose is covered by the project repository.
+- whole-project filesystem recovery paths whose remaining purpose is covered by the project repository.
 
-Do **not** remove semantic/domain history merely because it uses versions. Memory revisions, Graph versions, Episode lifecycle, provenance, semantic supersession, vector generations, runtime durability, crash recovery, and database-local checkpoints remain Reliquary responsibilities.
+Do **not** remove the REL timeline. Preserve the machinery required for coherent historical semantic cuts, restore/rollback/branch-after-restore, Memory revisions, Graph versions, Episode/transcript history, provenance, semantic supersession, vector generations, runtime durability, crash recovery, database-local checkpoints, and REL/PHY semantic reconciliation.
+
+Add a narrow correlation from REL historical cuts/checkpoints to the relevant Lore/Git project revision where historical project context is required. This is a cross-history reference, not a shared version clock or a project-tree copy inside REL.
 
 ### 8. Re-scope REL/PHY reconciliation as semantic database synchronization
 

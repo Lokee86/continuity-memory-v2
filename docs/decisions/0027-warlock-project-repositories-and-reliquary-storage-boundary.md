@@ -83,13 +83,25 @@ After ingestion, an uploaded file is a normal project file. Later moves, edits, 
 
 For Git projects, exact tracked matches can be referenced directly at the current commit. New uploaded files may be materialized under `uploads/`, but Warlock must not silently commit them onto the user's active branch. Exact historical capture should use a Warlock-owned Git snapshot/ref or equivalent Git-native object/reference mechanism that leaves normal branch history untouched.
 
-### VCS-like REL project machinery is no longer strategic
+### Project VCS and REL semantic history are separate timelines
 
-Project/file VCS functionality inside REL is frozen for expansion and should be retired or simplified as the universal project-repository layer lands.
+Project/file VCS functionality inside REL is frozen for expansion and should be retired or simplified as the universal project-repository layer lands. This applies only to machinery whose primary purpose is duplicating project repository capabilities such as project/blob history, project-file ancestry, project-file merge/replay, and project-filesystem reconstruction.
 
-This includes machinery whose primary purpose is duplicating project repository capabilities such as project/blob history, project-file ancestry, project-file merge/replay, and project-level historical reconstruction.
+The REL's own historical timeline remains a product requirement. Reliquary must continue to support the versioning needed to answer what Warlock knew or believed at an earlier point, reconstruct a coherent historical semantic cut, and support restore/rollback/branch-after-restore where those capabilities are implemented.
 
-Semantic/domain history remains. Memory revisions, Graph versions, provenance, Episode lifecycle, semantic supersession, vector generations, crash recovery, database checkpoints, and REL/PHY synchronization metadata are not replaced merely because they contain versions or history.
+That includes, as applicable:
+
+- REL/global and domain-local semantic version clocks;
+- immutable historical semantic records;
+- Memory revisions and semantic supersession;
+- Graph versions and relationship history;
+- Episode/Fragment and transcript history;
+- provenance and Echo history;
+- vector generations and other versioned semantic/derived state where meaningful;
+- database checkpoints, crash recovery, and historical reconstruction; and
+- REL/PHY synchronization metadata and semantic reconciliation state.
+
+The project repository and REL history are correlated rather than nested. A coherent REL historical checkpoint may record the associated Lore/Git project revision so Warlock can resolve both "what the agent knew" and "what the project looked like" at the same logical point. A project revision does not replace the REL version, and a REL version does not duplicate the project tree.
 
 ### REL/PHY synchronization remains a separate problem
 
@@ -103,7 +115,9 @@ Warlock always has a central, revisioned project state to point agents at withou
 
 Git projects avoid a redundant hidden Lore repository and preserve developer ownership of repository policy and human-facing history.
 
-Reliquary retains storage optimized for its actual semantic/retrieval workloads rather than inheriting per-object VCS overhead for Memories, Graph records, vectors, and similar state.
+Reliquary retains storage optimized for its actual semantic/retrieval workloads rather than inheriting per-object project-VCS overhead for Memories, Graph records, vectors, and similar state. Its own semantic historical timeline remains independent and first-class.
+
+The two histories may be correlated by storing the relevant project repository revision with a REL historical cut/checkpoint, allowing historical semantic state and historical project state to be resolved together without making either one authoritative over the other.
 
 Uploaded files no longer require a separate durable blob universe. They resolve to ordinary repository file states, with historical transcript/provenance references identifying the exact version used as context.
 
@@ -135,8 +149,9 @@ Rejected. A Git project already has a project repository. A second hidden VCS wo
 4. Add durable repository revision/file references for transcript and provenance.
 5. Implement upload deduplication and `uploads/` materialization for Lore projects.
 6. Implement Git-safe attachment snapshots without silent user-branch commits.
-7. Freeze and then retire redundant REL project/file VCS machinery as repository-backed equivalents land.
-8. Reassess REL/PHY cloud reconciliation independently as a semantic database synchronization problem.
+7. Preserve and complete REL semantic history/version tracking while freezing and retiring only the portions that duplicate project-file VCS.
+8. Add correlation between REL historical cuts/checkpoints and Lore/Git project revisions where historical project context is required.
+9. Reassess REL/PHY cloud reconciliation independently as a semantic database synchronization problem.
 
 ## Related decisions
 
