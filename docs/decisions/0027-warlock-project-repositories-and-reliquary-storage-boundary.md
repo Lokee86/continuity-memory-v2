@@ -22,10 +22,10 @@ Warlock separates **project state/history** from **agent memory/context state**.
 
 A Warlock project must have one project repository:
 
-- if the project already uses Git, or the user explicitly selects Git, Git remains the project repository;
-- otherwise Warlock automatically initializes and manages a Lore repository for the project.
+- if the user explicitly selects the advanced `Use Git for repository` option, Warlock detects and associates with the Git repository owning the project folder;
+- otherwise Warlock uses Lore, reusing an existing Lore repository when appropriate or initializing one automatically.
 
-Lore is the default managed repository for ordinary non-Git projects. Its routine checkpointing and history maintenance may remain invisible to users who do not need VCS concepts.
+Lore is the default managed repository for ordinary Warlock projects. Its routine checkpointing and history maintenance may remain invisible to users who do not need VCS concepts.
 
 Git is treated as an advanced/user-owned repository. Warlock may inspect and mutate it through ordinary agent workflows, but repository-changing operations are explicit and visible rather than silently managed as hidden housekeeping.
 
@@ -113,7 +113,7 @@ Existing whole-REL reconciliation remains current-format compatibility machinery
 
 Warlock always has a central, revisioned project state to point agents at without requiring non-technical users to understand VCS.
 
-Git projects avoid a redundant hidden Lore repository and preserve developer ownership of repository policy and human-facing history.
+Projects explicitly placed in Git mode avoid a redundant Warlock-managed Lore repository and preserve developer ownership of repository policy and human-facing history.
 
 Reliquary retains storage optimized for its actual semantic/retrieval workloads rather than inheriting per-object project-VCS overhead for Memories, Graph records, vectors, and similar state. Its own semantic historical timeline remains independent and first-class.
 
@@ -137,9 +137,9 @@ Rejected. Requiring every Warlock project to have Lore or Git provides project h
 
 Rejected. Uploaded files should become normal project files so project files and context attachments share one file/history authority.
 
-### Create a hidden Lore repository alongside Git
+### Create a hidden Lore repository while Warlock is in Git mode
 
-Rejected. A Git project already has a project repository. A second hidden VCS would duplicate file history and create split authority.
+Rejected. Once `Use Git for repository` is selected, Git is the project-history authority for Warlock. Creating an additional Warlock-managed Lore repository would duplicate file history and create split authority.
 
 ## Implementation direction
 

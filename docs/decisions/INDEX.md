@@ -27,3 +27,4 @@
 - [ADR 0025: Owner-local derived Graph communities](0025-owner-local-derived-communities.md) — **Accepted and implemented**, 2026-08-27.
 - [ADR 0026: Community-routed owner-local Memory retrieval](0026-community-routed-memory-retrieval.md) — **Accepted and implemented**, 2026-08-29.
 - [ADR 0027: Warlock project repositories and Reliquary storage boundary](0027-warlock-project-repositories-and-reliquary-storage-boundary.md) — **Accepted**, 2026-09-02.
+- [ADR 0028: Project folder and repository bootstrap contract](0028-project-folder-and-repository-bootstrap-contract.md) — **Accepted**, 2026-09-02.

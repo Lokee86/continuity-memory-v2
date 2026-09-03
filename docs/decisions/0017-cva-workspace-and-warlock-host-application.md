@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-24. Supersedes the standalone native-Reliquary-UI product direction in ADR 0016; ADR 0016 remains authoritative for the shared transport-neutral interaction/runtime seam. The WorkspaceMetadata identity/type design in this ADR is superseded by ADR 0022.
+Accepted — 2026-08-24. Supersedes the standalone native-Reliquary-UI product direction in ADR 0016; ADR 0016 remains authoritative for the shared transport-neutral interaction/runtime seam. The WorkspaceMetadata identity/type design in this ADR is superseded by ADR 0022. ADR 0028 amends the Project workspace boundary so a Project REL is associated with an ordinary project folder and stored under that folder's `.warlock/` directory beside, but excluded from, the project's Lore/Git repository history.
 
 ## Purpose
 
@@ -152,6 +152,7 @@ Focused tests now prove that workspace metadata survives reopen, initializes onl
 - [Roadmap](../roadmap.md)
 - [ADR 0015](0015-acp-inline-interaction-stream.md)
 - [ADR 0016](0016-native-product-surface-and-shared-interaction-runtime.md)
+- [ADR 0028](0028-project-folder-and-repository-bootstrap-contract.md)
 
 ## Notes
 

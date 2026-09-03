@@ -12,7 +12,7 @@ The immediate storage/history direction is split cleanly between project reposit
 
 Further investment in REL machinery that duplicates project/file VCS is frozen except for compatibility and correctness work. REL/PHY semantic history, historical cuts/versioning, recovery, and domain-local revision machinery remain first-class requirements. Productization and semantic-quality work may continue against the existing REL/PHY semantic APIs and `ObjectRef` physical seam.
 
-Lore is the automatic managed project repository for projects that do not already use Git or explicitly choose Git. Git remains the advanced/user-owned repository case. Reliquary continues to own Archive, Memory, provenance, Insomnia, Dream, Graph, Echo, retrieval, scopes, transcript, and other agent/context state. See [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md).
+Lore is the automatic managed project repository unless the advanced `Use Git for repository` option is selected. Git remains the explicit/user-owned repository case. Reliquary continues to own Archive, Memory, provenance, Insomnia, Dream, Graph, Echo, retrieval, scopes, transcript, and other agent/context state. See [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md).
 
 ## Product direction
 
@@ -69,19 +69,43 @@ The spike and cloud-transport benchmark should be retained as implementation evi
 
 Future Lore work should move toward the managed project-repository integration rather than migrating semantic Reliquary backing objects.
 
-### 3. Guarantee one project repository
+### 3. Implement the Project create/open bootstrap contract
 
-Implement project repository selection at project open/create time:
+ADR 0028 defines the concrete Project REL location and repository bootstrap behavior.
 
-- if a Git repository already owns the project, use Git;
-- allow explicit Git selection for advanced users;
-- otherwise automatically initialize and manage Lore;
-- do not create a hidden Lore repository alongside Git; and
-- record enough repository identity/configuration for Warlock to reopen the same project relationship safely.
+A newly created Project REL must be associated with an ordinary project folder and stored at:
 
-Normal Lore operation is managed infrastructure: Warlock may checkpoint automatically without requiring VCS knowledge from the user. Advanced Lore controls may expose explicit branch/history/merge operations when requested.
+```text
+<project-folder>/.warlock/<project-name>.prj.rel
+```
 
-Git operation is user-owned/advanced by default. Repository mutations by agents must be surfaced clearly and performed like ordinary explicit agent Git work rather than hidden housekeeping on the user's active history.
+`.warlock/` is Warlock semantic/runtime state and must be excluded from project repository tracking before any automatic project commit.
+
+Default creation path:
+
+1. user selects/creates a project folder;
+2. resolve existing Lore ownership or initialize Lore for that folder;
+3. configure `.warlock/` exclusion;
+4. create the `.warlock/` directory and Project REL;
+5. create the initial Lore project commit/checkpoint; and
+6. record the resulting repository identity/revision in REL association/history metadata so the project and semantic timelines can be correlated.
+
+Advanced creation options are exactly:
+
+- `Use Git for repository`
+- `Manually manage Lore repository`
+
+They are mutually exclusive.
+
+`Use Git for repository` must detect the Git repository owning/containing the selected project folder, fail clearly if no usable Git repository is found, create the REL under the selected folder's `.warlock/`, exclude that directory using repository-local Git exclusion where practical, record repository association/current revision, and make **no automatic Git commit**.
+
+`Manually manage Lore repository` still performs Lore detection/initialization, `.warlock/` exclusion, REL creation, and the initial Lore commit so the project starts from a defined state. It then disables routine automatic Lore checkpoints and exposes later repository mutations explicitly.
+
+Existing repository discovery must avoid nested Lore repositories. The selected project folder may be below the actual repository root; the REL stays under the selected project folder while repository-relative operations use the resolved repository root.
+
+Open/reopen must validate the recorded repository kind/identity against the repository actually present. A missing or mismatched repository must be surfaced rather than silently replaced. Moving the complete project folder remains supported because durable repository identity and relative structure, not one absolute path, define the association.
+
+See [ADR 0028](decisions/0028-project-folder-and-repository-bootstrap-contract.md).
 
 ### 4. Add repository-backed historical file references
 
@@ -160,7 +184,7 @@ The immediate roadmap does not include:
 
 - embedding Lore as the general physical substrate for REL/PHY;
 - migrating Memory/Graph/vector/Echo storage onto Lore;
-- maintaining a hidden Lore repository beside Git;
+- maintaining a hidden Lore repository after `Use Git for repository` has selected Git as the Warlock project-history authority;
 - a separate permanent uploaded-file store;
 - a virtual or copy-on-write filesystem;
 - filesystem drivers; or
@@ -413,6 +437,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md)
 - [ADR 0019](decisions/0019-cloud-backed-cva-reconciliation.md)
 - [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md)
+- [ADR 0028](decisions/0028-project-folder-and-repository-bootstrap-contract.md)
 
 ## Notes
 
