@@ -21,6 +21,7 @@ pub enum CvaError {
     InteractionStream(String),
     ConversationCompactions(ConversationCompactionError),
     Echo(EchoError),
+    ProjectHistory(String),
     SemanticGlobalVersionConflict(u64),
     InvalidContainerIdentity(&'static str),
 }
@@ -42,6 +43,7 @@ impl fmt::Display for CvaError {
             Self::InteractionStream(error) => write!(f, "interaction stream error: {error}"),
             Self::ConversationCompactions(error) => write!(f, "{error}"),
             Self::Echo(error) => write!(f, "{error}"),
+            Self::ProjectHistory(error) => write!(f, "project history error: {error}"),
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }

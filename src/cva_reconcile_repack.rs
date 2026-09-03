@@ -35,6 +35,15 @@ pub(crate) fn reconcile_diverged(
     let right_profiles = right.compatibility_profiles();
     let left_echo = left.echo_records();
     let right_echo = right.echo_records();
+    let left_project_history = left.project_revision_correlations();
+    let right_project_history = right.project_revision_correlations();
+    let latest_project_revision =
+        compatible_project_revision(&left_project_history, &right_project_history).ok_or(
+            CvaReconcileError::UnsupportedSemanticOwner(
+                "divergent project-revision correlation history",
+            ),
+        )?;
+    let right_project_history_change = right_project_history.len() > left_project_history.len();
     let (interaction_streams, right_stream_change) = merge_interaction_streams(
         left.interaction_stream_records(),
         right.interaction_stream_records(),
@@ -59,8 +68,13 @@ pub(crate) fn reconcile_diverged(
         let file_memory_links =
             replay_file_memory_links(&mut output, &right_archive.file_memory_links)?;
         replay_echo(&mut output, right_echo)?;
-        let canonical_change_required =
-            output.container.chunks()?.len() > before_right || right_stream_change;
+        let canonical_change_required = output.container.chunks()?.len() > before_right
+            || right_stream_change
+            || right_project_history_change;
+        if canonical_change_required && let Some(project_revision) = latest_project_revision.clone()
+        {
+            output.correlate_project_revision(project_revision)?;
+        }
 
         output.sync()?;
         drop(output);
@@ -112,6 +126,26 @@ fn replay_echo(output: &mut Cva, events: Vec<crate::EchoEvent>) -> Result<(), Cv
         output.put_echo_event(event)?;
     }
     Ok(())
+}
+
+fn compatible_project_revision(
+    left: &[crate::ProjectRevisionCorrelation],
+    right: &[crate::ProjectRevisionCorrelation],
+) -> Option<Option<crate::ProjectRevisionRef>> {
+    let common = left
+        .iter()
+        .zip(right)
+        .take_while(|(left, right)| left.project_revision == right.project_revision)
+        .count();
+    if common != left.len().min(right.len()) {
+        return None;
+    }
+    let history = if right.len() > left.len() {
+        right
+    } else {
+        left
+    };
+    Some(history.last().map(|record| record.project_revision.clone()))
 }
 
 fn replay_profiles(

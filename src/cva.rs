@@ -12,6 +12,7 @@ use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::project_history_store::ProjectHistoryStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container,
@@ -37,6 +38,7 @@ pub struct Cva {
     pub(crate) conversation_compactions: ConversationCompactionStore,
     pub(crate) interaction_streams: InteractionStreamStore,
     pub(crate) echo: EchoStore,
+    pub(crate) project_history: ProjectHistoryStore,
 }
 
 impl Cva {
@@ -384,6 +386,36 @@ impl Cva {
 
     pub(crate) fn echo_records(&self) -> Vec<crate::EchoEvent> {
         self.echo.all_records()
+    }
+
+    pub fn current_rel_semantic_cut(&self) -> crate::RelSemanticCut {
+        crate::RelSemanticCut {
+            global_version: self.container.latest_version(),
+            archive_version: self.archive.archive_version(),
+            memory_version: self.memories.memory_version(),
+        }
+    }
+
+    pub fn correlate_project_revision(
+        &mut self,
+        project_revision: crate::ProjectRevisionRef,
+    ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
+        if self.scope_kind() != crate::ReliquaryScopeKind::Project {
+            return Err(CvaError::ProjectHistory(
+                "project revision correlation is only valid for Project Reliquaries".into(),
+            ));
+        }
+        let rel_cut = self.current_rel_semantic_cut();
+        self.project_history
+            .put(&mut self.container, rel_cut, project_revision)
+    }
+
+    pub fn project_revision_correlations(&self) -> Vec<crate::ProjectRevisionCorrelation> {
+        self.project_history.records()
+    }
+
+    pub fn latest_project_revision_correlation(&self) -> Option<crate::ProjectRevisionCorrelation> {
+        self.project_history.latest()
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

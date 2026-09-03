@@ -107,18 +107,17 @@ Open/reopen must validate the recorded repository kind/identity against the repo
 
 See [ADR 0028](decisions/0028-project-folder-and-repository-bootstrap-contract.md).
 
-### 4. Add repository-backed historical file references
+### 4. Repository/REL correlation seam — implemented
 
-Define a narrow durable reference that transcript, Archive/provenance, and artifact records can use to identify the exact project-file state supplied as context.
+Reliquary now exposes repository-neutral `ProjectRepositoryRef`, `ProjectRevisionRef`, `ProjectFileRef`, `RelSemanticCut`, and `ProjectRevisionCorrelation` types. A Project REL can append an idempotent correlation between its current semantic cut and one exact project-repository revision without making Lore or Git authoritative over semantic storage.
 
-The reference must support both Lore and Git without making either repository implementation part of Memory semantics. It should include or resolve:
+The current semantic cut records the REL file-global, Archive, and Memory watermarks. The project revision records repository kind, durable repository identity, the selected Warlock project folder as a repository-relative path, and the opaque revision/commit reference.
 
-- repository identity/kind;
-- revision/commit reference;
-- exact file identity/path at that revision; and
-- exact content identity where useful for integrity/deduplication.
+Correlation records are append-only REL metadata, survive reopen, and do not allocate a new semantic global version merely for recording the cross-history link. Strict-copy/fast-forward reconciliation preserves the existing correlation history verbatim. A true divergent semantic repack cannot reuse old REL cut numbers, so it compares only the `ProjectRevisionRef` sequence for prefix compatibility, ignores the obsolete branch-local cuts, and emits one fresh correlation at the final merged REL cut using the latest compatible project revision; truly divergent repository revision sequences fail closed.
 
-Historical references remain stable after later rename, move, edit, or deletion of the working-tree file.
+Warlock's managed-Lore bootstrap resolves the actual Lore repository ID and current revision after the initial commit (or from an already-existing ancestor Lore repository) and records that correlation before Project creation succeeds.
+
+`ProjectFileRef` is defined at the same boundary with revision-relative path plus optional 32-byte content identity. Transcript, Archive/provenance, and artifact consumers still need to adopt it so historical references remain stable after later rename, move, edit, or deletion of the working-tree file.
 
 ### 5. Make uploads normal project files in Lore projects
 

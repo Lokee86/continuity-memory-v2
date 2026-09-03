@@ -23,6 +23,7 @@ use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::project_history_store::ProjectHistoryStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Container, Cva, CvaError};
@@ -134,6 +135,7 @@ impl Cva {
         let interaction_streams = InteractionStreamStore::default();
         let conversation_compactions = ConversationCompactionStore::empty();
         let echo = EchoStore::default();
+        let project_history = ProjectHistoryStore::default();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -161,6 +163,7 @@ impl Cva {
             interaction_streams,
             conversation_compactions,
             echo,
+            project_history,
         })
     }
 
@@ -178,6 +181,7 @@ impl Cva {
         let mut interaction_streams = InteractionStreamStore::default();
         let mut compaction_state = ConversationCompactionOpenState::default();
         let mut echo = EchoStore::default();
+        let mut project_history = ProjectHistoryStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -192,6 +196,7 @@ impl Cva {
             interaction_streams.ingest(payload)?;
             compaction_state.ingest(chunk, payload)?;
             echo.ingest(payload)?;
+            project_history.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()
@@ -242,6 +247,7 @@ impl Cva {
             interaction_streams,
             conversation_compactions,
             echo,
+            project_history,
         })
     }
 }

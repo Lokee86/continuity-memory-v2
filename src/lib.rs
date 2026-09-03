@@ -213,6 +213,9 @@ mod phylactery_lifecycle;
 mod phylactery_memory_retrieval;
 mod phylactery_memory_vectors;
 mod phylactery_packed_vectors;
+mod project_history_codec;
+mod project_history_model;
+mod project_history_store;
 mod runtime_host;
 mod runtime_vector_step;
 mod search;
@@ -406,6 +409,10 @@ pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
+pub use project_history_model::{
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionCorrelation,
+    ProjectRevisionRef, RelSemanticCut,
+};
 pub use runtime_host::memory_search::{
     MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,
 };
@@ -582,6 +589,10 @@ mod packed_vector_tests;
 mod phylactery_dream_tests;
 #[cfg(test)]
 mod phylactery_tests;
+#[cfg(test)]
+mod project_history_reconcile_tests;
+#[cfg(test)]
+mod project_history_tests;
 #[cfg(test)]
 mod reliquary_tests;
 #[cfg(test)]
