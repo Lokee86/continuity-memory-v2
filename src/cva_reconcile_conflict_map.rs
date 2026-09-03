@@ -43,7 +43,7 @@ pub(crate) fn archive_replay_error(
                 fragment_id: fragment.id,
             })
         }
-        (ArchiveReplayRecord::File(file, _), ArchiveError::ConflictingFile) => {
+        (ArchiveReplayRecord::File(file, _, _), ArchiveError::ConflictingFile) => {
             Some(CvaReconcileConflict::File { file_id: file.id })
         }
         _ => None,

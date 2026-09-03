@@ -117,9 +117,9 @@ Correlation records are append-only REL metadata, survive reopen, and do not all
 
 Warlock's managed-Lore bootstrap resolves the actual Lore repository ID and current revision after the initial commit (or from an already-existing ancestor Lore repository) and records that correlation before Project creation succeeds.
 
-`ProjectFileRef` is defined at the same boundary with revision-relative path plus optional 32-byte content identity. Transcript, Archive/provenance, and artifact consumers still need to adopt it so historical references remain stable after later rename, move, edit, or deletion of the working-tree file.
+`ProjectFileRef` is now adopted by the transcript/Archive/provenance attachment path. Project-backed attachment registration persists FileId-to-`ProjectFileRef` bindings and attachment metadata in REL while deliberately omitting duplicate payload bytes. Historical FileId identity includes repository kind/ID, project subtree, repository revision, repository-relative path, content hash, byte length, filename, and MIME metadata, so identical bytes at different repository revisions remain distinct historical references. Correlation history also fails closed if repository kind or durable repository ID changes; the selected `project_path` may evolve within the same repository.
 
-### 5. Make uploads normal project files in Lore projects
+### 5. Make uploads normal project files in Lore projects — implemented
 
 Uploaded files are context-ingestion events, not a separate permanent blob store.
 
@@ -133,7 +133,7 @@ For Lore-managed projects:
 6. checkpoint the resulting project state; and
 7. point transcript/provenance at the exact historical repository file state used for context.
 
-Once materialized, the file is an ordinary project file and may be moved, renamed, edited, or deleted normally.
+Once materialized, the file is an ordinary project file and may be moved, renamed, edited, or deleted normally. Managed-Lore upload ingestion now implements exact-content reuse, deterministic `uploads/` materialization/collision naming, automatic Lore commit, exact historical reads with content-hash verification, transcript attachment plumbing, and Memory provenance attachment views. Existing-project reads/uploads require the already-associated Lore repository and do not initialize a replacement if `.lore` is missing. Git upload/snapshot handling remains the next repository-specific milestone.
 
 ### 6. Preserve exact upload context in Git without silent branch commits
 

@@ -16,6 +16,7 @@ pub struct IncomingTurn {
     pub timestamp_ns: i64,
     pub content: String,
     pub attachments: Vec<IncomingAttachment>,
+    pub project_attachments: Vec<StoredFile>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

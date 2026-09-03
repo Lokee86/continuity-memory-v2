@@ -7,6 +7,7 @@ pub(crate) struct InFlightMessage {
     pub(crate) timestamp_ns: i64,
     pub(crate) content: String,
     pub(crate) attachments: Vec<crate::InteractionAttachment>,
+    pub(crate) project_attachments: Vec<crate::StoredFile>,
 }
 
 pub(crate) struct SessionState {

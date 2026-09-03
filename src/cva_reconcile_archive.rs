@@ -3,7 +3,7 @@ use crate::archive_history_codec::decode_record_version;
 use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{
     ArchiveError, Branch, ConversationMetadata, Cva, CvaReconcileError, Episode, FileMemoryLink,
-    Fragment, IncomingAttachment, IncomingTurn, StoredFile,
+    Fragment, IncomingAttachment, IncomingTurn, ProjectFileRef, StoredFile,
 };
 
 pub(crate) enum ArchiveReplayRecord {
@@ -13,7 +13,7 @@ pub(crate) enum ArchiveReplayRecord {
     ConversationMetadata(ConversationMetadata),
     Episode(Episode),
     Fragment(Fragment),
-    File(StoredFile, Vec<u8>),
+    File(StoredFile, Option<Vec<u8>>, Option<ProjectFileRef>),
 }
 
 pub(crate) struct ArchiveTail {
@@ -46,6 +46,7 @@ pub(crate) fn read_archive_tail(
                     timestamp_ns: node.timestamp_ns,
                     content,
                     attachments: Vec::new(),
+                    project_attachments: Vec::new(),
                 }));
             }
             ArchiveRecord::IngestedTurn(turn) => {
@@ -53,13 +54,18 @@ pub(crate) fn read_archive_tail(
                     .archive
                     .content(&mut cva.container, turn.node.content_id)?;
                 let mut attachments = Vec::with_capacity(turn.attachments.len());
+                let mut project_attachments = Vec::new();
                 for file in turn.attachments {
-                    let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
-                    attachments.push(IncomingAttachment {
-                        filename: file.filename,
-                        mime_type: file.mime_type,
-                        bytes,
-                    });
+                    if cva.project_file_ref(file.id).is_some() {
+                        project_attachments.push(file);
+                    } else {
+                        let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
+                        attachments.push(IncomingAttachment {
+                            filename: file.filename,
+                            mime_type: file.mime_type,
+                            bytes,
+                        });
+                    }
                 }
                 records.push(ArchiveReplayRecord::IngestedTurn(IncomingTurn {
                     id: turn.node.id,
@@ -69,6 +75,7 @@ pub(crate) fn read_archive_tail(
                     timestamp_ns: turn.node.timestamp_ns,
                     content,
                     attachments,
+                    project_attachments,
                 }));
             }
             ArchiveRecord::Branch(branch) => records.push(ArchiveReplayRecord::Branch(branch)),
@@ -77,8 +84,12 @@ pub(crate) fn read_archive_tail(
             }
             ArchiveRecord::Episode(episode) => records.push(ArchiveReplayRecord::Episode(episode)),
             ArchiveRecord::File(file) => {
-                let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
-                records.push(ArchiveReplayRecord::File(file, bytes));
+                if let Some(reference) = cva.project_file_ref(file.id) {
+                    records.push(ArchiveReplayRecord::File(file, None, Some(reference)));
+                } else {
+                    let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
+                    records.push(ArchiveReplayRecord::File(file, Some(bytes), None));
+                }
             }
             ArchiveRecord::FileMemoryLink(link) => file_memory_links.push(link),
             ArchiveRecord::Fragment(fragment) => {
@@ -151,13 +162,28 @@ pub(crate) fn replay_archive_tail(
                     return Err(archive_replay_error(destination, record, error));
                 }
             }
-            ArchiveReplayRecord::File(file, bytes) => {
-                if let Err(error) =
-                    destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)
-                {
-                    return Err(archive_replay_error(destination, record, error));
+            ArchiveReplayRecord::File(file, bytes, project_ref) => match (bytes, project_ref) {
+                (Some(bytes), None) => {
+                    if let Err(error) =
+                        destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)
+                    {
+                        return Err(archive_replay_error(destination, record, error));
+                    }
                 }
-            }
+                (None, Some(reference)) => {
+                    destination.register_project_file(
+                        file.filename.clone(),
+                        file.mime_type.clone(),
+                        file.byte_length,
+                        reference.clone(),
+                    )?;
+                }
+                _ => {
+                    return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                        "invalid project-file replay record",
+                    ));
+                }
+            },
         }
     }
     Ok(destination.archive_version().saturating_sub(before) as usize)

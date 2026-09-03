@@ -12,6 +12,9 @@ impl ProjectHistoryStore {
             return Ok(());
         };
         self.validate_record(&record)?;
+        if let Some(previous) = self.records.last() {
+            validate_repository_identity(&previous.project_revision, &record.project_revision)?;
+        }
         let expected_sequence = match self.records.last() {
             Some(previous) => previous.sequence.checked_add(1).ok_or_else(|| {
                 CvaError::ProjectHistory("project correlation sequence exhausted".into())
@@ -34,6 +37,9 @@ impl ProjectHistoryStore {
         project_revision: ProjectRevisionRef,
     ) -> Result<(ProjectRevisionCorrelation, bool), CvaError> {
         validate_revision(&project_revision)?;
+        if let Some(previous) = self.records.last() {
+            validate_repository_identity(&previous.project_revision, &project_revision)?;
+        }
         if let Some(existing) = self.records.last()
             && existing.rel_cut == rel_cut
             && existing.project_revision == project_revision
@@ -74,6 +80,20 @@ impl ProjectHistoryStore {
         }
         validate_revision(&record.project_revision)
     }
+}
+
+fn validate_repository_identity(
+    previous: &ProjectRevisionRef,
+    next: &ProjectRevisionRef,
+) -> Result<(), CvaError> {
+    if previous.repository.kind != next.repository.kind
+        || previous.repository.repository_id != next.repository.repository_id
+    {
+        return Err(CvaError::ProjectHistory(
+            "project repository identity must remain stable across correlation history".into(),
+        ));
+    }
+    Ok(())
 }
 
 fn validate_revision(project_revision: &ProjectRevisionRef) -> Result<(), CvaError> {

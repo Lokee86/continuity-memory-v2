@@ -48,6 +48,27 @@ fn identical_project_revision_correlation_is_idempotent() {
 }
 
 #[test]
+fn project_revision_correlation_requires_stable_repository_identity() {
+    let path = rel_path();
+    let mut cva = Cva::create_project(&path).unwrap();
+    cva.correlate_project_revision(lore_revision("repo-1", "revision-1"))
+        .unwrap();
+
+    let mut moved = lore_revision("repo-1", "revision-2");
+    moved.repository.project_path = "nested/project".into();
+    cva.correlate_project_revision(moved).unwrap();
+
+    assert!(
+        cva.correlate_project_revision(lore_revision("repo-2", "revision-3"))
+            .is_err()
+    );
+    let mut changed_kind = lore_revision("repo-1", "revision-3");
+    changed_kind.repository.kind = ProjectRepositoryKind::Git;
+    assert!(cva.correlate_project_revision(changed_kind).is_err());
+    assert_eq!(cva.project_revision_correlations().len(), 2);
+}
+
+#[test]
 fn project_revision_correlation_rejects_non_project_scope_and_unsafe_path() {
     let org_path = rel_path();
     let mut org = Cva::create_organization(&org_path).unwrap();

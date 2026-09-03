@@ -25,6 +25,7 @@ fn turn(id: &str, parent: Option<&str>, timestamp_ns: i64, content: &str) -> Inc
         timestamp_ns,
         content: content.into(),
         attachments: Vec::new(),
+        project_attachments: Vec::new(),
     }
 }
 

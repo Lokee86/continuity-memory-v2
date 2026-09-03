@@ -31,6 +31,7 @@ pub struct InteractionTurn {
     pub timestamp_ns: i64,
     pub content: String,
     pub attachments: Vec<InteractionAttachment>,
+    pub project_attachments: Vec<crate::StoredFile>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,6 +61,7 @@ impl From<InteractionTurn> for IncomingTurn {
             timestamp_ns: value.timestamp_ns,
             content: value.content,
             attachments: value.attachments.into_iter().map(Into::into).collect(),
+            project_attachments: value.project_attachments,
         }
     }
 }

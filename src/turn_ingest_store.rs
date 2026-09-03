@@ -1,5 +1,6 @@
 use crate::archive_store::{hash_content, validate_text};
 use crate::file_store::build_stored_file;
+use crate::project_file_binding_store::ProjectFileStore;
 use crate::turn_ingest_codec::encode_ingested_turn;
 use crate::{Archive, ArchiveError, Container, IncomingTurn, IngestedTurn, Node, StoredFile};
 use std::collections::HashSet;
@@ -8,6 +9,7 @@ impl Archive {
     pub(crate) fn ingest_turn(
         &mut self,
         container: &mut Container,
+        project_files: &ProjectFileStore,
         incoming: IncomingTurn,
     ) -> Result<IngestedTurn, ArchiveError> {
         validate_text(&incoming.id, "node id")?;
@@ -38,10 +40,26 @@ impl Archive {
             }
             prepared.push((file, attachment.bytes));
         }
-        let ingested = IngestedTurn {
-            node,
-            attachments: prepared.iter().map(|(file, _)| file.clone()).collect(),
-        };
+        let mut project_attachments = incoming.project_attachments;
+        for file in &project_attachments {
+            if !project_files.contains(file.id) {
+                return Err(ArchiveError::MissingProjectFile);
+            }
+            if !seen.insert(file.id) {
+                return Err(ArchiveError::DuplicateTurnAttachment);
+            }
+            match self.files.get(file.id) {
+                Some(existing) if existing == file => {}
+                Some(_) => return Err(ArchiveError::ConflictingFile),
+                None => return Err(ArchiveError::MissingProjectFile),
+            }
+        }
+        let mut attachments = prepared
+            .iter()
+            .map(|(file, _)| file.clone())
+            .collect::<Vec<_>>();
+        attachments.append(&mut project_attachments);
+        let ingested = IngestedTurn { node, attachments };
 
         if let Some(existing) = self
             .nodes

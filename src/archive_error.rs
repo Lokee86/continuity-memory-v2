@@ -19,6 +19,7 @@ pub enum ArchiveError {
     MissingFragment,
     ConflictingFragment,
     MissingFile,
+    MissingProjectFile,
     ConflictingFile,
     InvalidFileId,
     CorruptFile,

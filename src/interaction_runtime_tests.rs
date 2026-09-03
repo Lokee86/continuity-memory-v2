@@ -29,6 +29,7 @@ fn user_turn() -> InteractionTurn {
             mime_type: Some("application/pdf".into()),
             bytes: b"plan bytes".to_vec(),
         }],
+        project_attachments: Vec::new(),
     }
 }
 
@@ -94,6 +95,7 @@ fn normalized_agent_role_maps_to_archive_assistant_role() {
             timestamp_ns: 2,
             content: "The plan is internally consistent.".into(),
             attachments: Vec::new(),
+            project_attachments: Vec::new(),
         })
         .unwrap();
 
@@ -160,6 +162,7 @@ fn transcript_pages_read_newest_window_then_older_cursor() {
                 timestamp_ns: index,
                 content: format!("turn {index}"),
                 attachments: Vec::new(),
+                project_attachments: Vec::new(),
             })
             .unwrap();
         parent = Some(message_id);

@@ -1,0 +1,192 @@
+use crate::{
+    ArchiveError, Cva, InteractionRole, InteractionRuntime, ProjectFileRef, ProjectRepositoryKind,
+    ProjectRepositoryRef, ProjectRevisionRef, StoredFile,
+};
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::path::PathBuf;
+use uuid::Uuid;
+
+fn rel_path() -> PathBuf {
+    std::env::temp_dir().join(format!("project-file-{}.prj.rel", Uuid::new_v4()))
+}
+
+fn project_ref(bytes: &[u8], revision: &str, path: &str) -> ProjectFileRef {
+    ProjectFileRef {
+        revision: ProjectRevisionRef {
+            repository: ProjectRepositoryRef {
+                kind: ProjectRepositoryKind::Lore,
+                repository_id: "repo-1".into(),
+                project_path: ".".into(),
+            },
+            revision: revision.into(),
+        },
+        path: path.into(),
+        content_hash: Some(Sha256::digest(bytes).into()),
+    }
+}
+
+fn register(cva: &mut Cva, bytes: &[u8]) -> StoredFile {
+    register_at(cva, bytes, "revision-1")
+}
+
+fn register_at(cva: &mut Cva, bytes: &[u8], revision: &str) -> StoredFile {
+    cva.register_project_file(
+        "plan.pdf".into(),
+        Some("application/pdf".into()),
+        bytes.len() as u64,
+        project_ref(bytes, revision, "uploads/plan.pdf"),
+    )
+    .unwrap()
+}
+
+fn revision(cva: &Cva, file: &StoredFile) -> String {
+    cva.project_file_ref(file.id).unwrap().revision.revision
+}
+
+#[test]
+fn project_file_binding_survives_reopen_without_rel_payload() {
+    let path = rel_path();
+    let bytes = b"repository-owned-pdf";
+    let mut cva = Cva::create_project(&path).unwrap();
+    let file = register(&mut cva, bytes);
+    assert_eq!(cva.stats().files, 1);
+    assert_eq!(cva.stats().content_objects, 0);
+    assert!(matches!(
+        cva.file_bytes(file.id),
+        Err(ArchiveError::MissingContent)
+    ));
+    let reference = cva.project_file_ref(file.id).unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+
+    let mut reopened = Cva::open_project(path).unwrap();
+    assert_eq!(reopened.project_file_ref(file.id), Some(reference));
+    assert_eq!(reopened.stats().content_objects, 0);
+    assert!(matches!(
+        reopened.file_bytes(file.id),
+        Err(ArchiveError::MissingContent)
+    ));
+}
+
+#[test]
+fn project_file_attachment_survives_transcript_and_reopen() {
+    let path = rel_path();
+    let mut cva = Cva::create_project(&path).unwrap();
+    let file = register(&mut cva, b"repository-owned-pdf");
+    let mut runtime = InteractionRuntime::new(cva);
+    runtime.open_session("session-1".into(), None).unwrap();
+    runtime
+        .begin_message("session-1", "message-1".into(), InteractionRole::User, 1)
+        .unwrap();
+    runtime
+        .attach_project_file("session-1", "message-1", file.clone())
+        .unwrap();
+    runtime
+        .append_text("session-1", "message-1", "Review this plan")
+        .unwrap();
+    runtime.complete_message("session-1", "message-1").unwrap();
+    let transcript = runtime
+        .conversation_transcript("session-1", "message-1")
+        .unwrap();
+    assert_eq!(transcript[0].attachments, vec![file.clone()]);
+    drop(runtime);
+
+    let reopened = Cva::open_project(path).unwrap();
+    assert_eq!(
+        reopened.files_for_source("session-1", "message-1"),
+        vec![file]
+    );
+}
+
+#[test]
+fn unchanged_project_file_at_new_revision_keeps_distinct_historical_identity() {
+    let path = rel_path();
+    let bytes = b"repository-owned-pdf";
+    let mut cva = Cva::create_project(&path).unwrap();
+    let first = register_at(&mut cva, bytes, "revision-1");
+    let second = register_at(&mut cva, bytes, "revision-2");
+    assert_ne!(first.id, second.id);
+    assert_eq!(first.content_id, second.content_id);
+    assert_eq!(revision(&cva, &first), "revision-1");
+    assert_eq!(revision(&cva, &second), "revision-2");
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open_project(path).unwrap();
+    assert_eq!(revision(&reopened, &first), "revision-1");
+    assert_eq!(revision(&reopened, &second), "revision-2");
+}
+
+#[test]
+fn project_attachment_must_be_registered_before_attach() {
+    let path = rel_path();
+    let cva = Cva::create_project(path).unwrap();
+    let mut runtime = InteractionRuntime::new(cva);
+    runtime.open_session("session-1".into(), None).unwrap();
+    runtime
+        .begin_message("session-1", "message-1".into(), InteractionRole::User, 1)
+        .unwrap();
+    let fake = StoredFile {
+        id: crate::FileId([1; 32]),
+        content_id: crate::ContentId([2; 32]),
+        filename: "fake.pdf".into(),
+        mime_type: Some("application/pdf".into()),
+        byte_length: 3,
+    };
+    assert!(
+        runtime
+            .attach_project_file("session-1", "message-1", fake)
+            .is_err()
+    );
+}
+
+#[test]
+fn divergent_reconcile_replays_project_file_binding_and_source_attachment() {
+    let left = rel_path();
+    let right = rel_path();
+    let output = rel_path();
+    Cva::create_project(&left).unwrap().sync().unwrap();
+    fs::copy(&left, &right).unwrap();
+
+    let mut left_rel = Cva::open_project(&left).unwrap();
+    left_rel
+        .append_node(
+            "left".into(),
+            "left-c".into(),
+            None,
+            "user".into(),
+            1,
+            "left",
+        )
+        .unwrap();
+    left_rel.sync().unwrap();
+
+    let mut right_rel = Cva::open_project(&right).unwrap();
+    let file = register(&mut right_rel, b"repository-owned-pdf");
+    right_rel
+        .ingest_turn(crate::IncomingTurn {
+            id: "right".into(),
+            conversation_id: "right-c".into(),
+            parent_id: None,
+            role: "user".into(),
+            timestamp_ns: 2,
+            content: "attachment".into(),
+            attachments: Vec::new(),
+            project_attachments: vec![file.clone()],
+        })
+        .unwrap();
+    right_rel.sync().unwrap();
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let mut merged = Cva::open_project(output).unwrap();
+    assert!(merged.project_file_ref(file.id).is_some());
+    assert_eq!(
+        merged.files_for_source("right-c", "right"),
+        vec![file.clone()]
+    );
+    assert!(matches!(
+        merged.file_bytes(file.id),
+        Err(ArchiveError::MissingContent)
+    ));
+}

@@ -88,7 +88,10 @@ impl Archive {
         Ok(nodes)
     }
 
-    pub(crate) fn validate_references(&self) -> Result<(), ArchiveError> {
+    pub(crate) fn validate_references(
+        &self,
+        project_files: &crate::project_file_binding_store::ProjectFileStore,
+    ) -> Result<(), ArchiveError> {
         for node in self.nodes.iter() {
             if !self.contents.contains(node.content_id) {
                 return Err(ArchiveError::MissingContent);
@@ -110,7 +113,7 @@ impl Archive {
         }
         self.validate_fragments()?;
         self.validate_episodes()?;
-        self.validate_files()?;
+        self.validate_files(project_files)?;
         self.validate_file_memory_links()?;
         Ok(())
     }

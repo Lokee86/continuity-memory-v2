@@ -12,6 +12,7 @@ use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
@@ -39,6 +40,7 @@ pub struct Cva {
     pub(crate) interaction_streams: InteractionStreamStore,
     pub(crate) echo: EchoStore,
     pub(crate) project_history: ProjectHistoryStore,
+    pub(crate) project_files: ProjectFileStore,
 }
 
 impl Cva {
@@ -416,6 +418,39 @@ impl Cva {
 
     pub fn latest_project_revision_correlation(&self) -> Option<crate::ProjectRevisionCorrelation> {
         self.project_history.latest()
+    }
+
+    pub fn register_project_file(
+        &mut self,
+        filename: String,
+        mime_type: Option<String>,
+        byte_length: u64,
+        reference: crate::ProjectFileRef,
+    ) -> Result<StoredFile, CvaError> {
+        if self.scope_kind() != crate::ReliquaryScopeKind::Project {
+            return Err(CvaError::ProjectFile(
+                "project file binding is only valid for Project Reliquaries".into(),
+            ));
+        }
+        let content_hash = reference.content_hash.ok_or_else(|| {
+            CvaError::ProjectFile("project-backed attachments require a content hash".into())
+        })?;
+        let file = crate::file_store::build_project_stored_file(
+            filename,
+            mime_type,
+            crate::ContentId(content_hash),
+            byte_length,
+            &reference,
+        )?;
+        self.project_files
+            .put(&mut self.container, file.id, reference)?;
+        self.archive
+            .register_file(&mut self.container, file.clone())?;
+        Ok(file)
+    }
+
+    pub fn project_file_ref(&self, file_id: crate::FileId) -> Option<crate::ProjectFileRef> {
+        self.project_files.get(file_id).cloned()
     }
 
     pub fn sync(&self) -> Result<(), CvaError> {

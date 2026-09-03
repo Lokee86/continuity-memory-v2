@@ -78,6 +78,7 @@ fn reconcile_replays_ingested_turn_attachments() {
                 mime_type: Some("image/jpeg".into()),
                 bytes: b"field-photo".to_vec(),
             }],
+            project_attachments: Vec::new(),
         })
         .unwrap();
     right_cva.sync().unwrap();

@@ -39,6 +39,7 @@ fn turn() -> IncomingTurn {
                 bytes: b"sheet bytes".to_vec(),
             },
         ],
+        project_attachments: Vec::new(),
     }
 }
 

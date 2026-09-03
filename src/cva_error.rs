@@ -22,6 +22,7 @@ pub enum CvaError {
     ConversationCompactions(ConversationCompactionError),
     Echo(EchoError),
     ProjectHistory(String),
+    ProjectFile(String),
     SemanticGlobalVersionConflict(u64),
     InvalidContainerIdentity(&'static str),
 }
@@ -44,6 +45,7 @@ impl fmt::Display for CvaError {
             Self::ConversationCompactions(error) => write!(f, "{error}"),
             Self::Echo(error) => write!(f, "{error}"),
             Self::ProjectHistory(error) => write!(f, "project history error: {error}"),
+            Self::ProjectFile(error) => write!(f, "project file error: {error}"),
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }

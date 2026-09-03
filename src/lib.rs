@@ -213,6 +213,8 @@ mod phylactery_lifecycle;
 mod phylactery_memory_retrieval;
 mod phylactery_memory_vectors;
 mod phylactery_packed_vectors;
+mod project_file_binding_codec;
+mod project_file_binding_store;
 mod project_history_codec;
 mod project_history_model;
 mod project_history_store;
@@ -589,6 +591,8 @@ mod packed_vector_tests;
 mod phylactery_dream_tests;
 #[cfg(test)]
 mod phylactery_tests;
+#[cfg(test)]
+mod project_file_attachment_tests;
 #[cfg(test)]
 mod project_history_reconcile_tests;
 #[cfg(test)]

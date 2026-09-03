@@ -23,6 +23,7 @@ use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
@@ -136,6 +137,7 @@ impl Cva {
         let conversation_compactions = ConversationCompactionStore::empty();
         let echo = EchoStore::default();
         let project_history = ProjectHistoryStore::default();
+        let project_files = ProjectFileStore::default();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -164,6 +166,7 @@ impl Cva {
             conversation_compactions,
             echo,
             project_history,
+            project_files,
         })
     }
 
@@ -182,6 +185,7 @@ impl Cva {
         let mut compaction_state = ConversationCompactionOpenState::default();
         let mut echo = EchoStore::default();
         let mut project_history = ProjectHistoryStore::default();
+        let mut project_files = ProjectFileStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -197,6 +201,7 @@ impl Cva {
             compaction_state.ingest(chunk, payload)?;
             echo.ingest(payload)?;
             project_history.ingest(payload)?;
+            project_files.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()
@@ -207,7 +212,7 @@ impl Cva {
             ));
         }
         let archive = archive_state.finish()?;
-        archive.validate_references()?;
+        archive.validate_references(&project_files)?;
         let memories = memory_state.finish()?;
         memories.validate_provenance(&archive)?;
         validate_file_memory_targets(&archive, &memories)?;
@@ -248,6 +253,7 @@ impl Cva {
             conversation_compactions,
             echo,
             project_history,
+            project_files,
         })
     }
 }

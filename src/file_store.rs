@@ -20,6 +20,21 @@ impl Archive {
             };
         }
         self.put_content_bytes(container, file.content_id, bytes)?;
+        self.register_file(container, file)
+    }
+
+    pub(crate) fn register_file(
+        &mut self,
+        container: &mut Container,
+        file: StoredFile,
+    ) -> Result<StoredFile, ArchiveError> {
+        if let Some(existing) = self.files.get(file.id) {
+            return if existing == &file {
+                Ok(existing.clone())
+            } else {
+                Err(ArchiveError::ConflictingFile)
+            };
+        }
         let record = container.append(&encode_file(&file)?)?;
         self.publish_record(container, record)?;
         self.files.insert(file.clone())?;
@@ -47,29 +62,49 @@ impl Archive {
         Ok(bytes)
     }
 
-    pub(crate) fn validate_files(&self) -> Result<(), ArchiveError> {
+    pub(crate) fn validate_files(
+        &self,
+        project_files: &crate::project_file_binding_store::ProjectFileStore,
+    ) -> Result<(), ArchiveError> {
         for file in self.files.iter() {
-            self.validate_file(file)?;
+            self.validate_file(file, project_files)?;
         }
         Ok(())
     }
 
-    fn validate_file(&self, file: &StoredFile) -> Result<(), ArchiveError> {
+    fn validate_file(
+        &self,
+        file: &StoredFile,
+        project_files: &crate::project_file_binding_store::ProjectFileStore,
+    ) -> Result<(), ArchiveError> {
         validate_text(&file.filename, "filename")?;
         if let Some(value) = file.mime_type.as_deref() {
             validate_text(value, "mime type")?;
         }
-        if file.id
-            != file_id(
+        let expected_id = match project_files.get(file.id) {
+            Some(reference) => {
+                if reference.content_hash != Some(file.content_id.0) {
+                    return Err(ArchiveError::CorruptFile);
+                }
+                project_file_id(
+                    &file.filename,
+                    file.mime_type.as_deref(),
+                    file.content_id,
+                    file.byte_length,
+                    reference,
+                )
+            }
+            None => file_id(
                 &file.filename,
                 file.mime_type.as_deref(),
                 file.content_id,
                 file.byte_length,
-            )
-        {
+            ),
+        };
+        if file.id != expected_id {
             return Err(ArchiveError::InvalidFileId);
         }
-        if !self.contents.contains(file.content_id) {
+        if !self.contents.contains(file.content_id) && !project_files.contains(file.id) {
             return Err(ArchiveError::MissingContent);
         }
         Ok(())
@@ -81,14 +116,58 @@ pub(crate) fn build_stored_file(
     mime_type: Option<String>,
     bytes: &[u8],
 ) -> Result<StoredFile, ArchiveError> {
+    let byte_length = u64::try_from(bytes.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
+    build_stored_file_from_content_id(filename, mime_type, hash_content(bytes), byte_length)
+}
+
+pub(crate) fn build_stored_file_from_content_id(
+    filename: String,
+    mime_type: Option<String>,
+    content_id: ContentId,
+    byte_length: u64,
+) -> Result<StoredFile, ArchiveError> {
+    build_stored_file_with_id(filename, mime_type, content_id, byte_length, None)
+}
+
+pub(crate) fn build_project_stored_file(
+    filename: String,
+    mime_type: Option<String>,
+    content_id: ContentId,
+    byte_length: u64,
+    reference: &crate::ProjectFileRef,
+) -> Result<StoredFile, ArchiveError> {
+    build_stored_file_with_id(
+        filename,
+        mime_type,
+        content_id,
+        byte_length,
+        Some(reference),
+    )
+}
+
+fn build_stored_file_with_id(
+    filename: String,
+    mime_type: Option<String>,
+    content_id: ContentId,
+    byte_length: u64,
+    project_ref: Option<&crate::ProjectFileRef>,
+) -> Result<StoredFile, ArchiveError> {
     validate_text(&filename, "filename")?;
     if let Some(value) = mime_type.as_deref() {
         validate_text(value, "mime type")?;
     }
-    let byte_length = u64::try_from(bytes.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
-    let content_id = hash_content(bytes);
+    let id = match project_ref {
+        Some(reference) => project_file_id(
+            &filename,
+            mime_type.as_deref(),
+            content_id,
+            byte_length,
+            reference,
+        ),
+        None => file_id(&filename, mime_type.as_deref(), content_id, byte_length),
+    };
     Ok(StoredFile {
-        id: file_id(&filename, mime_type.as_deref(), content_id, byte_length),
+        id,
         content_id,
         filename,
         mime_type,
@@ -112,4 +191,36 @@ fn file_id(
     hasher.update((mime_type.len() as u64).to_le_bytes());
     hasher.update(mime_type.as_bytes());
     FileId(hasher.finalize().into())
+}
+
+fn project_file_id(
+    filename: &str,
+    mime_type: Option<&str>,
+    content_id: ContentId,
+    byte_length: u64,
+    reference: &crate::ProjectFileRef,
+) -> FileId {
+    let mime_type = mime_type.unwrap_or("");
+    let repository = &reference.revision.repository;
+    let kind = match repository.kind {
+        crate::ProjectRepositoryKind::Lore => 1_u8,
+        crate::ProjectRepositoryKind::Git => 2_u8,
+    };
+    let mut hasher = Sha256::new();
+    hasher.update(b"WARLOCK-PROJECT-FILE1-ID\0");
+    hasher.update([kind]);
+    hash_text(&mut hasher, &repository.repository_id);
+    hash_text(&mut hasher, &repository.project_path);
+    hash_text(&mut hasher, &reference.revision.revision);
+    hash_text(&mut hasher, &reference.path);
+    hasher.update(content_id.0);
+    hasher.update(byte_length.to_le_bytes());
+    hash_text(&mut hasher, filename);
+    hash_text(&mut hasher, mime_type);
+    FileId(hasher.finalize().into())
+}
+
+fn hash_text(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_le_bytes());
+    hasher.update(value.as_bytes());
 }

@@ -53,6 +53,7 @@ fn ingest_file(cva: &mut Cva) -> FileId {
             mime_type: Some("application/pdf".into()),
             bytes: b"pdf bytes".to_vec(),
         }],
+        project_attachments: Vec::new(),
     })
     .unwrap()
     .attachments[0]

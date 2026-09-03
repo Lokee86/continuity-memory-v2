@@ -290,6 +290,61 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn correlate_project_revision(
+        &self,
+        revision: crate::ProjectRevisionRef,
+    ) -> Result<(crate::ProjectRevisionCorrelation, bool), ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cva
+                .correlate_project_revision(revision)
+                .map_err(operation)
+        })
+    }
+
+    pub fn register_project_file(
+        &self,
+        filename: String,
+        mime_type: Option<String>,
+        byte_length: u64,
+        reference: crate::ProjectFileRef,
+    ) -> Result<crate::StoredFile, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cva
+                .register_project_file(filename, mime_type, byte_length, reference)
+                .map_err(operation)
+        })
+    }
+
+    pub fn project_file_ref(
+        &self,
+        file_id: crate::FileId,
+    ) -> Result<Option<crate::ProjectFileRef>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| Ok(runtime.cva.project_file_ref(file_id)))
+    }
+
+    pub fn files_for_source(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Result<Vec<crate::StoredFile>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| Ok(runtime.cva.files_for_source(conversation_id, node_id)))
+    }
+
+    pub fn attach_project_file(
+        &self,
+        session_id: &str,
+        message_id: &str,
+        file: crate::StoredFile,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .attach_project_file(session_id, message_id, file)
+                .map_err(operation)
+        })
+    }
+
     pub fn append_text(
         &self,
         session_id: &str,
@@ -324,6 +379,18 @@ impl ReliquaryRuntimeHost {
         self.with_runtime(|runtime| {
             runtime
                 .interrupt_message(session_id, message_id)
+                .map_err(operation)
+        })
+    }
+
+    pub fn cancel_message(
+        &self,
+        session_id: &str,
+        message_id: &str,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cancel_message(session_id, message_id)
                 .map_err(operation)
         })
     }
