@@ -20,7 +20,7 @@ Reliquary (internal compatibility type: Cva)
 ├── Graph
 │   ├── graph_version: u64 + append-only relationship mutations
 │   ├── persistent MemoryId ↔ dense NodeId catalogue
-│   └── active topology/traversal via arcana-graph
+│   └── active topology/traversal via Arcana graph kernel
 ├── CommunityStore
 │   └── owner-local derived Leiden snapshots keyed to graph_version
 ├── InsomniaOperational
@@ -117,9 +117,9 @@ Reliquary Memory publication validates Archive/Episode provenance at write and r
 Phylactery reuses the Memory store/codec but applies a different validity rule: current `.phy` Memories must be source-independent, with all REL-local Episode/node/conversation provenance fields absent. Source independence does not discard chronology: optional `source_time_ns` is resolved while authoritative source evidence is available and persists as semantic timestamp metadata without a cross-file pointer. This keeps user-global state valid and temporally usable without retaining an originating Project Archive. Cross-file source export/lineage is a separate future contract rather than a nullable Reliquary dependency.
 
 ### Graph
-Graph owns durable Memory-to-Memory semantic relationships. Stable `MemoryId` endpoints are mapped once to dense `arcana_graph::NodeId` values for topology operations; those dense IDs are an internal index and never replace Memory identity. Relationship mutations are oriented records with one of `topical`, `factual`, `causal`, `recurrent`, `references`, `duplicate-of`, `supersedes`, or `structural-parent`; one non-empty single-edge or multi-edge transaction advances dense `graph_version` once and consumes one file-global ordering ticket. Retraction records the same oriented relationship identity with `active=false` rather than deleting history. Processing or scheduling order does not determine edge direction.
+Graph owns durable Memory-to-Memory semantic relationships. Stable `MemoryId` endpoints are mapped once to dense `arcana::NodeId` values for topology operations; those dense IDs are an internal index and never replace Memory identity. Relationship mutations are oriented records with one of `topical`, `factual`, `causal`, `recurrent`, `references`, `duplicate-of`, `supersedes`, or `structural-parent`; one non-empty single-edge or multi-edge transaction advances dense `graph_version` once and consumes one file-global ordering ticket. Retraction records the same oriented relationship identity with `active=false` rather than deleting history. Processing or scheduling order does not determine edge direction.
 
-Reliquary and Phylactery both use the same Graph durability/versioning and stable-Memory endpoint rules inside their own files. The pinned `arcana-graph` crate supplies repository-agnostic graph primitives, adjacency/topology structures, and traversal algorithms. Arcana repository identities, relation vocabulary, repository snapshots, and protocol semantics are not part of either file's Graph owner. Pre-Graph legacy CVAs reopen with an empty Graph owner and acquire the Graph format marker lazily on the first relationship write. Cross-file Graph edges are not represented by the current MemoryId-only endpoint format.
+Reliquary and Phylactery both use the same Graph durability/versioning and stable-Memory endpoint rules inside their own files. The pinned `arcana` crate supplies repository-agnostic graph primitives, adjacency/topology structures, and traversal algorithms through its reusable library boundary. Arcana repository identities, relation vocabulary, repository snapshots, and protocol semantics are not part of either file's Graph owner. Pre-Graph legacy CVAs reopen with an empty Graph owner and acquire the Graph format marker lazily on the first relationship write. Cross-file Graph edges are not represented by the current MemoryId-only endpoint format.
 
 ### Community snapshots
 

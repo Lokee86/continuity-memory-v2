@@ -7,8 +7,8 @@ use crate::{
     Container, GraphError, GraphNodeRecord, GraphRelation, GraphRelationChange, GraphRelationKind,
     MemoryId,
 };
-use arcana_graph::storage::InMemoryGraph;
-use arcana_graph::{GraphDataset, NodeId};
+use arcana::storage::InMemoryGraph;
+use arcana::{GraphDataset, NodeId};
 use std::collections::{HashMap, HashSet};
 
 #[path = "graph_store_read.rs"]

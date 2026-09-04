@@ -82,7 +82,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 68. **Graph direction is semantic.** Processing, scheduling, candidate-selection, or comparison order cannot determine persisted relationship direction.
 69. **Graph retraction is historical mutation, not deletion.** Removing a visible relationship appends an inactive mutation for the same oriented identity and advances `graph_version`.
 70. **Graph topology is derived from versioned relationship state.** Adjacency and traversal structures may be rebuilt or replaced without changing semantic authority.
-71. **Generic graph mechanics do not own Reliquary semantics.** `arcana-graph` may supply topology, storage mechanics, and traversal algorithms; Reliquary owns Memory endpoints, relationship vocabulary, CVA publication/versioning, and Dream semantics.
+71. **Generic graph mechanics do not own Reliquary semantics.** The reusable `arcana` library may supply topology, storage mechanics, and traversal algorithms; Reliquary owns Memory endpoints, relationship vocabulary, CVA publication/versioning, and Dream semantics.
 72. **A Graph batch is one semantic transaction.** A non-empty single-edge or multi-edge Graph publication consumes one CVA-global version and one Graph-local version; callers cannot observe an intermediate subset of an atomic relationship change set.
 73. **Divergent Graph reconciliation follows owner dependencies.** Memories are replayed before Graph endpoints, relationship authority is republished through Graph with fresh clocks, and topology/duplicate indexes rebuild from merged authority instead of becoming synchronization metadata.
 

@@ -1,5 +1,5 @@
 use crate::{GraphError, GraphRelationKind, MemoryId, ObjectRef};
-use arcana_graph::NodeId;
+use arcana::NodeId;
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAGFMT1";
 const FORMAT_SCHEMA: u32 = 1;

@@ -1,5 +1,5 @@
 use crate::MemoryId;
-use arcana_graph::{EdgeKind, NodeId};
+use arcana::{EdgeKind, NodeId};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum GraphRelationKind {

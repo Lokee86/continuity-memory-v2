@@ -2,9 +2,9 @@ use crate::graph_store::GraphStore;
 use crate::{
     GraphDirection, GraphError, GraphNeighbor, GraphRelationKind, MemoryGraphPath, MemoryId,
 };
-use arcana_graph::storage::Neighbor;
-use arcana_graph::traversal::{TraversalError, shortest_path};
-use arcana_graph::{EdgeKind, NodeId};
+use arcana::storage::Neighbor;
+use arcana::traversal::{TraversalError, shortest_path};
+use arcana::{EdgeKind, NodeId};
 
 impl GraphStore {
     pub(crate) fn neighbors(
@@ -68,7 +68,7 @@ impl GraphStore {
 fn topology_neighbors(
     store: &GraphStore,
     node: NodeId,
-) -> Result<Vec<Neighbor>, arcana_graph::storage::QueryError> {
+) -> Result<Vec<Neighbor>, arcana::storage::QueryError> {
     store
         .topology()
         .forward_neighbors(node)
@@ -79,6 +79,6 @@ fn relation_kind(kind: EdgeKind) -> Result<GraphRelationKind, GraphError> {
     GraphRelationKind::from_code(kind.0).ok_or(GraphError::UnknownRelationKind(kind.0))
 }
 
-fn map_traversal_error(error: TraversalError<arcana_graph::storage::QueryError>) -> GraphError {
+fn map_traversal_error(error: TraversalError<arcana::storage::QueryError>) -> GraphError {
     GraphError::Topology(error.to_string())
 }

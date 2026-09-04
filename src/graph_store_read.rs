@@ -1,7 +1,7 @@
 use super::GraphStore;
 use crate::{GraphError, GraphRelation, GraphStats, MemoryId};
-use arcana_graph::storage::InMemoryGraph;
-use arcana_graph::{Edge, GraphDataset, NodeId};
+use arcana::storage::InMemoryGraph;
+use arcana::{Edge, GraphDataset, NodeId};
 
 impl GraphStore {
     pub(crate) fn graph_version(&self) -> u64 {
