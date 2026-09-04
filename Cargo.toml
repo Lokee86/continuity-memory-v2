@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-arcana = { git = "https://github.com/Lokee86/grimoire.git", rev = "9ebccd6e7d089b98a8992c5451ba57f903f295fb" }
+arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "9ebccd6e7d089b98a8992c5451ba57f903f295fb" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
 sha2 = "0.10"
 serde_json = "1"

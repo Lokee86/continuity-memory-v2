@@ -49,7 +49,7 @@ dependencies = [
 [[package]]
 name = "arcana"
 version = "0.1.0"
-source = "git+https://github.com/Lokee86/grimoire.git?rev=9ebccd6e7d089b98a8992c5451ba57f903f295fb#9ebccd6e7d089b98a8992c5451ba57f903f295fb"
+source = "git+https://github.com/Lokee86/lexicon-arcana.git?rev=9ebccd6e7d089b98a8992c5451ba57f903f295fb#9ebccd6e7d089b98a8992c5451ba57f903f295fb"
 dependencies = [
  "atomicwrites",
  "fs2",
