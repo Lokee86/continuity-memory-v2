@@ -133,9 +133,9 @@ For Lore-managed projects:
 6. checkpoint the resulting project state; and
 7. point transcript/provenance at the exact historical repository file state used for context.
 
-Once materialized, the file is an ordinary project file and may be moved, renamed, edited, or deleted normally. Managed-Lore upload ingestion now implements exact-content reuse, deterministic `uploads/` materialization/collision naming, automatic Lore commit, exact historical reads with content-hash verification, transcript attachment plumbing, and Memory provenance attachment views. Existing-project reads/uploads require the already-associated Lore repository and do not initialize a replacement if `.lore` is missing. Git upload/snapshot handling remains the next repository-specific milestone.
+Once materialized, the file is an ordinary project file and may be moved, renamed, edited, or deleted normally. Managed-Lore upload ingestion now implements exact-content reuse, deterministic `uploads/` materialization/collision naming, automatic Lore commit, exact historical reads with content-hash verification, transcript attachment plumbing, and Memory provenance attachment views. Existing-project reads/uploads require the already-associated Lore repository and do not initialize a replacement if `.lore` is missing.
 
-### 6. Preserve exact upload context in Git without silent branch commits
+### 6. Preserve exact upload context in Git without silent branch commits — implemented
 
 For Git projects:
 
@@ -146,6 +146,8 @@ For Git projects:
 - make any later normal Git add/commit/move operations explicit.
 
 Do not introduce a secondary Lore repository or REL-local uploaded-file blob store for this case.
+
+Warlock now implements this boundary for Git-associated Project RELs. Existing exact tracked content is referenced at the current `HEAD` commit only when the working-tree bytes still match. Otherwise the upload is materialized under `uploads/`, written as a Git blob, overlaid onto `HEAD` through a temporary index, and captured as a complete tree object anchored at `refs/warlock/snapshots/<tree-id>`. The user's active branch, `HEAD`, and real index are not mutated, including when the user already has staged changes. Historical reads resolve the recorded tree/commit plus repository-relative path and verify the stored SHA-256 content identity. Existing-project upload/read paths require the durable Warlock Git repository identity and fail closed when it is missing or mismatched.
 
 ### 7. Preserve REL semantic history; retire only duplicate project VCS
 

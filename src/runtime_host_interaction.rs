@@ -302,6 +302,12 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn latest_project_revision_correlation(
+        &self,
+    ) -> Result<Option<crate::ProjectRevisionCorrelation>, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| Ok(runtime.cva.latest_project_revision_correlation()))
+    }
+
     pub fn register_project_file(
         &self,
         filename: String,
