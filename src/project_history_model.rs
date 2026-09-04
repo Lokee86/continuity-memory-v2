@@ -4,6 +4,21 @@ pub enum ProjectRepositoryKind {
     Git,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum ProjectRepositoryManagement {
+    WarlockManaged,
+    External,
+}
+
+impl ProjectRepositoryManagement {
+    pub fn default_for(kind: ProjectRepositoryKind) -> Self {
+        match kind {
+            ProjectRepositoryKind::Lore => Self::WarlockManaged,
+            ProjectRepositoryKind::Git => Self::External,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct ProjectRepositoryRef {
     pub kind: ProjectRepositoryKind,
@@ -36,4 +51,5 @@ pub struct ProjectRevisionCorrelation {
     pub sequence: u64,
     pub rel_cut: RelSemanticCut,
     pub project_revision: ProjectRevisionRef,
+    pub repository_management: ProjectRepositoryManagement,
 }

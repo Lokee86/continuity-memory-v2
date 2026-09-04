@@ -71,9 +71,10 @@ pub(crate) fn reconcile_diverged(
         let canonical_change_required = output.container.chunks()?.len() > before_right
             || right_stream_change
             || right_project_history_change;
-        if canonical_change_required && let Some(project_revision) = latest_project_revision.clone()
+        if canonical_change_required
+            && let Some((project_revision, management)) = latest_project_revision.clone()
         {
-            output.correlate_project_revision(project_revision)?;
+            output.correlate_project_revision_with_management(project_revision, management)?;
         }
 
         output.sync()?;
@@ -131,11 +132,19 @@ fn replay_echo(output: &mut Cva, events: Vec<crate::EchoEvent>) -> Result<(), Cv
 fn compatible_project_revision(
     left: &[crate::ProjectRevisionCorrelation],
     right: &[crate::ProjectRevisionCorrelation],
-) -> Option<Option<crate::ProjectRevisionRef>> {
+) -> Option<
+    Option<(
+        crate::ProjectRevisionRef,
+        crate::ProjectRepositoryManagement,
+    )>,
+> {
     let common = left
         .iter()
         .zip(right)
-        .take_while(|(left, right)| left.project_revision == right.project_revision)
+        .take_while(|(left, right)| {
+            left.project_revision == right.project_revision
+                && left.repository_management == right.repository_management
+        })
         .count();
     if common != left.len().min(right.len()) {
         return None;
@@ -145,7 +154,12 @@ fn compatible_project_revision(
     } else {
         left
     };
-    Some(history.last().map(|record| record.project_revision.clone()))
+    Some(history.last().map(|record| {
+        (
+            record.project_revision.clone(),
+            record.repository_management,
+        )
+    }))
 }
 
 fn replay_profiles(

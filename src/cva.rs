@@ -402,14 +402,28 @@ impl Cva {
         &mut self,
         project_revision: crate::ProjectRevisionRef,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
+        let management =
+            crate::ProjectRepositoryManagement::default_for(project_revision.repository.kind);
+        self.correlate_project_revision_with_management(project_revision, management)
+    }
+
+    pub fn correlate_project_revision_with_management(
+        &mut self,
+        project_revision: crate::ProjectRevisionRef,
+        repository_management: crate::ProjectRepositoryManagement,
+    ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
         if self.scope_kind() != crate::ReliquaryScopeKind::Project {
             return Err(CvaError::ProjectHistory(
                 "project revision correlation is only valid for Project Reliquaries".into(),
             ));
         }
         let rel_cut = self.current_rel_semantic_cut();
-        self.project_history
-            .put(&mut self.container, rel_cut, project_revision)
+        self.project_history.put(
+            &mut self.container,
+            rel_cut,
+            project_revision,
+            repository_management,
+        )
     }
 
     pub fn project_revision_correlations(&self) -> Vec<crate::ProjectRevisionCorrelation> {

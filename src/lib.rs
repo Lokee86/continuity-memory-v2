@@ -412,8 +412,8 @@ pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStat
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
 pub use project_history_model::{
-    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionCorrelation,
-    ProjectRevisionRef, RelSemanticCut,
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
+    ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
 pub use runtime_host::memory_search::{
     MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,

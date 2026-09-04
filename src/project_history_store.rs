@@ -1,5 +1,8 @@
 use crate::project_history_codec::{decode, encode};
-use crate::{Container, CvaError, ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut};
+use crate::{
+    Container, CvaError, ProjectRepositoryManagement, ProjectRevisionCorrelation,
+    ProjectRevisionRef, RelSemanticCut,
+};
 
 #[derive(Default)]
 pub(crate) struct ProjectHistoryStore {
@@ -35,6 +38,7 @@ impl ProjectHistoryStore {
         container: &mut Container,
         rel_cut: RelSemanticCut,
         project_revision: ProjectRevisionRef,
+        repository_management: ProjectRepositoryManagement,
     ) -> Result<(ProjectRevisionCorrelation, bool), CvaError> {
         validate_revision(&project_revision)?;
         if let Some(previous) = self.records.last() {
@@ -43,6 +47,7 @@ impl ProjectHistoryStore {
         if let Some(existing) = self.records.last()
             && existing.rel_cut == rel_cut
             && existing.project_revision == project_revision
+            && existing.repository_management == repository_management
         {
             return Ok((existing.clone(), false));
         }
@@ -56,6 +61,7 @@ impl ProjectHistoryStore {
             sequence,
             rel_cut,
             project_revision,
+            repository_management,
         };
         let payload = encode(&record).map_err(CvaError::ProjectHistory)?;
         container.append(&payload)?;

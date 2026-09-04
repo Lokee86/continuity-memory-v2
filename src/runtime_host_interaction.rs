@@ -302,6 +302,19 @@ impl ReliquaryRuntimeHost {
         })
     }
 
+    pub fn correlate_project_revision_with_management(
+        &self,
+        revision: crate::ProjectRevisionRef,
+        management: crate::ProjectRepositoryManagement,
+    ) -> Result<(crate::ProjectRevisionCorrelation, bool), ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cva
+                .correlate_project_revision_with_management(revision, management)
+                .map_err(operation)
+        })
+    }
+
     pub fn latest_project_revision_correlation(
         &self,
     ) -> Result<Option<crate::ProjectRevisionCorrelation>, ReliquaryRuntimeHostError> {

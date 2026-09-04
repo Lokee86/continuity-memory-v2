@@ -99,7 +99,7 @@ They are mutually exclusive.
 
 `Use Git for repository` must detect the Git repository owning/containing the selected project folder, fail clearly if no usable Git repository is found, create the REL under the selected folder's `.warlock/`, exclude that directory using repository-local Git exclusion where practical, record repository association/current revision, and make **no automatic Git commit**.
 
-`Manually manage Lore repository` still performs Lore detection/initialization, `.warlock/` exclusion, REL creation, and the initial Lore commit so the project starts from a defined state. It then disables routine automatic Lore checkpoints and exposes later repository mutations explicitly.
+`Manually manage Lore repository` still performs Lore detection/initialization, `.warlock/` exclusion, REL creation, and the initial Lore commit so the project starts from a defined state. Warlock now persists that repository as externally managed in the Project correlation. Routine automatic Lore checkpoints are disabled: exact content already present in the current Lore revision can be referenced, while new attachment bytes must be added/checkpointed through explicit Lore management before Warlock will attach them.
 
 Existing repository discovery must avoid nested Lore repositories. The selected project folder may be below the actual repository root; the REL stays under the selected project folder while repository-relative operations use the resolved repository root.
 
@@ -109,11 +109,11 @@ See [ADR 0028](decisions/0028-project-folder-and-repository-bootstrap-contract.m
 
 ### 4. Repository/REL correlation seam — implemented
 
-Reliquary now exposes repository-neutral `ProjectRepositoryRef`, `ProjectRevisionRef`, `ProjectFileRef`, `RelSemanticCut`, and `ProjectRevisionCorrelation` types. A Project REL can append an idempotent correlation between its current semantic cut and one exact project-repository revision without making Lore or Git authoritative over semantic storage.
+Reliquary now exposes repository-neutral `ProjectRepositoryRef`, `ProjectRevisionRef`, `ProjectFileRef`, `ProjectRepositoryManagement`, `RelSemanticCut`, and `ProjectRevisionCorrelation` types. A Project REL can append an idempotent correlation between its current semantic cut and one exact project-repository revision plus its repository-management policy without making Lore or Git authoritative over semantic storage.
 
 The current semantic cut records the REL file-global, Archive, and Memory watermarks. The project revision records repository kind, durable repository identity, the selected Warlock project folder as a repository-relative path, and the opaque revision/commit reference.
 
-Correlation records are append-only REL metadata, survive reopen, and do not allocate a new semantic global version merely for recording the cross-history link. Strict-copy/fast-forward reconciliation preserves the existing correlation history verbatim. A true divergent semantic repack cannot reuse old REL cut numbers, so it compares only the `ProjectRevisionRef` sequence for prefix compatibility, ignores the obsolete branch-local cuts, and emits one fresh correlation at the final merged REL cut using the latest compatible project revision; truly divergent repository revision sequences fail closed.
+Correlation records are append-only REL metadata, survive reopen, and do not allocate a new semantic global version merely for recording the cross-history link. Strict-copy/fast-forward reconciliation preserves the existing correlation history verbatim. A true divergent semantic repack cannot reuse old REL cut numbers, so it compares the `(ProjectRevisionRef, ProjectRepositoryManagement)` sequence for prefix compatibility, ignores the obsolete branch-local cuts, and emits one fresh correlation at the final merged REL cut using the latest compatible project revision and management policy; truly divergent repository/policy sequences fail closed.
 
 Warlock's managed-Lore bootstrap resolves the actual Lore repository ID and current revision after the initial commit (or from an already-existing ancestor Lore repository) and records that correlation before Project creation succeeds.
 
