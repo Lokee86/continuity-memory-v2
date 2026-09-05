@@ -3,13 +3,13 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded files, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
-New Reliquary files use a typed 40-byte header. The header carries authoritative `file_kind = Reliquary`, an internal scope kind for Organization, Project, or Connection, and a 16-byte durable owner UUID. Human-facing filenames should use `.org.rel`, `.prj.rel`, and `.con.rel`; filenames are hints only and do not determine semantic identity.
+New Reliquary files use a 40-byte header carrying authoritative `file_kind = Reliquary`, a zero semantic-scope discriminator, and a 16-byte durable owner UUID. Current human-facing files use the generic `.rel` extension. Organizational labels such as Organization, Project, Program, or Subproject are append-only REL metadata and are not file identity.
 
-The existing 16-byte `.cva` header remains readable as **legacy Project Reliquary** data. Legacy detection is explicit and no automatic rewrite occurs on open. `migration::migrate_file` repacks that source into a separate current 40-byte Project REL while preserving stable semantic identities.
+The existing 16-byte `.cva` header and earlier/current-length typed REL headers remain readable as legacy data. Legacy typed discriminators are compatibility input only; opening them does not make the type behavioral. `migration::migrate_file` repacks an eligible legacy source into a separate current homogeneous REL while preserving or deliberately deriving stable semantic identities.
 
 Phylactery `.phy` uses the same 40-byte typed header with authoritative `file_kind = Phylactery`, no Reliquary scope, and its own durable owner UUID. A `.phy` is not a legacy CVA and cannot be opened through the Reliquary/CVA lifecycle. Conversely, Phylactery rejects typed REL and legacy CVA files. See [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md).
 ## Exact contract
@@ -22,7 +22,7 @@ All integers and multi-byte scalar values are little-endian.
 | `10` | 2 | minor | `0` |
 | `12` | 4 | header length | `16` for legacy CVA; `24` for earlier typed files; `40` for current typed files |
 | `16` | 1 | file kind | `1=Reliquary`; `2=Phylactery` |
-| `17` | 1 | semantic scope discriminator | Reliquary: `1=Organization`, `2=Project`, `3=Connection`; Phylactery: `0` |
+| `17` | 1 | semantic scope discriminator | current Reliquary/Phylactery: `0`; legacy typed REL compatibility: `1=Organization`, `2=Project`, `3=Connection` |
 | `18` | 6 | reserved | zero |
 | `24` | 16 | durable owner UUID | UUID bytes; current typed files only |
 Physical chunks follow:
@@ -40,9 +40,23 @@ Global versions begin at `1` and are semantically consecutive. Ordinary semantic
 
 ### Durable owner identity
 
-Current typed REL/PHY files store a 16-byte UUID directly in the container header. The canonical external owner ID is derived from the authoritative type/scope plus that UUID: `proj-<uuid>`, `org-<uuid>`, `con-<uuid>`, or `phy-<uuid>`. Owner identity consumes no semantic/global version ticket. Copies, moves, renames, reconciliation repacks, and format migration preserve or deliberately derive the UUID. Earlier 16-byte legacy CVA and 24-byte typed files have no header UUID and require explicit migration before owner-ID-based reconciliation.
+Current REL/PHY files store a 16-byte UUID directly in the container header. Current homogeneous RELs use canonical external owner ID `rel-<uuid>`; Phylactery uses `phy-<uuid>`. Legacy typed REL headers with an owner UUID retain their historical `proj-`, `org-`, or `con-` prefix so identity remains stable while those files are opened or reconciled. Owner identity consumes no semantic/global version ticket. Copies, moves, renames, reconciliation repacks, and format migration preserve or deliberately derive the UUID. Earlier 16-byte legacy CVA and 24-byte typed files have no header UUID and require explicit migration before owner-ID-based reconciliation.
 
 Legacy `CVAWKFM1` / `CVAWKSP1` workspace-metadata chunks may remain physically present in old RELs, but current runtime semantics ignore them and do not write them.
+
+### REL metadata
+
+Current REL organizational/context metadata is append-only and latest-wins:
+
+```text
+8 bytes   "CVARELM1"
+u8        type-label present: 0=false, 1=true
+optional  string type label
+u32       dependency count
+repeated  string dependency REL owner ID
+```
+
+The type label is optional display/organization metadata only and must not select Reliquary behavior. Dependency IDs are sorted and unique and represent explicit directed context dependencies. Self-dependency is rejected by the REL owner; graph-cycle and mounted-closure validation belongs to the multi-REL host because one REL cannot inspect the complete graph by itself. REL metadata consumes no Archive, Memory, Graph, or Vector Generation version.
 
 ### Interaction-stream checkpoints
 
@@ -86,6 +100,53 @@ string    content
 Event kinds are `ReasoningSummary`, `Commentary`, `ReasoningTrace`, `ToolCall`, `ToolResult`, `ActivityStarted`, `ActivityCompleted`, and `ActivityFailed`. Records use typed binary fields and length-prefixed UTF-8 strings; they do not embed a JSON envelope. Sequence is authoritative for execution order. Identical replay is idempotent; conflicting events at the same turn sequence fail closed.
 
 Echo consumes no global, Archive, Memory, Graph, or Vector Generation version. Existing current REL files require no physical rewrite: absence of `CVAECHO1` means the Echo store is empty, and new records may be appended normally. Explicit legacy REL migration republishes Echo records into the new REL, and divergent REL reconciliation preserves Echo from both copies. Provider continuation state is not Echo semantic evidence and is not represented by this record family.
+
+### Project repository correlation records
+
+Repository-associated RELs may persist an append-only correlation between one REL semantic cut and one exact project-repository revision. These records are repository-neutral and are not project-file history themselves.
+
+Current record:
+
+```text
+8 bytes   "PRJCOR02"
+u64       correlation sequence
+u64       REL global version cut
+u64       REL Archive version cut
+u64       REL Memory version cut
+u8        repository kind: 1=Lore, 2=Git
+u8        repository management: 1=WarlockManaged, 2=External
+string    durable repository ID
+string    repository-relative selected project path
+string    opaque repository revision/commit reference
+```
+
+Legacy `PRJCOR01` omits the repository-management byte. Reopen assigns the compatibility default: Lore = `WarlockManaged`, Git = `External`.
+
+Correlation sequence begins at `1` and is contiguous. Repository kind and durable repository ID must remain stable across one REL's correlation history; the selected project path and management policy may change within that repository. Project paths are normalized repository-relative paths using `/`; `.` represents repository root. Absolute paths, backslashes, empty path components, and `.`/`..` components are rejected.
+
+A correlation write is idempotent only when the latest record already has the same REL cut, repository revision, and management policy. Correlation records consume no REL global, Archive, Memory, Graph, or Vector Generation version. Their `RelSemanticCut` is a cross-history observation, not another semantic mutation clock.
+
+Strict-copy/extension reconciliation preserves correlation history verbatim. A true divergent semantic repack allocates new REL clocks, so branch-local cuts cannot be reused. Reconciliation instead requires the `(ProjectRevisionRef, ProjectRepositoryManagement)` histories to be prefix-compatible and, when the merge changes canonical state, emits one fresh correlation at the final merged REL cut using the latest compatible project revision. Divergent repository histories fail closed.
+
+### Project-backed file bindings
+
+Project-backed transcript/provenance attachments may reference exact historical repository files without copying their payload bytes into REL content storage. The durable binding is:
+
+```text
+8 bytes   "PRJFILE1"
+32 bytes  FileId
+u8        repository kind: 1=Lore, 2=Git
+u8        content-hash present: 0=false, 1=true
+optional  32-byte SHA-256 content hash
+string    durable repository ID
+string    repository-relative selected project path
+string    opaque repository revision/commit reference
+string    repository-relative file path
+```
+
+A `FileId` may have at most one Project-file binding. Replaying the identical binding is idempotent; a different binding for the same `FileId` is rejected. Repository ID and revision must be non-empty. Project and file paths are normalized repository-relative `/` paths; the file path must remain inside the selected project subtree unless the subtree is repository root (`.`).
+
+`PRJFILE1` is clock-neutral repository-reference metadata. The associated Archive attachment manifest remains the transcript/provenance-visible file identity, while project-file bytes are resolved from the recorded repository revision and verified against the stored content hash when present. REL deliberately stores no duplicate `CVACONT1` payload for a repository-backed file.
 
 ### Conversation compaction store
 

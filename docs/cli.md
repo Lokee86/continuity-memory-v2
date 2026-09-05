@@ -23,7 +23,7 @@ The package depends only on the public `reliquary-memory` Rust API through a pat
 ```text
 reliquary
 ├── rel
-│   ├── create [--scope project|organization|connection]
+│   ├── create [--type LABEL]
 │   ├── info
 │   └── verify
 ├── phy
@@ -59,7 +59,7 @@ reliquary
 
 `vectors probe` and `vectors build` call `ConfiguredRuntime`, which owns configured live embedding-route resolution and vector execution. `build` establishes/reuses the compatibility profile, embeds the Archive, and publishes one generation inside the library. `dev` commands deliberately remain on `SimulatedEmbeddingEndpoint` for deterministic development work.
 
-`insomnia run <rel>` is the whole-file bring-up surface. The CLI passes file targets and operator options to `ConfiguredRuntime::run_insomnia_files`; queue finalization, endpoint construction, model-route selection, routed publication, vector completion, and sync are library-owned. Without `--phy`, the operation remains Project-only. With `--phy <phy>`, the library enables the dedicated `user | project` ownership classifier, routes User-owned Memories into that PHY, and records owner-qualified external Memory references in the REL completion receipt. Ownership inference uses the `insomnia_metadata` route when present and otherwise falls back to the main `insomnia` route. `--embedding-batch-size` and `--embedding-concurrency` remain operator controls for the derived-vector phase.
+`insomnia run <rel>` is the whole-file bring-up surface. The CLI passes file targets and operator options to `ConfiguredRuntime::run_insomnia_files`; queue finalization, endpoint construction, model-route selection, routed publication, vector completion, and sync are library-owned. Without `--phy`, the operation remains REL-only. With `--phy <phy>`, the library enables the dedicated `user | project` compatibility ownership classifier, where `project` means the active/non-user REL rather than a REL type, routes User-owned Memories into that PHY, and records owner-qualified external Memory references in the REL completion receipt. Ownership inference uses the `insomnia_metadata` route when present and otherwise falls back to the main `insomnia` route. `--embedding-batch-size` and `--embedding-concurrency` remain operator controls for the derived-vector phase.
 
 ## Configuration and credentials
 
@@ -73,15 +73,15 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 ## REL, PHY, and import behavior
 
-`rel create` creates a typed Project REL by default; `--scope organization`, `--scope project`, and `--scope connection` select the authoritative internal Reliquary scope kind. `rel info` reports the stored scope and whether the file is a legacy CVA physical form. `rel verify` performs a normal `Reliquary::open`, so the same format/reopen/reference validation used by the library is exercised. The old `cva` command name remains a compatibility alias for `rel`.
+`rel create` creates a homogeneous REL. Optional `--type LABEL` stores any free-form organizational type label; the label has no behavioral effect. `rel info` reports the stored type label, dependency owner IDs, and whether the file is a legacy CVA physical form. `rel verify` performs a normal `Reliquary::open`, so the same format/reopen/reference validation used by the library is exercised. The old `cva` command name remains a compatibility alias for `rel`.
 
-`phy create <path>` creates a typed user-global Phylactery with no Reliquary scope. `phy info` reports `kind: phylactery` plus Memory, Graph, packed-vector, Memory-vector, and compatibility-profile state. `phy verify` performs a normal `Phylactery::open`, including exact file-kind validation, source-independent Memory validation, Graph endpoint/global-version validation, and vector/profile reference validation. PHY has no `--scope` option.
+`phy create <path>` creates a user-global Phylactery, which remains a distinct file kind from Reliquary. `phy info` reports `kind: phylactery` plus Memory, Graph, packed-vector, Memory-vector, and compatibility-profile state. `phy verify` performs a normal `Phylactery::open`, including exact file-kind validation, source-independent Memory validation, Graph endpoint/global-version validation, and vector/profile reference validation. PHY has no `--scope` option.
 
 `migrate <source> <output>` auto-detects a legacy 16-byte Project CVA or earlier 24-byte typed REL/PHY and semantically repacks it into a new 40-byte identified file. The source is never replaced in place. When an old REL contains `WorkspaceMetadata.id`, migration derives the new UUID deterministically from that ID so independently diverged copies retain the same logical owner identity; otherwise a new UUID is generated. Legacy WorkspaceMetadata itself is not copied into the output.
 
 `migrate-conversation-titles <canonical_conversations.csv[.gz]> <rel>` backfills conversation-owned title metadata into an already-imported REL from the normalized ChatGPT canonical-conversation catalog. Only conversation IDs already present in the REL are updated; empty titles are skipped, repeated execution is idempotent, and the source catalog is read-only.
 
-`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch/Echo records. It creates the target Project REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination. Branch records may also carry an optional `title`; when present it is published through the conversation-metadata owner rather than stored on the Branch.
+`import graph-jsonl` accepts the current generic development graph JSONL records used by the corpus smoke harness. The format is not ChatGPT-specific; any source can use it after normalization into node/branch/Echo records. It creates the target REL when absent or appends idempotent/compatible records to an existing Reliquary (including a legacy CVA), then materializes branch fragments with the requested window/overlap policy. Node records may include an optional `attachments` array. Each attachment has `path`, optional `filename`, and optional `mime_type`; relative paths resolve from the JSONL file's directory. The importer reads the bytes and submits the node plus all attachments through `Cva::ingest_turn`, so embedding the files and recording their source-turn provenance is one core ingestion operation rather than importer-side coordination. Branch records may also carry an optional `title`; when present it is published through the conversation-metadata owner rather than stored on the Branch.
 
 An Echo record uses `kind = "echo"` plus `conversation_id`, `message_id`, `sequence`, `timestamp_ns`, optional `model_round`, `event_kind`, optional `correlation_id`, optional `name`, and `content`. `event_kind` uses the provider-neutral snake-case values `reasoning_summary`, `commentary`, `reasoning_trace`, `tool_call`, `tool_result`, `activity_started`, `activity_completed`, and `activity_failed`. Importers for ChatGPT, Codex, or other providers normalize whatever execution evidence their source exposes into these records; final user/assistant text remains a node record. Echo is written through `Cva::put_echo_event` into native REL `CVAECHO1` chunks, not embedded JSON storage.
 
@@ -95,8 +95,8 @@ The CLI package has its own lockfile and must be checked separately from the lib
 
 ```text
 cargo fmt --manifest-path cli/Cargo.toml -- --check
-cargo check --manifest-path cli/Cargo.toml
-cargo test --manifest-path cli/Cargo.toml
+cargo check --manifest-path cli/Cargo.toml --locked
+cargo test --manifest-path cli/Cargo.toml --locked
 ```
 
 Repository verification also performs command-level smoke tests for REL create/info/verify and PHY create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.

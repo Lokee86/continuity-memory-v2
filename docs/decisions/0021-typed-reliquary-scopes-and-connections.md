@@ -1,10 +1,11 @@
 # ADR 0021: Typed Reliquary scopes and Connection state
 
-Status: Accepted for logical scope ownership, typed Reliquary naming, and Connection modelling; concrete scope schema and context-resolution policy remain provisional
+Status: Superseded for REL typing and context topology by ADR 0029; retained as historical design record
 Date: 2026-08-25
-Owners: scope identity, Reliquary file naming, Organization state, Project state, Connection state, scope graph, context composition
+Owners: historical typed-scope design and rationale
 Amends: ADR 0020 Reliquary semantics and filename convention
-Superseded by: none
+Amended by: none
+Superseded by: ADR 0029 Homogeneous Reliquaries and dependency-based context inheritance
 
 ## Context
 
@@ -280,5 +281,6 @@ The scope router should prefer atomic propositions. A single interaction may leg
 ## Related docs
 
 - [ADR 0020 — Reliquary and Phylactery file kinds](0020-reliquary-and-phylactery-file-kinds.md)
-- [Reliquary and Phylactery memory scope plan](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
+- [ADR 0029 — Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md)
 - [Roadmap](../roadmap.md)

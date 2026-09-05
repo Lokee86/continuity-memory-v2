@@ -30,6 +30,15 @@ cargo fmt --check
 cargo check
 cargo test
 python ../engineering-standards/tools/docs_policy/check.py --repo .
+python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+```
+
+When `cli/` changes or a public library change can affect the detachable CLI, also run:
+
+```text
+cargo fmt --manifest-path cli/Cargo.toml -- --check
+cargo check --manifest-path cli/Cargo.toml --locked
+cargo test --manifest-path cli/Cargo.toml --locked
 ```
 
 When Archive import, fragment reconstruction, or reopen behavior changes, also run:

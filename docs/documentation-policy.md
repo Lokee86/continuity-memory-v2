@@ -40,13 +40,14 @@ The repository uses the `library-engine` profile with the `stateful` capability.
 
 The canonical standard is the sibling `engineering-standards` repository. This repository currently runs the shared checker directly from that source rather than carrying a generated `.standards/` snapshot.
 
-The local structural command is:
+The local structural commands are:
 
 ```text
 python ../engineering-standards/tools/docs_policy/check.py --repo .
+python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
 ```
 
-Normal Rust verification remains required in addition to documentation checks.
+The first checks repository structure. The changed-from form additionally enforces configured documentation impact for implementation paths changed since the comparison revision. Normal Rust verification remains required in addition to documentation checks.
 
 ## Related docs
 

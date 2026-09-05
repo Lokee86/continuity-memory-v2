@@ -20,7 +20,7 @@
 - [ADR 0018: Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md) — **Accepted**, 2026-08-24.
 - [ADR 0019: Cloud-backed CVA reconciliation](0019-cloud-backed-cva-reconciliation.md) — **Accepted for current-format REL/PHY reconciliation; future project-file/history direction constrained by ADR 0027; WorkspaceMetadata reconciliation identity superseded by ADR 0022**, 2026-08-24.
 - [ADR 0020: Reliquary and Phylactery file kinds](0020-reliquary-and-phylactery-file-kinds.md) — **Accepted and implemented for typed REL/PHY identity; amended by ADR 0021**, 2026-08-24.
-- [ADR 0021: Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md) — **Accepted for logical scope ownership, typed Reliquary naming, and Connection modelling; concrete schema/context policy provisional**, 2026-08-25.
+- [ADR 0021: Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md) — **Accepted for logical scope ownership and typed Reliquary identity; provisional context/Connection expansion amended by ADR 0029**, 2026-08-25.
 - [ADR 0022: Durable typed owner identity](0022-durable-typed-owner-identity.md) — **Accepted and implemented**, 2026-08-26.
 - [ADR 0023: Insomnia durable owner routing](0023-insomnia-durable-owner-routing.md) — **Accepted and implemented**, 2026-08-27.
 - [ADR 0024: Owner-local Dream processing](0024-owner-local-dream-processing.md) — **Accepted and implemented**, 2026-08-27.
@@ -28,3 +28,4 @@
 - [ADR 0026: Community-routed owner-local Memory retrieval](0026-community-routed-memory-retrieval.md) — **Accepted and implemented**, 2026-08-29.
 - [ADR 0027: Warlock project repositories and Reliquary storage boundary](0027-warlock-project-repositories-and-reliquary-storage-boundary.md) — **Accepted**, 2026-09-02.
 - [ADR 0028: Project folder and repository bootstrap contract](0028-project-folder-and-repository-bootstrap-contract.md) — **Accepted**, 2026-09-02.
+- [ADR 0029: Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md) — **Accepted; amends ADR 0021's provisional context/Connection direction**, 2026-09-04.

@@ -51,7 +51,7 @@ The repository checkout/remote name may remain `continuity-memory-v2` as a techn
 
 ## Related docs
 
-- [Reliquary and Phylactery memory scope plan](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
 - [Architecture](../architecture.md)
 - [Roadmap](../roadmap.md)
 - [ADR 0017 — CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md)

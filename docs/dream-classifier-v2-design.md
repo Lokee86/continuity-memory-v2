@@ -1,6 +1,6 @@
 # Dream classifier v2 candidate design
 
-Parent: [Dream implementation plan](dream-implementation-plan.md)
+Parent: [Dream design and validation record](dream-implementation-plan.md)
 
 ## Purpose
 
@@ -115,7 +115,7 @@ Retrieval was not tuned during this classifier experiment; it already found the 
 
 ## Related docs
 
-- [Dream implementation plan](dream-implementation-plan.md)
+- [Dream design and validation record](dream-implementation-plan.md)
 - [Development](development.md)
 - [Rust API](api.md)
 - [Behavioral contracts](behavioral-contracts.md)

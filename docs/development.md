@@ -57,9 +57,10 @@ cargo fmt --check
 cargo check
 cargo test
 cargo fmt --manifest-path cli/Cargo.toml -- --check
-cargo check --manifest-path cli/Cargo.toml
-cargo test --manifest-path cli/Cargo.toml
+cargo check --manifest-path cli/Cargo.toml --locked
+cargo test --manifest-path cli/Cargo.toml --locked
 python ../engineering-standards/tools/docs_policy/check.py --repo .
+python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
 ```
 
 Prepared Archive round trip:

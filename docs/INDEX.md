@@ -2,7 +2,7 @@
 
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
-- [Storage format](storage-format.md) — exact current CVA/Archive record format plus the planned `.rel`/`.phy` transition boundary.
+- [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
 - [Local configuration](configuration.md) — replaceable local config format, durability, and security boundary.
 - [Rust API](api.md) — current public library surface and behavior.
 - [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.
@@ -11,15 +11,15 @@
 - [Community scan-and-merge benchmark — 2026-08-27](community-scan-merge-benchmark-2026-08-27.md) — synthetic scaling and modularity comparison for community algorithm v2 against monolithic Leiden.
 - [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md) — small owner-split routing and synthetic scale evidence that established the requirements for a larger real Memory-Web validation.
 - [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md) — five-fold 1,087-Memory validation of four-sub-centroid/top-4 routing, end-to-end traversal quality, vector-work reduction, and context-diversity checks.
-- [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) — provisional durable-scope ownership architecture covering Phylactery plus typed Organization, Project, and Connection Reliquaries, scope-graph composition, provenance/export policy, and ownership-classification options.
+- [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) — retained scope-ownership rationale, typed REL/PHY design, authority separation, Organization→Project hierarchy direction, and deferred Connection/relationship exploration.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
-- [Dream implementation plan](dream-implementation-plan.md) — pair-oriented Dream redesign, implemented Milestones A/B/C/D/E/F/G from candidate retrieval through deterministic temporal end-to-end processing, plus validation, canonical-policy, and remaining staged work.
-- [Dream classifier v2 candidate design](dream-classifier-v2-design.md) — unmeasured next classifier prompt, semantic-workstream boundary, 40-case advancement gate, and post-gate population criteria.
+- [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
+- [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.

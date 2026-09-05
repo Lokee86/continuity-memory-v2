@@ -42,10 +42,19 @@ cargo check
 cargo test
 ```
 
-For documentation changes also run:
+When `cli/` changes, or a public library change can affect the detachable CLI, also run:
+
+```text
+cargo fmt --manifest-path cli/Cargo.toml -- --check
+cargo check --manifest-path cli/Cargo.toml --locked
+cargo test --manifest-path cli/Cargo.toml --locked
+```
+
+For documentation changes also run both structural and change-impact checks:
 
 ```text
 python ../engineering-standards/tools/docs_policy/check.py --repo .
+python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
 ```
 
 When the graph-corpus smoke path is affected, run the `archive_roundtrip` example against a prepared graph JSONL fixture.

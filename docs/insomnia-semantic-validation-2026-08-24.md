@@ -10,7 +10,7 @@ At the time of this 2026-08-24 validation, the authoritative Insomnia runtime wa
 
 ## Overview
 
-The focused fixture establishes `gpt-5.6-sol` at low reasoning as the current semantic selector. The final tuning architecture is **Sol-low semantic ledger → deterministic fixed groups → Luna-low metadata classification → Sol-low wording**. Controlled metadata evaluation improved metadata agreement from `71.4%` to `93.3%` without changing the 51 frozen semantic groups. Final semantic tuning produces approximately `94.7–100%` anchor fidelity, `93.3–100%` durable-state coverage, and `100%` omit cleanliness on the evaluable tuning cases; remaining misses move between runs rather than exposing a stable prompt defect. Routine prompt tuning is therefore frozen.
+At the time of this validation, the focused fixture established `gpt-5.6-sol` at low reasoning as the selected semantic selector for the tested tuning architecture. The final tuning architecture is **Sol-low semantic ledger → deterministic fixed groups → Luna-low metadata classification → Sol-low wording**. Controlled metadata evaluation improved metadata agreement from `71.4%` to `93.3%` without changing the 51 frozen semantic groups. Final semantic tuning produces approximately `94.7–100%` anchor fidelity, `93.3–100%` durable-state coverage, and `100%` omit cleanliness on the evaluable tuning cases; remaining misses move between runs rather than exposing a stable prompt defect. Routine prompt tuning is therefore frozen.
 
 ## Fixture and evaluator
 
@@ -307,7 +307,7 @@ This section records the design question that remained open on 2026-08-24. It ha
 
 Current User publication targets an explicitly attached Phylactery and strips REL-local source/Episode/conversation provenance so the PHY Memory remains valid independently of Project Archive retention. The REL completion records the result through `MemoryRef { owner_id, memory_id }`. With no cross-file transaction manager, PHY is synced first and deterministic mutation IDs make a crash before the REL receipt idempotently recoverable.
 
-The historical question of folding scope into metadata was therefore rejected for the current slice in favor of a separately tunable ownership boundary. Organization/Connection destinations and any richer cross-file lineage policy remain later work. See [Reliquary and Phylactery memory scope plan](reliquary-phylactery-memory-scope-plan.md) and [ADR 0023](decisions/0023-insomnia-durable-owner-routing.md).
+The historical question of folding scope into metadata was therefore rejected for the current slice in favor of a separately tunable ownership boundary. Organization routing and richer cross-file lineage remain later work; Connection/relationship routing is currently mothballed rather than an active expansion target. See [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) and [ADR 0023](decisions/0023-insomnia-durable-owner-routing.md).
 
 ## Experimental implementation
 

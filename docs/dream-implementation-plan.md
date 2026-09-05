@@ -1,16 +1,14 @@
-# Dream implementation plan
+# Dream design and validation record
 
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document owns the current implementation plan for Dream over the implemented Graph owner. It records the redesign derived from review of CTX Dream, the previous Continuity Dream implementation, the current Graph foundation, and the August 2026 planning discussion.
-
-Dream's bounded candidate-retrieval, pair-classification, independent-verification, accepted Graph-publication, chronological duplicate-chain, first lifecycle/end-to-end processing, and deterministic temporal seams are now implemented. This document freezes the intended semantic shape and tracks the remaining staged implementation.
+This document retains the design rationale, staged implementation history, and validation evidence for the shipped Dream architecture. It is not a planning owner. Current behavior is owned by [Architecture](architecture.md), [Rust API](api.md), and [Behavioral contracts](behavioral-contracts.md); future Dream work is owned by [Roadmap](roadmap.md).
 
 ## Overview
 
-Dream is implemented as a pair-oriented semantic layer over Memories, Memory Vectors, source chronology/provenance, and the existing Graph owner. Candidate retrieval, transient pair classification, transient independent verification, atomic accepted-relation publication, chronological duplicate-chain publication, lifecycle projection, deterministic canonical promotion, the bounded end-to-end processor, deterministic temporal interpretation/retrieval, and long-lived owner-local runtime coordination are implemented. ADR 0024 extends those mechanics independently across Reliquary and Phylactery without federating candidates or persisting cross-file Graph edges. Remaining Dream sophistication is measurement-driven.
+Dream is a pair-oriented semantic layer over Memories, Memory Vectors, source chronology/provenance, and the Graph owner. This record explains why the current design uses bounded candidate retrieval, canonical pair classification, selective independent verification, Graph publication, chronological duplicate chains, lifecycle projection, deterministic canonical promotion, temporal interpretation, and owner-local runtime coordination. ADR 0024 defines the REL/PHY owner boundary. Validation sections below are retained evidence rather than current-status ownership.
 
 ## Responsibility
 
@@ -62,7 +60,7 @@ The implemented classifier vocabulary is:
 
 Structural parent relationships remain deterministic structural facts rather than ordinary Dream inference.
 
-Milestone B returns exactly one primary semantic proposal (or `none`) per pair evaluation. This is an evaluator contract, not yet a persistent-Graph cardinality decision: structural facts and any later explicitly orthogonal relationship class may still require coexistence policy before publication is implemented.
+Milestone B returns exactly one primary semantic proposal (or `none`) per pair evaluation. This is an evaluator contract rather than a persistent-Graph cardinality limit: accepted semantic relation kinds may coexist according to the Graph publication rules, while structural relationships remain separately owned.
 
 ## Duplicate handling
 
@@ -233,7 +231,7 @@ The implemented baseline lifecycle is:
 ```text
 extracted
     -> knowledge
-    -> canonical   (future measured policy)
+    -> canonical   (deterministic authority/corroboration policy)
 
 active Memory
     -> archived
@@ -424,9 +422,9 @@ A follow-up write-enabled validation used three controlled disposable CVAs with 
 
 Together the two live validations exercise candidate recall, temporal-only retrieval, strict classifier/verifier transport, accepted Graph publication, duplicate-chain rewiring, supersession lifecycle projection, successful `extracted -> knowledge`, idempotent replay, and reopen recovery. The measured follow-up policy now also implements deterministic canonical promotion from persisted authority, independent duplicate corroboration, and canonical supersession inheritance. These remain targeted seam validations rather than population-level semantic-quality measurements. No observed case requires bounded reverse reconsideration, so Phase 9 remains intentionally unimplemented until a concrete failure justifies it.
 
-### Phase 9 — bounded reconsideration if required
+### Phase 9 — bounded reconsideration was intentionally deferred
 
-Only add cases demonstrated by tests/production evidence. Do not blindly reproduce the previous reverse-trigger architecture.
+No observed validation case required the previous broad reverse-trigger architecture. Any future reconsideration work is measurement-gated and tracked in [Roadmap](roadmap.md), not owned by this historical record.
 
 ### Phase 10 — shared runtime integration — bounded coordinator implemented
 
@@ -434,23 +432,7 @@ Dream is integrated into the same runtime boundary used for live interaction and
 
 Long-lived inference snapshots one owner under its lock, performs classifier/verifier calls without REL/PHY/runtime locks, and revalidates the target Graph version plus participating Memory revisions before publication. Stale results are discarded rather than committed. PHY uses persisted `source_time_ns` and the same owner-local Graph/vector mechanics without constructing or consulting Archive. ADR 0024 freezes the same-owner boundary and rejects implicit REL↔PHY Graph mutation.
 
-Remaining long-lived host work is operational rather than another Dream semantic owner:
-
-- inference heartbeat/cancellation and richer retry telemetry;
-- measured Dream concurrency beyond current bounded pair execution;
-- resumable explicit rescans/migrations;
-- status and control surfaces.
-
-### Phase 11 — optional sophistication
-
-Only when measurements justify it:
-
-- temporal model enrichment;
-- LLM candidate triage;
-- broader verifier voting;
-- mature-memory periodic re-evaluation;
-- more elaborate canonical policy beyond the current deterministic authority/corroboration/inheritance rules;
-- graph clustering/community signals.
+Operational/runtime follow-up and any optional Dream sophistication are future work owned by [Roadmap](roadmap.md). They are deliberately not specified here as a second planning surface.
 
 ## Deliberately rejected carry-over
 
@@ -469,16 +451,9 @@ Do not reproduce these CTX/previous-Dream mechanisms by default:
 - separate recurrence LLM pipeline per pair;
 - periodic cooldown/backoff as the initial semantic architecture.
 
-## Open decisions at current review point
+## Decision status
 
-The review has not yet frozen:
-
-1. persistent Graph coexistence/cardinality policy beyond the classifier's one-primary-proposal contract;
-2. whether second-pass verification becomes universal for all non-topical semantic relations after measurement;
-3. whether temporal retrieval eventually needs a derived persistent/cache index after scale measurement;
-4. precise semantics for `references`.
-
-Independent-observation and canonical-promotion policy are now frozen at the conservative first implementation: distinct user authority anchors are required for duplicate corroboration, direct/correction authoritative current-state classes may promote immediately, and canonical supersession inherits through the unique verified successor. Broader reconsideration remains deferred. Phase 10 now has its bounded shared-runtime coordinator; the remaining long-lived work is the Warlock host wakeup/backoff/control loop rather than another Dream runtime.
+The retained implementation settled pair orientation, current Graph publication semantics, selective verification, temporal determinism, duplicate-chain ordering, lifecycle projection, and conservative canonical promotion. Unresolved or newly proposed Dream behavior belongs in [Roadmap](roadmap.md), including any broader reconsideration, verification expansion, temporal indexing/enrichment, or additional relation semantics.
 
 ## Related docs
 
@@ -491,4 +466,4 @@ Independent-observation and canonical-promotion policy are now frozen at the con
 
 ## Notes
 
-This plan may describe both completed Dream milestones and future stages, but shipped behavior must also be reflected in the current-state documentation owners. Graph remains the durable relationship authority throughout the staged implementation.
+This is retained design/validation evidence, not the canonical current-state or future-planning owner. Graph remains the durable relationship authority; current contracts live in architecture/API/behavioral documentation and future work lives in the roadmap.

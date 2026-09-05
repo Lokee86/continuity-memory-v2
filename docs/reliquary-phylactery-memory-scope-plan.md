@@ -1,35 +1,35 @@
-# Reliquary and Phylactery memory scope plan
+# Reliquary and Phylactery scope design record
 
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This document defines the planned durable ownership boundaries, file kinds, scope graph, context-composition rules, and validation requirements for Reliquary and Phylactery memory scopes.
+This document retains the durable-scope design rationale for Reliquary and Phylactery: ownership boundaries, typed file identity, authority separation, and context-composition constraints. It is not the future implementation owner. Current behavior belongs to architecture/reference docs; future scope work belongs to [Roadmap](roadmap.md).
 
 ## Overview
 
-Durable state is partitioned by semantic owner rather than stored in one global memory pool. User-global state belongs to Phylactery; Organization, Project, and Connection state belong to typed Reliquary scopes. Cross-scope context is composed through explicit typed relationships and policy without transferring ownership merely because one scope references or physically contains another.
+Durable state is partitioned by semantic owner rather than stored in one global memory pool. User-global state belongs to Phylactery; non-user state belongs to typed Reliquary scopes. The active composition problem is hierarchy among multiple RELs—especially Organization ownership of Projects—without project cross-contamination. Ownership, retrieval visibility, and mutation authority remain separate concerns.
 
 ## Status
 
-Provisional implementation plan. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) amends Reliquary from a project-only concept into a typed family of non-user durable scopes.
+Design record. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) established Organization/Project/Connection typed Reliquary identity.
 
-Typed Reliquary `.rel` files are implemented over the existing full CVA storage model, including authoritative Organization/Project/Connection scope identity and explicit legacy `.cva` detection as Project Reliquary. Typed Phylactery `.phy` is also implemented as the distinct User file kind with a source-independent Memory/Graph/vector/profile owner set. Multi-scope persistence routing, cross-file provenance/export, and scope-graph context resolution are not yet implemented.
+Organization/Project hierarchy is the active near-term scope-composition direction. Connection/relationship scope expansion is mothballed: the existing typed Connection file identity remains supported, but no new Connection routing, inheritance, or relationship-graph behavior should be inferred from this record until a concrete product requirement reactivates it.
 
 ## Problem
 
 A single omni-memory pool creates both retrieval pollution and state-ownership ambiguity. Durable state does not all belong to the same thing.
 
-The currently identified state owners are:
+The retained typed owner identities and active ownership boundaries are:
 
 - **User / Phylactery** — user-global Identity state that persists across work;
 - **Organization / Reliquary** — company/organization state that persists across projects;
 - **Project / Reliquary** — bounded work state specific to one project;
-- **Connection / Reliquary** — durable state belonging to a relationship between parties/scopes.
+- **Connection / Reliquary** — implemented typed file identity whose richer relationship-state semantics are deferred by [ADR 0029](decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md).
 
 These are ownership boundaries first. Retrieval and context composition are separate concerns.
 
-A company policy does not become Project state because it was used while working on a project. A project delivery delay does not become Organization state because company personnel observed it. Supplier reliability history does not necessarily belong to either the supplier participant or the current project; it can belong to the Connection itself.
+A company policy does not become Project state because it was used while working on a project. A project delivery delay does not become Organization state because company personnel observed it. ADR 0021 used recurring supplier reliability as an example of possible relationship-owned state; ADR 0029 deliberately defers deciding or routing that case through Connection scope.
 
 ## Product file direction
 
@@ -77,7 +77,7 @@ Reliquary and Phylactery should share low-level framing, checksums, immutable ob
 
 Their semantic validation and permitted owners remain distinct.
 
-Within Reliquary, Organization, Project, and Connection may also share many physical owners while retaining scope-specific validity and policy rules.
+Within Reliquary, Organization, Project, and Connection identities may share physical mechanics while retaining scope-specific validity. Active context-composition work currently targets Organization and Project; Connection semantics beyond the existing typed identity are deferred.
 
 Existing `.cva` files remain legacy Project Reliquary data for migration purposes; new Reliquary creation uses typed `.rel` headers without removing any of the current storage owners.
 
@@ -85,19 +85,16 @@ Existing `.cva` files remain legacy Project Reliquary data for migration purpose
 
 Scope ownership does not imply that every kind of state may be inferred or mutated automatically.
 
-This distinction is especially important for Organization and Connection scopes.
+This distinction is especially important for Organization scope.
 
 An Organization may own both:
 
 - learned operational state/history; and
 - explicitly governed policies, permissions, procedures, compliance rules, and institutional instructions.
 
-A Connection may own both:
+ADR 0021 applied the same authority distinction to its provisional Connection design. That remains a valid constraint if Connection semantics are ever reactivated, but it is not an active publication model under ADR 0029.
 
-- learned relationship state/history; and
-- explicitly governed contractual terms, negotiated exceptions, standing permissions, commitments, and operating instructions.
-
-Insomnia/Dream must never convert repeated observed behaviour directly into authoritative policy, permission, contract terms, or governed instructions merely because the observation belongs to that scope.
+Insomnia/Dream must never convert repeated observed behaviour directly into authoritative policy, permission, contract terms, or governed instructions merely because the observation belongs to an active scope.
 
 The eventual schema must therefore preserve at least the conceptual distinction between **learned/synthesized state** and **explicitly governed state**. Mutation authority is a separate policy from scope ownership.
 
@@ -127,105 +124,47 @@ Project owns durable state specific to one bounded body of work.
 
 Project state includes project source/history, files, decisions, constraints, schedules, deliveries, issues, Memories, provenance, vectors, Graph state, owner-local Dream-derived lifecycle/relationship state, and later Ego-derived project context.
 
-A Project may inherit/apply Organization and Connection context without transferring ownership of that inherited state into the Project.
+A Project may inherit applicable Organization context without transferring ownership of that inherited state into the Project. Connection-derived context is not part of the active model while Connection scope expansion is mothballed.
 
-## Connection scope
+## Deferred Connection design history
 
-A Connection owns durable state about the relationship between parties/scopes.
+ADR 0021 established the typed Connection identity and explored durable relationship state, participant roles, classifications, and graph edges. ADR 0029 mothballs that semantic expansion for the immediate architecture.
 
-The term **Connection** replaces `Relationship` in the scope vocabulary. This avoids `.rel.rel` filenames and reduces ambiguity with graph/database relationships.
+The retained exploration identified possible relationship-owned state such as communication norms, cross-project history, reliability patterns, negotiated expectations, unresolved account-level issues, and durable commitments. It also favored extensible classification plus directional participant roles over rigid `VendorConnection`/`ClientConnection` subclasses.
 
-Connections are unusual because they are often not neutral operational contexts. Most interactions with a client, vendor, consultant, partner, or personal contact concern some project, business matter, or event. Nevertheless, durable state exists that belongs to the relationship itself rather than to the surrounding matter.
+Those ideas are **not current implementation requirements**. No Connection class/role vocabulary, learned-state router, inheritance rule, or scope-graph edge vocabulary is frozen. If a concrete product requirement reactivates Connection scope behavior, it requires a new or explicitly amending decision rather than implementation from this historical sketch.
 
-Examples include:
+## Scope hierarchy and deferred relationship graph
 
-- standing communication norms;
-- relationship history across projects;
-- recurring reliability patterns;
-- account-level disputes or unresolved issues;
-- negotiated expectations or exceptions;
-- durable commitments;
-- commercial terms where storage policy permits;
-- personal/shared history in non-commercial connections.
+The active near-term topology is a hierarchy among simultaneously open RELs, with Organization able to own or provide inherited context to Projects while each Project remains isolated from sibling Project state by default.
 
-### Connection classification
-
-Connection should not be implemented as a rigid subclass hierarchy such as `VendorConnection`, `ClientConnection`, etc. One relationship can hold multiple roles, and roles can change.
-
-Instead a Connection should contain:
-
-- a broad, extensible `class`;
-- its participants;
-- directional participant roles;
-- durable Connection state;
-- typed graph edges to relevant scopes.
-
-Provisional classes include:
-
-- `commercial`
-- `professional`
-- `organizational/internal`
-- `personal`
-
-Provisional roles include:
-
-- `client`
-- `vendor`
-- `supplier`
-- `subcontractor`
-- `general_contractor`
-- `consultant`
-- `partner`
-- `employee`
-- `employer`
-
-These are examples, not a frozen ontology.
-
-Roles are directional. The same two-party Connection can describe different roles from each participant's perspective, and a participant can hold more than one role.
-
-## Scope graph
-
-The scope topology is a **typed graph/DAG**, not a universal tree.
-
-Some relationships are structural/contextual:
+Conceptually:
 
 ```text
-Organization -> Project
-Client Connection -> Project
+Organization
+├── Project A
+├── Project B
+└── Project C
 ```
 
-Others are associative:
+Hierarchy controls default context inheritance; it does not transfer durable ownership. Project A state must not become visible to Project B merely because both share an Organization parent.
 
-```text
-Project -> Vendor Connection
-Project -> Consultant Connection
-```
-
-A client Connection may legitimately act as hierarchy-like context above one or more projects. A vendor Connection may instead be a lateral participant used by many projects. Therefore hierarchy is a property of the specific typed edge/role configuration, not of `Connection` as a class.
-
-At minimum, future graph design must distinguish:
-
-- **structural/contextual edges** that can contribute default inherited context;
-- **associative edges** that establish relevance without unconditional inheritance.
-
-The final edge vocabulary and traversal rules remain open.
+The broader typed graph/DAG design for Connection/relationship scopes is deferred. Earlier examples involving client/vendor/consultant Connection edges are retained only as historical design exploration and are not an active implementation requirement. If Connection scope work is reactivated, structural/contextual versus associative edges will need an explicit new decision.
 
 ## Context composition
 
 Normal context must be composed from applicable scopes rather than by searching every Reliquary.
 
-Conceptually, work inside a project may assemble:
+Conceptually, the active near-term model for work inside a Project may assemble:
 
 ```text
 current interaction
 + relevant Phylactery/User state
 + relevant Project state
 + applicable Organization state
-+ applicable structural Connection state
-+ task-relevant associated Connection state
 ```
 
-Inactive/unrelated projects and Connections do not automatically participate.
+Sibling/inactive Projects do not participate automatically. Connection participation is deferred under ADR 0029 rather than silently folded into this hierarchy.
 
 Context composition must preserve three separate questions:
 
@@ -261,16 +200,15 @@ The cross-scope operations should remain distinct:
 - **read/extract** — inspect permitted evidence/state while ownership remains with the source;
 - **copy/export** — preserve selected evidence or derived state in the destination scope when policy requires independent durability.
 
-Example:
+Example for the active Organization/Project direction:
 
 ```text
 Tower A Project
-  ├── vendor promise evidence
-  └── late delivery evidence
-          ↓ permitted extraction
-Willy's Widgets Connection
-  └── learned reliability Memory
-      provenance -> Tower A evidence
+  └── repeated workflow evidence
+          ↓ permitted extraction/publication
+Acme Organization
+  └── learned operational Memory
+      provenance -> permitted Tower A evidence
 ```
 
 Depending on export policy, the destination may retain only a stable source reference, a bounded evidence snapshot, or a full permitted evidence copy. It must not recursively embed the source `.rel`/`.phy` container.
@@ -279,20 +217,13 @@ The invariant is:
 
 > **Scopes may consume permitted evidence from other scopes, but they never acquire another scope merely by containing its file. Cross-scope state movement is semantic extraction/publication, not recursive repository ingestion.**
 
-This keeps physical repositories independent while allowing the logical scope graph to compose evidence and state across Organization, Project, Connection, and User boundaries.
+This keeps physical repositories independent while allowing explicit composition across the active User, Organization, and Project boundaries. Any later Connection composition requires reactivation under ADR 0029.
 
 ## Interaction/event boundary
 
 Ordinary meetings, messages, conversations, and interactions are primarily durable evidence/history, not automatically independent scopes.
 
-One interaction may feed several owners:
-
-```text
-interaction
-├── Project Memory
-├── Organization Memory
-└── Connection Memory
-```
+One interaction may eventually feed more than one authorized owner, for example separate Project and Organization propositions. Connection publication is excluded from the active routing model while ADR 0029 is in force.
 
 This is preferable to creating an Interaction scope for every event.
 
@@ -302,21 +233,11 @@ A new scope kind should be created only when the thing has durable state and lif
 
 The first persistence classifier is now implemented as `user | project` under ADR 0023. It is deliberately conservative and remains only the first boundary, not the complete long-term ownership model.
 
-The eventual classifier/router must support the real durable owners that are authorized for learned state:
+The current classifier/router supports `user | project`. Organization is the next plausible non-user destination only after its learned-state authority and hierarchy rules are explicit. Connection is not an implied next classifier destination; ADR 0029 defers it.
 
-- `user`
-- `project`
-- `organization`
-- `connection`
+Organization classification must not imply permission to create governed policies, permissions, contractual terms, or standing instructions. Scope classification answers **where a proposition belongs**; authority/policy answers **whether and how it may be written**.
 
-Organization/Connection classification must not imply permission to create governed policies, permissions, contractual terms, or standing instructions. Scope classification answers **where a proposition belongs**; authority/policy answers **whether and how it may be written**.
-
-Atomicity matters. A mixed interaction should become separate durable propositions when its content belongs to different owners.
-
-Example:
-
-- `Tower A joists from Willy's Widgets will arrive Friday` -> Project;
-- `Willy's Widgets has repeatedly missed promised delivery dates` -> Connection.
+Atomicity still matters. A mixed interaction may need separate durable propositions when its content belongs to different authorized owners.
 
 ## Pass-boundary direction
 
@@ -326,52 +247,50 @@ The implemented `v3-1` extraction/routing sequence is:
 
 Persistence ownership is a separately testable classification/routing stage. For the current User/Project slice it runs after groups are fixed (and after metadata when configured) but before wording, and may change only the destination owner. It cannot change the durable proposition, authority/provenance, category/type/lifecycle, group membership, or candidate identity.
 
-A later governance/export-policy stage may still be required before learned Organization/Connection publication. That is separate from the now-resolved placement of User/Project ownership classification.
+A later governance/export-policy stage may still be required before learned Organization publication. Connection publication remains deferred. That is separate from the now-resolved placement of User/Project ownership classification.
 
-The classifier should be evaluated independently from authority policy. A correct Organization/Connection ownership prediction can still result in `do not publish` or `require explicit authorization` for the proposed state type.
+Any future Organization ownership classifier should be evaluated independently from authority policy: a correct ownership prediction can still result in `do not publish` or `require explicit authorization` for the proposed state type.
 
 ## Publication and export boundary
 
 Scope ownership, export permission, and source-export permission are separate decisions.
 
-A User Memory extracted from a Project may classify correctly as Phylactery-owned while project policy forbids exporting it. Likewise, Organization or Connection state may be semantically owned by those scopes while confidentiality or authorization policy blocks publication.
+A User Memory extracted from a Project may classify correctly as Phylactery-owned while project policy forbids exporting it. Likewise, future Organization-owned learned state may be semantically well-placed while confidentiality or authorization policy still blocks publication. The same constraint would apply to Connection only if that scope is reactivated.
 
 The current implementation has no general export-policy engine. Supplying an explicit PHY routing target enables User publication; Project-only paths do not run the ownership classifier. A routed User Memory is made source-independent by stripping REL-local provenance while retaining resolved `source_time_ns` semantic chronology; the REL completion records `MemoryRef { owner_id, memory_id }` to the resulting PHY object.
 
-A richer future policy may still distinguish `memory_export = allow | deny` and `source_export = allow | deny`, especially for Organization/Connection or confidential Project material. A destination Memory must not require a live cross-file source pointer unless that source dependency is itself an explicit product contract.
+A richer future policy may still distinguish `memory_export = allow | deny` and `source_export = allow | deny`, especially for Organization or confidential Project material. A destination Memory must not require a live cross-file source pointer unless that source dependency is itself an explicit product contract. Connection-specific export policy is deferred with the rest of that scope's semantics.
 
 ## Retrieval implication
 
 Retrieval is compositional rather than an omni-memory search.
 
-The resolver should:
+The near-term resolver should:
 
-- identify the active scope(s);
-- resolve applicable structural/contextual scope edges;
-- identify task-relevant associated scopes where needed;
-- query each permitted owner independently;
+- identify the active Project and its explicit Organization ancestry;
+- query each permitted active owner independently;
 - query Phylactery for relevant user-global state;
+- exclude sibling/inactive Projects by default; and
 - combine/rank the resulting evidence within a context budget.
 
-This allows individual Projects, Organizations, and Connections to grow independently without forcing every memory into one global candidate set.
+This allows Projects and Organizations to grow independently without forcing every Memory into one global candidate set. Connection retrieval/composition remains deferred.
 
 ## Validation requirements
 
-Scope fixtures should eventually include:
+Active/near-term scope fixtures should eventually include:
 
 - obvious User-only Memories;
 - obvious Project-only Memories;
 - obvious Organization-only learned operational Memories;
-- obvious Connection-only learned relational Memories;
-- mixed interactions that must split across multiple owners;
+- mixed interactions that must split across authorized active owners;
 - project-specific preferences that must not leak to Phylactery or Organization;
 - organization-wide practices observed during one project that should route to Organization only when authority policy permits learned operational state;
-- recurring vendor/client history that belongs to Connection rather than Project;
-- client Connections that structurally contextualize Projects;
-- vendor Connections that remain associative rather than inherited;
+- sibling Project cases proving Organization hierarchy does not cause project cross-contamination;
 - NDA/confidential cases where ownership is clear but publication/export is forbidden;
-- source-export-denied cases where destination Memory can remain valid without source content;
+- source-export-denied cases where destination Memory can remain valid without source content; and
 - inactive/mothballed scope cases verifying unrelated state does not enter ordinary retrieval.
+
+If Connection semantics are reactivated later, relationship-owned routing, structural versus associative context, and participant-role behavior require a separate fixture suite tied to that new decision.
 
 Evaluate ownership accuracy separately from extraction coverage, semantic metadata, wording quality, authorization, export-policy enforcement, and context-resolution accuracy.
 
@@ -379,24 +298,22 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 
 - whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memory/Graph/vector/profile core;
 - exact cross-file source-lineage/export representation for permitted Phylactery provenance;
-- exact Organization, Project, and Connection owner sets;
+- exact Organization versus Project learned-state owner sets;
 - whether bare `.rel` remains creatable or only supported for compatibility/migration;
-- representation and validation of learned versus governed state inside Organization and Connection;
-- automatic publication/authorization policy for Organization and Connection learned state;
-- Connection class and directional role vocabulary;
-- temporal role changes;
-- concrete scope-edge vocabulary and structural/associative traversal semantics;
-- context-resolution algorithm and ranking across several active scopes;
-- exact ownership-classification pass placement;
-- source-copy versus lineage representation across scope boundaries;
-- memory/source export policy representation;
-- correction, supersession, deduplication, and retirement across each scope kind;
+- representation and validation of learned versus governed Organization state;
+- automatic publication/authorization policy for Organization learned state;
+- exact Organization→Project hierarchy representation and context-resolution algorithm;
+- source-copy versus lineage representation across active scope boundaries;
+- Memory/source export policy representation;
+- correction, supersession, deduplication, and retirement across each active owner kind;
 - cross-owner context composition belongs to retrieval/Ego rather than Dream; Dream remains strictly owner-local and does not federate REL/PHY candidates or persist cross-file Graph relationships;
-- Ego/context assembly budget and conflict resolution across inherited and associated scopes;
+- Ego/context assembly budget and conflict resolution across User/Organization/Project context;
+- what concrete product requirement, if any, is sufficient to reactivate Connection scope semantics under ADR 0029;
 
 ## Related docs
 
 - [ADR 0021 — Typed Reliquary scopes and Connection state](decisions/0021-typed-reliquary-scopes-and-connections.md)
+- [ADR 0029 — Active REL hierarchy and deferred Connection scope](decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md)
 - [ADR 0020 — Reliquary and Phylactery file kinds](decisions/0020-reliquary-and-phylactery-file-kinds.md)
 - [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md)
 - [Roadmap](roadmap.md)
@@ -406,4 +323,4 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 
 ## Notes
 
-This plan is intentionally provisional where the document marks vocabulary, policy, traversal, migration, or schema details as open. Accepted naming and file-kind decisions remain governed by the referenced ADRs.
+This is a retained design record, not the active planning owner. Current Organization/Project hierarchy and deferred Connection direction are governed by ADR 0029 and the roadmap; typed file identity remains governed by ADRs 0020/0021.

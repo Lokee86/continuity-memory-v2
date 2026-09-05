@@ -42,12 +42,52 @@
   ],
   "change_rules": [
     {
-      "paths": ["src/container*.rs"],
-      "docs": ["docs/storage-format.md", "docs/architecture.md", "docs/behavioral-contracts.md"]
+      "paths": ["src/container*.rs", "src/cva_lifecycle.rs", "src/phylactery_lifecycle.rs", "src/migration*.rs"],
+      "docs": ["docs/storage-format.md", "docs/architecture.md", "docs/api.md", "docs/behavioral-contracts.md"]
     },
     {
-      "paths": ["src/archive*.rs", "src/fragment*.rs"],
+      "paths": ["src/archive*.rs", "src/fragment*.rs", "src/episode*.rs", "src/conversation_*.rs", "src/cva_conversation.rs"],
       "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/project_history_*.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/maintainer-map.md", "docs/documentation-coverage.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/project_file_binding_*.rs", "src/project_file_attachment_tests.rs", "src/runtime_host_files.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/maintainer-map.md", "docs/documentation-coverage.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/echo_*.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/maintainer-map.md", "docs/documentation-coverage.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/interaction_*.rs", "src/runtime_host*.rs", "src/configured_runtime*.rs"],
+      "docs": ["docs/architecture.md", "docs/api.md", "docs/current-limitations.md", "docs/maintainer-map.md", "docs/documentation-coverage.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/memory_*.rs", "src/cva_memory*.rs", "src/phylactery*.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/graph_*.rs", "src/cva_graph.rs", "src/community_*.rs", "src/memory_retrieval*.rs", "src/cva_memory_retrieval.rs", "src/phylactery_memory_retrieval.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/dream_*.rs", "src/phylactery_dream_*.rs", "src/runtime_host_dream*.rs"],
+      "docs": ["docs/architecture.md", "docs/api.md", "docs/behavioral-contracts.md", "docs/current-limitations.md"]
+    },
+    {
+      "paths": ["src/insomnia.rs", "src/insomnia/**"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/behavioral-contracts.md", "docs/current-limitations.md"]
+    },
+    {
+      "paths": ["src/packed_vector_*.rs", "src/memory_vector_*.rs", "src/archive_vector_*.rs", "src/vector_generation_*.rs", "src/compatibility_profile_*.rs", "src/semantic_search*.rs", "src/search*.rs", "src/lexical_*.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/behavioral-contracts.md"]
+    },
+    {
+      "paths": ["src/config*.rs", "src/credential*.rs", "src/master_key*.rs", "src/model_switchboard*.rs", "src/model_auth.rs", "src/openai_*.rs"],
+      "docs": ["docs/configuration.md", "docs/architecture.md", "docs/api.md", "docs/current-limitations.md"]
     },
     {
       "paths": ["examples/**"],
