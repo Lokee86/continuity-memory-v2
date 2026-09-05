@@ -1,6 +1,6 @@
 use crate::{
     DreamCandidateError, DreamClassificationError, DreamLifecycleError, DreamPublicationError,
-    DreamVerificationError,
+    DreamVerificationError, MemoryError,
 };
 use std::fmt;
 
@@ -11,6 +11,7 @@ pub enum DreamProcessError {
     Verification(DreamVerificationError),
     Publication(DreamPublicationError),
     Lifecycle(DreamLifecycleError),
+    Memory(MemoryError),
 }
 
 impl fmt::Display for DreamProcessError {
@@ -21,6 +22,7 @@ impl fmt::Display for DreamProcessError {
             Self::Verification(error) => write!(f, "{error}"),
             Self::Publication(error) => write!(f, "{error}"),
             Self::Lifecycle(error) => write!(f, "{error}"),
+            Self::Memory(error) => write!(f, "{error}"),
         }
     }
 }
@@ -32,7 +34,9 @@ impl DreamProcessError {
         match self {
             Self::Classification(error) => error.is_backpressure(),
             Self::Verification(error) => error.is_backpressure(),
-            Self::Candidate(_) | Self::Publication(_) | Self::Lifecycle(_) => false,
+            Self::Candidate(_) | Self::Publication(_) | Self::Lifecycle(_) | Self::Memory(_) => {
+                false
+            }
         }
     }
 }
@@ -60,5 +64,10 @@ impl From<DreamPublicationError> for DreamProcessError {
 impl From<DreamLifecycleError> for DreamProcessError {
     fn from(value: DreamLifecycleError) -> Self {
         Self::Lifecycle(value)
+    }
+}
+impl From<MemoryError> for DreamProcessError {
+    fn from(value: MemoryError) -> Self {
+        Self::Memory(value)
     }
 }

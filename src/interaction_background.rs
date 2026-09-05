@@ -170,7 +170,8 @@ impl InteractionRuntime {
                         .iter()
                         .find(|(memory_id, _)| *memory_id == outcome.memory_id)
                     {
-                        self.cva.mark_dream_epoch(outcome.memory_id, *epoch)?;
+                        self.cva
+                            .mark_dream_processed(outcome.memory_id, *epoch, unix_now_ns())?;
                     }
                     completed.push(RuntimeDreamCompletion {
                         memory_id: outcome.memory_id,

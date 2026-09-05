@@ -1,6 +1,7 @@
 use crate::dream_candidate_ranking::{
     ScoredCandidate, lexical_score, rank_lanes, select_candidates,
 };
+use crate::dream_cooldown::DreamPairStore;
 use crate::dream_owner_vectors::load_memory_vectors;
 use crate::dream_temporal::analyze_memory_temporal;
 use crate::dream_temporal_match::temporal_matches;
@@ -34,6 +35,7 @@ pub(crate) fn dream_candidates<R>(
     container: &mut Container,
     memories: &MemoryStore,
     graph: &GraphStore,
+    dream_pairs: &DreamPairStore,
     memory_vectors: &MemoryVectorStore,
     packed_vectors: &PackedVectorStore,
     compatibility_profile_id: CompatibilityProfileId,
@@ -62,7 +64,13 @@ where
 
     let mut scored = Vec::new();
     for id in memories.current_ids() {
-        if id == source_id {
+        if id == source_id
+            || dream_pairs.contains(source_id, id)
+            || relations.iter().any(|relation| {
+                (relation.source == source_id && relation.target == id)
+                    || (relation.source == id && relation.target == source_id)
+            })
+        {
             continue;
         }
         let memory = memories.memory(container, id)?;

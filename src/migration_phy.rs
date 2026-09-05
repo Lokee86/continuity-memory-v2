@@ -19,6 +19,8 @@ pub(super) fn migrate(
     let profiles = source.compatibility_profiles.profiles();
     let packed_infos = source.packed_vectors.infos();
     let memory_vector_infos = source.memory_vectors.infos();
+    let dream_cooldowns = source.dream_cooldown_records();
+    let dream_pairs = source.dream_pair_records();
 
     let mut output = op(Phylactery::create_with_uuid(output_path, owner_uuid))?;
     for profile in profiles {
@@ -32,6 +34,16 @@ pub(super) fn migrate(
     }
     for transaction in graph {
         op(output.set_memory_relations(&transaction, output.graph_version()))?;
+    }
+    for (id, state) in dream_cooldowns {
+        let processed_at_ns = match state.processed_at_ns {
+            Some(value) => value,
+            None => op(output.memory(id))?.updated_at_ns,
+        };
+        op(output.mark_dream_processed(id, state.epoch, processed_at_ns))?;
+    }
+    for (left, right) in dream_pairs {
+        op(output.mark_dream_pair_evaluated(left, right))?;
     }
     copy_vectors(&mut source, &mut output, packed_infos, memory_vector_infos)?;
     op(output.sync())?;

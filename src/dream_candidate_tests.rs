@@ -207,7 +207,7 @@ fn direct_memory_context_matches_candidate_context_builder() {
 }
 
 #[test]
-fn source_and_candidates_arrive_with_their_active_graph_context() {
+fn source_context_keeps_graph_state_while_connected_pair_is_excluded() {
     let mut cva = Cva::create(test_path("graph.cva")).unwrap();
     let source = memory(
         &mut cva,
@@ -229,12 +229,15 @@ fn source_and_candidates_arrive_with_their_active_graph_context() {
     let profile = install_vectors(
         &mut cva,
         &[source, candidate, other],
-        &[&[1.0, 0.0], &[0.99, 0.01], &[0.0, 1.0]],
+        &[&[1.0, 0.0], &[0.99, 0.01], &[0.95, 0.05]],
     );
     cva.set_memory_relation(source, candidate, GraphRelationKind::Factual, true, 0)
         .unwrap();
     cva.set_memory_relation(candidate, other, GraphRelationKind::References, true, 1)
         .unwrap();
+
+    let candidate_context = cva.dream_memory_context(candidate).unwrap();
+    assert_eq!(candidate_context.graph_relations.len(), 2);
 
     let result = cva
         .dream_candidates(
@@ -250,8 +253,66 @@ fn source_and_candidates_arrive_with_their_active_graph_context() {
         )
         .unwrap();
     assert_eq!(result.source.graph_relations.len(), 1);
-    assert_eq!(result.candidates[0].context.memory.id, candidate);
-    assert_eq!(result.candidates[0].context.graph_relations.len(), 2);
+    assert_eq!(result.candidates[0].context.memory.id, other);
+    assert_eq!(result.candidates[0].context.graph_relations.len(), 1);
+    assert!(
+        !result
+            .candidates
+            .iter()
+            .any(|item| item.context.memory.id == candidate)
+    );
+}
+
+#[test]
+fn previously_evaluated_pair_does_not_consume_candidate_capacity() {
+    let mut cva = Cva::create(test_path("evaluated-pair.cva")).unwrap();
+    let source = memory(
+        &mut cva,
+        "source",
+        "Source",
+        "Shared wall fact.",
+        100,
+        false,
+    );
+    let already_evaluated = memory(
+        &mut cva,
+        "already-evaluated",
+        "Nearest",
+        "Shared wall fact.",
+        90,
+        false,
+    );
+    let unexplored = memory(
+        &mut cva,
+        "unexplored",
+        "Second nearest",
+        "Shared wall detail.",
+        80,
+        false,
+    );
+    let profile = install_vectors(
+        &mut cva,
+        &[source, already_evaluated, unexplored],
+        &[&[1.0, 0.0], &[0.999, 0.001], &[0.98, 0.02]],
+    );
+    cva.mark_dream_pair_evaluated(source, already_evaluated)
+        .unwrap();
+
+    let result = cva
+        .dream_candidates(
+            profile,
+            source,
+            DreamCandidateConfig {
+                limit: 1,
+                semantic_limit: 2,
+                prior_semantic_quota: 0,
+                lexical_limit: 0,
+                temporal_limit: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(result.candidates.len(), 1);
+    assert_eq!(result.candidates[0].context.memory.id, unexplored);
 }
 
 #[test]

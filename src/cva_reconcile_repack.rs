@@ -5,6 +5,7 @@ use crate::cva_reconcile_archive::{
 use crate::cva_reconcile_graph::{read_graph_tail, reconcile_right_graph_tail, replay_graph_tail};
 use crate::cva_reconcile_interaction::{merge_interaction_streams, replay_interaction_streams};
 use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
+use crate::dream_cooldown::{DreamCooldownState, merge_state};
 use crate::{CompatibilityProfile, Cva, CvaReconcileError};
 use std::collections::BTreeMap;
 use std::fs;
@@ -43,10 +44,13 @@ pub(crate) fn reconcile_diverged(
     let right_echo = right.echo_records();
     let left_project_history = left.project_revision_correlations();
     let right_project_history = right.project_revision_correlations();
-    let dream_cooldowns = merge_dream_cooldowns(
-        left.dream_cooldown_records(),
-        right.dream_cooldown_records(),
-    );
+    let left_dream_cooldowns = left.dream_cooldown_records();
+    let dream_cooldowns =
+        merge_dream_cooldowns(left_dream_cooldowns.clone(), right.dream_cooldown_records());
+    let dream_cooldown_change_required = dream_cooldowns != left_dream_cooldowns;
+    let left_dream_pairs = left.dream_pair_records();
+    let dream_pairs = merge_dream_pairs(left_dream_pairs.clone(), right.dream_pair_records());
+    let dream_pair_change_required = dream_pairs != left_dream_pairs;
     let latest_project_revision =
         compatible_project_revision(&left_project_history, &right_project_history).ok_or(
             CvaReconcileError::UnsupportedSemanticOwner(
@@ -88,7 +92,8 @@ pub(crate) fn reconcile_diverged(
         let canonical_change_required = output.container.chunks()?.len() > before_right
             || right_stream_change
             || right_project_history_change;
-        let dream_cooldown_change_required = replay_dream_cooldowns(&mut output, dream_cooldowns)?;
+        replay_dream_cooldowns(&mut output, dream_cooldowns)?;
+        replay_dream_pairs(&mut output, dream_pairs)?;
         if canonical_change_required
             && let Some((project_revision, management)) = latest_project_revision.clone()
         {
@@ -105,6 +110,7 @@ pub(crate) fn reconcile_diverged(
             file_memory_links,
             canonical_change_required,
             dream_cooldown_change_required,
+            dream_pair_change_required,
         ))
     })();
 
@@ -115,6 +121,7 @@ pub(crate) fn reconcile_diverged(
         file_memory_links,
         canonical_change_required,
         dream_cooldown_change_required,
+        dream_pair_change_required,
     ) = match merge_result {
         Ok(value) => value,
         Err(error) => {
@@ -123,7 +130,8 @@ pub(crate) fn reconcile_diverged(
         }
     };
 
-    if !canonical_change_required && !dream_cooldown_change_required {
+    if !canonical_change_required && !dream_cooldown_change_required && !dream_pair_change_required
+    {
         replace_with_left(left_path, output_path)?;
     }
 
@@ -143,28 +151,59 @@ pub(crate) fn reconcile_diverged(
 }
 
 fn merge_dream_cooldowns(
-    left: Vec<(crate::MemoryId, u64)>,
-    right: Vec<(crate::MemoryId, u64)>,
-) -> Vec<(crate::MemoryId, u64)> {
+    left: Vec<(crate::MemoryId, DreamCooldownState)>,
+    right: Vec<(crate::MemoryId, DreamCooldownState)>,
+) -> Vec<(crate::MemoryId, DreamCooldownState)> {
     let mut merged = BTreeMap::new();
-    for (id, epoch) in left.into_iter().chain(right) {
+    for (id, state) in left.into_iter().chain(right) {
         merged
             .entry(id.0)
-            .and_modify(|current: &mut (crate::MemoryId, u64)| current.1 = current.1.max(epoch))
-            .or_insert((id, epoch));
+            .and_modify(|current: &mut (crate::MemoryId, DreamCooldownState)| {
+                current.1 = merge_state(current.1, state)
+            })
+            .or_insert((id, state));
     }
     merged.into_values().collect()
 }
 
 fn replay_dream_cooldowns(
     output: &mut Cva,
-    records: Vec<(crate::MemoryId, u64)>,
-) -> Result<bool, CvaReconcileError> {
-    let mut changed = false;
-    for (id, epoch) in records {
-        changed |= output.mark_dream_epoch(id, epoch)?;
+    records: Vec<(crate::MemoryId, DreamCooldownState)>,
+) -> Result<(), CvaReconcileError> {
+    for (id, state) in records {
+        let processed_at_ns = match state.processed_at_ns {
+            Some(value) => value,
+            None => output.memory(id)?.updated_at_ns,
+        };
+        output.mark_dream_processed(id, state.epoch, processed_at_ns)?;
     }
-    Ok(changed)
+    Ok(())
+}
+
+fn merge_dream_pairs(
+    left: Vec<(crate::MemoryId, crate::MemoryId)>,
+    right: Vec<(crate::MemoryId, crate::MemoryId)>,
+) -> Vec<(crate::MemoryId, crate::MemoryId)> {
+    let mut merged = BTreeMap::new();
+    for (left, right) in left.into_iter().chain(right) {
+        let pair = if left.0 <= right.0 {
+            (left, right)
+        } else {
+            (right, left)
+        };
+        merged.insert((pair.0.0, pair.1.0), pair);
+    }
+    merged.into_values().collect()
+}
+
+fn replay_dream_pairs(
+    output: &mut Cva,
+    records: Vec<(crate::MemoryId, crate::MemoryId)>,
+) -> Result<(), CvaReconcileError> {
+    for (left, right) in records {
+        output.mark_dream_pair_evaluated(left, right)?;
+    }
+    Ok(())
 }
 
 fn replay_echo(output: &mut Cva, events: Vec<crate::EchoEvent>) -> Result<(), CvaReconcileError> {

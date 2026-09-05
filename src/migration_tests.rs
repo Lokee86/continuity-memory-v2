@@ -155,6 +155,8 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
         .unwrap();
     phy.set_memory_relation(a.id, b.id, GraphRelationKind::Topical, true, 0)
         .unwrap();
+    phy.mark_dream_processed(a.id, 2, 123).unwrap();
+    phy.mark_dream_pair_evaluated(a.id, b.id).unwrap();
     let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 23);
     let profile = phy.establish_compatibility_profile(&endpoint).unwrap();
     phy.build_missing_memory_vectors(profile.id, &endpoint)
@@ -172,6 +174,45 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
     assert_eq!(migrated.graph_stats().active_relations, 1);
     assert_eq!(migrated.compatibility_profile_stats().profiles, 1);
     assert_eq!(migrated.memory_vector_stats().bindings, 2);
+    assert_eq!(
+        migrated
+            .dream_cooldown_records()
+            .into_iter()
+            .find(|(id, _)| *id == a.id)
+            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
+        Some((2, Some(123)))
+    );
+    assert_eq!(migrated.dream_pair_records().len(), 1);
+}
+
+#[test]
+fn legacy_rel_migration_preserves_dream_maintenance_state() {
+    let dir = test_dir();
+    let source = dir.join("old-dream.prj.rel");
+    let output = dir.join("new-dream.rel");
+    let mut rel = Cva::create_legacy_typed(&source, ReliquaryScopeKind::Project).unwrap();
+    let (a, _) = rel
+        .publish_memory(None, 0, draft("dream:a", "project", "A"))
+        .unwrap();
+    let (b, _) = rel
+        .publish_memory(None, 0, draft("dream:b", "project", "B"))
+        .unwrap();
+    rel.mark_dream_processed(a.id, 3, 456).unwrap();
+    rel.mark_dream_pair_evaluated(a.id, b.id).unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+
+    migrate_file(&source, &output).unwrap();
+    let migrated = Cva::open(&output).unwrap();
+    assert_eq!(
+        migrated
+            .dream_cooldown_records()
+            .into_iter()
+            .find(|(id, _)| *id == a.id)
+            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
+        Some((3, Some(456)))
+    );
+    assert_eq!(migrated.dream_pair_records().len(), 1);
 }
 
 #[test]

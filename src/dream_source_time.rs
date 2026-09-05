@@ -5,9 +5,6 @@ pub(crate) fn memory_source_timestamp_ns(memory: &Memory) -> Option<i64> {
 }
 
 pub(crate) fn reliquary_source_timestamp_ns(archive: &Archive, memory: &Memory) -> Option<i64> {
-    if let Some(source_time_ns) = memory_source_timestamp_ns(memory) {
-        return Some(source_time_ns);
-    }
     if let (Some(conversation), Some(node_id)) = (
         memory.content_source_conversation_id.as_deref(),
         memory.content_source_node_id.as_deref(),
@@ -22,8 +19,12 @@ pub(crate) fn reliquary_source_timestamp_ns(archive: &Archive, memory: &Memory) 
     {
         return Some(node.timestamp_ns);
     }
-    memory
+    if let Some(episode_time_ns) = memory
         .source_episode_id
         .and_then(|id| archive.episodes.get(id))
         .map(|episode| episode.source_through_ns)
+    {
+        return Some(episode_time_ns);
+    }
+    memory_source_timestamp_ns(memory)
 }

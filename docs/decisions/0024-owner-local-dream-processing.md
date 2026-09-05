@@ -25,7 +25,7 @@ Dream(User PHY)
 
 Candidate discovery, classifier/verifier context, Graph reads/writes, duplicate-chain maintenance, supersession, and lifecycle projection never cross that owner boundary. The shared implementation operates on the common Container/Memory/Graph/Memory-vector/Packed-vector mechanics; `Cva` and `Phylactery` provide owner-specific wrappers and chronology resolution.
 
-REL chronology resolves persisted `source_time_ns` first and may fall back to validated Archive/Episode provenance for legacy Memories. PHY chronology is only persisted `source_time_ns`. `created_at_ns` is bookkeeping and is never substituted for unknown semantic chronology.
+REL chronology resolves validated Archive/Episode provenance first and falls back to persisted `source_time_ns` when REL-local provenance is unavailable. PHY chronology is persisted `source_time_ns` because PHY intentionally has no REL-local Archive/Episode provenance. `created_at_ns` is bookkeeping and is never substituted for semantic chronology.
 
 Duplicate ordering requires authoritative source chronology. If a participating Memory has no source timestamp, duplicate-chain publication fails closed rather than fabricating order.
 

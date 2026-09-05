@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -375,6 +375,43 @@ u64       mutation payload chunk offset
 u64       mutation payload length
 ```
 Graph versions begin at `1` and are dense. `CVAGVER1` may reference either one `CVAGMUT1` or one non-empty `CVAGBAT1`; the complete referenced payload is one atomic Graph transaction and consumes one CVA-global version plus one Graph-local version regardless of change count. A relationship payload without valid version metadata is inert. The current state of one oriented `(source, target, kind)` identity is its latest versioned `active` value; retraction appends `active=0` rather than deleting history. Both Memory endpoints must exist on reopen. Pre-Graph CVAs with no Graph records open as Graph version `0`; the format marker is appended lazily before their first Graph mutation.
+
+### Dream maintenance records
+
+Dream maintenance metadata is owner-local, append-only, and clock-neutral. It is stored in both REL and PHY containers but is not a Memory revision, Graph relationship, Archive mutation, or semantic global-version claimant.
+
+Current cooldown record:
+
+```text
+8 bytes   "CVADREM2"
+32 bytes  MemoryId
+u64       last satisfied provenance-relative Dream epoch
+i64       last successful Dream processing timestamp_ns
+```
+
+The timestamp is runtime scheduling metadata. It may anchor maintenance eligibility when semantic source chronology cannot be recovered, but it never substitutes for source chronology in Dream temporal analysis, duplicate ordering, causality, supersession, or other semantic reasoning.
+
+Legacy cooldown record:
+
+```text
+8 bytes   "CVADREM1"
+32 bytes  MemoryId
+u64       last satisfied provenance-relative Dream epoch
+```
+
+`CVADREM1` remains readable. It has no successful-processing timestamp; legacy state may use existing Memory update bookkeeping only as a one-time non-flooding maintenance bootstrap until a successful Dream pass writes `CVADREM2`.
+
+Completed unordered Dream-pair evaluation:
+
+```text
+8 bytes   "CVADRP01"
+32 bytes  lower canonical MemoryId
+32 bytes  upper canonical MemoryId
+```
+
+The two IDs are stored in canonical byte order, so evaluating the pair from either source direction has one identity. Self-pairs are invalid. A record means Dream successfully completed evaluation/publication for that immutable Memory pair, including a `none` classification or withheld relation that produced no Graph edge. Candidate discovery excludes these pairs, as well as pairs already connected by an active Graph edge, before bounded candidate ranking.
+
+Cooldown records reconstruct the maximum satisfied epoch and latest available successful-processing timestamp per Memory. Pair records reconstruct a set union. Divergent REL reconciliation applies those same monotonic merge rules. Explicit legacy REL/PHY migration copies both record families after their Memory endpoints have been republished. These records consume no `CVAVERS1`, Archive version, Memory version, Graph version, or Vector Generation version.
 
 ### Community snapshots
 

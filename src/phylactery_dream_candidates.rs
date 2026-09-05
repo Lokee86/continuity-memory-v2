@@ -35,6 +35,7 @@ impl Phylactery {
             &mut self.container,
             &self.memories,
             &self.graph,
+            &self.dream_pairs,
             &self.memory_vectors,
             &self.packed_vectors,
             compatibility_profile_id,

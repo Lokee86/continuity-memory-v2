@@ -26,6 +26,8 @@ pub(super) fn migrate(
     let generations = source.vector_generations.generations().to_vec();
     let compactions = source.conversation_compactions.all_records();
     let echo = source.echo_records();
+    let dream_cooldowns = source.dream_cooldown_records();
+    let dream_pairs = source.dream_pair_records();
     let metadata = source.rel_metadata();
 
     let mut output = op(Cva::create_rel_with_uuid(
@@ -72,6 +74,16 @@ pub(super) fn migrate(
     op(replay_archive_tail(&mut output, &archive))?;
     op(replay_memory_tail(&mut output, memories))?;
     op(replay_graph_tail(&mut output, &graph))?;
+    for (id, state) in dream_cooldowns {
+        let processed_at_ns = match state.processed_at_ns {
+            Some(value) => value,
+            None => op(output.memory(id))?.updated_at_ns,
+        };
+        op(output.mark_dream_processed(id, state.epoch, processed_at_ns))?;
+    }
+    for (left, right) in dream_pairs {
+        op(output.mark_dream_pair_evaluated(left, right))?;
+    }
     op(replay_file_memory_links(
         &mut output,
         &archive.file_memory_links,

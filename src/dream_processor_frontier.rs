@@ -73,6 +73,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                         verification_policy,
                         cva.graph_version(),
                     )?;
+                    cva.mark_dream_pair_evaluated(classification.a, classification.b)?;
                     processed.push(DreamProcessedPair {
                         classification,
                         verification,
@@ -144,6 +145,7 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                         verification_policy,
                         phylactery.graph_version(),
                     )?;
+                    phylactery.mark_dream_pair_evaluated(classification.a, classification.b)?;
                     processed.push(DreamProcessedPair {
                         classification,
                         verification,

@@ -1,43 +1,146 @@
 use crate::dream_source_time::{memory_source_timestamp_ns, reliquary_source_timestamp_ns};
 use crate::memory_store::MemoryStore;
 use crate::{Container, Cva, Memory, MemoryError, MemoryId, Phylactery};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const DREAM_COOLDOWN_MAGIC: [u8; 8] = *b"CVADREM1";
+const DREAM_COOLDOWN_MAGIC_V1: [u8; 8] = *b"CVADREM1";
+const DREAM_COOLDOWN_MAGIC_V2: [u8; 8] = *b"CVADREM2";
+const DREAM_PAIR_MAGIC: [u8; 8] = *b"CVADRP01";
 pub const DEFAULT_DREAM_REPROCESS_COOLDOWN_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct DreamCooldownState {
+    pub(crate) epoch: u64,
+    pub(crate) processed_at_ns: Option<i64>,
+}
 
 #[derive(Default)]
 pub(crate) struct DreamCooldownStore {
-    epochs: HashMap<MemoryId, u64>,
+    states: HashMap<MemoryId, DreamCooldownState>,
+}
+
+#[derive(Default)]
+pub(crate) struct DreamPairStore {
+    pairs: HashSet<(MemoryId, MemoryId)>,
+}
+
+impl DreamPairStore {
+    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
+        if payload.len() < 8 || payload[..8] != DREAM_PAIR_MAGIC {
+            return Ok(());
+        }
+        if payload.len() != 72 {
+            return Err(MemoryError::CorruptRecord("invalid Dream pair record"));
+        }
+        let left = MemoryId(payload[8..40].try_into().unwrap());
+        let right = MemoryId(payload[40..72].try_into().unwrap());
+        if left == right {
+            return Err(MemoryError::CorruptRecord("Dream pair self-reference"));
+        }
+        self.pairs.insert(canonical_pair(left, right));
+        Ok(())
+    }
+
+    pub(crate) fn contains(&self, left: MemoryId, right: MemoryId) -> bool {
+        left != right && self.pairs.contains(&canonical_pair(left, right))
+    }
+
+    pub(crate) fn records(&self) -> Vec<(MemoryId, MemoryId)> {
+        let mut records: Vec<_> = self.pairs.iter().copied().collect();
+        records.sort_by_key(|(left, right)| (left.0, right.0));
+        records
+    }
+
+    pub(crate) fn validate(&self, memories: &MemoryStore) -> Result<(), MemoryError> {
+        if self.pairs.iter().all(|(left, right)| {
+            memories.contains_memory(*left) && memories.contains_memory(*right)
+        }) {
+            Ok(())
+        } else {
+            Err(MemoryError::CorruptRecord(
+                "Dream pair references a missing Memory",
+            ))
+        }
+    }
+
+    pub(crate) fn put(
+        &mut self,
+        container: &mut Container,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Result<bool, MemoryError> {
+        if left == right {
+            return Err(MemoryError::InvalidField("Dream pair"));
+        }
+        let pair = canonical_pair(left, right);
+        if self.pairs.contains(&pair) {
+            return Ok(false);
+        }
+        let mut payload = Vec::with_capacity(72);
+        payload.extend_from_slice(&DREAM_PAIR_MAGIC);
+        payload.extend_from_slice(&pair.0.0);
+        payload.extend_from_slice(&pair.1.0);
+        container.append(&payload)?;
+        self.pairs.insert(pair);
+        Ok(true)
+    }
+}
+
+fn canonical_pair(left: MemoryId, right: MemoryId) -> (MemoryId, MemoryId) {
+    if left.0 <= right.0 {
+        (left, right)
+    } else {
+        (right, left)
+    }
 }
 
 impl DreamCooldownStore {
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
-        if payload.len() < 8 || payload[..8] != DREAM_COOLDOWN_MAGIC {
+        if payload.len() < 8 {
             return Ok(());
         }
-        if payload.len() != 48 {
-            return Err(MemoryError::CorruptRecord("invalid Dream cooldown record"));
-        }
-        let id = MemoryId(payload[8..40].try_into().unwrap());
-        let epoch = u64::from_le_bytes(payload[40..48].try_into().unwrap());
-        self.epochs
+        let (id, state) = if payload[..8] == DREAM_COOLDOWN_MAGIC_V2 {
+            if payload.len() != 56 {
+                return Err(MemoryError::CorruptRecord("invalid Dream cooldown record"));
+            }
+            (
+                MemoryId(payload[8..40].try_into().unwrap()),
+                DreamCooldownState {
+                    epoch: u64::from_le_bytes(payload[40..48].try_into().unwrap()),
+                    processed_at_ns: Some(i64::from_le_bytes(payload[48..56].try_into().unwrap())),
+                },
+            )
+        } else if payload[..8] == DREAM_COOLDOWN_MAGIC_V1 {
+            if payload.len() != 48 {
+                return Err(MemoryError::CorruptRecord("invalid Dream cooldown record"));
+            }
+            (
+                MemoryId(payload[8..40].try_into().unwrap()),
+                DreamCooldownState {
+                    epoch: u64::from_le_bytes(payload[40..48].try_into().unwrap()),
+                    processed_at_ns: None,
+                },
+            )
+        } else {
+            return Ok(());
+        };
+        self.states
             .entry(id)
-            .and_modify(|current| *current = (*current).max(epoch))
-            .or_insert(epoch);
+            .and_modify(|current| *current = merge_state(*current, state))
+            .or_insert(state);
         Ok(())
     }
 
-    pub(crate) fn epoch(&self, id: MemoryId) -> Option<u64> {
-        self.epochs.get(&id).copied()
+    pub(crate) fn state(&self, id: MemoryId) -> Option<DreamCooldownState> {
+        self.states.get(&id).copied()
     }
 
-    pub(crate) fn records(&self) -> Vec<(MemoryId, u64)> {
+    pub(crate) fn records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
         let mut records: Vec<_> = self
-            .epochs
+            .states
             .iter()
-            .map(|(id, epoch)| (*id, *epoch))
+            .map(|(id, state)| (*id, *state))
             .collect();
         records.sort_by_key(|(id, _)| id.0);
         records
@@ -45,7 +148,7 @@ impl DreamCooldownStore {
 
     pub(crate) fn validate(&self, memories: &MemoryStore) -> Result<(), MemoryError> {
         if self
-            .epochs
+            .states
             .keys()
             .all(|memory_id| memories.contains_memory(*memory_id))
         {
@@ -61,18 +164,43 @@ impl DreamCooldownStore {
         &mut self,
         container: &mut Container,
         id: MemoryId,
-        epoch: u64,
+        state: DreamCooldownState,
     ) -> Result<bool, MemoryError> {
-        if self.epoch(id).is_some_and(|current| current >= epoch) {
+        if self
+            .state(id)
+            .is_some_and(|current| merge_state(current, state) == current)
+        {
             return Ok(false);
         }
-        let mut payload = Vec::with_capacity(48);
-        payload.extend_from_slice(&DREAM_COOLDOWN_MAGIC);
+        let merged = self
+            .state(id)
+            .map(|current| merge_state(current, state))
+            .unwrap_or(state);
+        let Some(processed_at_ns) = merged.processed_at_ns else {
+            return Err(MemoryError::InvalidField("Dream processed timestamp"));
+        };
+        let mut payload = Vec::with_capacity(56);
+        payload.extend_from_slice(&DREAM_COOLDOWN_MAGIC_V2);
         payload.extend_from_slice(&id.0);
-        payload.extend_from_slice(&epoch.to_le_bytes());
+        payload.extend_from_slice(&merged.epoch.to_le_bytes());
+        payload.extend_from_slice(&processed_at_ns.to_le_bytes());
         container.append(&payload)?;
-        self.epochs.insert(id, epoch);
+        self.states.insert(id, merged);
         Ok(true)
+    }
+}
+
+pub(crate) fn merge_state(
+    left: DreamCooldownState,
+    right: DreamCooldownState,
+) -> DreamCooldownState {
+    DreamCooldownState {
+        epoch: left.epoch.max(right.epoch),
+        processed_at_ns: match (left.processed_at_ns, right.processed_at_ns) {
+            (Some(left), Some(right)) => Some(left.max(right)),
+            (Some(value), None) | (None, Some(value)) => Some(value),
+            (None, None) => None,
+        },
     }
 }
 
@@ -85,7 +213,7 @@ pub(crate) fn dream_epoch(source_time_ns: i64, now_ns: i64) -> u64 {
 pub(crate) fn eligible_dream_epoch(
     memory: &Memory,
     source_time_ns: Option<i64>,
-    last_processed_epoch: Option<u64>,
+    last_processed: Option<DreamCooldownState>,
     now_ns: i64,
 ) -> Option<u64> {
     if memory.archived {
@@ -98,11 +226,20 @@ pub(crate) fn eligible_dream_epoch(
                 .unwrap_or(0),
         );
     }
-    let source_time_ns = source_time_ns?;
-    let current_epoch = dream_epoch(source_time_ns, now_ns);
-    let satisfied_epoch =
-        last_processed_epoch.unwrap_or_else(|| dream_epoch(source_time_ns, memory.updated_at_ns));
-    (current_epoch > satisfied_epoch).then_some(current_epoch)
+
+    if let Some(source_time_ns) = source_time_ns {
+        let current_epoch = dream_epoch(source_time_ns, now_ns);
+        let satisfied_epoch = last_processed
+            .map(|state| state.epoch)
+            .unwrap_or_else(|| dream_epoch(source_time_ns, memory.updated_at_ns));
+        return (current_epoch > satisfied_epoch).then_some(current_epoch);
+    }
+
+    let last_processed_ns = last_processed
+        .and_then(|state| state.processed_at_ns)
+        .unwrap_or(memory.updated_at_ns);
+    let elapsed = now_ns as i128 - last_processed_ns as i128;
+    (elapsed >= DEFAULT_DREAM_REPROCESS_COOLDOWN_NS as i128).then_some(0)
 }
 
 pub(crate) fn unix_now_ns() -> i64 {
@@ -124,24 +261,47 @@ impl Cva {
         Ok(eligible_dream_epoch(
             &memory,
             source_time,
-            self.dream_cooldowns.epoch(id),
+            self.dream_cooldowns.state(id),
             now_ns,
         ))
     }
 
-    pub(crate) fn mark_dream_epoch(
+    pub(crate) fn mark_dream_processed(
         &mut self,
         id: MemoryId,
         epoch: u64,
+        processed_at_ns: i64,
     ) -> Result<bool, MemoryError> {
         if !self.memories.contains_memory(id) {
             return Err(MemoryError::MissingMemory);
         }
-        self.dream_cooldowns.put(&mut self.container, id, epoch)
+        self.dream_cooldowns.put(
+            &mut self.container,
+            id,
+            DreamCooldownState {
+                epoch,
+                processed_at_ns: Some(processed_at_ns),
+            },
+        )
     }
 
-    pub(crate) fn dream_cooldown_records(&self) -> Vec<(MemoryId, u64)> {
+    pub(crate) fn dream_cooldown_records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
         self.dream_cooldowns.records()
+    }
+
+    pub(crate) fn mark_dream_pair_evaluated(
+        &mut self,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Result<bool, MemoryError> {
+        if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
+            return Err(MemoryError::MissingMemory);
+        }
+        self.dream_pairs.put(&mut self.container, left, right)
+    }
+
+    pub(crate) fn dream_pair_records(&self) -> Vec<(MemoryId, MemoryId)> {
+        self.dream_pairs.records()
     }
 }
 
@@ -155,19 +315,46 @@ impl Phylactery {
         Ok(eligible_dream_epoch(
             &memory,
             memory_source_timestamp_ns(&memory),
-            self.dream_cooldowns.epoch(id),
+            self.dream_cooldowns.state(id),
             now_ns,
         ))
     }
 
-    pub(crate) fn mark_dream_epoch(
+    pub(crate) fn mark_dream_processed(
         &mut self,
         id: MemoryId,
         epoch: u64,
+        processed_at_ns: i64,
     ) -> Result<bool, MemoryError> {
         if !self.memories.contains_memory(id) {
             return Err(MemoryError::MissingMemory);
         }
-        self.dream_cooldowns.put(&mut self.container, id, epoch)
+        self.dream_cooldowns.put(
+            &mut self.container,
+            id,
+            DreamCooldownState {
+                epoch,
+                processed_at_ns: Some(processed_at_ns),
+            },
+        )
+    }
+
+    pub(crate) fn mark_dream_pair_evaluated(
+        &mut self,
+        left: MemoryId,
+        right: MemoryId,
+    ) -> Result<bool, MemoryError> {
+        if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
+            return Err(MemoryError::MissingMemory);
+        }
+        self.dream_pairs.put(&mut self.container, left, right)
+    }
+
+    pub(crate) fn dream_cooldown_records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
+        self.dream_cooldowns.records()
+    }
+
+    pub(crate) fn dream_pair_records(&self) -> Vec<(MemoryId, MemoryId)> {
+        self.dream_pairs.records()
     }
 }

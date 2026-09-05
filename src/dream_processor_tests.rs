@@ -360,6 +360,10 @@ fn ordinary_inference_failure_retries_twice_in_same_pass() {
 
     assert_eq!(calls.load(Ordering::SeqCst), 3);
     assert_eq!(result.source.lifecycle_state, "knowledge");
+    let repeated = cva
+        .dream_candidates(profile, source, DreamCandidateConfig::default())
+        .unwrap();
+    assert!(repeated.candidates.is_empty());
 }
 
 #[derive(Clone)]

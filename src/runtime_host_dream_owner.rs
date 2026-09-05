@@ -127,7 +127,7 @@ pub(super) fn commit_project(
         .map_err(operation)?;
     runtime
         .cva
-        .mark_dream_epoch(source_id, snapshot.dream_epoch)
+        .mark_dream_processed(source_id, snapshot.dream_epoch, unix_now_ns())
         .map_err(operation)?;
     runtime.cva.sync().map_err(operation)?;
     Ok(true)
@@ -164,7 +164,7 @@ pub(super) fn commit_user(
     let source_id = snapshot.candidates.source.memory.id;
     phy.reconcile_dream_lifecycle(source_id)
         .map_err(operation)?;
-    phy.mark_dream_epoch(source_id, snapshot.dream_epoch)
+    phy.mark_dream_processed(source_id, snapshot.dream_epoch, unix_now_ns())
         .map_err(operation)?;
     phy.sync().map_err(operation)?;
     Ok(true)
