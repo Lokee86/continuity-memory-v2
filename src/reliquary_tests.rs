@@ -1,4 +1,4 @@
-use crate::{CvaError, Reliquary, ReliquaryScopeKind};
+use crate::{Reliquary, ReliquaryScopeKind};
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,58 +14,104 @@ fn test_path(name: &str) -> PathBuf {
 }
 
 #[test]
-fn new_reliquary_is_typed_project_rel() {
-    let path = test_path("project.prj.rel");
+fn new_reliquary_has_generic_rel_identity() {
+    let path = test_path("project.rel");
     let rel = Reliquary::create(&path).unwrap();
     let owner_id = rel.owner_id().unwrap();
-    assert!(owner_id.starts_with("proj-"));
-    assert_eq!(rel.scope_kind(), ReliquaryScopeKind::Project);
+    assert!(owner_id.starts_with("rel-"));
+    assert_eq!(rel.legacy_scope_kind(), None);
+    assert_eq!(rel.rel_metadata().type_label, None);
     assert!(!rel.is_legacy_cva());
     drop(rel);
 
     let header = fs::read(&path).unwrap();
     assert_eq!(u32::from_le_bytes(header[12..16].try_into().unwrap()), 40);
     assert_eq!(header[16], 1);
-    assert_eq!(header[17], 2);
+    assert_eq!(header[17], 0);
 
     let reopened = Reliquary::open(&path).unwrap();
     assert_eq!(reopened.owner_id().as_deref(), Some(owner_id.as_str()));
-    assert_eq!(reopened.scope_kind(), ReliquaryScopeKind::Project);
+    assert_eq!(reopened.legacy_scope_kind(), None);
     assert!(!reopened.is_legacy_cva());
 }
 
 #[test]
-fn reliquary_scope_kind_roundtrips() {
-    let organization = test_path("acme.org.rel");
-    let connection = test_path("vendor.con.rel");
+fn rel_type_is_metadata_not_file_identity() {
+    let organization = test_path("acme.rel");
+    let project = test_path("warlock.rel");
 
-    Reliquary::create_organization(&organization).unwrap();
-    Reliquary::create_connection(&connection).unwrap();
+    let organization = Reliquary::create_organization(&organization).unwrap();
+    let project = Reliquary::create_project(&project).unwrap();
 
+    assert!(organization.owner_id().unwrap().starts_with("rel-"));
+    assert!(project.owner_id().unwrap().starts_with("rel-"));
+    assert_eq!(organization.legacy_scope_kind(), None);
+    assert_eq!(project.legacy_scope_kind(), None);
     assert_eq!(
-        Reliquary::open_organization(&organization)
-            .unwrap()
-            .scope_kind(),
-        ReliquaryScopeKind::Organization
+        organization.rel_metadata().type_label.as_deref(),
+        Some("Organization")
     );
     assert_eq!(
-        Reliquary::open_connection(&connection)
-            .unwrap()
-            .scope_kind(),
-        ReliquaryScopeKind::Connection
+        project.rel_metadata().type_label.as_deref(),
+        Some("Project")
     );
-    assert!(matches!(
-        Reliquary::open_project(&organization),
-        Err(CvaError::InvalidContainerIdentity(_))
-    ));
 }
 
 #[test]
-fn legacy_cva_opens_as_project_reliquary_without_rewrite() {
+fn rel_dependencies_round_trip_as_metadata() {
+    let path = test_path("nested.rel");
+    let mut rel = Reliquary::create_project(&path).unwrap();
+    rel.set_rel_metadata(
+        Some("Subproject".into()),
+        vec!["rel-b".into(), "rel-a".into(), "rel-b".into()],
+    )
+    .unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+
+    let reopened = Reliquary::open(&path).unwrap();
+    assert_eq!(
+        reopened.rel_metadata(),
+        crate::RelMetadata {
+            type_label: Some("Subproject".into()),
+            dependencies: vec!["rel-a".into(), "rel-b".into()],
+        }
+    );
+}
+
+#[test]
+fn rel_cannot_depend_on_itself() {
+    let path = test_path("self.rel");
+    let mut rel = Reliquary::create(&path).unwrap();
+    let owner_id = rel.owner_id().unwrap();
+    assert!(
+        rel.set_rel_metadata(None, vec![owner_id])
+            .unwrap_err()
+            .to_string()
+            .contains("cannot depend on itself")
+    );
+}
+
+#[test]
+fn legacy_typed_rel_remains_readable_without_making_type_behavioral() {
+    let path = test_path("legacy.org.rel");
+    let legacy = Reliquary::create_legacy_typed(&path, ReliquaryScopeKind::Organization).unwrap();
+    assert_eq!(
+        legacy.legacy_scope_kind(),
+        Some(ReliquaryScopeKind::Organization)
+    );
+    assert_eq!(
+        legacy.rel_metadata().type_label.as_deref(),
+        Some("Organization")
+    );
+}
+
+#[test]
+fn legacy_untyped_cva_opens_without_rewrite() {
     let path = test_path("legacy.cva");
     let legacy = Reliquary::create_legacy_cva(&path).unwrap();
     assert!(legacy.is_legacy_cva());
-    assert_eq!(legacy.scope_kind(), ReliquaryScopeKind::Project);
+    assert_eq!(legacy.legacy_scope_kind(), None);
     drop(legacy);
 
     let before = fs::read(&path).unwrap();
@@ -73,7 +119,6 @@ fn legacy_cva_opens_as_project_reliquary_without_rewrite() {
 
     let reopened = Reliquary::open(&path).unwrap();
     assert!(reopened.is_legacy_cva());
-    assert_eq!(reopened.scope_kind(), ReliquaryScopeKind::Project);
     drop(reopened);
 
     let after = fs::read(&path).unwrap();

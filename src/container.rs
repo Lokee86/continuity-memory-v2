@@ -26,6 +26,8 @@ pub enum FileKind {
     Phylactery,
 }
 
+/// Legacy typed-REL discriminator retained for opening and migrating older RELs.
+/// Current Reliquaries are homogeneous and store organizational type as metadata.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReliquaryScopeKind {
     Organization,
@@ -530,7 +532,7 @@ fn read_header(
 
 fn validate_identity(identity: ContainerIdentity) -> Result<(), ContainerError> {
     match (identity.file_kind, identity.scope) {
-        (FileKind::Reliquary, Some(_)) | (FileKind::Phylactery, None) => Ok(()),
+        (FileKind::Reliquary, _) | (FileKind::Phylactery, None) => Ok(()),
         _ => Err(ContainerError::InvalidIdentity),
     }
 }
@@ -538,6 +540,9 @@ fn validate_identity(identity: ContainerIdentity) -> Result<(), ContainerError> 
 fn owner_prefix(identity: ContainerIdentity) -> &'static str {
     match (identity.file_kind, identity.scope) {
         (FileKind::Phylactery, None) => "phy",
+        (FileKind::Reliquary, None) => "rel",
+        // Typed Reliquary prefixes are retained only so existing pre-generic
+        // REL identities remain stable while they are opened or migrated.
         (FileKind::Reliquary, Some(ReliquaryScopeKind::Project)) => "proj",
         (FileKind::Reliquary, Some(ReliquaryScopeKind::Organization)) => "org",
         (FileKind::Reliquary, Some(ReliquaryScopeKind::Connection)) => "con",

@@ -1,27 +1,34 @@
-use crate::args::{RelCommand, RelScopeArg};
+use crate::args::RelCommand;
 use crate::util::{file_len, hex32};
 use anyhow::Result;
-use reliquary_memory::{Reliquary, ReliquaryScopeKind};
+use reliquary_memory::Reliquary;
 
 pub fn run(command: RelCommand) -> Result<()> {
     match command {
-        RelCommand::Create { path, scope } => {
-            let rel = create(&path, scope)?;
+        RelCommand::Create { path, type_label } => {
+            let mut rel = Reliquary::create(&path)?;
+            if type_label.is_some() {
+                rel.set_rel_metadata(type_label, Vec::new())?;
+                rel.sync()?;
+            }
+            let metadata = rel.rel_metadata();
             println!(
-                "created REL: {} id={} scope={}",
+                "created REL: {} id={} type={}",
                 path.display(),
                 rel.owner_id().as_deref().unwrap_or("none"),
-                scope_name(scope)
+                metadata.type_label.as_deref().unwrap_or("none")
             );
         }
         RelCommand::Info { path } => info(&path)?,
         RelCommand::Verify { path } => {
             let rel = Reliquary::open(&path)?;
+            let metadata = rel.rel_metadata();
             println!(
-                "REL ok: {} id={} scope={} legacy_cva={} archive_version={} vector_version={}",
+                "REL ok: {} id={} type={} dependencies={} legacy_cva={} archive_version={} vector_version={}",
                 path.display(),
                 rel.owner_id().as_deref().unwrap_or("none"),
-                scope_kind_name(rel.scope_kind()),
+                metadata.type_label.as_deref().unwrap_or("none"),
+                metadata.dependencies.len(),
                 rel.is_legacy_cva(),
                 rel.archive_version(),
                 rel.vector_version()
@@ -29,14 +36,6 @@ pub fn run(command: RelCommand) -> Result<()> {
         }
     }
     Ok(())
-}
-
-fn create(path: &std::path::Path, scope: RelScopeArg) -> Result<Reliquary> {
-    Ok(match scope {
-        RelScopeArg::Organization => Reliquary::create_organization(path)?,
-        RelScopeArg::Project => Reliquary::create_project(path)?,
-        RelScopeArg::Connection => Reliquary::create_connection(path)?,
-    })
 }
 
 fn info(path: &std::path::Path) -> Result<()> {
@@ -53,7 +52,9 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("bytes: {}", file_len(path)?);
     println!("kind: reliquary");
     println!("id: {}", rel.owner_id().as_deref().unwrap_or("none"));
-    println!("scope: {}", scope_kind_name(rel.scope_kind()));
+    let metadata = rel.rel_metadata();
+    println!("type: {}", metadata.type_label.as_deref().unwrap_or("none"));
+    println!("dependencies: {}", metadata.dependencies.join(", "));
     println!("legacy_cva: {}", rel.is_legacy_cva());
     println!("archive_version: {}", rel.archive_version());
     println!("memory_version: {}", rel.memory_version());
@@ -100,20 +101,4 @@ fn info(path: &std::path::Path) -> Result<()> {
         }
     }
     Ok(())
-}
-
-fn scope_name(scope: RelScopeArg) -> &'static str {
-    match scope {
-        RelScopeArg::Organization => "organization",
-        RelScopeArg::Project => "project",
-        RelScopeArg::Connection => "connection",
-    }
-}
-
-fn scope_kind_name(scope: ReliquaryScopeKind) -> &'static str {
-    match scope {
-        ReliquaryScopeKind::Organization => "organization",
-        ReliquaryScopeKind::Project => "project",
-        ReliquaryScopeKind::Connection => "connection",
-    }
 }

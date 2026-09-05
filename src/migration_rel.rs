@@ -26,8 +26,35 @@ pub(super) fn migrate(
     let generations = source.vector_generations.generations().to_vec();
     let compactions = source.conversation_compactions.all_records();
     let echo = source.echo_records();
+    let metadata = source.rel_metadata();
 
-    let mut output = op(Cva::create_scope_with_uuid(output_path, scope, owner_uuid))?;
+    let mut output = op(Cva::create_rel_with_uuid(
+        output_path,
+        owner_uuid,
+        metadata.type_label.clone().or_else(|| {
+            Some(
+                match scope {
+                    ReliquaryScopeKind::Organization => "Organization",
+                    ReliquaryScopeKind::Project => "Project",
+                    ReliquaryScopeKind::Connection => "Connection",
+                }
+                .to_owned(),
+            )
+        }),
+    ))?;
+    op(output.set_rel_metadata(
+        metadata.type_label.or_else(|| {
+            Some(
+                match scope {
+                    ReliquaryScopeKind::Organization => "Organization",
+                    ReliquaryScopeKind::Project => "Project",
+                    ReliquaryScopeKind::Connection => "Connection",
+                }
+                .to_owned(),
+            )
+        }),
+        metadata.dependencies,
+    ))?;
     for profile in profiles {
         op(output
             .compatibility_profiles

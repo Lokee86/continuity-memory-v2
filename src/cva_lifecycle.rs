@@ -25,6 +25,7 @@ use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
+use crate::rel_metadata_store::RelMetadataStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Container, Cva, CvaError};
@@ -32,61 +33,70 @@ use std::path::Path;
 
 impl Cva {
     pub fn create(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::create_scope(path, crate::ReliquaryScopeKind::Project)
+        Self::create_rel(path, None)
     }
 
     pub fn create_project(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::create_scope(path, crate::ReliquaryScopeKind::Project)
+        Self::create_rel(path, Some("Project"))
     }
 
     pub fn create_organization(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::create_scope(path, crate::ReliquaryScopeKind::Organization)
+        Self::create_rel(path, Some("Organization"))
     }
 
     pub fn create_connection(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::create_scope(path, crate::ReliquaryScopeKind::Connection)
+        Self::create_rel(path, Some("Connection"))
     }
 
     pub fn open_project(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::open_scope(path, crate::ReliquaryScopeKind::Project)
+        Self::open(path)
     }
 
     pub fn open_organization(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::open_scope(path, crate::ReliquaryScopeKind::Organization)
+        Self::open(path)
     }
 
     pub fn open_connection(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::open_scope(path, crate::ReliquaryScopeKind::Connection)
+        Self::open(path)
     }
 
-    fn open_scope(
-        path: impl AsRef<Path>,
-        expected: crate::ReliquaryScopeKind,
-    ) -> Result<Self, CvaError> {
-        let cva = Self::open(path)?;
-        if cva.scope_kind() != expected {
-            return Err(CvaError::InvalidContainerIdentity(
-                "Reliquary scope kind does not match the requested API",
-            ));
-        }
-        Ok(cva)
-    }
-
-    pub(crate) fn create_scope(
-        path: impl AsRef<Path>,
-        scope: crate::ReliquaryScopeKind,
-    ) -> Result<Self, CvaError> {
+    fn create_rel(path: impl AsRef<Path>, type_label: Option<&str>) -> Result<Self, CvaError> {
         let container = Container::create_with_identity(
             path,
             crate::ContainerIdentity {
                 file_kind: crate::FileKind::Reliquary,
-                scope: Some(scope),
+                scope: None,
             },
         )?;
-        Self::initialize(container)
+        let mut cva = Self::initialize(container)?;
+        if let Some(type_label) = type_label {
+            cva.set_rel_metadata(Some(type_label.to_owned()), Vec::new())?;
+            cva.sync()?;
+        }
+        Ok(cva)
     }
 
-    pub(crate) fn create_scope_with_uuid(
+    pub(crate) fn create_rel_with_uuid(
+        path: impl AsRef<Path>,
+        owner_uuid: [u8; 16],
+        type_label: Option<String>,
+    ) -> Result<Self, CvaError> {
+        let container = Container::create_with_identity_and_uuid(
+            path,
+            crate::ContainerIdentity {
+                file_kind: crate::FileKind::Reliquary,
+                scope: None,
+            },
+            owner_uuid,
+        )?;
+        let mut cva = Self::initialize(container)?;
+        if type_label.is_some() {
+            cva.set_rel_metadata(type_label, Vec::new())?;
+        }
+        Ok(cva)
+    }
+
+    pub(crate) fn create_legacy_scope_with_uuid(
         path: impl AsRef<Path>,
         scope: crate::ReliquaryScopeKind,
         owner_uuid: [u8; 16],
@@ -138,6 +148,7 @@ impl Cva {
         let echo = EchoStore::default();
         let project_history = ProjectHistoryStore::default();
         let project_files = ProjectFileStore::default();
+        let rel_metadata = RelMetadataStore::default();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -167,6 +178,7 @@ impl Cva {
             echo,
             project_history,
             project_files,
+            rel_metadata,
         })
     }
 
@@ -186,6 +198,7 @@ impl Cva {
         let mut echo = EchoStore::default();
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
+        let mut rel_metadata = RelMetadataStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -202,6 +215,9 @@ impl Cva {
             echo.ingest(payload)?;
             project_history.ingest(payload)?;
             project_files.ingest(payload)?;
+            rel_metadata
+                .ingest(payload)
+                .map_err(CvaError::RelMetadata)?;
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()
@@ -254,6 +270,7 @@ impl Cva {
             echo,
             project_history,
             project_files,
+            rel_metadata,
         })
     }
 }

@@ -17,7 +17,12 @@ pub(crate) fn reconcile_diverged(
 ) -> Result<CvaReconcileResult, CvaReconcileError> {
     let mut left = Cva::open(left_path)?;
     let mut right = Cva::open(right_path)?;
-    let scope = left.scope_kind();
+    let legacy_scope = left.legacy_scope_kind();
+    let left_rel_metadata = left.rel_metadata();
+    let right_rel_metadata = right.rel_metadata();
+    if left_rel_metadata != right_rel_metadata {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner("REL metadata"));
+    }
     let owner_uuid = left
         .owner_uuid()
         .ok_or(CvaReconcileError::MissingOwnerId("left"))?;
@@ -50,7 +55,14 @@ pub(crate) fn reconcile_diverged(
     )?;
 
     let merge_result = (|| {
-        let mut output = Cva::create_scope_with_uuid(output_path, scope, owner_uuid)?;
+        let mut output = match legacy_scope {
+            Some(scope) => Cva::create_legacy_scope_with_uuid(output_path, scope, owner_uuid)?,
+            None => Cva::create_rel_with_uuid(output_path, owner_uuid, None)?,
+        };
+        output.set_rel_metadata(
+            left_rel_metadata.type_label.clone(),
+            left_rel_metadata.dependencies.clone(),
+        )?;
         replay_profiles(&mut output, left_profiles)?;
         replay_interaction_streams(&mut output, interaction_streams)?;
         replay_archive_tail(&mut output, &left_archive)?;

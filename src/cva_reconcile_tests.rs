@@ -1,6 +1,6 @@
 use crate::{
     Cva, CvaReconcileError, CvaRelation, EchoEvent, EchoEventKind, InteractionRole,
-    InteractionRuntime, InteractionStreamStatus, ReliquaryScopeKind,
+    InteractionRuntime, InteractionStreamStatus,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,16 +18,6 @@ fn test_dir() -> PathBuf {
 
 fn create_base(path: &Path) {
     Cva::create_project(path).unwrap().sync().unwrap();
-}
-
-fn create_base_scope(path: &Path, scope: ReliquaryScopeKind) {
-    let cva = match scope {
-        ReliquaryScopeKind::Organization => Cva::create_organization(path),
-        ReliquaryScopeKind::Project => Cva::create_project(path),
-        ReliquaryScopeKind::Connection => Cva::create_connection(path),
-    }
-    .unwrap();
-    cva.sync().unwrap();
 }
 
 #[test]
@@ -213,12 +203,19 @@ fn divergent_reconcile_preserves_echo_from_both_copies() {
 }
 
 #[test]
-fn divergent_reconcile_preserves_reliquary_scope() {
+fn divergent_reconcile_preserves_rel_metadata() {
     let dir = test_dir();
-    let left = dir.join("left.org.rel");
-    let right = dir.join("right.org.rel");
-    let output = dir.join("merged.org.rel");
-    create_base_scope(&left, ReliquaryScopeKind::Organization);
+    let left = dir.join("left.rel");
+    let right = dir.join("right.rel");
+    let output = dir.join("merged.rel");
+    let mut base = Cva::create(&left).unwrap();
+    base.set_rel_metadata(
+        Some("Program".into()),
+        vec!["rel-parent-a".into(), "rel-parent-b".into()],
+    )
+    .unwrap();
+    base.sync().unwrap();
+    drop(base);
     fs::copy(&left, &right).unwrap();
 
     for (path, id, content) in [
@@ -240,17 +237,21 @@ fn divergent_reconcile_preserves_reliquary_scope() {
 
     Cva::reconcile(&left, &right, &output).unwrap();
     let merged = Cva::open(&output).unwrap();
-    assert_eq!(merged.scope_kind(), ReliquaryScopeKind::Organization);
+    assert_eq!(merged.rel_metadata().type_label.as_deref(), Some("Program"));
+    assert_eq!(
+        merged.rel_metadata().dependencies,
+        vec!["rel-parent-a".to_string(), "rel-parent-b".to_string()]
+    );
     assert!(!merged.is_legacy_cva());
 }
 
 #[test]
-fn compare_rejects_different_reliquary_scopes() {
+fn compare_rejects_different_reliquary_owners_regardless_of_type_label() {
     let dir = test_dir();
-    let left = dir.join("left.prj.rel");
-    let right = dir.join("right.org.rel");
-    create_base_scope(&left, ReliquaryScopeKind::Project);
-    create_base_scope(&right, ReliquaryScopeKind::Organization);
+    let left = dir.join("left.rel");
+    let right = dir.join("right.rel");
+    Cva::create_project(&left).unwrap();
+    Cva::create_organization(&right).unwrap();
 
     assert!(matches!(
         Cva::compare(&left, &right),

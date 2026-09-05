@@ -250,6 +250,41 @@ impl ReliquaryRuntimeHost {
         self.wake()
     }
 
+    pub fn rel_metadata(&self) -> Result<crate::RelMetadata, ReliquaryRuntimeHostError> {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        Ok(runtime.cva.rel_metadata())
+    }
+
+    pub fn set_rel_metadata(
+        &self,
+        type_label: Option<String>,
+        dependencies: Vec<String>,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let mut runtime = self
+            .runtime
+            .as_ref()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        let changed = runtime
+            .cva
+            .set_rel_metadata(type_label, dependencies)
+            .map_err(operation)?;
+        if changed {
+            runtime.cva.sync().map_err(operation)?;
+        }
+        Ok(changed)
+    }
+
     pub fn has_phylactery(&self) -> Result<bool, ReliquaryRuntimeHostError> {
         self.phylactery
             .lock()

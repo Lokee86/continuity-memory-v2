@@ -14,6 +14,7 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
+use crate::rel_metadata_store::RelMetadataStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container,
@@ -41,14 +42,61 @@ pub struct Cva {
     pub(crate) echo: EchoStore,
     pub(crate) project_history: ProjectHistoryStore,
     pub(crate) project_files: ProjectFileStore,
+    pub(crate) rel_metadata: RelMetadataStore,
 }
 
 impl Cva {
-    pub fn scope_kind(&self) -> crate::ReliquaryScopeKind {
+    pub fn legacy_scope_kind(&self) -> Option<crate::ReliquaryScopeKind> {
         self.container
             .identity()
             .and_then(|identity| identity.scope)
-            .unwrap_or(crate::ReliquaryScopeKind::Project)
+    }
+
+    pub fn rel_metadata(&self) -> crate::RelMetadata {
+        if let Some(metadata) = self.rel_metadata.current() {
+            return metadata.clone();
+        }
+        crate::RelMetadata {
+            type_label: self.legacy_scope_kind().map(|scope| match scope {
+                crate::ReliquaryScopeKind::Organization => "Organization".to_owned(),
+                crate::ReliquaryScopeKind::Project => "Project".to_owned(),
+                crate::ReliquaryScopeKind::Connection => "Connection".to_owned(),
+            }),
+            dependencies: Vec::new(),
+        }
+    }
+
+    pub fn set_rel_metadata(
+        &mut self,
+        type_label: Option<String>,
+        mut dependencies: Vec<String>,
+    ) -> Result<bool, CvaError> {
+        let type_label = type_label.and_then(|value| {
+            let trimmed = value.trim();
+            (!trimmed.is_empty()).then(|| trimmed.to_owned())
+        });
+        dependencies = dependencies
+            .into_iter()
+            .map(|value| value.trim().to_owned())
+            .collect();
+        dependencies.sort();
+        dependencies.dedup();
+        if let Some(owner_id) = self.owner_id()
+            && dependencies
+                .iter()
+                .any(|dependency| dependency == &owner_id)
+        {
+            return Err(CvaError::RelMetadata(
+                "a REL cannot depend on itself".into(),
+            ));
+        }
+        let metadata = crate::RelMetadata {
+            type_label,
+            dependencies,
+        };
+        self.rel_metadata
+            .put(&mut self.container, metadata)
+            .map_err(CvaError::RelMetadata)
     }
 
     pub fn is_legacy_cva(&self) -> bool {
@@ -412,11 +460,6 @@ impl Cva {
         project_revision: crate::ProjectRevisionRef,
         repository_management: crate::ProjectRepositoryManagement,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
-        if self.scope_kind() != crate::ReliquaryScopeKind::Project {
-            return Err(CvaError::ProjectHistory(
-                "project revision correlation is only valid for Project Reliquaries".into(),
-            ));
-        }
         let rel_cut = self.current_rel_semantic_cut();
         self.project_history.put(
             &mut self.container,
@@ -441,11 +484,6 @@ impl Cva {
         byte_length: u64,
         reference: crate::ProjectFileRef,
     ) -> Result<StoredFile, CvaError> {
-        if self.scope_kind() != crate::ReliquaryScopeKind::Project {
-            return Err(CvaError::ProjectFile(
-                "project file binding is only valid for Project Reliquaries".into(),
-            ));
-        }
         let content_hash = reference.content_hash.ok_or_else(|| {
             CvaError::ProjectFile("project-backed attachments require a content hash".into())
         })?;

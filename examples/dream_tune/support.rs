@@ -1,6 +1,4 @@
-use reliquary_memory::{
-    CompatibilityProfileId, Cva, DreamCandidateConfig, ReliquaryScopeKind, migrate_file,
-};
+use reliquary_memory::{CompatibilityProfileId, Cva, DreamCandidateConfig, migrate_file};
 use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::error::Error;
@@ -11,18 +9,9 @@ pub fn prepare_run_rel(baseline_path: &Path, output_dir: &Path) -> Result<PathBu
     fs::create_dir_all(output_dir)?;
     let baseline = Cva::open(baseline_path)?;
     let is_legacy = baseline.is_legacy_cva();
-    let run_name = if is_legacy {
-        "dream-run.prj.rel"
-    } else {
-        match baseline.scope_kind() {
-            ReliquaryScopeKind::Organization => "dream-run.org.rel",
-            ReliquaryScopeKind::Project => "dream-run.prj.rel",
-            ReliquaryScopeKind::Connection => "dream-run.con.rel",
-        }
-    };
     drop(baseline);
 
-    let run_path = output_dir.join(run_name);
+    let run_path = output_dir.join("dream-run.rel");
     if run_path.exists() {
         return Err(format!("run REL already exists: {}", run_path.display()).into());
     }

@@ -1,6 +1,4 @@
-use crate::args::{
-    Cli, Command, InsomniaCommand, PhyCommand, RelCommand, RelScopeArg, VectorsCommand,
-};
+use crate::args::{Cli, Command, InsomniaCommand, PhyCommand, RelCommand, VectorsCommand};
 use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand, ReasoningArg};
 use clap::Parser;
 
@@ -38,24 +36,24 @@ fn legacy_cva_command_remains_an_alias() {
 }
 
 #[test]
-fn rel_create_accepts_scope_kind() {
+fn rel_create_accepts_arbitrary_type_label() {
     let cli = Cli::try_parse_from([
         "reliquary",
         "rel",
         "create",
-        "acme.org.rel",
-        "--scope",
-        "organization",
+        "acme.rel",
+        "--type",
+        "Program Office",
     ])
     .unwrap();
     assert!(matches!(
         cli.command,
         Command::Rel {
             command: RelCommand::Create {
-                scope: RelScopeArg::Organization,
+                type_label: Some(label),
                 ..
             }
-        }
+        } if label == "Program Office"
     ));
 }
 

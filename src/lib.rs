@@ -218,6 +218,9 @@ mod project_file_binding_store;
 mod project_history_codec;
 mod project_history_model;
 mod project_history_store;
+mod rel_metadata_codec;
+mod rel_metadata_model;
+mod rel_metadata_store;
 mod runtime_host;
 mod runtime_vector_step;
 mod search;
@@ -414,6 +417,9 @@ pub use phylactery_error::PhylacteryError;
 pub use project_history_model::{
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
+};
+pub use rel_metadata_model::{
+    MAX_REL_DEPENDENCIES, MAX_REL_DEPENDENCY_ID_BYTES, MAX_REL_TYPE_LABEL_BYTES, RelMetadata,
 };
 pub use runtime_host::memory_search::{
     MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,

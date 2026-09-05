@@ -1,5 +1,5 @@
 use crate::config_args::ConfigCommand;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -66,8 +66,8 @@ pub enum Command {
 pub enum RelCommand {
     Create {
         path: PathBuf,
-        #[arg(long, value_enum, default_value_t = RelScopeArg::Project)]
-        scope: RelScopeArg,
+        #[arg(long = "type", value_name = "LABEL")]
+        type_label: Option<String>,
     },
     Info {
         path: PathBuf,
@@ -82,13 +82,6 @@ pub enum PhyCommand {
     Create { path: PathBuf },
     Info { path: PathBuf },
     Verify { path: PathBuf },
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
-pub enum RelScopeArg {
-    Organization,
-    Project,
-    Connection,
 }
 
 #[derive(Subcommand, Debug)]
