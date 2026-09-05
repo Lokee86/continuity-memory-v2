@@ -1,4 +1,5 @@
 use super::{ReliquaryRuntimeHostError, Shared, operation};
+use crate::dream_cooldown::unix_now_ns;
 use crate::{
     CompatibilityProfileId, DreamCandidateConfig, DreamCandidateSet, DreamPairClassification,
     DreamPairVerification, DreamVerificationPolicy, MemoryId,
@@ -9,6 +10,7 @@ use std::time::Instant;
 pub(super) struct DreamSnapshot {
     pub(super) candidates: DreamCandidateSet,
     graph_version: u64,
+    dream_epoch: u64,
 }
 
 pub(super) fn prepare_project(
@@ -21,14 +23,18 @@ pub(super) fn prepare_project(
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     let now = Instant::now();
+    let now_ns = unix_now_ns();
     for id in runtime.cva.memory_ids() {
         if cooldowns.get(&id).is_some_and(|until| *until > now) {
             continue;
         }
-        let memory = runtime.cva.memory(id).map_err(operation)?;
-        if memory.archived || memory.lifecycle_state != "extracted" {
+        let Some(dream_epoch) = runtime
+            .cva
+            .dream_eligible_epoch(id, now_ns)
+            .map_err(operation)?
+        else {
             continue;
-        }
+        };
         let body_id = runtime.cva.memory_body_id(id).map_err(operation)?;
         if runtime
             .cva
@@ -44,6 +50,7 @@ pub(super) fn prepare_project(
         return Ok(Some(DreamSnapshot {
             candidates,
             graph_version: runtime.cva.graph_version(),
+            dream_epoch,
         }));
     }
     Ok(None)
@@ -62,14 +69,14 @@ pub(super) fn prepare_user(
         return Ok(None);
     };
     let now = Instant::now();
+    let now_ns = unix_now_ns();
     for id in phy.memory_ids() {
         if cooldowns.get(&id).is_some_and(|until| *until > now) {
             continue;
         }
-        let memory = phy.memory(id).map_err(operation)?;
-        if memory.archived || memory.lifecycle_state != "extracted" {
+        let Some(dream_epoch) = phy.dream_eligible_epoch(id, now_ns).map_err(operation)? else {
             continue;
-        }
+        };
         let body_id = phy.memory_body_id(id).map_err(operation)?;
         if phy.memory_vector_location(profile_id, body_id).is_none() {
             continue;
@@ -80,6 +87,7 @@ pub(super) fn prepare_user(
         return Ok(Some(DreamSnapshot {
             candidates,
             graph_version: phy.graph_version(),
+            dream_epoch,
         }));
     }
     Ok(None)
@@ -112,9 +120,14 @@ pub(super) fn commit_project(
             )
             .map_err(operation)?;
     }
+    let source_id = snapshot.candidates.source.memory.id;
     runtime
         .cva
-        .reconcile_dream_lifecycle(snapshot.candidates.source.memory.id)
+        .reconcile_dream_lifecycle(source_id)
+        .map_err(operation)?;
+    runtime
+        .cva
+        .mark_dream_epoch(source_id, snapshot.dream_epoch)
         .map_err(operation)?;
     runtime.cva.sync().map_err(operation)?;
     Ok(true)
@@ -148,7 +161,10 @@ pub(super) fn commit_user(
         )
         .map_err(operation)?;
     }
-    phy.reconcile_dream_lifecycle(snapshot.candidates.source.memory.id)
+    let source_id = snapshot.candidates.source.memory.id;
+    phy.reconcile_dream_lifecycle(source_id)
+        .map_err(operation)?;
+    phy.mark_dream_epoch(source_id, snapshot.dream_epoch)
         .map_err(operation)?;
     phy.sync().map_err(operation)?;
     Ok(true)

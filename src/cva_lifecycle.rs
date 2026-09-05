@@ -8,6 +8,7 @@ use crate::conversation_compaction_store::{
     ConversationCompactionOpenState, ConversationCompactionStore,
 };
 use crate::cva_global_validation::validate_semantic_global_versions;
+use crate::dream_cooldown::DreamCooldownStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::echo_store::EchoStore;
 use crate::file_memory_link_store::validate_file_memory_targets;
@@ -136,6 +137,7 @@ impl Cva {
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();
         let communities = CommunityStore::default();
+        let dream_cooldowns = DreamCooldownStore::default();
         let insomnia = InsomniaStore::empty();
         let lexical_index = LexicalIndex::default();
         let packed_vectors = PackedVectorStore::default();
@@ -164,6 +166,7 @@ impl Cva {
             archive,
             memories,
             duplicate_index: DuplicateIndex::empty(),
+            dream_cooldowns,
             graph,
             communities,
             insomnia,
@@ -199,6 +202,7 @@ impl Cva {
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
         let mut rel_metadata = RelMetadataStore::default();
+        let mut dream_cooldowns = DreamCooldownStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
@@ -218,6 +222,7 @@ impl Cva {
             rel_metadata
                 .ingest(payload)
                 .map_err(CvaError::RelMetadata)?;
+            dream_cooldowns.ingest(payload)?;
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()
@@ -231,6 +236,7 @@ impl Cva {
         archive.validate_references(&project_files)?;
         let memories = memory_state.finish()?;
         memories.validate_provenance(&archive)?;
+        dream_cooldowns.validate(&memories)?;
         validate_file_memory_targets(&archive, &memories)?;
         let graph = graph_state.finish(&memories)?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
@@ -256,6 +262,7 @@ impl Cva {
             archive,
             memories,
             duplicate_index: DuplicateIndex::empty(),
+            dream_cooldowns,
             graph,
             communities,
             insomnia,

@@ -1,3 +1,4 @@
+use crate::dream_cooldown::unix_now_ns;
 use crate::{
     DEFAULT_DREAM_FRONTIER_SIZE, DEFAULT_DREAM_INFERENCE_CONCURRENCY, DreamCandidateConfig,
     DreamProcessError, DreamProcessor, DreamVerificationPolicy, EmbeddingEndpoint, GeneralEndpoint,
@@ -127,7 +128,8 @@ impl InteractionRuntime {
             embedding_endpoint,
             config.insomnia,
         )?;
-        let pending = pending_dream_memories(&mut self.cva)?;
+        let dream_now_ns = unix_now_ns();
+        let pending = pending_dream_memories_at(&mut self.cva, dream_now_ns)?;
         if pending.is_empty() {
             self.cva.sync().map_err(RuntimeBackgroundError::Sync)?;
             return Ok(RuntimeBackgroundResult {
@@ -142,10 +144,11 @@ impl InteractionRuntime {
         let profile_id = insomnia
             .memory_vector_profile_id
             .ok_or(RuntimeBackgroundError::MissingMemoryVectorProfile)?;
-        let attempted_ids: Vec<_> = pending
+        let attempted: Vec<_> = pending
             .into_iter()
             .take(config.max_dream_memories)
             .collect();
+        let attempted_ids: Vec<_> = attempted.iter().map(|(id, _)| *id).collect();
         let mut completed = Vec::new();
         let mut failures = Vec::new();
         let outcomes = dream_processor
@@ -162,12 +165,20 @@ impl InteractionRuntime {
 
         for outcome in outcomes {
             match outcome.result {
-                Ok(result) => completed.push(RuntimeDreamCompletion {
-                    memory_id: outcome.memory_id,
-                    candidate_count: result.candidate_count,
-                    lifecycle_state: result.source.lifecycle_state,
-                    archived: result.source.archived,
-                }),
+                Ok(result) => {
+                    if let Some((_, epoch)) = attempted
+                        .iter()
+                        .find(|(memory_id, _)| *memory_id == outcome.memory_id)
+                    {
+                        self.cva.mark_dream_epoch(outcome.memory_id, *epoch)?;
+                    }
+                    completed.push(RuntimeDreamCompletion {
+                        memory_id: outcome.memory_id,
+                        candidate_count: result.candidate_count,
+                        lifecycle_state: result.source.lifecycle_state,
+                        archived: result.source.archived,
+                    });
+                }
                 Err(
                     error @ (DreamProcessError::Classification(_)
                     | DreamProcessError::Verification(_)),
@@ -183,7 +194,7 @@ impl InteractionRuntime {
         }
 
         self.cva.sync().map_err(RuntimeBackgroundError::Sync)?;
-        let remaining = pending_dream_memories(&mut self.cva)?.len();
+        let remaining = pending_dream_memories_at(&mut self.cva, dream_now_ns)?.len();
         Ok(RuntimeBackgroundResult {
             insomnia,
             dream_attempted: attempted_ids.len(),
@@ -194,13 +205,15 @@ impl InteractionRuntime {
     }
 }
 
-fn pending_dream_memories(cva: &mut crate::Cva) -> Result<Vec<MemoryId>, MemoryError> {
+fn pending_dream_memories_at(
+    cva: &mut crate::Cva,
+    now_ns: i64,
+) -> Result<Vec<(MemoryId, u64)>, MemoryError> {
     let ids = cva.memories.current_ids();
     let mut pending = Vec::new();
     for id in ids {
-        let memory = cva.memory(id)?;
-        if !memory.archived && memory.lifecycle_state == "extracted" {
-            pending.push(id);
+        if let Some(epoch) = cva.dream_eligible_epoch(id, now_ns)? {
+            pending.push((id, epoch));
         }
     }
     Ok(pending)

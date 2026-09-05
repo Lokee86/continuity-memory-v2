@@ -1,5 +1,6 @@
 use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
+use crate::dream_cooldown::DreamCooldownStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
@@ -16,6 +17,7 @@ pub struct Phylactery {
     pub(crate) graph: GraphStore,
     pub(crate) communities: CommunityStore,
     pub(crate) duplicate_index: DuplicateIndex,
+    pub(crate) dream_cooldowns: DreamCooldownStore,
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,

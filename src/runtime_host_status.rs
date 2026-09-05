@@ -1,4 +1,5 @@
 use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
+use crate::dream_cooldown::unix_now_ns;
 use crate::{InsomniaStats, MemoryStats, MemoryVectorStats};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -105,6 +106,11 @@ trait MemoryOwner {
         profile: crate::CompatibilityProfileId,
         body: crate::MemoryBodyId,
     ) -> Option<crate::MemoryVectorLocation>;
+    fn dream_eligible_epoch(
+        &mut self,
+        id: crate::MemoryId,
+        now_ns: i64,
+    ) -> Result<Option<u64>, String>;
 }
 
 impl MemoryOwner for crate::Cva {
@@ -122,6 +128,14 @@ impl MemoryOwner for crate::Cva {
         body: crate::MemoryBodyId,
     ) -> Option<crate::MemoryVectorLocation> {
         crate::Cva::memory_vector_location(self, profile, body)
+    }
+
+    fn dream_eligible_epoch(
+        &mut self,
+        id: crate::MemoryId,
+        now_ns: i64,
+    ) -> Result<Option<u64>, String> {
+        crate::Cva::dream_eligible_epoch(self, id, now_ns).map_err(|error| error.to_string())
     }
 }
 
@@ -141,6 +155,14 @@ impl MemoryOwner for crate::Phylactery {
     ) -> Option<crate::MemoryVectorLocation> {
         crate::Phylactery::memory_vector_location(self, profile, body)
     }
+
+    fn dream_eligible_epoch(
+        &mut self,
+        id: crate::MemoryId,
+        now_ns: i64,
+    ) -> Result<Option<u64>, String> {
+        crate::Phylactery::dream_eligible_epoch(self, id, now_ns).map_err(|error| error.to_string())
+    }
 }
 
 fn owner_pending<O: MemoryOwner>(
@@ -150,6 +172,7 @@ fn owner_pending<O: MemoryOwner>(
 ) -> Result<(usize, usize), ReliquaryRuntimeHostError> {
     let mut vector_pending = 0;
     let mut dream_pending = 0;
+    let now_ns = unix_now_ns();
     for id in ids {
         let memory = owner.memory(*id).map_err(operation)?;
         if memory.archived {
@@ -164,7 +187,11 @@ fn owner_pending<O: MemoryOwner>(
         };
         if !has_vector {
             vector_pending += 1;
-        } else if memory.lifecycle_state == "extracted" {
+        } else if owner
+            .dream_eligible_epoch(*id, now_ns)
+            .map_err(operation)?
+            .is_some()
+        {
             dream_pending += 1;
         }
     }

@@ -95,6 +95,7 @@ mod dream_classifier;
 mod dream_classifier_error;
 mod dream_classifier_model;
 mod dream_classifier_schema;
+mod dream_cooldown;
 mod dream_duplicate_index;
 mod dream_lifecycle;
 mod dream_lifecycle_error;
@@ -299,6 +300,7 @@ pub use dream_classifier_model::{
     DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
 };
 pub use dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use dream_cooldown::DEFAULT_DREAM_REPROCESS_COOLDOWN_NS;
 pub use dream_lifecycle_error::DreamLifecycleError;
 pub use dream_lifecycle_model::DreamLifecycleResult;
 pub use dream_processor::DreamProcessor;
@@ -533,6 +535,8 @@ mod dream_canonical_test_support;
 mod dream_canonical_tests;
 #[cfg(test)]
 mod dream_classifier_tests;
+#[cfg(test)]
+mod dream_cooldown_tests;
 #[cfg(test)]
 mod dream_duplicate_tests;
 #[cfg(test)]
