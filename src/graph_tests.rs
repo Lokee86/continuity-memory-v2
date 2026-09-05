@@ -1,6 +1,6 @@
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
-    GraphRelationChange, GraphRelationKind, MemoryDraft, MemoryId,
+    GraphRelationChange, GraphRelationKind, GraphRelationOrigin, MemoryDraft, MemoryId,
 };
 use std::{
     fs,
@@ -104,6 +104,11 @@ fn graph_is_oriented_traversable_retractable_and_reopenable() {
             .is_none()
     );
     assert_eq!(cva.graph_version(), 2);
+    assert!(
+        cva.graph_relations()
+            .iter()
+            .all(|relation| relation.origin == GraphRelationOrigin::Dream)
+    );
     assert_eq!(
         cva.graph_neighbors(a, GraphDirection::Outgoing).unwrap()[0].memory_id,
         b
@@ -137,6 +142,57 @@ fn graph_is_oriented_traversable_retractable_and_reopenable() {
             .unwrap()
             .is_empty()
     );
+}
+
+#[test]
+fn relation_origin_can_be_user_authored_and_survives_reopen() {
+    let file = path("origin.cva");
+    let mut cva = Cva::create(&file).unwrap();
+    let ep = episode(&mut cva);
+    let a = memory(&mut cva, &ep, "a");
+    let b = memory(&mut cva, &ep, "b");
+
+    let dream = cva
+        .set_memory_relation(a, b, GraphRelationKind::Factual, true, 0)
+        .unwrap()
+        .unwrap();
+    assert_eq!(dream.origin, GraphRelationOrigin::Dream);
+
+    let user = cva
+        .set_memory_relation_with_origin(
+            a,
+            b,
+            GraphRelationKind::Factual,
+            true,
+            GraphRelationOrigin::User,
+            1,
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(user.origin, GraphRelationOrigin::User);
+    assert_eq!(cva.graph_version(), 2);
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(&file).unwrap();
+    let relation = reopened.graph_relations().into_iter().next().unwrap();
+    assert_eq!(relation.origin, GraphRelationOrigin::User);
+    assert_eq!(reopened.graph_stats().relation_mutations, 2);
+}
+
+#[test]
+fn legacy_relation_payload_defaults_origin_to_dream() {
+    let mut bytes = [0_u8; 75];
+    bytes[..8].copy_from_slice(b"CVAGMUT1");
+    bytes[8..40].copy_from_slice(&[1; 32]);
+    bytes[40..72].copy_from_slice(&[2; 32]);
+    bytes[72..74].copy_from_slice(&GraphRelationKind::Factual.code().to_le_bytes());
+    bytes[74] = 1;
+
+    let decoded = crate::graph_codec::decode_mutation(&bytes)
+        .unwrap()
+        .unwrap();
+    assert_eq!(decoded.origin, GraphRelationOrigin::Dream);
 }
 
 #[test]

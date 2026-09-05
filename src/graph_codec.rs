@@ -1,4 +1,4 @@
-use crate::{GraphError, GraphRelationKind, MemoryId, ObjectRef};
+use crate::{GraphError, GraphRelationKind, GraphRelationOrigin, MemoryId, ObjectRef};
 use arcana::NodeId;
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAGFMT1";
@@ -20,6 +20,7 @@ pub(crate) struct GraphMutationPayload {
     pub target: MemoryId,
     pub kind: GraphRelationKind,
     pub active: bool,
+    pub origin: GraphRelationOrigin,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -67,13 +68,14 @@ pub(crate) fn decode_node(bytes: &[u8]) -> Result<Option<GraphNodePayload>, Grap
     }))
 }
 
-pub(crate) fn encode_mutation(mutation: GraphMutationPayload) -> [u8; 75] {
-    let mut out = [0_u8; 75];
+pub(crate) fn encode_mutation(mutation: GraphMutationPayload) -> [u8; 76] {
+    let mut out = [0_u8; 76];
     out[..8].copy_from_slice(MUTATION_MAGIC);
     out[8..40].copy_from_slice(&mutation.source.0);
     out[40..72].copy_from_slice(&mutation.target.0);
     out[72..74].copy_from_slice(&mutation.kind.code().to_le_bytes());
     out[74] = u8::from(mutation.active);
+    out[75] = mutation.origin.code();
     out
 }
 
@@ -81,14 +83,16 @@ pub(crate) fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayloa
     if !bytes.starts_with(MUTATION_MAGIC) {
         return Ok(None);
     }
-    if bytes.len() != 75 || bytes[74] > 1 {
-        return Err(GraphError::CorruptRecord("relationship mutation"));
-    }
-    Ok(Some(decode_mutation_body(bytes, 8)?))
+    let has_origin = match bytes.len() {
+        75 => false,
+        76 => true,
+        _ => return Err(GraphError::CorruptRecord("relationship mutation")),
+    };
+    Ok(Some(decode_mutation_body(bytes, 8, has_origin)?))
 }
 
 pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(12 + mutations.len() * 67);
+    let mut out = Vec::with_capacity(12 + mutations.len() * 68);
     out.extend_from_slice(BATCH_MAGIC);
     out.extend_from_slice(&(mutations.len() as u32).to_le_bytes());
     for mutation in mutations {
@@ -96,6 +100,7 @@ pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
         out.extend_from_slice(&mutation.target.0);
         out.extend_from_slice(&mutation.kind.code().to_le_bytes());
         out.push(u8::from(mutation.active));
+        out.push(mutation.origin.code());
     }
     out
 }
@@ -108,24 +113,46 @@ pub(crate) fn decode_batch(bytes: &[u8]) -> Result<Option<Vec<GraphMutationPaylo
         return Err(GraphError::CorruptRecord("relationship batch"));
     }
     let count = read_u32(bytes, 8)? as usize;
-    let expected = 12_usize
+    if count == 0 {
+        return Err(GraphError::CorruptRecord("relationship batch"));
+    }
+    let legacy_expected = 12_usize
         .checked_add(
             count
                 .checked_mul(67)
                 .ok_or(GraphError::CorruptRecord("relationship batch"))?,
         )
         .ok_or(GraphError::CorruptRecord("relationship batch"))?;
-    if count == 0 || bytes.len() != expected {
+    let current_expected = 12_usize
+        .checked_add(
+            count
+                .checked_mul(68)
+                .ok_or(GraphError::CorruptRecord("relationship batch"))?,
+        )
+        .ok_or(GraphError::CorruptRecord("relationship batch"))?;
+    let (stride, has_origin) = if bytes.len() == current_expected {
+        (68, true)
+    } else if bytes.len() == legacy_expected {
+        (67, false)
+    } else {
         return Err(GraphError::CorruptRecord("relationship batch"));
-    }
+    };
     let mut mutations = Vec::with_capacity(count);
     for index in 0..count {
-        mutations.push(decode_mutation_body(bytes, 12 + index * 67)?);
+        mutations.push(decode_mutation_body(
+            bytes,
+            12 + index * stride,
+            has_origin,
+        )?);
     }
     Ok(Some(mutations))
 }
 
-fn decode_mutation_body(bytes: &[u8], offset: usize) -> Result<GraphMutationPayload, GraphError> {
+fn decode_mutation_body(
+    bytes: &[u8],
+    offset: usize,
+    has_origin: bool,
+) -> Result<GraphMutationPayload, GraphError> {
     let active_offset = offset + 66;
     if bytes
         .get(active_offset)
@@ -136,6 +163,16 @@ fn decode_mutation_body(bytes: &[u8], offset: usize) -> Result<GraphMutationPayl
     }
     let code = read_u16(bytes, offset + 64)?;
     let kind = GraphRelationKind::from_code(code).ok_or(GraphError::UnknownRelationKind(code))?;
+    let origin = if has_origin {
+        let code = bytes
+            .get(offset + 67)
+            .copied()
+            .ok_or(GraphError::CorruptRecord("relationship mutation"))?;
+        GraphRelationOrigin::from_code(code)
+            .ok_or(GraphError::CorruptRecord("relationship mutation"))?
+    } else {
+        GraphRelationOrigin::Dream
+    };
     Ok(GraphMutationPayload {
         source: MemoryId(
             bytes[offset..offset + 32]
@@ -149,6 +186,7 @@ fn decode_mutation_body(bytes: &[u8], offset: usize) -> Result<GraphMutationPayl
         ),
         kind,
         active: bytes[active_offset] != 0,
+        origin,
     })
 }
 

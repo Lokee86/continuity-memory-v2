@@ -343,7 +343,7 @@ pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
 pub use graph_model::{
     GraphDirection, GraphNeighbor, GraphRelation, GraphRelationChange, GraphRelationKind,
-    GraphStats, MemoryGraphPath,
+    GraphRelationOrigin, GraphStats, MemoryGraphPath,
 };
 pub use insomnia::{
     DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS, DEFAULT_INSOMNIA_LEASE_NS,

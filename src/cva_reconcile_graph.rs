@@ -1,6 +1,7 @@
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
 use crate::{
-    Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationChange, GraphRelationKind, MemoryId,
+    Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationChange, GraphRelationKind,
+    GraphRelationOrigin, MemoryId,
 };
 use std::collections::HashMap;
 
@@ -11,14 +12,28 @@ struct GraphKey {
     kind: GraphRelationKind,
 }
 
+#[derive(Clone, Debug)]
+struct GraphTailTransaction {
+    changes: Vec<GraphRelationChange>,
+    origin: GraphRelationOrigin,
+}
+
 pub(crate) struct GraphTail {
-    transactions: Vec<Vec<GraphRelationChange>>,
+    transactions: Vec<GraphTailTransaction>,
 }
 
 #[cfg(test)]
 impl GraphTail {
     pub(crate) fn for_test(transactions: Vec<Vec<GraphRelationChange>>) -> Self {
-        Self { transactions }
+        Self {
+            transactions: transactions
+                .into_iter()
+                .map(|changes| GraphTailTransaction {
+                    changes,
+                    origin: GraphRelationOrigin::Dream,
+                })
+                .collect(),
+        }
     }
 }
 
@@ -47,8 +62,15 @@ pub(crate) fn read_graph_tail(
         } else {
             return Err(CvaReconcileError::InvalidGraphVersionRecord);
         };
-        transactions.push(
-            mutations
+        let origin = mutations
+            .first()
+            .map(|mutation| mutation.origin)
+            .ok_or(CvaReconcileError::InvalidGraphVersionRecord)?;
+        if mutations.iter().any(|mutation| mutation.origin != origin) {
+            return Err(CvaReconcileError::InvalidGraphVersionRecord);
+        }
+        transactions.push(GraphTailTransaction {
+            changes: mutations
                 .into_iter()
                 .map(|mutation| GraphRelationChange {
                     source: mutation.source,
@@ -57,7 +79,8 @@ pub(crate) fn read_graph_tail(
                     active: mutation.active,
                 })
                 .collect(),
-        );
+            origin,
+        });
     }
     Ok(GraphTail { transactions })
 }
@@ -108,8 +131,8 @@ fn replay_skips(
                     source: key.source,
                     target: key.target,
                     relation_kind: key.kind,
-                    left_states: left_states.clone(),
-                    right_states,
+                    left_states: left_states.iter().map(|(active, _)| *active).collect(),
+                    right_states: right_states.iter().map(|(active, _)| *active).collect(),
                 },
             ));
         }
@@ -130,8 +153,8 @@ fn replay_with_skips(
     let mut mutations = 0;
     let mut duplicate_mutations = 0;
     for transaction in &tail.transactions {
-        let mut changes = Vec::with_capacity(transaction.len());
-        for change in transaction {
+        let mut changes = Vec::with_capacity(transaction.changes.len());
+        for change in &transaction.changes {
             let key = key(*change);
             let occurrence = seen.entry(key).or_default();
             if *occurrence < skips.get(&key).copied().unwrap_or(0) {
@@ -144,7 +167,11 @@ fn replay_with_skips(
         if changes.is_empty() {
             continue;
         }
-        let published = destination.set_memory_relations(&changes, destination.graph_version())?;
+        let published = destination.set_memory_relations_with_origin(
+            &changes,
+            transaction.origin,
+            destination.graph_version(),
+        )?;
         duplicate_mutations += changes.len().saturating_sub(published.len());
         if !published.is_empty() {
             transactions += 1;
@@ -158,14 +185,14 @@ fn replay_with_skips(
     })
 }
 
-fn sequences(tail: &GraphTail) -> HashMap<GraphKey, Vec<bool>> {
-    let mut sequences = HashMap::<GraphKey, Vec<bool>>::new();
+fn sequences(tail: &GraphTail) -> HashMap<GraphKey, Vec<(bool, GraphRelationOrigin)>> {
+    let mut sequences = HashMap::<GraphKey, Vec<(bool, GraphRelationOrigin)>>::new();
     for transaction in &tail.transactions {
-        for change in transaction {
+        for change in &transaction.changes {
             sequences
                 .entry(key(*change))
                 .or_default()
-                .push(change.active);
+                .push((change.active, transaction.origin));
         }
     }
     sequences

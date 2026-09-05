@@ -123,6 +123,7 @@ impl GraphOpenState {
                 target: mutation.target,
                 kind: mutation.kind,
                 active: mutation.active,
+                origin: mutation.origin,
                 global_version: version.global_version,
                 graph_version: version.graph_version,
             });

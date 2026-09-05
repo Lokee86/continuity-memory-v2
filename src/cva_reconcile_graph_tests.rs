@@ -1,7 +1,7 @@
 use crate::cva_reconcile_graph_test_support::{
     create_workspace, diverge_archive, has_relation, publish_memory, set, test_dir,
 };
-use crate::{Cva, GraphRelationChange, GraphRelationKind};
+use crate::{Cva, GraphRelationChange, GraphRelationKind, GraphRelationOrigin};
 use std::fs;
 
 #[test]
@@ -52,6 +52,39 @@ fn reconcile_merges_disjoint_divergent_graph_relations() {
         ids[3],
         GraphRelationKind::Causal
     ));
+}
+
+#[test]
+fn reconcile_preserves_user_relation_origin() {
+    let dir = test_dir();
+    let left = dir.join("left.cva");
+    let right = dir.join("right.cva");
+    let output = dir.join("merged.cva");
+    let ids = create_workspace(&left, &["a", "b"]);
+    fs::copy(&left, &right).unwrap();
+
+    let mut left_cva = Cva::open(&left).unwrap();
+    diverge_archive(&mut left_cva, "left");
+    left_cva.sync().unwrap();
+
+    let mut right_cva = Cva::open(&right).unwrap();
+    diverge_archive(&mut right_cva, "right");
+    right_cva
+        .set_memory_relation_with_origin(
+            ids[0],
+            ids[1],
+            GraphRelationKind::Factual,
+            true,
+            GraphRelationOrigin::User,
+            right_cva.graph_version(),
+        )
+        .unwrap();
+    right_cva.sync().unwrap();
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let merged = Cva::open(output).unwrap();
+    let relation = merged.graph_relations().into_iter().next().unwrap();
+    assert_eq!(relation.origin, GraphRelationOrigin::User);
 }
 
 #[test]

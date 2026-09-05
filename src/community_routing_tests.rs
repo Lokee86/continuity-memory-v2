@@ -1,6 +1,7 @@
 use crate::community_routing::{RepresentativeStrategy, cosine, routing_profiles};
 use crate::{
-    Community, CommunityId, CommunitySnapshot, GraphRelation, GraphRelationKind, MemoryId,
+    Community, CommunityId, CommunitySnapshot, GraphRelation, GraphRelationKind,
+    GraphRelationOrigin, MemoryId,
 };
 use std::collections::HashMap;
 
@@ -100,6 +101,7 @@ fn relation(source: MemoryId, target: MemoryId, kind: GraphRelationKind) -> Grap
         target,
         kind,
         active: true,
+        origin: GraphRelationOrigin::Dream,
         global_version: 1,
         graph_version: 1,
     }

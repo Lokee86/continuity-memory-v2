@@ -1,8 +1,8 @@
 use crate::community_test_support::{edge, path, phy_memory, rel_episode, rel_memory};
 use crate::memory_retrieval_traversal::traverse;
 use crate::{
-    Cva, EmbeddingEndpoint, EmbeddingMode, GraphRelation, GraphRelationKind, MemoryId,
-    MemoryRetrievalConfig, MemoryRetrievalError, MemoryRetrievalMode, Phylactery,
+    Cva, EmbeddingEndpoint, EmbeddingMode, GraphRelation, GraphRelationKind, GraphRelationOrigin,
+    MemoryId, MemoryRetrievalConfig, MemoryRetrievalError, MemoryRetrievalMode, Phylactery,
     SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::collections::{HashMap, HashSet};
@@ -173,6 +173,7 @@ fn relation(source: MemoryId, target: MemoryId) -> GraphRelation {
         target,
         kind: GraphRelationKind::Topical,
         active: true,
+        origin: GraphRelationOrigin::Dream,
         global_version: 1,
         graph_version: 1,
     }

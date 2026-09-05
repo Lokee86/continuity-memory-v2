@@ -46,6 +46,29 @@ impl GraphRelationKind {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum GraphRelationOrigin {
+    Dream,
+    User,
+}
+
+impl GraphRelationOrigin {
+    pub const fn code(self) -> u8 {
+        match self {
+            Self::Dream => 1,
+            Self::User => 2,
+        }
+    }
+
+    pub const fn from_code(code: u8) -> Option<Self> {
+        Some(match code {
+            1 => Self::Dream,
+            2 => Self::User,
+            _ => return None,
+        })
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GraphDirection {
     Outgoing,
@@ -66,6 +89,7 @@ pub struct GraphRelation {
     pub target: MemoryId,
     pub kind: GraphRelationKind,
     pub active: bool,
+    pub origin: GraphRelationOrigin,
     pub global_version: u64,
     pub graph_version: u64,
 }

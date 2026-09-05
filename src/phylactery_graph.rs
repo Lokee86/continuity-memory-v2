@@ -1,6 +1,6 @@
 use crate::{
     GraphDirection, GraphError, GraphNeighbor, GraphRelation, GraphRelationChange,
-    GraphRelationKind, GraphStats, MemoryGraphPath, MemoryId, Phylactery,
+    GraphRelationKind, GraphRelationOrigin, GraphStats, MemoryGraphPath, MemoryId, Phylactery,
 };
 
 impl Phylactery {
@@ -23,6 +23,27 @@ impl Phylactery {
         )
     }
 
+    pub fn set_memory_relation_with_origin(
+        &mut self,
+        source: MemoryId,
+        target: MemoryId,
+        kind: GraphRelationKind,
+        active: bool,
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+    ) -> Result<Option<GraphRelation>, GraphError> {
+        self.graph.set_relation_with_origin(
+            &mut self.container,
+            &self.memories,
+            source,
+            target,
+            kind,
+            active,
+            origin,
+            expected_graph_version,
+        )
+    }
+
     pub fn set_memory_relations(
         &mut self,
         changes: &[GraphRelationChange],
@@ -32,6 +53,21 @@ impl Phylactery {
             &mut self.container,
             &self.memories,
             changes,
+            expected_graph_version,
+        )
+    }
+
+    pub fn set_memory_relations_with_origin(
+        &mut self,
+        changes: &[GraphRelationChange],
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+    ) -> Result<Vec<GraphRelation>, GraphError> {
+        self.graph.set_relations_with_origin(
+            &mut self.container,
+            &self.memories,
+            changes,
+            origin,
             expected_graph_version,
         )
     }

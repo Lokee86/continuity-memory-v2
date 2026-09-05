@@ -5,7 +5,7 @@ use crate::graph_codec::{
 use crate::memory_store::MemoryStore;
 use crate::{
     Container, GraphError, GraphNodeRecord, GraphRelation, GraphRelationChange, GraphRelationKind,
-    MemoryId,
+    GraphRelationOrigin, MemoryId,
 };
 use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
@@ -64,8 +64,31 @@ impl GraphStore {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        self.set_relation_with_origin(
+            container,
+            memories,
+            source,
+            target,
+            kind,
+            active,
+            GraphRelationOrigin::Dream,
+            expected_graph_version,
+        )
+    }
+
+    pub(crate) fn set_relation_with_origin(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        source: MemoryId,
+        target: MemoryId,
+        kind: GraphRelationKind,
+        active: bool,
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+    ) -> Result<Option<GraphRelation>, GraphError> {
         Ok(self
-            .set_relations(
+            .set_relations_with_origin(
                 container,
                 memories,
                 &[GraphRelationChange {
@@ -74,6 +97,7 @@ impl GraphStore {
                     kind,
                     active,
                 }],
+                origin,
                 expected_graph_version,
             )?
             .into_iter()
@@ -85,6 +109,23 @@ impl GraphStore {
         container: &mut Container,
         memories: &MemoryStore,
         changes: &[GraphRelationChange],
+        expected_graph_version: u64,
+    ) -> Result<Vec<GraphRelation>, GraphError> {
+        self.set_relations_with_origin(
+            container,
+            memories,
+            changes,
+            GraphRelationOrigin::Dream,
+            expected_graph_version,
+        )
+    }
+
+    pub(crate) fn set_relations_with_origin(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        changes: &[GraphRelationChange],
+        origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
         let current_version = self.graph_version();
@@ -106,12 +147,11 @@ impl GraphStore {
             if !keys.insert(key) {
                 return Err(GraphError::DuplicateRelationChange);
             }
-            let current = self
-                .states
-                .get(&key)
-                .map(|state| state.active)
-                .unwrap_or(false);
-            if current != change.active {
+            let state_changed = match self.states.get(&key) {
+                Some(state) => state.active != change.active || state.origin != origin,
+                None => change.active,
+            };
+            if state_changed {
                 effective.push(*change);
             }
         }
@@ -132,6 +172,7 @@ impl GraphStore {
                 target: change.target,
                 kind: change.kind,
                 active: change.active,
+                origin,
             })
             .collect();
         let payload = if payloads.len() == 1 {
@@ -157,6 +198,7 @@ impl GraphStore {
                 target: change.target,
                 kind: change.kind,
                 active: change.active,
+                origin,
                 global_version,
                 graph_version,
             })
