@@ -60,6 +60,7 @@ pub fn run(command: ImportCommand) -> Result<()> {
                             timestamp_ns,
                             content,
                             attachments: incoming_attachments,
+                            project_attachments: Vec::new(),
                         })?;
                         nodes += 1;
                     }
