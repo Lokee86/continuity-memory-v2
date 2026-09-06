@@ -118,7 +118,7 @@ impl Phylactery {
         }
 
         let memories = memory_state.finish()?;
-        validate_source_independent_memories(&memories)?;
+        validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         let graph = graph_state.finish(&memories)?;
@@ -182,7 +182,7 @@ fn reject_rel_only_payload(payload: &[u8]) -> Result<(), PhylacteryError> {
     Ok(())
 }
 
-fn validate_source_independent_memories(memories: &MemoryStore) -> Result<(), PhylacteryError> {
+fn validate_phylactery_provenance(memories: &MemoryStore) -> Result<(), PhylacteryError> {
     if memories.records().iter().any(|record| {
         record.source_episode_id.is_some()
             || record.source_node_id.is_some()

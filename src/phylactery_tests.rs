@@ -1,6 +1,6 @@
 use crate::{
-    Container, Cva, CvaError, GraphRelationKind, MemoryDraft, MemoryError, Phylactery,
-    PhylacteryError, SimulatedEmbeddingEndpoint, VectorNormalization,
+    Container, Cva, CvaError, EpisodeId, GraphRelationKind, MemoryDraft, MemoryError,
+    MemorySourceRef, Phylactery, PhylacteryError, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -42,7 +42,7 @@ fn draft(mutation_id: &str, title: &str, content: &str) -> MemoryDraft {
 }
 
 #[test]
-fn phylactery_identity_and_source_independent_memory_reopen() {
+fn phylactery_identity_and_unsourced_memory_reopen() {
     let path = test_path("user.phy");
     let mut phy = Phylactery::create(&path).unwrap();
     assert_eq!(
@@ -63,6 +63,47 @@ fn phylactery_identity_and_source_independent_memory_reopen() {
     let mut reopened = Phylactery::open(&path).unwrap();
     assert_eq!(reopened.memory_stats().memories, 1);
     assert_eq!(reopened.memory(memory.id).unwrap().content, memory.content);
+}
+
+#[test]
+fn source_reference_survives_metadata_revision_and_reopen() {
+    let path = test_path("source-ref-revision.phy");
+    let mut phy = Phylactery::create(&path).unwrap();
+    let source_ref = MemorySourceRef {
+        owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
+        source_episode_id: EpisodeId([9; 32]),
+        source_node_id: "u1".into(),
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+    };
+    let (first, _) = phy
+        .publish_memory_with_source_ref(
+            None,
+            0,
+            draft("user:source-ref", "Editor", "The user prefers Helix."),
+            source_ref.clone(),
+        )
+        .unwrap();
+
+    let mut revised = draft(
+        "user:source-ref:knowledge",
+        "Editor",
+        "The user prefers Helix.",
+    );
+    revised.lifecycle_state = "knowledge".into();
+    revised.updated_at_ns = 20;
+    let (second, _) = phy.publish_memory(Some(first.id), 1, revised).unwrap();
+    assert_eq!(second.source_ref.as_ref(), Some(&source_ref));
+    phy.sync().unwrap();
+    drop(phy);
+
+    let mut reopened = Phylactery::open(&path).unwrap();
+    assert_eq!(
+        reopened.memory(first.id).unwrap().source_ref,
+        Some(source_ref)
+    );
 }
 
 #[test]

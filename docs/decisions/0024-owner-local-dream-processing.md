@@ -8,7 +8,7 @@ Extends ADR 0020's REL/PHY file split, ADR 0022's durable owner identity, and AD
 
 ## Context
 
-Dream was originally implemented against `Cva` because REL Memories could recover authoritative chronology through Archive/Episode provenance. Phylactery deliberately does not retain those source pointers. Routed User Memories now persist `source_time_ns` before REL-local provenance is stripped, so PHY has the chronology Dream needs without depending on an originating Project Archive.
+Dream was originally implemented against `Cva` because REL Memories could recover authoritative chronology through Archive/Episode provenance. Phylactery does not retain REL-owned source records, but routed User Memories now retain an identifier-only `MemorySourceRef` back to those records and persist `source_time_ns` separately. PHY therefore has the chronology Dream needs without requiring the originating REL to be mounted, while higher-level provenance resolution can still recover the source when it is available.
 
 The remaining question is whether Dream should compare REL and PHY as one graph, or operate independently inside each durable owner.
 
@@ -25,7 +25,7 @@ Dream(User PHY)
 
 Candidate discovery, classifier/verifier context, Graph reads/writes, duplicate-chain maintenance, supersession, and lifecycle projection never cross that owner boundary. The shared implementation operates on the common Container/Memory/Graph/Memory-vector/Packed-vector mechanics; `Cva` and `Phylactery` provide owner-specific wrappers and chronology resolution.
 
-REL chronology resolves validated Archive/Episode provenance first and falls back to persisted `source_time_ns` when REL-local provenance is unavailable. PHY chronology is persisted `source_time_ns` because PHY intentionally has no REL-local Archive/Episode provenance. `created_at_ns` is bookkeeping and is never substituted for semantic chronology.
+REL chronology resolves validated Archive/Episode provenance first and falls back to persisted `source_time_ns` when REL-local provenance is unavailable. PHY chronology is persisted `source_time_ns`; its optional external `MemorySourceRef` preserves provenance identity but owner-local Dream does not need to dereference another REL for temporal scheduling. `created_at_ns` is bookkeeping and is never substituted for semantic chronology.
 
 Duplicate ordering requires authoritative source chronology. If a participating Memory has no source timestamp, duplicate-chain publication fails closed rather than fabricating order.
 
@@ -53,7 +53,7 @@ Cross-owner semantic composition is deliberately outside Dream. If a host later 
 
 - PHY Dream no longer requires Archive/history or a live originating REL.
 - REL and PHY can be processed concurrently without entangling their Graph/version domains.
-- Source-independent User Memories retain semantic chronology without retaining project-local provenance.
+- User Memories retain semantic chronology plus identifier-only external provenance without retaining project-local source records.
 - Existing same-file Graph invariants remain unchanged.
 - Corroboration semantics remain conservative rather than being weakened to fit PHY.
 - Organization and Connection RELs inherit the same same-owner Dream mechanics because they use the Reliquary owner model; routing policy into those scopes remains separate work.

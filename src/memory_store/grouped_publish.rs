@@ -82,6 +82,7 @@ impl MemoryStore {
                 grounding_source_node_id: draft.grounding_source_node_id,
                 source_episode_id: draft.source_episode_id,
                 source_time_ns: draft.source_time_ns,
+                source_ref: None,
                 mutation_id: draft.mutation_id,
                 created_at_ns: draft.created_at_ns,
                 updated_at_ns: draft.updated_at_ns,

@@ -10,6 +10,17 @@ pub struct MemoryRef {
     pub memory_id: MemoryId,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct MemorySourceRef {
+    pub owner_id: String,
+    pub source_episode_id: EpisodeId,
+    pub source_node_id: String,
+    pub content_source_conversation_id: Option<String>,
+    pub content_source_node_id: Option<String>,
+    pub grounding_source_conversation_id: Option<String>,
+    pub grounding_source_node_id: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MemoryBodyId(pub [u8; 32]);
 
@@ -64,6 +75,7 @@ pub struct Memory {
     pub grounding_source_node_id: Option<String>,
     pub source_episode_id: Option<EpisodeId>,
     pub source_time_ns: Option<i64>,
+    pub source_ref: Option<MemorySourceRef>,
     pub mutation_id: String,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,
@@ -99,6 +111,7 @@ pub(crate) struct MemoryRecord {
     pub grounding_source_node_id: Option<String>,
     pub source_episode_id: Option<EpisodeId>,
     pub source_time_ns: Option<i64>,
+    pub source_ref: Option<MemorySourceRef>,
     pub mutation_id: String,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,

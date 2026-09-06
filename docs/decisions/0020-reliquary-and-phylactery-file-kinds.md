@@ -59,11 +59,11 @@ Project source/provenance remains a first-class part of the Project Reliquary mo
 
 Phylactery is the user-global Identity persistence domain. The implemented `.phy` owner set is deliberately narrow: Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. These owners reuse the same low-level codecs/stores where their semantics are genuinely shared.
 
-A Phylactery Memory does not require source turns or a live pointer to an originating Reliquary. In the current format, direct `.phy` Memory publication requires all REL-local Episode/node/conversation provenance fields to be absent. This is intentionally stricter than inventing a dangling cross-file pointer. A future explicit source-export/lineage representation may add permitted cross-scope provenance without making Project Archive retention a validity requirement.
+A Phylactery Memory does not require source turns or a live originating Reliquary. Direct `.phy` Memory publication requires all REL-local Episode/node/conversation provenance fields to be absent, so PHY never stores another owner's source records. Routed User Memories may instead retain `MemorySourceRef`, an identifier-only owner-qualified reference to the originating REL, Episode, source node, and optional authority/grounding node identities. That reference may be unresolved without invalidating the PHY.
 
 Phylactery must not become "a Reliquary with nullable provenance." Archive/history, Episodes, embedded Files/attachments, Insomnia work/completion state, Archive Vectors, Vector Generations, and interaction-stream checkpoints are not Phylactery owners in the current implementation. The existing lexical index is also REL Archive-specific and is not reused as a fake user-Memory index.
 
-Graph and Memory-vector/profile state are valid Phylactery-owned durable/derived state. Same-owner Dream processing is now implemented by ADR 0024 using persisted source-independent chronology. Dream does not federate candidates across owners; cross-scope context composition belongs to higher-level retrieval/Ego. Export policy and a purpose-built user-Memory lexical index remain later work.
+Graph and Memory-vector/profile state are valid Phylactery-owned durable/derived state. Same-owner Dream processing is now implemented by ADR 0024 using persisted source chronology. Dream does not federate candidates across owners; cross-scope context composition belongs to higher-level retrieval/Ego. Export policy and a purpose-built user-Memory lexical index remain later work.
 
 ## Shared implementation boundary
 
@@ -105,7 +105,7 @@ Existing `CVA*` record markers and `CVCFG` framing are not changed by this ADR a
 
 - whether later Phylactery capabilities justify additional purpose-built owners beyond the implemented Memory/Graph/vector/profile core;
 - exact required, optional, and forbidden owner sets for Organization/Project/Connection Reliquaries as their policy surfaces diverge;
-- exact Phylactery cross-file source/provenance representation when source export is allowed;
+- richer source-resolution/export policy beyond the implemented identifier-only `MemorySourceRef`;
 - whether the internal/back-compat `Cva` type/name should eventually be removed; the public product-facing alias is now `Reliquary`;
 - file-association and shell UX for `.rel`, typed `.<scope>.rel`, and `.phy` in Warlock;
 - whether any low-level record markers need a future neutral naming/version transition.

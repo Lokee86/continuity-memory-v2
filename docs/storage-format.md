@@ -268,7 +268,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. Community snapshots are optional derived chunks and appear only after explicit refresh. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
-The same Memory record codec is reused, but current Phylactery validity is stricter about provenance: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent. `source_time_ns` is different: it is source-independent semantic chronology resolved while the originating source is available, so it may remain after those REL-local pointers are removed. This allows user-global Memories to remain independently valid when an originating Project REL is unavailable or intentionally not retained. Cross-file provenance requires a future explicit lineage/export representation rather than storing REL-local IDs as dangling references.
+The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
 
 The existing disposable lexical index indexes REL Archive Fragments and filenames, so it is not part of `.phy`. A user-Memory lexical index, if required, is a separate future derived owner/design.
 
@@ -293,7 +293,7 @@ N bytes   content UTF-8
 ```
 Memory record:
 ```text
-8 bytes   "CVAMEMR4"
+8 bytes   "CVAMEMR5"
 32 bytes  MemoryId
 u64       revision
 32 bytes  MemoryBodyId
@@ -302,6 +302,14 @@ optional  MemoryId superseded_by
 optional  MemoryId parent_id
 optional  EpisodeId source_episode_id
 optional  i64 source_time_ns
+optional  MemorySourceRef source_ref
+          string owner_id
+          32 bytes EpisodeId source_episode_id
+          string source_node_id
+          optional string content_source_conversation_id
+          optional string content_source_node_id
+          optional string grounding_source_conversation_id
+          optional string grounding_source_node_id
 i64       created_at_ns
 i64       updated_at_ns
 string    category
@@ -316,9 +324,9 @@ optional  string grounding_source_conversation_id
 optional  string grounding_source_node_id
 string    mutation_id
 ```
-Optional fixed IDs, optional `source_time_ns`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_time_ns` records source-derived semantic chronology without retaining a source pointer; it is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+Optional fixed IDs, optional `source_time_ns`, optional `source_ref`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_ref` stores identifiers only; it does not embed source content. `source_time_ns` records source-derived semantic chronology independently of the reference and is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
 
-Legacy `CVAMEMR3` and `CVAMEMR2` records remain decodable with `source_time_ns = None`. R3 lacks the source-time field. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted.
+Legacy `CVAMEMR4`, `CVAMEMR3`, and `CVAMEMR2` records remain decodable with `source_ref = None`. R4 retains `source_time_ns` but predates the external source reference. R3 lacks both fields. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted.
 
 Standalone Memory publication metadata:
 ```text
@@ -619,7 +627,7 @@ Archive, Memories, Graph, and Vector Generations have independent local watermar
 ## Diagnostics and failure behavior
 `Cva::open` / `Reliquary::open` requires Reliquary type/scope identity (or the legacy 16-byte Project form) and exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Current 40-byte typed files also carry the durable owner UUID; earlier 16-byte and 24-byte forms remain readable for explicit migration but have no owner ID. Graph is a narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
 
-`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Graph, optional Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, vector/profile references, and source-independent Memory provenance. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
+`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Graph, optional Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, vector/profile references, absence of REL-local Memory provenance, and structural validity of any external `MemorySourceRef`. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.

@@ -316,7 +316,7 @@ fn previously_evaluated_pair_does_not_consume_candidate_capacity() {
 }
 
 #[test]
-fn owner_candidate_core_accepts_source_independent_memory_time() {
+fn owner_candidate_core_accepts_persisted_memory_source_time() {
     let mut cva = Cva::create(test_path("owner-core.cva")).unwrap();
     let (memory, _) = cva
         .publish_memory(

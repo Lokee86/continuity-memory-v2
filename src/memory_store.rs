@@ -3,7 +3,8 @@ use crate::memory_codec::{
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
-    Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats, ObjectRef,
+    Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemorySourceRef,
+    MemoryStats, ObjectRef,
 };
 use std::collections::HashMap;
 
@@ -40,10 +41,25 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
+        self.publish_with_source_ref(container, id, expected_revision, draft, None)
+    }
+
+    pub(crate) fn publish_with_source_ref(
+        &mut self,
+        container: &mut Container,
+        id: Option<MemoryId>,
+        expected_revision: u64,
+        draft: MemoryDraft,
+        source_ref: Option<MemorySourceRef>,
+    ) -> Result<(Memory, bool), MemoryError> {
         validate_draft(&draft)?;
+        validate_source_ref(source_ref.as_ref())?;
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = self.resolve_record(container, &self.records[index])?;
-            return if same_draft(&existing, &draft) {
+            let source_matches = source_ref
+                .as_ref()
+                .is_none_or(|source_ref| existing.source_ref.as_ref() == Some(source_ref));
+            return if same_draft(&existing, &draft) && source_matches {
                 Ok((existing, false))
             } else {
                 Err(MemoryError::MutationConflict)
@@ -67,6 +83,11 @@ impl MemoryStore {
                 return Err(MemoryError::SemanticMutation);
             }
         }
+        let source_ref = source_ref.or_else(|| {
+            self.current
+                .get(&id)
+                .and_then(|index| self.records[*index].source_ref.clone())
+        });
         let body_id = self.put_body(container, &draft.title, &draft.content)?;
         let memory_version = self.next_memory_version;
         let next_memory_version = memory_version
@@ -91,6 +112,7 @@ impl MemoryStore {
             grounding_source_node_id: draft.grounding_source_node_id.clone(),
             source_episode_id: draft.source_episode_id,
             source_time_ns: draft.source_time_ns,
+            source_ref,
             mutation_id: draft.mutation_id.clone(),
             created_at_ns: draft.created_at_ns,
             updated_at_ns: draft.updated_at_ns,
@@ -365,6 +387,7 @@ impl MemoryStore {
             grounding_source_node_id: record.grounding_source_node_id.clone(),
             source_episode_id: record.source_episode_id,
             source_time_ns: record.source_time_ns,
+            source_ref: record.source_ref.clone(),
             mutation_id: record.mutation_id.clone(),
             created_at_ns: record.created_at_ns,
             updated_at_ns: record.updated_at_ns,
@@ -426,6 +449,33 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
     }
     if draft.updated_at_ns < draft.created_at_ns {
         return Err(MemoryError::InvalidField("updated_at_ns"));
+    }
+    Ok(())
+}
+
+fn validate_source_ref(source_ref: Option<&MemorySourceRef>) -> Result<(), MemoryError> {
+    let Some(source_ref) = source_ref else {
+        return Ok(());
+    };
+    if source_ref.owner_id.trim().is_empty() || source_ref.source_node_id.trim().is_empty() {
+        return Err(MemoryError::InvalidProvenance);
+    }
+    for (conversation_id, node_id) in [
+        (
+            source_ref.content_source_conversation_id.as_deref(),
+            source_ref.content_source_node_id.as_deref(),
+        ),
+        (
+            source_ref.grounding_source_conversation_id.as_deref(),
+            source_ref.grounding_source_node_id.as_deref(),
+        ),
+    ] {
+        match (conversation_id, node_id) {
+            (None, None) => {}
+            (Some(conversation_id), Some(node_id))
+                if !conversation_id.trim().is_empty() && !node_id.trim().is_empty() => {}
+            _ => return Err(MemoryError::InvalidProvenance),
+        }
     }
     Ok(())
 }

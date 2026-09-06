@@ -115,6 +115,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         grounding_source_node_id: None,
         source_episode_id: Some(episode.id),
         source_time_ns: None,
+        source_ref: None,
         mutation_id: draft.mutation_id,
         created_at_ns: 3,
         updated_at_ns: 4,

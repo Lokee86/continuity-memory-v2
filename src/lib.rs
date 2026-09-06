@@ -212,6 +212,7 @@ mod phylactery_error;
 mod phylactery_graph;
 mod phylactery_lifecycle;
 mod phylactery_memory_retrieval;
+mod phylactery_memory_source;
 mod phylactery_memory_vectors;
 mod phylactery_packed_vectors;
 mod project_file_binding_codec;
@@ -379,7 +380,8 @@ pub use master_key::{
 };
 pub use memory_error::MemoryError;
 pub use memory_model::{
-    Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRevisionId, MemoryStats,
+    Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRevisionId, MemorySourceRef,
+    MemoryStats,
 };
 pub use memory_provenance_model::MemoryProvenance;
 pub use memory_retrieval_error::MemoryRetrievalError;

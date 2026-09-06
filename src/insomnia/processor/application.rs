@@ -7,14 +7,20 @@ use crate::memory_model::memory_id;
 use crate::memory_store::MemoryStore;
 use crate::{
     Archive, Container, Episode, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, InsomniaExtraction,
-    InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft, MemoryRef, Phylactery,
+    InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft, MemoryRef,
+    MemorySourceRef, Phylactery,
 };
 
 pub(crate) struct PreparedApplication {
     pub(crate) project_drafts: Vec<MemoryDraft>,
-    pub(crate) user_drafts: Vec<MemoryDraft>,
+    pub(crate) user_drafts: Vec<PreparedUserMemory>,
     pub(crate) rejected: Vec<InsomniaRejection>,
     pub(crate) model: String,
+}
+
+pub(crate) struct PreparedUserMemory {
+    pub(crate) draft: MemoryDraft,
+    pub(crate) source_ref: MemorySourceRef,
 }
 
 pub(crate) struct UserPublication {
@@ -77,13 +83,34 @@ pub(crate) fn prepare_application(
         match candidate.ownership {
             InsomniaOwnership::Project => project_drafts.push(draft),
             InsomniaOwnership::User => {
+                let owner_id = container.owner_id().ok_or_else(|| {
+                    InsomniaProcessError::InvalidCandidate(
+                        "source Reliquary has no durable owner ID; migrate it before routing user Memory provenance"
+                            .into(),
+                    )
+                })?;
+                let source_ref = MemorySourceRef {
+                    owner_id,
+                    source_episode_id: episode.id,
+                    source_node_id: draft.source_node_id.clone().ok_or_else(|| {
+                        InsomniaProcessError::InvalidCandidate(
+                            "user Memory source node is unavailable".into(),
+                        )
+                    })?,
+                    content_source_conversation_id: draft.content_source_conversation_id.clone(),
+                    content_source_node_id: draft.content_source_node_id.clone(),
+                    grounding_source_conversation_id: draft
+                        .grounding_source_conversation_id
+                        .clone(),
+                    grounding_source_node_id: draft.grounding_source_node_id.clone(),
+                };
                 draft.source_node_id = None;
                 draft.content_source_conversation_id = None;
                 draft.content_source_node_id = None;
                 draft.grounding_source_conversation_id = None;
                 draft.grounding_source_node_id = None;
                 draft.source_episode_id = None;
-                user_drafts.push(draft);
+                user_drafts.push(PreparedUserMemory { draft, source_ref });
             }
         }
     }
@@ -97,7 +124,7 @@ pub(crate) fn prepare_application(
 
 pub(crate) fn publish_user_application(
     phylactery: &mut Phylactery,
-    drafts: &[MemoryDraft],
+    drafts: &[PreparedUserMemory],
 ) -> Result<UserPublication, InsomniaProcessError> {
     let owner_id = phylactery.owner_id().ok_or_else(|| {
         InsomniaProcessError::Phylactery(
@@ -108,8 +135,14 @@ pub(crate) fn publish_user_application(
     let mut created = Vec::new();
     let mut existing = Vec::new();
     let mut refs = Vec::with_capacity(drafts.len());
-    for draft in drafts {
-        let memory = match phylactery.publish_memory(None, 0, draft.clone()) {
+    for prepared in drafts {
+        let draft = &prepared.draft;
+        let memory = match phylactery.publish_memory_with_source_ref(
+            None,
+            0,
+            draft.clone(),
+            prepared.source_ref.clone(),
+        ) {
             Ok((memory, was_created)) => {
                 if was_created {
                     created.push(memory.clone());
@@ -121,7 +154,7 @@ pub(crate) fn publish_user_application(
             Err(crate::MemoryError::MutationConflict) => {
                 let id = memory_id(&draft.mutation_id);
                 let memory = phylactery.memory(id)?;
-                if !same_routed_user_semantics(&memory, draft) {
+                if !same_routed_user_semantics(&memory, draft, &prepared.source_ref) {
                     return Err(crate::MemoryError::MutationConflict.into());
                 }
                 existing.push(memory.clone());
@@ -234,7 +267,11 @@ fn candidate_source_time_ns(
         })
 }
 
-fn same_routed_user_semantics(memory: &Memory, draft: &MemoryDraft) -> bool {
+fn same_routed_user_semantics(
+    memory: &Memory,
+    draft: &MemoryDraft,
+    source_ref: &MemorySourceRef,
+) -> bool {
     memory.category == draft.category
         && memory.memory_type == draft.memory_type
         && memory.authority_kind == draft.authority_kind
@@ -250,6 +287,7 @@ fn same_routed_user_semantics(memory: &Memory, draft: &MemoryDraft) -> bool {
         && memory.grounding_source_node_id.is_none()
         && memory.source_episode_id.is_none()
         && memory.source_time_ns == draft.source_time_ns
+        && memory.source_ref.as_ref() == Some(source_ref)
         && memory.mutation_id == draft.mutation_id
         && memory.created_at_ns == draft.created_at_ns
 }

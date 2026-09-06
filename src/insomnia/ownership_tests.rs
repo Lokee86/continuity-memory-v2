@@ -2,7 +2,7 @@ use super::completion::decode_completion;
 use super::test_support::test_path;
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeId, EpisodeOrigin, InsomniaExtractor,
-    InsomniaPriority, MemoryDraft, Phylactery, SimulatedGeneralEndpoint,
+    InsomniaPriority, MemoryDraft, MemorySourceRef, Phylactery, SimulatedGeneralEndpoint,
 };
 use serde_json::{Value, json};
 
@@ -77,6 +77,7 @@ fn user_extractor(title: &str, content: &str) -> InsomniaExtractor<SimulatedGene
 #[test]
 fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     let (mut cva, episode) = setup("owner-routing.prj.rel");
+    let source_owner = cva.owner_id().unwrap();
     let phy_path = test_path("owner-routing.phy");
     let mut phy = Phylactery::create(&phy_path).unwrap();
     let phy_owner = phy.owner_id().unwrap();
@@ -102,6 +103,12 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     assert!(memory.source_episode_id.is_none());
     assert!(memory.source_node_id.is_none());
     assert_eq!(memory.source_time_ns, Some(10));
+    let source_ref = memory.source_ref.as_ref().unwrap();
+    assert_eq!(source_ref.owner_id, source_owner);
+    assert_eq!(source_ref.source_episode_id, episode.id);
+    assert_eq!(source_ref.source_node_id, "u0");
+    assert!(source_ref.content_source_conversation_id.is_none());
+    assert!(source_ref.content_source_node_id.is_none());
     assert_eq!(cva.memory_stats().memories, 0);
     assert_eq!(phy.memory_stats().memories, 1);
     let attempt = &cva.insomnia_attempts(episode.id)[0];
@@ -113,12 +120,18 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     phy.sync().unwrap();
     drop(phy);
     let mut reopened = Phylactery::open(&phy_path).unwrap();
-    assert_eq!(reopened.memory(memory_id).unwrap().source_time_ns, Some(10));
+    let reopened_memory = reopened.memory(memory_id).unwrap();
+    assert_eq!(reopened_memory.source_time_ns, Some(10));
+    let reopened_ref = reopened_memory.source_ref.unwrap();
+    assert_eq!(reopened_ref.owner_id, source_owner);
+    assert_eq!(reopened_ref.source_episode_id, episode.id);
+    assert_eq!(reopened_ref.source_node_id, "u0");
 }
 
 #[test]
 fn routed_retry_reuses_phy_memory_after_wording_drift() {
     let (mut cva, episode) = setup("owner-routing-retry.prj.rel");
+    let source_owner = cva.owner_id().unwrap();
     let phy_path = test_path("owner-routing-retry.phy");
     let mut phy = Phylactery::create(&phy_path).unwrap();
     let turns = cva.episode_turns(episode.id).unwrap();
@@ -132,7 +145,7 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
         candidate.key
     );
     let (prewritten, _) = phy
-        .publish_memory(
+        .publish_memory_with_source_ref(
             None,
             0,
             MemoryDraft {
@@ -156,6 +169,17 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
                 mutation_id,
                 created_at_ns: episode.source_through_ns,
                 updated_at_ns: 120,
+            },
+            MemorySourceRef {
+                owner_id: source_owner,
+                source_episode_id: episode.id,
+                source_node_id: candidate.source_node_id.clone(),
+                content_source_conversation_id: candidate.authority_source_conversation_id.clone(),
+                content_source_node_id: candidate.authority_source_node_id.clone(),
+                grounding_source_conversation_id: candidate
+                    .grounding_source_conversation_id
+                    .clone(),
+                grounding_source_node_id: candidate.grounding_source_node_id.clone(),
             },
         )
         .unwrap();
