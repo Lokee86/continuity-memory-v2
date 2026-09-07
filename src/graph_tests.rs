@@ -2,17 +2,10 @@ use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
     GraphRelationChange, GraphRelationKind, GraphRelationOrigin, MemoryDraft, MemoryId,
 };
-use std::{
-    fs,
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{fs, path::PathBuf};
 
 fn path(name: &str) -> PathBuf {
-    let n = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let n = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-graph-{n}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)

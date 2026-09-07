@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use std::fs;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 struct SyntheticMemoryEndpoint {
     calls: AtomicUsize,
@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let delay_ms: u64 = args.next().unwrap_or_else(|| "0".into()).parse()?;
     let evidence_every: usize = args.next().unwrap_or_else(|| "0".into()).parse()?;
 
-    let unique = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let path = std::env::temp_dir().join(format!("continuity-insomnia-stress-{unique}.cva"));
 
     let build_started = Instant::now();

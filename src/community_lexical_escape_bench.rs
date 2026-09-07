@@ -17,7 +17,6 @@ struct Metrics {
 }
 
 #[test]
-#[ignore = "lexical global escape hits used as community-routing hints"]
 fn community_lexical_escape_hint_benchmark() {
     let fixture = load_fixture();
     let mut metrics = HashMap::<(usize, usize), Metrics>::new();

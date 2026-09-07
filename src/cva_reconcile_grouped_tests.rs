@@ -3,13 +3,9 @@ use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memor
 use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, MemoryDraft, MemoryRef};
 use std::fs;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 fn test_dir() -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-cva-grouped-merge-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir

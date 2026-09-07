@@ -77,7 +77,6 @@ impl Totals {
 }
 
 #[test]
-#[ignore = "five-fold end-to-end community routing validation"]
 fn community_end_to_end_operating_point_benchmark() {
     let fixture = load_fixture();
     let graph = adjacency(&fixture);

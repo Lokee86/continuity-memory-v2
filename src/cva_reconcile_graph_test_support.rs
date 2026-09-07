@@ -1,21 +1,9 @@
 use crate::{Cva, GraphRelationKind, MemoryDraft, MemoryId};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-static TEST_DIR_SEQUENCE: AtomicU64 = AtomicU64::new(0);
-
 pub(crate) fn test_dir() -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let sequence = TEST_DIR_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    let dir = std::env::temp_dir().join(format!(
-        "reliquary-graph-reconcile-{}-{unique}-{sequence}",
-        std::process::id()
-    ));
+    let unique = uuid::Uuid::new_v4();
+    let dir = std::env::temp_dir().join(format!("reliquary-graph-reconcile-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir
 }

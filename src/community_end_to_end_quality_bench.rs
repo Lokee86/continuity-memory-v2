@@ -21,7 +21,6 @@ struct QualityTotals {
 }
 
 #[test]
-#[ignore = "five-fold K=4 context diversity and redundancy validation"]
 fn community_end_to_end_context_quality_benchmark() {
     let fixture = load_fixture();
     let graph = adjacency(&fixture);

@@ -194,3 +194,5 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 ## Notes
 
 The config object vocabulary is intentionally concrete. Shared framing does not make the file a generalized semantic store.
+
+Configuration, credential, and switchboard tests use UUID-isolated scratch paths so parallel test execution cannot collide on timestamp-derived temporary directories. This is test infrastructure only and does not change configuration persistence or replacement semantics.

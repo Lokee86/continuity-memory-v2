@@ -12,7 +12,6 @@ struct RoutingEntry {
 }
 
 #[test]
-#[ignore = "held-out community routing comparison"]
 fn community_routing_holdout_benchmark() {
     let fixture = load_fixture();
     let held_out: HashSet<_> = fixture

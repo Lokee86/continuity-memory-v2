@@ -17,7 +17,6 @@ struct CentroidStats {
 }
 
 #[test]
-#[ignore = "community routing score-composition experiment"]
 fn community_routing_score_composition_benchmark() {
     let fixture = load_fixture();
     let centroids = centroid_stats(&fixture);

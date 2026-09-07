@@ -8,13 +8,10 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Barrier};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 pub(super) fn test_path(name: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("reliquary-runtime-host-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)

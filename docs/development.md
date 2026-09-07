@@ -63,6 +63,10 @@ python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
 ```
 
+The ordinary `cargo test` suite contains only correctness/regression tests and should report zero ignored tests. Fourteen Community performance, routing-quality, and operating-point experiments live behind the opt-in `community-benchmarks` Cargo feature instead of registering as ignored unit tests. Use `cargo test --release --features community-benchmarks` when intentionally rerunning that benchmark/validation set. Feature-gated Community benchmarks must not become the only coverage for a correctness contract.
+
+Test scratch paths must use collision-resistant identities such as `Uuid::new_v4()` rather than timestamp-only directory names; Rust tests execute concurrently and Windows can otherwise surface intermittent `AlreadyExists` failures.
+
 Prepared Archive round trip:
 
 ```text

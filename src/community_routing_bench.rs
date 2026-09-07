@@ -7,7 +7,6 @@ use std::time::{Duration, Instant};
 const KS: [usize; 3] = [1, 3, 5];
 
 #[test]
-#[ignore = "routing-only experiment over a Dream-populated typed REL"]
 fn community_routing_strategy_benchmark() {
     let fixture = load_fixture();
     run_fixture(
@@ -25,7 +24,6 @@ fn community_routing_strategy_benchmark() {
 }
 
 #[test]
-#[ignore = "scalable routing strategies over a larger Dream-populated typed REL"]
 fn community_routing_scalable_strategy_benchmark() {
     let fixture = load_fixture();
     run_fixture(

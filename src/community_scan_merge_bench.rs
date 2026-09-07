@@ -9,7 +9,6 @@ const COMMUNITY_SIZE: usize = 64;
 const DEGREE_FORWARD: usize = 4;
 
 #[test]
-#[ignore = "synthetic performance benchmark"]
 fn synthetic_scan_merge_benchmark() {
     let workers = std::thread::available_parallelism().map_or(1, usize::from);
     println!(

@@ -8,7 +8,6 @@ const QUERIES: usize = 64;
 const KS: [usize; 3] = [1, 3, 5];
 
 #[test]
-#[ignore = "synthetic routing scale benchmark"]
 fn synthetic_community_routing_scale_benchmark() {
     println!(
         "memories,communities,reps_per_community,reps,metadata_bytes,r1,r3,r5,admit5,avoid5,total_vector_work5,work_reduction5,route_us"

@@ -28,7 +28,6 @@ struct Totals {
 }
 
 #[test]
-#[ignore = "end-to-end community retrieval and traversal experiment"]
 fn community_retrieval_traversal_end_to_end_benchmark() {
     let fixture = load_fixture();
     let held_out: HashSet<_> = fixture

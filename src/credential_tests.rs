@@ -2,13 +2,9 @@ use crate::config_codec::{decode_config, encode_config};
 use crate::{Credential, CredentialId, JsonMasterKeyStore, MasterKeyStore, ReliquaryConfig};
 use std::fs;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 fn test_path(name: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-credential-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)

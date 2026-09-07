@@ -7,7 +7,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 struct BackpressureEndpoint {
     calls: Arc<AtomicUsize>,
@@ -34,10 +34,7 @@ impl GeneralEndpoint for BackpressureEndpoint {
 }
 
 fn test_path(name: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-insomnia-backpressure-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)

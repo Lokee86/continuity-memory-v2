@@ -462,47 +462,47 @@ mod archive_search_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_end_to_end_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_end_to_end_grid_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_lexical_escape_bench;
 #[cfg(test)]
 mod community_lineage_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_retrieval_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_bench_fixture;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_bench_support;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_cached_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_holdout_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_scale_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_routing_score_bench;
 #[cfg(test)]
 mod community_routing_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_scan_merge_bench;
 #[cfg(test)]
 mod community_scan_merge_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_subcentroid_routing;
 #[cfg(test)]
 mod community_test_support;
 #[cfg(test)]
 mod community_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_traversal_bench;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_traversal_bench_fixture;
-#[cfg(test)]
+#[cfg(all(test, feature = "community-benchmarks"))]
 mod community_traversal_bench_support;
 #[cfg(test)]
 mod compatibility_profile_tests;

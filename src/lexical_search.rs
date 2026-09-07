@@ -1,4 +1,6 @@
-use crate::{Archive, Container, Cva, FileSearchHit, Fragment, SearchError};
+#[cfg(test)]
+use crate::{Archive, Container};
+use crate::{Cva, FileSearchHit, Fragment, SearchError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct LexicalHit {
@@ -41,6 +43,7 @@ impl Cva {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn lexical_candidates_parts(
     archive: &Archive,
     container: &mut Container,

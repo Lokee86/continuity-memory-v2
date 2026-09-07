@@ -4,13 +4,9 @@ use crate::conversation_metadata_codec::{
 use crate::{Cva, IncomingTurn};
 use std::fs;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 fn test_path() -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-conversations-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join("archive.cva")

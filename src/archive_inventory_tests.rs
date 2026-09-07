@@ -1,13 +1,9 @@
 use crate::{Branch, Cva};
 use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
 fn current_branch_inventory_exposes_latest_revision_after_reopen() {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-branch-inventory-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     let path = dir.join("inventory.cva");

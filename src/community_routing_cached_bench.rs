@@ -13,7 +13,6 @@ struct CachedEntry {
 }
 
 #[test]
-#[ignore = "cached representative routing over a larger Dream-populated typed REL"]
 fn community_cached_representative_routing_benchmark() {
     let fixture = load_fixture();
     println!("strategy,reps,build_ms,k,recall,admit,avoid,route_us");

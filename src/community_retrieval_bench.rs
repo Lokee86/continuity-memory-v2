@@ -17,7 +17,6 @@ struct Metrics {
 }
 
 #[test]
-#[ignore = "community fine-search and global escape-hatch retrieval experiment"]
 fn community_retrieval_escape_benchmark() {
     let fixture = load_fixture();
     let mut metrics = HashMap::<(usize, usize), Metrics>::new();
@@ -66,7 +65,6 @@ fn community_retrieval_escape_benchmark() {
 }
 
 #[test]
-#[ignore = "global escape hits used as community-routing hints"]
 fn community_escape_hint_benchmark() {
     let fixture = load_fixture();
     println!("strategy,k,escape_hints,recall,admit,avoid,communities_added_per_query");

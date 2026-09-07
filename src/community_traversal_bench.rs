@@ -4,7 +4,6 @@ use crate::community_traversal_bench_support::{TraversalPolicy, evaluate, policy
 const BUDGETS: [usize; 3] = [16, 32, 64];
 
 #[test]
-#[ignore = "community-aware traversal benchmark"]
 fn community_preferred_traversal_benchmark() {
     let fixture = load_fixture();
     println!(
