@@ -1,7 +1,8 @@
 use crate::community_scan_merge::scan_merge_snapshot;
 use crate::{
-    COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunityId, CommunitySemanticName,
-    CommunitySemanticNameSource, CommunitySnapshot, CommunityStats, Phylactery,
+    COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunityId, CommunityLineageTransition,
+    CommunitySemanticName, CommunitySemanticNameSource, CommunitySnapshot, CommunityStats,
+    Phylactery,
 };
 
 impl Phylactery {
@@ -17,11 +18,15 @@ impl Phylactery {
         &self,
         community_id: CommunityId,
     ) -> Option<CommunitySemanticName> {
-        self.communities.semantic_name(community_id).cloned()
+        self.communities.semantic_name(community_id)
     }
 
     pub fn community_semantic_names(&self) -> Vec<CommunitySemanticName> {
         self.communities.current_semantic_names()
+    }
+
+    pub fn community_lineage(&self) -> Option<CommunityLineageTransition> {
+        self.communities.latest_lineage()
     }
 
     pub fn set_community_name(
@@ -32,6 +37,7 @@ impl Phylactery {
         let name = name.into().trim().to_owned();
         self.publish_community_semantic_name(CommunitySemanticName {
             community_id,
+            baseline_community_id: community_id,
             contract_version: 0,
             source: CommunitySemanticNameSource::User,
             name,

@@ -30,4 +30,5 @@
 - [ADR 0028: Project folder and repository bootstrap contract](0028-project-folder-and-repository-bootstrap-contract.md) — **Accepted**, 2026-09-02.
 - [ADR 0029: Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md) — **Accepted; amends ADR 0021's provisional context/Connection direction**, 2026-09-04.
 - [ADR 0030: Provenance-anchored Dream maintenance](0030-provenance-anchored-dream-maintenance.md) — **Accepted and implemented; amends ADR 0024's extracted-only scheduling**, 2026-09-05.
-- [ADR 0031: Dream-derived community semantic names and user override](0031-dream-derived-community-semantic-names.md) — **Accepted and implemented; amends ADR 0025's presentation-only naming boundary**, 2026-09-05.
+- [ADR 0031: Dream-derived community semantic names and user override](0031-dream-derived-community-semantic-names.md) — **Accepted and implemented; amends ADR 0025's presentation-only naming boundary; continuity amended by ADR 0032**, 2026-09-05.
+- [ADR 0032: Derived Community lineage and semantic-name continuity](0032-community-lineage-and-name-continuity.md) — **Accepted and implemented; amends ADR 0025/0031 for changed-membership continuity**, 2026-09-07.

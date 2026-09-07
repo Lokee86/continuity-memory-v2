@@ -42,7 +42,7 @@ The computation remains a complete Graph organization pass. There is no changed-
 
 Older v1 snapshots remain reopenable because they are derived state rather than semantic authority. Explicit refresh republishes the current v2 partition as the next generation; an old algorithm version is not reported as current even when its Graph watermark still matches.
 
-Community identity still changes when exact membership changes. Split/merge lineage and continuity-preserving identity remain separate concerns. Community-aware traversal is implemented separately, while generated/user Community naming and user-over-Dream precedence are governed by ADR 0031.
+Community identity still changes when exact membership changes. Deterministic split/merge lineage is derived separately from consecutive snapshots and does not make IDs continuity-preserving; see ADR 0032. Community-aware traversal is implemented separately, while generated/user Community naming and user-over-Dream precedence are governed by ADR 0031.
 
 ## Rejected alternatives
 

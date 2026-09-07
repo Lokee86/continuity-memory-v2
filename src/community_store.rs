@@ -1,6 +1,8 @@
+use crate::CommunityLineageTransition;
 use crate::community_codec::{
     decode_semantic_name, decode_snapshot, encode_semantic_name, encode_snapshot,
 };
+use crate::community_lineage::{latest_lineage, resolve_semantic_name};
 use crate::graph_store::GraphStore;
 use crate::{
     COMMUNITY_ALGORITHM_VERSION, COMMUNITY_NAMING_CONTRACT_VERSION, CommunityError, CommunityId,
@@ -22,11 +24,8 @@ impl CommunityStore {
         self.snapshots.last()
     }
 
-    pub(crate) fn semantic_name(
-        &self,
-        community_id: CommunityId,
-    ) -> Option<&CommunitySemanticName> {
-        self.semantic_names.get(&community_id)
+    pub(crate) fn semantic_name(&self, community_id: CommunityId) -> Option<CommunitySemanticName> {
+        resolve_semantic_name(&self.snapshots, &self.semantic_names, community_id)
     }
 
     pub(crate) fn current_semantic_names(&self) -> Vec<CommunitySemanticName> {
@@ -36,8 +35,12 @@ impl CommunityStore {
         snapshot
             .communities
             .iter()
-            .filter_map(|community| self.semantic_names.get(&community.id).cloned())
+            .filter_map(|community| self.semantic_name(community.id))
             .collect()
+    }
+
+    pub(crate) fn latest_lineage(&self) -> Option<CommunityLineageTransition> {
+        latest_lineage(&self.snapshots)
     }
 
     pub(crate) fn next_generation(&self) -> Result<u64, CommunityError> {
@@ -259,6 +262,11 @@ fn validate_semantic_name(
     snapshot: &CommunitySnapshot,
     record: &CommunitySemanticName,
 ) -> Result<(), CommunityError> {
+    if record.baseline_community_id != record.community_id {
+        return Err(CommunityError::InvalidSemanticName(
+            "persisted name baseline must match its community",
+        ));
+    }
     match record.source {
         CommunitySemanticNameSource::Dream => {
             if record.contract_version == 0

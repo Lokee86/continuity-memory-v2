@@ -8,9 +8,10 @@ const SNAPSHOT_SCHEMA: u32 = 1;
 const HEADER_LEN: usize = 60;
 const COMMUNITY_HEADER_LEN: usize = 36;
 const NAME_MAGIC: &[u8; 8] = b"CVACNAM1";
-const NAME_SCHEMA: u32 = 2;
+const NAME_SCHEMA: u32 = 3;
 const NAME_HEADER_V1_LEN: usize = 52;
 const NAME_HEADER_V2_LEN: usize = 53;
+const NAME_HEADER_V3_LEN: usize = 85;
 
 pub(crate) fn encode_snapshot(snapshot: &CommunitySnapshot) -> Result<Vec<u8>, CommunityError> {
     let member_count = snapshot
@@ -120,7 +121,7 @@ pub(crate) fn encode_semantic_name(
         .len()
         .checked_mul(32)
         .ok_or(CommunityError::SizeOverflow)?;
-    let capacity = NAME_HEADER_V2_LEN
+    let capacity = NAME_HEADER_V3_LEN
         .checked_add(representative_bytes)
         .and_then(|value| value.checked_add(4))
         .and_then(|value| value.checked_add(record.name.len()))
@@ -134,6 +135,7 @@ pub(crate) fn encode_semantic_name(
         CommunitySemanticNameSource::User => 2,
     });
     out.extend_from_slice(&record.community_id.0);
+    out.extend_from_slice(&record.baseline_community_id.0);
     let representative_count = u32::try_from(record.representative_memories.len())
         .map_err(|_| CommunityError::SizeOverflow)?;
     out.extend_from_slice(&representative_count.to_le_bytes());
@@ -153,23 +155,21 @@ pub(crate) fn decode_semantic_name(
         return Ok(None);
     }
     let schema = read_u32(bytes, 8)?;
-    let (header_len, source, community_start, count_offset) = match schema {
+    let (header_len, source, community_start, baseline_start, count_offset) = match schema {
         1 => (
             NAME_HEADER_V1_LEN,
             CommunitySemanticNameSource::Dream,
             16,
+            None,
             48,
         ),
         2 => {
-            let source = match *bytes
-                .get(16)
-                .ok_or(CommunityError::CorruptRecord("semantic name source"))?
-            {
-                1 => CommunitySemanticNameSource::Dream,
-                2 => CommunitySemanticNameSource::User,
-                _ => return Err(CommunityError::CorruptRecord("semantic name source")),
-            };
-            (NAME_HEADER_V2_LEN, source, 17, 49)
+            let source = decode_name_source(bytes)?;
+            (NAME_HEADER_V2_LEN, source, 17, None, 49)
+        }
+        3 => {
+            let source = decode_name_source(bytes)?;
+            (NAME_HEADER_V3_LEN, source, 17, Some(49), 81)
         }
         _ => return Err(CommunityError::CorruptRecord("semantic name header")),
     };
@@ -184,6 +184,15 @@ pub(crate) fn decode_semantic_name(
             .try_into()
             .expect("community id width"),
     );
+    let baseline_community_id = baseline_start.map_or(community_id, |offset| {
+        CommunityId(
+            bytes
+                .get(offset..offset + 32)
+                .expect("validated semantic name header width")
+                .try_into()
+                .expect("community id width"),
+        )
+    });
     let representative_count = usize::try_from(read_u32(bytes, count_offset)?)
         .map_err(|_| CommunityError::SizeOverflow)?;
     let representative_bytes = representative_count
@@ -224,11 +233,23 @@ pub(crate) fn decode_semantic_name(
     }
     Ok(Some(CommunitySemanticName {
         community_id,
+        baseline_community_id,
         contract_version,
         source,
         name,
         representative_memories,
     }))
+}
+
+fn decode_name_source(bytes: &[u8]) -> Result<CommunitySemanticNameSource, CommunityError> {
+    match *bytes
+        .get(16)
+        .ok_or(CommunityError::CorruptRecord("semantic name source"))?
+    {
+        1 => Ok(CommunitySemanticNameSource::Dream),
+        2 => Ok(CommunitySemanticNameSource::User),
+        _ => Err(CommunityError::CorruptRecord("semantic name source")),
+    }
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, CommunityError> {

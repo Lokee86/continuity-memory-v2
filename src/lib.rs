@@ -21,6 +21,7 @@ mod archive_vector_store;
 mod community_codec;
 mod community_error;
 mod community_leiden;
+mod community_lineage;
 mod community_model;
 #[cfg(test)]
 mod community_routing;
@@ -260,9 +261,10 @@ pub use archive_vector_model::{
 pub use community_error::CommunityError;
 pub use community_model::{
     COMMUNITY_ALGORITHM_VERSION, COMMUNITY_LEIDEN_RESOLUTION, COMMUNITY_LEIDEN_SEED,
-    COMMUNITY_NAMING_CONTRACT_VERSION, Community, CommunityId, CommunitySemanticName,
-    CommunitySemanticNameSource, CommunitySnapshot, CommunityStats,
-    DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES, MAX_COMMUNITY_SEMANTIC_NAME_BYTES,
+    COMMUNITY_NAMING_CONTRACT_VERSION, Community, CommunityId, CommunityLineageLink,
+    CommunityLineageTransition, CommunitySemanticName, CommunitySemanticNameSource,
+    CommunitySnapshot, CommunityStats, DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES,
+    DREAM_COMMUNITY_NAME_RETAIN_JACCARD_PERMILLE, MAX_COMMUNITY_SEMANTIC_NAME_BYTES,
 };
 pub use compatibility_profile_error::CompatibilityProfileError;
 pub use compatibility_profile_model::{
@@ -466,6 +468,8 @@ mod community_end_to_end_bench;
 mod community_end_to_end_grid_bench;
 #[cfg(test)]
 mod community_lexical_escape_bench;
+#[cfg(test)]
+mod community_lineage_tests;
 #[cfg(test)]
 mod community_retrieval_bench;
 #[cfg(test)]

@@ -72,6 +72,7 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
                 .collect::<Result<Vec<_>, _>>()?;
             let record = CommunitySemanticName {
                 community_id: community.id,
+                baseline_community_id: community.id,
                 contract_version: COMMUNITY_NAMING_CONTRACT_VERSION,
                 source: CommunitySemanticNameSource::Dream,
                 name: self.generate_name(&memories)?,
@@ -125,6 +126,7 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
                 .collect::<Result<Vec<_>, _>>()?;
             let record = CommunitySemanticName {
                 community_id: community.id,
+                baseline_community_id: community.id,
                 contract_version: COMMUNITY_NAMING_CONTRACT_VERSION,
                 source: CommunitySemanticNameSource::Dream,
                 name: self.generate_name(&memories)?,

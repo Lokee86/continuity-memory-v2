@@ -181,9 +181,9 @@ Future integration work:
 - compose owner-local REL and PHY retrieval above those primitives without creating cross-owner Dream/Graph authority;
 - measure release-mode latency against `GlobalExact` during rollout;
 - consider explicit lower-cost routing modes only if production economics justify them;
-- add split/merge lineage or continuity-preserving Community IDs only for a concrete product need;
+- tune the implemented Community-lineage continuation/material-change thresholds only from real archive behavior; continuity-preserving Community IDs remain unnecessary while derived lineage is sufficient;
 - add incremental Community maintenance only if measured scan-and-merge cost becomes material; and
-- preserve explicit user Community names as metadata only, never Memory-Web authority, and add split/merge name lineage only if a concrete product need justifies carrying a user name across changed exact membership.
+- preserve explicit user Community names as metadata only, never Memory-Web authority; current lineage inheritance must remain conservative around ambiguous splits/merges.
 
 ## Ego
 

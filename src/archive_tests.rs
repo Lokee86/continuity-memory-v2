@@ -3,14 +3,20 @@ use crate::archive_store::hash_content;
 use crate::{ArchiveError, Branch, Cva, Node};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+static TEST_PATH_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 fn test_path() -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let dir = std::env::temp_dir().join(format!("continuity-archive-{unique}"));
+    let sequence = TEST_PATH_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let process = std::process::id();
+    let dir =
+        std::env::temp_dir().join(format!("continuity-archive-{process}-{unique}-{sequence}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join("archive.cva")
 }

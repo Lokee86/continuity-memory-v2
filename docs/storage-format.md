@@ -455,17 +455,18 @@ Community semantic names are separate optional clock-neutral records:
 
 ```text
 8 bytes   "CVACNAM1"
-u32       schema = 2
+u32       schema = 3
 u32       Dream naming contract version; `0` for user-authored names
 u8        source: 1=Dream, 2=User
 32 bytes  exact-membership CommunityId
+32 bytes  baseline CommunityId
 u32       representative Memory count
 repeated  32-byte MemoryId
 u32       UTF-8 name byte length
 N bytes   semantic name
 ```
 
-The current Dream naming contract version is `2`. Dream records carry contract versions `1..=2` and 1–8 sorted unique representative Memory IDs from the named Community. Version `2` uses the four existing Community sub-centroids and targets two representative Memories per sub-centroid. User-authored records carry contract version `0`, source `User`, and zero representative Memory IDs; for the same exact `CommunityId`, a user-authored latest record suppresses Dream regeneration even when the Dream naming contract later changes. All records store a trimmed non-empty UTF-8 name no longer than 96 bytes. Latest record for one `CommunityId` wins. Current-name enumeration exposes only names whose IDs occur in the latest snapshot. Historical schema-1 `CVACNAM1` records remain readable as Dream-generated records. Naming records consume no `CVAVERS1`, Graph version, Community generation, Memory version, or Vector Generation version. Representative IDs record which Memory texts informed Dream; vectors themselves are never persisted in this record or sent as naming evidence.
+The current Dream naming contract version is `2`. Dream records carry contract versions `1..=2` and 1–8 sorted unique representative Memory IDs from the named Community. Version `2` uses the four existing Community sub-centroids and targets two representative Memories per sub-centroid. User-authored records carry contract version `0`, source `User`, and zero representative Memory IDs. Directly persisted schema-3 records require `baseline CommunityId == CommunityId`; the baseline marks the exact membership against which the name was authored/generated. Current-name resolution may project that record through deterministic Community lineage without appending another name record. User names follow clear continuation lineage without a material-change cutoff. Dream names follow clear lineage only while the current Community remains at least 0.750 Jaccard-similar to the stored baseline. All records store a trimmed non-empty UTF-8 name no longer than 96 bytes. Latest direct record for one `CommunityId` wins. Historical schema-1 and schema-2 `CVACNAM1` records remain readable and infer their stored Community ID as the baseline. Naming records consume no `CVAVERS1`, Graph version, Community generation, Memory version, or Vector Generation version. Representative IDs record which Memory texts informed Dream; vectors themselves are never persisted in this record or sent as naming evidence.
 
 ### Packed vectors
 Format marker:

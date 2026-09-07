@@ -22,21 +22,21 @@ Reliquary persists **Community semantic names** as clock-neutral metadata, with 
 - Dream owns the bounded model inference that generates a semantic name.
 - `CommunityStore` owns persistence and validation because the label is metadata keyed to one exact `CommunityId`.
 - A semantic name is stored in a separate clock-neutral `CVACNAM1` record rather than inside `CommunitySnapshot`. Naming therefore does not advance Community generation, Graph version, or any semantic/global clock and does not invalidate a `MemoryRetrievalIndex`.
-- The name record is keyed by exact-membership `CommunityId`. If membership changes and a new `CommunityId` is produced, the old label does not automatically transfer. No split/merge lineage is inferred.
+- The persisted name record is authored against one exact-membership `CommunityId`. Continuity across later membership changes is derived separately by the lineage policy in ADR 0032; exact Community identity itself does not change.
 - Naming requires a current Community snapshot and one compatible Memory-vector profile.
 - The existing four deterministic Community sub-centroids select up to eight representative Memory IDs. Dream targets the two nearest unique vectorized members per sub-centroid with stable Memory-ID tie-breaking; if centroid overlap leaves slots open, remaining vectorized members are admitted by best similarity to any Community sub-centroid before deterministic non-vector fallback.
 - Raw centroid or Memory vectors are never sent to the model. Dream sends bounded title/content text from the selected representative Memories.
 - The Dream naming contract is versioned independently of the Community clustering algorithm so a later prompt/schema/evidence-policy change can regenerate generated labels without recomputing membership.
 - Names are owner-local for REL and PHY. Cross-owner naming is not introduced.
 - `CommunitySemanticName.source` distinguishes `Dream` from `User`. User-authored names carry no Dream contract/evidence and are authoritative for that exact `CommunityId`; Dream must not schedule or overwrite them, including after a naming-contract upgrade.
-- If exact membership changes, the new `CommunityId` does not inherit either a generated or user-authored name without a future explicit lineage policy.
+- Name continuity across changed exact membership is governed by ADR 0032: user names follow clear lineage, while Dream names survive only while cumulative Jaccard similarity to their original naming baseline remains at least 0.750.
 - Naming does not automatically trigger a full Leiden refresh. Community maintenance cadence remains separate because recomputing the complete partition after every Dream Graph mutation would be unnecessarily expensive.
 
 ## Consequences
 
 Reliquary can expose human-readable semantic regions while preserving deterministic structural authority. Ego or Warlock can display or consume the names without needing to reproduce representative selection, provenance precedence, or model prompting.
 
-A name may become historically orphaned when membership changes; this is harmless derived history because the new Community has a different ID. Current-name enumeration exposes only names belonging to the latest snapshot.
+Historical direct name records remain keyed to the exact Community membership against which they were authored. Current-name resolution may expose one through ADR 0032 lineage without rewriting historical records; ambiguous lineage or material Dream-name drift leaves the current Community unnamed until user or Dream naming supplies a new direct record.
 
 Dream cannot name a Community until its snapshot is current and Memory vectors exist for the selected profile. A user may name a current Community without Dream evidence. Model failure leaves the Community unnamed unless a user name already exists and changes no structural or semantic state.
 
