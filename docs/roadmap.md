@@ -183,7 +183,7 @@ Future integration work:
 - consider explicit lower-cost routing modes only if production economics justify them;
 - add split/merge lineage or continuity-preserving Community IDs only for a concrete product need;
 - add incremental Community maintenance only if measured scan-and-merge cost becomes material; and
-- keep human-facing Community naming as Warlock presentation metadata rather than semantic authority.
+- preserve explicit user Community names as metadata only, never Memory-Web authority, and add split/merge name lineage only if a concrete product need justifies carrying a user name across changed exact membership.
 
 ## Ego
 

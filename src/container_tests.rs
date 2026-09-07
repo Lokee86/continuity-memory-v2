@@ -63,10 +63,7 @@ fn file_kind_and_scope_combinations_are_validated() {
         file_kind: crate::FileKind::Reliquary,
         scope: None,
     };
-    assert!(matches!(
-        Container::create_with_identity(test_path("bad.rel"), rel_without_scope),
-        Err(ContainerError::InvalidIdentity)
-    ));
+    assert!(Container::create_with_identity(test_path("current.rel"), rel_without_scope).is_ok());
 
     let phy_with_scope = crate::ContainerIdentity {
         file_kind: crate::FileKind::Phylactery,

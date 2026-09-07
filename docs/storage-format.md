@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -266,7 +266,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 ### Phylactery owner composition
 
-A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. Community snapshots are optional derived chunks and appear only after explicit refresh. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
+A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
 The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
 
@@ -451,6 +451,22 @@ Algorithm version `2` keeps the same structural projection, modularity resolutio
 
 A stale or older-algorithm snapshot may remain physically present. Explicit refresh appends a new complete snapshot using the current algorithm version. `CommunityStats.current` requires both current `graph_version` and current community algorithm version. Semantic repacks may omit Community snapshots and rebuild them later from Graph authority.
 
+Community semantic names are separate optional clock-neutral records:
+
+```text
+8 bytes   "CVACNAM1"
+u32       schema = 2
+u32       Dream naming contract version; `0` for user-authored names
+u8        source: 1=Dream, 2=User
+32 bytes  exact-membership CommunityId
+u32       representative Memory count
+repeated  32-byte MemoryId
+u32       UTF-8 name byte length
+N bytes   semantic name
+```
+
+The current Dream naming contract version is `2`. Dream records carry contract versions `1..=2` and 1–8 sorted unique representative Memory IDs from the named Community. Version `2` uses the four existing Community sub-centroids and targets two representative Memories per sub-centroid. User-authored records carry contract version `0`, source `User`, and zero representative Memory IDs; for the same exact `CommunityId`, a user-authored latest record suppresses Dream regeneration even when the Dream naming contract later changes. All records store a trimmed non-empty UTF-8 name no longer than 96 bytes. Latest record for one `CommunityId` wins. Current-name enumeration exposes only names whose IDs occur in the latest snapshot. Historical schema-1 `CVACNAM1` records remain readable as Dream-generated records. Naming records consume no `CVAVERS1`, Graph version, Community generation, Memory version, or Vector Generation version. Representative IDs record which Memory texts informed Dream; vectors themselves are never persisted in this record or sent as naming evidence.
+
 ### Packed vectors
 Format marker:
 ```text
@@ -627,7 +643,7 @@ Archive, Memories, Graph, and Vector Generations have independent local watermar
 ## Diagnostics and failure behavior
 `Cva::open` / `Reliquary::open` requires Reliquary type/scope identity (or the legacy 16-byte Project form) and exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Current 40-byte typed files also carry the durable owner UUID; earlier 16-byte and 24-byte forms remain readable for explicit migration but have no owner ID. Graph is a narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
 
-`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Graph, optional Community snapshots, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, vector/profile references, absence of REL-local Memory provenance, and structural validity of any external `MemorySourceRef`. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
+`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Graph, optional Community snapshots/semantic names, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, Community/name membership references, vector/profile references, absence of REL-local Memory provenance, and structural validity of any external `MemorySourceRef`. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
 Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
 ## Defaults or precedence
 Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.

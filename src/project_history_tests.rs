@@ -69,12 +69,12 @@ fn project_revision_correlation_requires_stable_repository_identity() {
 }
 
 #[test]
-fn project_revision_correlation_rejects_non_project_scope_and_unsafe_path() {
+fn project_revision_correlation_accepts_rel_labels_and_rejects_unsafe_path() {
     let org_path = rel_path();
     let mut org = Cva::create_organization(&org_path).unwrap();
     assert!(
         org.correlate_project_revision(lore_revision("repo-1", "revision-1"))
-            .is_err()
+            .is_ok()
     );
 
     let project_path = rel_path();

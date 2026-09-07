@@ -8,6 +8,7 @@ pub enum CommunityError {
     MissingOwnerIdentity,
     CorruptRecord(&'static str),
     InvalidSnapshot(&'static str),
+    InvalidSemanticName(&'static str),
     GenerationOverflow,
     SizeOverflow,
     Leiden(String),
@@ -23,6 +24,9 @@ impl fmt::Display for CommunityError {
             }
             Self::CorruptRecord(field) => write!(f, "corrupt community record: {field}"),
             Self::InvalidSnapshot(reason) => write!(f, "invalid community snapshot: {reason}"),
+            Self::InvalidSemanticName(reason) => {
+                write!(f, "invalid community semantic name: {reason}")
+            }
             Self::GenerationOverflow => write!(f, "community generation exhausted"),
             Self::SizeOverflow => write!(f, "community record size overflow"),
             Self::Leiden(error) => write!(f, "Leiden community detection failed: {error}"),

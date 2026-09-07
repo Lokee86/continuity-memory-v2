@@ -24,9 +24,10 @@
 - [ADR 0022: Durable typed owner identity](0022-durable-typed-owner-identity.md) — **Accepted and implemented**, 2026-08-26.
 - [ADR 0023: Insomnia durable owner routing](0023-insomnia-durable-owner-routing.md) — **Accepted and implemented**, 2026-08-27.
 - [ADR 0024: Owner-local Dream processing](0024-owner-local-dream-processing.md) — **Accepted and implemented; extracted-only scheduling amended by ADR 0030**, 2026-08-27.
-- [ADR 0025: Owner-local derived Graph communities](0025-owner-local-derived-communities.md) — **Accepted and implemented**, 2026-08-27.
+- [ADR 0025: Owner-local derived Graph communities](0025-owner-local-derived-communities.md) — **Accepted and implemented; semantic naming amended by ADR 0031**, 2026-08-27.
 - [ADR 0026: Community-routed owner-local Memory retrieval](0026-community-routed-memory-retrieval.md) — **Accepted and implemented**, 2026-08-29.
 - [ADR 0027: Warlock project repositories and Reliquary storage boundary](0027-warlock-project-repositories-and-reliquary-storage-boundary.md) — **Accepted**, 2026-09-02.
 - [ADR 0028: Project folder and repository bootstrap contract](0028-project-folder-and-repository-bootstrap-contract.md) — **Accepted**, 2026-09-02.
 - [ADR 0029: Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md) — **Accepted; amends ADR 0021's provisional context/Connection direction**, 2026-09-04.
 - [ADR 0030: Provenance-anchored Dream maintenance](0030-provenance-anchored-dream-maintenance.md) — **Accepted and implemented; amends ADR 0024's extracted-only scheduling**, 2026-09-05.
+- [ADR 0031: Dream-derived community semantic names and user override](0031-dream-derived-community-semantic-names.md) — **Accepted and implemented; amends ADR 0025's presentation-only naming boundary**, 2026-09-05.

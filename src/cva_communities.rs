@@ -1,5 +1,8 @@
 use crate::community_scan_merge::scan_merge_snapshot;
-use crate::{COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunitySnapshot, CommunityStats, Cva};
+use crate::{
+    COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunityId, CommunitySemanticName,
+    CommunitySemanticNameSource, CommunitySnapshot, CommunityStats, Cva,
+};
 
 impl Cva {
     pub fn community_snapshot(&self) -> Option<CommunitySnapshot> {
@@ -8,6 +11,40 @@ impl Cva {
 
     pub fn community_stats(&self) -> CommunityStats {
         self.communities.stats(self.graph.graph_version())
+    }
+
+    pub fn community_semantic_name(
+        &self,
+        community_id: CommunityId,
+    ) -> Option<CommunitySemanticName> {
+        self.communities.semantic_name(community_id).cloned()
+    }
+
+    pub fn community_semantic_names(&self) -> Vec<CommunitySemanticName> {
+        self.communities.current_semantic_names()
+    }
+
+    pub fn set_community_name(
+        &mut self,
+        community_id: CommunityId,
+        name: impl Into<String>,
+    ) -> Result<bool, CommunityError> {
+        let name = name.into().trim().to_owned();
+        self.publish_community_semantic_name(CommunitySemanticName {
+            community_id,
+            contract_version: 0,
+            source: CommunitySemanticNameSource::User,
+            name,
+            representative_memories: Vec::new(),
+        })
+    }
+
+    pub(crate) fn publish_community_semantic_name(
+        &mut self,
+        record: CommunitySemanticName,
+    ) -> Result<bool, CommunityError> {
+        self.communities
+            .publish_semantic_name(&mut self.container, &self.graph, record)
     }
 
     pub fn refresh_communities_leiden(&mut self) -> Result<CommunitySnapshot, CommunityError> {

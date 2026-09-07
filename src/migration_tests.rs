@@ -121,7 +121,7 @@ fn legacy_typed_rel_migration_preserves_identity_and_state() {
     let second = migrate_file(&copy, &copy_output).unwrap();
     assert!(first.derived_from_legacy_workspace_id);
     assert_eq!(first.owner_id, second.owner_id);
-    assert!(first.owner_id.starts_with("proj-"));
+    assert!(first.owner_id.starts_with("rel-"));
 
     let mut migrated = Cva::open(&output).unwrap();
     assert_eq!(migrated.stats().nodes, 8);
@@ -231,7 +231,7 @@ fn legacy_cva_migrates_once_to_current_project_rel() {
     let result = migrate_file(&source, &output).unwrap();
     assert!(!result.derived_from_legacy_workspace_id);
     assert_eq!(result.scope, Some(ReliquaryScopeKind::Project));
-    assert!(result.owner_id.starts_with("proj-"));
+    assert!(result.owner_id.starts_with("rel-"));
     let migrated = Cva::open(&output).unwrap();
     assert_eq!(migrated.stats().nodes, 1);
     assert!(migrated.conversation_compactions("c").is_empty());

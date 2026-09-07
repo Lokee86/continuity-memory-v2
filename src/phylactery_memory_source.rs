@@ -37,7 +37,9 @@ impl Phylactery {
             .ok_or(MemoryError::VersionExhausted)?;
         let mutation_id = format!(
             "source-ref-backfill:{}:{next_revision}",
-            id.0.iter().map(|byte| format!("{byte:02x}")).collect::<String>()
+            id.0.iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
         );
         let draft = MemoryDraft {
             category: current.category.clone(),

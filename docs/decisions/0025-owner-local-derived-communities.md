@@ -4,7 +4,7 @@ Parent index: [Architectural decisions](INDEX.md)
 
 ## Status
 
-Accepted and implemented — 2026-08-27.
+Accepted and implemented — 2026-08-27. Semantic naming amended by [ADR 0031](0031-dream-derived-community-semantic-names.md).
 
 ## Context
 
@@ -29,7 +29,7 @@ Reliquary persists owner-local **derived community snapshots** over the current 
 - Merge decisions are irreversible within one pass, so v2 is a hierarchical approximation to one monolithic Leiden run rather than a guarantee of partition identity. Measured modularity and timing are tracked in [Community scan-and-merge benchmark — 2026-08-27](../community-scan-merge-benchmark-2026-08-27.md).
 - Leiden and scan-and-merge never mutate Graph authority. Every current Graph node belongs to exactly one community in a current snapshot. REL and PHY are always clustered independently.
 - `CommunityId` remains deterministic exact-membership identity: SHA-256 over the durable owner UUID plus sorted member `MemoryId`s. It does not promise continuity after a membership change.
-- Human-facing community names are outside the Reliquary identity contract. Warlock may attach or edit display names without changing membership, Graph relationships, or traversal semantics.
+- Human-facing names are outside Community identity and membership. As amended by ADR 0031, Reliquary persists clock-neutral Community-name metadata keyed to exact `CommunityId`, with provenance distinguishing Dream-generated from explicit user-authored names. User naming takes precedence over Dream generation without changing membership, Graph relationships, or traversal semantics.
 - A real divergent semantic reconciliation repack may discard Community snapshots and rebuild them from merged Graph authority. A semantic no-op reconciliation preserves canonical bytes, including an existing snapshot.
 
 The Leiden dependency remains isolated behind private community machinery. Reliquary owns the semantic projection, deterministic scan/reduction policy, and persisted derived snapshot contract.
@@ -42,7 +42,7 @@ The computation remains a complete Graph organization pass. There is no changed-
 
 Older v1 snapshots remain reopenable because they are derived state rather than semantic authority. Explicit refresh republishes the current v2 partition as the next generation; an old algorithm version is not reported as current even when its Graph watermark still matches.
 
-Community identity still changes when exact membership changes. Split/merge lineage, continuity-preserving identity, community-aware traversal, and Warlock display naming remain separate concerns.
+Community identity still changes when exact membership changes. Split/merge lineage and continuity-preserving identity remain separate concerns. Community-aware traversal is implemented separately, while generated/user Community naming and user-over-Dream precedence are governed by ADR 0031.
 
 ## Rejected alternatives
 

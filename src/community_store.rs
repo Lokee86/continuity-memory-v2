@@ -1,20 +1,43 @@
-use crate::community_codec::{decode_snapshot, encode_snapshot};
+use crate::community_codec::{
+    decode_semantic_name, decode_snapshot, encode_semantic_name, encode_snapshot,
+};
 use crate::graph_store::GraphStore;
 use crate::{
-    COMMUNITY_ALGORITHM_VERSION, CommunityError, CommunityId, CommunitySnapshot, CommunityStats,
-    Container, MemoryId,
+    COMMUNITY_ALGORITHM_VERSION, COMMUNITY_NAMING_CONTRACT_VERSION, CommunityError, CommunityId,
+    CommunitySemanticName, CommunitySemanticNameSource, CommunitySnapshot, CommunityStats,
+    Container, DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES, MAX_COMMUNITY_SEMANTIC_NAME_BYTES,
+    MemoryId,
 };
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub(crate) struct CommunityStore {
     snapshots: Vec<CommunitySnapshot>,
+    semantic_names: HashMap<CommunityId, CommunitySemanticName>,
 }
 
 impl CommunityStore {
     pub(crate) fn latest(&self) -> Option<&CommunitySnapshot> {
         self.snapshots.last()
+    }
+
+    pub(crate) fn semantic_name(
+        &self,
+        community_id: CommunityId,
+    ) -> Option<&CommunitySemanticName> {
+        self.semantic_names.get(&community_id)
+    }
+
+    pub(crate) fn current_semantic_names(&self) -> Vec<CommunitySemanticName> {
+        let Some(snapshot) = self.latest() else {
+            return Vec::new();
+        };
+        snapshot
+            .communities
+            .iter()
+            .filter_map(|community| self.semantic_names.get(&community.id).cloned())
+            .collect()
     }
 
     pub(crate) fn next_generation(&self) -> Result<u64, CommunityError> {
@@ -37,6 +60,30 @@ impl CommunityStore {
         container.append(&encode_snapshot(&snapshot)?)?;
         self.snapshots.push(snapshot);
         Ok(())
+    }
+
+    pub(crate) fn publish_semantic_name(
+        &mut self,
+        container: &mut Container,
+        graph: &GraphStore,
+        record: CommunitySemanticName,
+    ) -> Result<bool, CommunityError> {
+        let snapshot = self
+            .latest()
+            .filter(|snapshot| {
+                snapshot.derived_graph_version == graph.graph_version()
+                    && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
+            })
+            .ok_or(CommunityError::InvalidSemanticName(
+                "semantic names require a current community snapshot",
+            ))?;
+        validate_semantic_name(snapshot, &record)?;
+        if self.semantic_names.get(&record.community_id) == Some(&record) {
+            return Ok(false);
+        }
+        container.append(&encode_semantic_name(&record)?)?;
+        self.semantic_names.insert(record.community_id, record);
+        Ok(true)
     }
 
     pub(crate) fn stats(&self, graph_version: u64) -> CommunityStats {
@@ -85,18 +132,23 @@ impl CommunityStore {
 
 pub(crate) struct CommunityOpenState {
     snapshots: Vec<CommunitySnapshot>,
+    semantic_names: Vec<CommunitySemanticName>,
 }
 
 impl CommunityOpenState {
     pub(crate) fn new() -> Self {
         Self {
             snapshots: Vec::new(),
+            semantic_names: Vec::new(),
         }
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), CommunityError> {
         if let Some(snapshot) = decode_snapshot(payload)? {
             self.snapshots.push(snapshot);
+        }
+        if let Some(record) = decode_semantic_name(payload)? {
+            self.semantic_names.push(record);
         }
         Ok(())
     }
@@ -106,13 +158,30 @@ impl CommunityOpenState {
         graph: &GraphStore,
         owner_uuid: Option<[u8; 16]>,
     ) -> Result<CommunityStore, CommunityError> {
-        if self.snapshots.is_empty() {
+        if self.snapshots.is_empty() && self.semantic_names.is_empty() {
             return Ok(CommunityStore::default());
         }
         let owner_uuid = owner_uuid.ok_or(CommunityError::MissingOwnerIdentity)?;
         let mut store = CommunityStore::default();
         for snapshot in self.snapshots {
             store.insert_rebuilt(graph, owner_uuid, snapshot)?;
+        }
+        for record in self.semantic_names {
+            let snapshot = store
+                .snapshots
+                .iter()
+                .rev()
+                .find(|snapshot| {
+                    snapshot
+                        .communities
+                        .iter()
+                        .any(|community| community.id == record.community_id)
+                })
+                .ok_or(CommunityError::InvalidSemanticName(
+                    "semantic name references an unknown community",
+                ))?;
+            validate_semantic_name(snapshot, &record)?;
+            store.semantic_names.insert(record.community_id, record);
         }
         Ok(store)
     }
@@ -182,6 +251,67 @@ fn validate_snapshot(
         return Err(CommunityError::InvalidSnapshot(
             "current snapshot does not cover graph nodes",
         ));
+    }
+    Ok(())
+}
+
+fn validate_semantic_name(
+    snapshot: &CommunitySnapshot,
+    record: &CommunitySemanticName,
+) -> Result<(), CommunityError> {
+    match record.source {
+        CommunitySemanticNameSource::Dream => {
+            if record.contract_version == 0
+                || record.contract_version > COMMUNITY_NAMING_CONTRACT_VERSION
+            {
+                return Err(CommunityError::InvalidSemanticName(
+                    "unsupported naming contract version",
+                ));
+            }
+        }
+        CommunitySemanticNameSource::User => {
+            if record.contract_version != 0 || !record.representative_memories.is_empty() {
+                return Err(CommunityError::InvalidSemanticName(
+                    "user names cannot carry Dream contract evidence",
+                ));
+            }
+        }
+    }
+    if record.name.is_empty()
+        || record.name.len() > MAX_COMMUNITY_SEMANTIC_NAME_BYTES
+        || record.name.trim() != record.name
+        || record.name.chars().any(char::is_control)
+    {
+        return Err(CommunityError::InvalidSemanticName("invalid name text"));
+    }
+    if record.source == CommunitySemanticNameSource::Dream
+        && (record.representative_memories.is_empty()
+            || record.representative_memories.len() > DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES)
+    {
+        return Err(CommunityError::InvalidSemanticName(
+            "invalid representative count",
+        ));
+    }
+    let community = snapshot
+        .communities
+        .iter()
+        .find(|community| community.id == record.community_id)
+        .ok_or(CommunityError::InvalidSemanticName(
+            "semantic name community is absent from snapshot",
+        ))?;
+    let mut previous: Option<[u8; 32]> = None;
+    for memory_id in &record.representative_memories {
+        if previous.is_some_and(|previous| previous >= memory_id.0) {
+            return Err(CommunityError::InvalidSemanticName(
+                "representatives must be sorted and unique",
+            ));
+        }
+        if !community.members.contains(memory_id) {
+            return Err(CommunityError::InvalidSemanticName(
+                "representative is not a community member",
+            ));
+        }
+        previous = Some(memory_id.0);
     }
     Ok(())
 }

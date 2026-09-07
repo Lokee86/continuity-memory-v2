@@ -95,6 +95,10 @@ mod dream_classifier;
 mod dream_classifier_error;
 mod dream_classifier_model;
 mod dream_classifier_schema;
+mod dream_community_naming;
+mod dream_community_naming_context;
+mod dream_community_naming_error;
+mod dream_community_naming_schema;
 mod dream_cooldown;
 mod dream_duplicate_index;
 mod dream_lifecycle;
@@ -255,8 +259,10 @@ pub use archive_vector_model::{
 };
 pub use community_error::CommunityError;
 pub use community_model::{
-    COMMUNITY_ALGORITHM_VERSION, COMMUNITY_LEIDEN_RESOLUTION, COMMUNITY_LEIDEN_SEED, Community,
-    CommunityId, CommunitySnapshot, CommunityStats,
+    COMMUNITY_ALGORITHM_VERSION, COMMUNITY_LEIDEN_RESOLUTION, COMMUNITY_LEIDEN_SEED,
+    COMMUNITY_NAMING_CONTRACT_VERSION, Community, CommunityId, CommunitySemanticName,
+    CommunitySemanticNameSource, CommunitySnapshot, CommunityStats,
+    DEFAULT_COMMUNITY_NAMING_REPRESENTATIVES, MAX_COMMUNITY_SEMANTIC_NAME_BYTES,
 };
 pub use compatibility_profile_error::CompatibilityProfileError;
 pub use compatibility_profile_model::{
@@ -301,6 +307,11 @@ pub use dream_classifier_model::{
     DreamPairEvidence, DreamRelationDirection, DreamRelationKind,
 };
 pub use dream_classifier_schema::{DREAM_CLASSIFIER_SYSTEM_PROMPT, dream_classifier_schema};
+pub use dream_community_naming::{DreamCommunityNamer, DreamCommunityNamingResult};
+pub use dream_community_naming_error::DreamCommunityNamingError;
+pub use dream_community_naming_schema::{
+    DREAM_COMMUNITY_NAMING_SYSTEM_PROMPT, dream_community_naming_schema,
+};
 pub use dream_cooldown::DEFAULT_DREAM_REPROCESS_COOLDOWN_NS;
 pub use dream_lifecycle_error::DreamLifecycleError;
 pub use dream_lifecycle_model::DreamLifecycleResult;
@@ -537,6 +548,8 @@ mod dream_canonical_test_support;
 mod dream_canonical_tests;
 #[cfg(test)]
 mod dream_classifier_tests;
+#[cfg(test)]
+mod dream_community_naming_tests;
 #[cfg(test)]
 mod dream_cooldown_tests;
 #[cfg(test)]

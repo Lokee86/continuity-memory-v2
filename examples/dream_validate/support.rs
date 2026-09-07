@@ -256,6 +256,7 @@ fn synthetic_context(
             grounding_source_node_id: None,
             source_episode_id: None,
             source_time_ns: None,
+            source_ref: None,
             mutation_id: format!("dream-validation-{tag}"),
             created_at_ns: 0,
             updated_at_ns: 0,
