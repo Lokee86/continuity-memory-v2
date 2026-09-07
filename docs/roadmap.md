@@ -187,9 +187,9 @@ Future integration work:
 
 ## Ego
 
-Build active context synthesis after owner-local retrieval and scope hierarchy are stable enough to provide trustworthy inputs.
+The first Ego substrate is now underway: REL/PHY persist owner-local Anchors and cached web synthesis, while PHY additionally persists Identity and Personality. These records deliberately do not yet perform inference, scheduling, cross-owner assembly, or prompt injection.
 
-Ego should:
+Next, Ego should:
 
 - synthesize each active Memory Web into its own bounded context block;
 - compose multiple active RELs according to explicit hierarchy rather than indiscriminate union;
@@ -198,7 +198,7 @@ Ego should:
 - keep source/provenance access available without flooding the default prompt; and
 - support optional personality synthesis without making personality a semantic authority over project/user facts.
 
-Detailed Ego architecture belongs in its own design owner once implementation boundaries are selected.
+Detailed Ego context-assembly policy is owned by Warlock's Ego architecture. Reliquary owns the durable owner-local records and lower-level synthesis/retrieval primitives needed by that host policy.
 
 ## Storage, scale, and historical recovery
 

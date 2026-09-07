@@ -6,6 +6,7 @@ use crate::cva_memory_publish::publish_memory_parts;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::echo_store::EchoStore;
+use crate::ego_store::EgoStore;
 use crate::graph_store::GraphStore;
 use crate::insomnia::store::InsomniaStore;
 use crate::interaction_stream_store::InteractionStreamStore;
@@ -43,6 +44,7 @@ pub struct Cva {
     pub(crate) conversation_compactions: ConversationCompactionStore,
     pub(crate) interaction_streams: InteractionStreamStore,
     pub(crate) echo: EchoStore,
+    pub(crate) ego: EgoStore,
     pub(crate) project_history: ProjectHistoryStore,
     pub(crate) project_files: ProjectFileStore,
     pub(crate) rel_metadata: RelMetadataStore,

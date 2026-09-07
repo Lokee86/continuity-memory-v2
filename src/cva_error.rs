@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, ArchiveVectorError, CommunityError, CompatibilityProfileError, ContainerError,
-    ConversationCompactionError, EchoError, GraphError, InsomniaError, MemoryError,
+    ConversationCompactionError, EchoError, EgoError, GraphError, InsomniaError, MemoryError,
     MemoryVectorError, PackedVectorError, VectorGenerationError,
 };
 use std::fmt;
@@ -21,6 +21,7 @@ pub enum CvaError {
     InteractionStream(String),
     ConversationCompactions(ConversationCompactionError),
     Echo(EchoError),
+    Ego(EgoError),
     RelMetadata(String),
     ProjectHistory(String),
     ProjectFile(String),
@@ -45,6 +46,7 @@ impl fmt::Display for CvaError {
             Self::InteractionStream(error) => write!(f, "interaction stream error: {error}"),
             Self::ConversationCompactions(error) => write!(f, "{error}"),
             Self::Echo(error) => write!(f, "{error}"),
+            Self::Ego(error) => write!(f, "{error}"),
             Self::RelMetadata(error) => write!(f, "REL metadata error: {error}"),
             Self::ProjectHistory(error) => write!(f, "project history error: {error}"),
             Self::ProjectFile(error) => write!(f, "project file error: {error}"),
@@ -86,3 +88,4 @@ from_error!(CompatibilityProfileError, CompatibilityProfiles);
 from_error!(VectorGenerationError, VectorGenerations);
 from_error!(ConversationCompactionError, ConversationCompactions);
 from_error!(EchoError, Echo);
+from_error!(EgoError, Ego);

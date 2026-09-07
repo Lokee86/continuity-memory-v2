@@ -1,0 +1,39 @@
+use crate::ContainerError;
+use std::fmt;
+
+#[derive(Debug)]
+pub enum EgoError {
+    Container(ContainerError),
+    InvalidRecord(String),
+    InvalidOwnerRecord(&'static str),
+    InvalidSourceMemoryVersion { source: u64, current: u64 },
+    RevisionConflict { expected: u64, actual: u64 },
+    NotFound(&'static str),
+}
+
+impl fmt::Display for EgoError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Container(error) => write!(f, "{error}"),
+            Self::InvalidRecord(message) => write!(f, "invalid Ego record: {message}"),
+            Self::InvalidOwnerRecord(message) => write!(f, "invalid Ego owner record: {message}"),
+            Self::InvalidSourceMemoryVersion { source, current } => write!(
+                f,
+                "invalid Ego source Memory version {source}: current owner Memory version is {current}"
+            ),
+            Self::RevisionConflict { expected, actual } => write!(
+                f,
+                "Ego revision conflict: expected {expected}, actual {actual}"
+            ),
+            Self::NotFound(kind) => write!(f, "Ego {kind} was not found"),
+        }
+    }
+}
+
+impl std::error::Error for EgoError {}
+
+impl From<ContainerError> for EgoError {
+    fn from(value: ContainerError) -> Self {
+        Self::Container(value)
+    }
+}

@@ -3,6 +3,7 @@ use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
+use crate::ego_store::EgoStore;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
 use crate::memory_rebuild::MemoryOpenState;
@@ -62,6 +63,7 @@ impl Phylactery {
         let packed_vectors = PackedVectorStore::default();
         let memory_vectors = MemoryVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
+        let ego = EgoStore::phylactery();
 
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -81,6 +83,7 @@ impl Phylactery {
             packed_vectors,
             memory_vectors,
             compatibility_profiles,
+            ego,
         })
     }
 
@@ -93,6 +96,7 @@ impl Phylactery {
         let mut profile_state = CompatibilityProfileOpenState::new();
         let mut dream_cooldowns = DreamCooldownStore::default();
         let mut dream_pairs = DreamPairStore::default();
+        let mut ego = EgoStore::phylactery();
 
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             reject_rel_only_payload(payload)?;
@@ -104,6 +108,7 @@ impl Phylactery {
             profile_state.ingest(chunk, payload)?;
             dream_cooldowns.ingest(payload)?;
             dream_pairs.ingest(payload)?;
+            ego.ingest(payload)?;
             Ok::<(), PhylacteryError>(())
         })?;
         if container.identity()
@@ -118,6 +123,7 @@ impl Phylactery {
         }
 
         let memories = memory_state.finish()?;
+        ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
@@ -140,6 +146,7 @@ impl Phylactery {
             packed_vectors,
             memory_vectors,
             compatibility_profiles,
+            ego,
         })
     }
 }

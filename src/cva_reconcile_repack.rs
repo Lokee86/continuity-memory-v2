@@ -25,6 +25,11 @@ pub(crate) fn reconcile_diverged(
     if left_rel_metadata != right_rel_metadata {
         return Err(CvaReconcileError::UnsupportedSemanticOwner("REL metadata"));
     }
+    if left.ego_version() > 0 || right.ego_version() > 0 {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "Ego state in divergent reconciliation",
+        ));
+    }
     let owner_uuid = left
         .owner_uuid()
         .ok_or(CvaReconcileError::MissingOwnerId("left"))?;

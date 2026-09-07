@@ -2,6 +2,7 @@ use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
+use crate::ego_store::EgoStore;
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
@@ -22,6 +23,7 @@ pub struct Phylactery {
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
+    pub(crate) ego: EgoStore,
 }
 
 impl Phylactery {

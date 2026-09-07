@@ -1,5 +1,5 @@
 use crate::{
-    CommunityError, CompatibilityProfileError, ContainerError, GraphError, MemoryError,
+    CommunityError, CompatibilityProfileError, ContainerError, EgoError, GraphError, MemoryError,
     MemoryVectorError, PackedVectorError,
 };
 use std::fmt;
@@ -13,6 +13,7 @@ pub enum PhylacteryError {
     PackedVectors(PackedVectorError),
     MemoryVectors(MemoryVectorError),
     CompatibilityProfiles(CompatibilityProfileError),
+    Ego(EgoError),
     InvalidContainerIdentity(&'static str),
     SemanticGlobalVersionConflict(u64),
 }
@@ -27,6 +28,7 @@ impl fmt::Display for PhylacteryError {
             Self::PackedVectors(error) => write!(f, "{error}"),
             Self::MemoryVectors(error) => write!(f, "{error}"),
             Self::CompatibilityProfiles(error) => write!(f, "{error}"),
+            Self::Ego(error) => write!(f, "{error}"),
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }
@@ -59,3 +61,4 @@ from_error!(CommunityError, Communities);
 from_error!(PackedVectorError, PackedVectors);
 from_error!(MemoryVectorError, MemoryVectors);
 from_error!(CompatibilityProfileError, CompatibilityProfiles);
+from_error!(EgoError, Ego);

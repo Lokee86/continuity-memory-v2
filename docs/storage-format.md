@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -57,6 +57,50 @@ repeated  string dependency REL owner ID
 ```
 
 The type label is optional display/organization metadata only and must not select Reliquary behavior. Dependency IDs are sorted and unique and represent explicit directed context dependencies. Self-dependency is rejected by the REL owner; graph-cycle and mounted-closure validation belongs to the multi-REL host because one REL cannot inspect the complete graph by itself. REL metadata consumes no Archive, Memory, Graph, or Vector Generation version.
+
+### Ego owner records
+
+Ego persistence is owner-local, append-only, and clock-neutral with respect to the existing Container semantic global clock. Ego maintains its own contiguous `ego_version` beginning at `1`; each logical document/Anchor also has an optimistic local revision beginning at `1`. Missing Ego records mean empty Ego state.
+
+PHY-only Identity:
+```text
+8 bytes   "CVAEIDN1"
+u64       ego_version
+u64       identity revision
+string    UTF-8 Identity text
+```
+
+PHY-only Personality:
+```text
+8 bytes   "CVAEPER1"
+u64       ego_version
+u64       personality revision
+u64       source_memory_version
+string    UTF-8 Personality text
+```
+`source_memory_version` records the PHY Memory watermark from which the behavioral projection was synthesized. Personality is derived state in this contract; explicit user-authored conditioning belongs in Identity, Anchors, or the underlying communication memories. Reliquary open rejects either PHY-only record family.
+
+PHY/REL Anchor:
+```text
+8 bytes   "CVAEANC1"
+u64       ego_version
+16 bytes  Anchor UUID
+u64       Anchor revision
+u8        deleted: 0=false, 1=true
+u8        priority: 1=High, 2=Normal, 3=Low
+string    UTF-8 Anchor text; empty only for tombstones
+```
+Live Anchor text is limited to 2,500 Unicode scalar-value characters. Updates append a new revision. Deletion appends a tombstone and preserves history.
+
+PHY/REL cached Memory-Web synthesis:
+```text
+8 bytes   "CVAESYN1"
+u64       ego_version
+u64       synthesis revision
+u64       source_memory_version
+string    UTF-8 synthesis text
+```
+The source Memory version is a deterministic stale-input watermark; it may trail the owner's current `memory_version` but may not exceed it. Direct writes and reopen validation reject impossible future source cuts. The record does not itself run synthesis or claim Memory/Dream authority. Identity, Personality, and synthesis storage impose no policy-level text cap beyond the underlying length-prefixed record representation; context-budget bounds belong to later Ego synthesis/assembly policy. Ego records consume no `CVAVERS1`, Archive version, Memory version, Graph version, or Vector Generation version.
 
 ### Interaction-stream checkpoints
 
@@ -266,7 +310,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 ### Phylactery owner composition
 
-A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
+A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles, and accepts optional Ego Identity/Personality/Anchor/web-synthesis records. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
 The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
 
