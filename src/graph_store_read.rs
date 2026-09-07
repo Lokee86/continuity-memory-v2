@@ -33,6 +33,20 @@ impl GraphStore {
         relations
     }
 
+    pub(crate) fn relation_state(
+        &self,
+        source: MemoryId,
+        target: MemoryId,
+        kind: crate::GraphRelationKind,
+    ) -> Option<GraphRelation> {
+        self.states
+            .values()
+            .find(|relation| {
+                relation.source == source && relation.target == target && relation.kind == kind
+            })
+            .copied()
+    }
+
     pub(crate) fn transaction_global_versions(&self) -> &[u64] {
         &self.transaction_global_versions
     }

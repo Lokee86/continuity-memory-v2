@@ -6,7 +6,7 @@ use crate::{
     Container, DreamEvidenceSide, DreamPairClassification, DreamPairVerification,
     DreamPublicationError, DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind,
     DreamVerificationPolicy, DreamVerificationVerdict, GraphRelationChange, GraphRelationKind,
-    Memory, MemoryId,
+    GraphRelationOrigin, Memory, MemoryId,
 };
 use std::collections::HashSet;
 
@@ -60,12 +60,15 @@ where
 
     let mut changes = Vec::new();
     for &(source, target, kind) in desired.difference(&existing) {
-        changes.push(GraphRelationChange {
+        let change = GraphRelationChange {
             source,
             target,
             kind,
             active: true,
-        });
+        };
+        if dream_may_change_relation(graph, change) {
+            changes.push(change);
+        }
     }
     if changes.is_empty() {
         return Ok(DreamPublicationOutcome::NoChange);
@@ -76,6 +79,14 @@ where
     } else {
         Ok(DreamPublicationOutcome::Published(published))
     }
+}
+
+pub(crate) fn dream_may_change_relation(graph: &GraphStore, change: GraphRelationChange) -> bool {
+    !graph
+        .relation_state(change.source, change.target, change.kind)
+        .is_some_and(|state| {
+            state.origin == GraphRelationOrigin::User && state.active != change.active
+        })
 }
 
 fn verification_gate(

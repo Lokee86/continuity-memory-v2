@@ -3,6 +3,7 @@ use crate::{
     Cva, DreamEvidenceSide, DreamPairClassification, DreamPairEvidence, DreamPairVerification,
     DreamPublicationError, DreamPublicationOutcome, DreamRelationDirection, DreamRelationKind,
     DreamVerificationPolicy, DreamVerificationSignal, DreamVerificationVerdict, GraphRelationKind,
+    GraphRelationOrigin,
 };
 
 fn pair() -> (Cva, crate::MemoryId, crate::MemoryId) {
@@ -255,6 +256,94 @@ fn stale_expected_version_is_rejected_even_when_pair_is_already_current() {
             crate::GraphError::RevisionConflict { .. }
         ))
     ));
+}
+
+#[test]
+fn user_active_duplicate_relation_blocks_dream_retraction() {
+    let mut cva = Cva::create(test_path("publisher-user-duplicate.cva")).unwrap();
+    let left = memory(&mut cva, "left", "Left", "Left memory.", 100, false);
+    let middle = memory(&mut cva, "middle", "Middle", "Middle memory.", 105, false);
+    let right = memory(&mut cva, "right", "Right", "Right memory.", 110, false);
+    cva.set_memory_relation_with_origin(
+        right,
+        left,
+        GraphRelationKind::DuplicateOf,
+        true,
+        GraphRelationOrigin::User,
+        0,
+    )
+    .unwrap();
+
+    let proposed = classification(
+        left,
+        middle,
+        DreamRelationKind::DuplicateOf,
+        DreamRelationDirection::Undirected,
+    );
+    let accepted = verification(&proposed, DreamVerificationVerdict::Accept);
+    assert!(matches!(
+        cva.publish_dream_pair(
+            &proposed,
+            Some(&accepted),
+            DreamVerificationPolicy::default(),
+            1,
+        )
+        .unwrap(),
+        DreamPublicationOutcome::Published(_)
+    ));
+
+    let relations = cva.graph_relations();
+    assert!(relations.iter().any(|relation| {
+        relation.source == right
+            && relation.target == left
+            && relation.kind == GraphRelationKind::DuplicateOf
+            && relation.origin == GraphRelationOrigin::User
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == right
+            && relation.target == middle
+            && relation.kind == GraphRelationKind::DuplicateOf
+    }));
+    assert!(relations.iter().any(|relation| {
+        relation.source == middle
+            && relation.target == left
+            && relation.kind == GraphRelationKind::DuplicateOf
+    }));
+}
+
+#[test]
+fn user_inactive_relation_blocks_dream_recreation() {
+    let (mut cva, a, b) = pair();
+    let proposed = classification(
+        a,
+        b,
+        DreamRelationKind::Topical,
+        DreamRelationDirection::Undirected,
+    );
+    cva.publish_dream_pair(&proposed, None, DreamVerificationPolicy::default(), 0)
+        .unwrap();
+    cva.set_memory_relation_with_origin(
+        a,
+        b,
+        GraphRelationKind::Topical,
+        false,
+        GraphRelationOrigin::User,
+        1,
+    )
+    .unwrap();
+
+    assert_eq!(
+        cva.publish_dream_pair(&proposed, None, DreamVerificationPolicy::default(), 2)
+            .unwrap(),
+        DreamPublicationOutcome::NoChange
+    );
+    assert_eq!(cva.graph_version(), 2);
+    assert!(!cva.graph_relations().iter().any(|relation| {
+        relation.source == a && relation.target == b && relation.kind == GraphRelationKind::Topical
+    }));
+    assert!(cva.graph_relations().iter().any(|relation| {
+        relation.source == b && relation.target == a && relation.kind == GraphRelationKind::Topical
+    }));
 }
 
 #[test]
