@@ -21,6 +21,10 @@ mod insomnia;
 mod interaction;
 #[path = "runtime_host_knowledge.rs"]
 mod knowledge;
+#[path = "runtime_host_knowledge_memory.rs"]
+mod knowledge_memory;
+#[path = "runtime_host_knowledge_relation.rs"]
+mod knowledge_relation;
 #[path = "runtime_host_memory_provenance.rs"]
 mod memory_provenance;
 #[path = "runtime_host_memory_search.rs"]

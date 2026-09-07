@@ -631,6 +631,8 @@ mod reliquary_tests;
 #[cfg(test)]
 mod runtime_host_backpressure_tests;
 #[cfg(test)]
+mod runtime_host_knowledge_tests;
+#[cfg(test)]
 mod runtime_host_route_tests;
 #[cfg(test)]
 mod runtime_host_test_support;
