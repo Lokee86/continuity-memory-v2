@@ -16,6 +16,7 @@ pub struct InsomniaCandidate {
     pub authority_kind: String,
     pub category: String,
     pub memory_type: String,
+    pub temporal_status: String,
     pub ownership: InsomniaOwnership,
     pub title: String,
     pub content: String,

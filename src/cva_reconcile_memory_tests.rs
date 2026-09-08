@@ -56,6 +56,7 @@ fn draft(episode: &crate::Episode, mutation: &str, state: &str) -> MemoryDraft {
         category: "decision".into(),
         memory_type: "project".into(),
         authority_kind: "unknown".into(),
+        temporal_status: "unknown".into(),
         title: "Decision".into(),
         content: "Keep this".into(),
         scope: "private".into(),

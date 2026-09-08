@@ -45,6 +45,7 @@ impl Phylactery {
             category: current.category.clone(),
             memory_type: current.memory_type.clone(),
             authority_kind: current.authority_kind.clone(),
+            temporal_status: current.temporal_status.clone(),
             title: current.title.clone(),
             content: current.content.clone(),
             scope: current.scope.clone(),

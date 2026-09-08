@@ -152,6 +152,7 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
                 category: candidate.category.clone(),
                 memory_type: candidate.memory_type.clone(),
                 authority_kind: candidate.authority_kind.clone(),
+                temporal_status: candidate.temporal_status.clone(),
                 title: candidate.title.clone(),
                 content: candidate.content.clone(),
                 scope: "private".into(),

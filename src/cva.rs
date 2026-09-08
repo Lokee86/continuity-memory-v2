@@ -321,6 +321,49 @@ impl Cva {
         self.memories.memory(&mut self.container, id)
     }
 
+    pub fn set_memory_temporal_status(
+        &mut self,
+        id: MemoryId,
+        expected_revision: u64,
+        temporal_status: &str,
+        mutation_id: String,
+    ) -> Result<(Memory, bool), MemoryError> {
+        if !matches!(temporal_status, "current" | "future" | "historical") {
+            return Err(MemoryError::InvalidField("temporal status"));
+        }
+        let current = self.memory(id)?;
+        if current.revision != expected_revision {
+            return Err(MemoryError::RevisionConflict);
+        }
+        if current.temporal_status == temporal_status {
+            return Ok((current, false));
+        }
+        let draft = MemoryDraft {
+            category: current.category.clone(),
+            memory_type: current.memory_type.clone(),
+            authority_kind: current.authority_kind.clone(),
+            temporal_status: temporal_status.to_owned(),
+            title: current.title.clone(),
+            content: current.content.clone(),
+            scope: current.scope.clone(),
+            lifecycle_state: current.lifecycle_state.clone(),
+            archived: current.archived,
+            superseded_by: current.superseded_by,
+            parent_id: current.parent_id,
+            source_node_id: current.source_node_id.clone(),
+            content_source_conversation_id: current.content_source_conversation_id.clone(),
+            content_source_node_id: current.content_source_node_id.clone(),
+            grounding_source_conversation_id: current.grounding_source_conversation_id.clone(),
+            grounding_source_node_id: current.grounding_source_node_id.clone(),
+            source_episode_id: current.source_episode_id,
+            source_time_ns: current.source_time_ns,
+            mutation_id,
+            created_at_ns: current.created_at_ns,
+            updated_at_ns: current.updated_at_ns,
+        };
+        self.publish_memory(Some(id), expected_revision, draft)
+    }
+
     pub fn memory_revision(&mut self, id: MemoryId, revision: u64) -> Result<Memory, MemoryError> {
         self.memories
             .memory_revision(&mut self.container, id, revision)

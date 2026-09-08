@@ -70,6 +70,7 @@ impl MemoryStore {
                 category: draft.category,
                 memory_type: draft.memory_type,
                 authority_kind: draft.authority_kind,
+                temporal_status: draft.temporal_status,
                 scope: draft.scope,
                 lifecycle_state: draft.lifecycle_state,
                 archived: draft.archived,

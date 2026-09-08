@@ -161,6 +161,7 @@ pub(super) fn materialize(
             "authority_kind": group.authority_kind,
             "category": group.category,
             "type": group.memory_type,
+            "temporal_status": group.lifecycle,
             "ownership": group.ownership.as_str(),
             "title": title,
             "content": content,

@@ -50,6 +50,7 @@ fn memory_draft(content: &str) -> MemoryDraft {
         category: "fact".into(),
         memory_type: "project".into(),
         authority_kind: "unknown".into(),
+        temporal_status: "unknown".into(),
         title: "Shared mutation".into(),
         content: content.into(),
         scope: "private".into(),

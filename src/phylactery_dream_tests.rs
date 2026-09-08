@@ -25,6 +25,7 @@ fn draft(
         category: category.into(),
         memory_type: memory_type.into(),
         authority_kind: "direct".into(),
+        temporal_status: "unknown".into(),
         title: mutation_id.into(),
         content: content.into(),
         scope: "user".into(),

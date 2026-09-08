@@ -47,6 +47,7 @@ fn draft(episode: &crate::Episode, mutation_id: &str, content: &str) -> MemoryDr
         category: "decision".into(),
         memory_type: "project".into(),
         authority_kind: "direct".into(),
+        temporal_status: "unknown".into(),
         title: "Reliquary memory authority".into(),
         content: content.into(),
         scope: "private".into(),
@@ -113,6 +114,55 @@ fn memory_revisions_are_authoritative_idempotent_and_reopenable() {
     assert_eq!(
         reopened.memory_revision(first.id, 1).unwrap().content,
         first.content
+    );
+}
+
+#[test]
+fn temporal_status_backfill_preserves_body_and_dream_state() {
+    let path = test_path("temporal-status.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let episode = seeded_episode(&mut cva);
+    let (first, _) = cva
+        .publish_memory(
+            None,
+            0,
+            draft(&episode, "temporal-source", "A durable project decision."),
+        )
+        .unwrap();
+    let body_id = cva.memory_body_id(first.id).unwrap();
+    let (updated, created) = cva
+        .set_memory_temporal_status(
+            first.id,
+            first.revision,
+            "current",
+            "temporal-backfill".into(),
+        )
+        .unwrap();
+    assert!(created);
+    assert_eq!(updated.revision, 2);
+    assert_eq!(updated.temporal_status, "current");
+    assert_eq!(updated.lifecycle_state, first.lifecycle_state);
+    assert_eq!(updated.updated_at_ns, first.updated_at_ns);
+    assert_eq!(cva.memory_body_id(first.id).unwrap(), body_id);
+
+    let (replayed, created) = cva
+        .set_memory_temporal_status(
+            updated.id,
+            updated.revision,
+            "current",
+            "ignored-noop".into(),
+        )
+        .unwrap();
+    assert!(!created);
+    assert_eq!(replayed.revision, 2);
+    assert_eq!(cva.memory_version(), 2);
+
+    cva.sync().unwrap();
+    drop(cva);
+    let mut reopened = Cva::open(path).unwrap();
+    assert_eq!(
+        reopened.memory(first.id).unwrap().temporal_status,
+        "current"
     );
 }
 

@@ -14,6 +14,7 @@ pub(super) struct RawCandidate {
     authority_kind: String,
     category: String,
     memory_type: String,
+    temporal_status: String,
     ownership: InsomniaOwnership,
     title: String,
     content: String,
@@ -46,6 +47,7 @@ fn parse_candidate(value: &Value) -> Result<RawCandidate, InsomniaExtractionErro
         authority_kind: required_string(value, "authority_kind")?,
         category: required_string(value, "category")?,
         memory_type: required_string(value, "type")?,
+        temporal_status: required_string(value, "temporal_status")?,
         ownership: match required_string(value, "ownership")?.as_str() {
             "user" => InsomniaOwnership::User,
             "project" => InsomniaOwnership::Project,
@@ -82,6 +84,7 @@ pub(super) fn validate_candidates(
         let authority_kind = canonical_label(&raw.authority_kind);
         let category = canonical_label(&raw.category);
         let memory_type = canonical_label(&raw.memory_type);
+        let temporal_status = canonical_label(&raw.temporal_status);
         let source_node_id = raw.source_node_id.trim().to_owned();
         let source_quote = raw.source_quote.trim().to_owned();
         let source = turns.iter().find(|turn| turn.node_id == source_node_id);
@@ -98,6 +101,14 @@ pub(super) fn validate_candidates(
             &authority_source,
             &grounding_source,
         );
+        if reason.is_none()
+            && !matches!(
+                temporal_status.as_str(),
+                "current" | "future" | "historical"
+            )
+        {
+            reason = Some("temporal status is not recognized".to_owned());
+        }
         if reason.is_none() {
             reason = validate_semantic_authority(
                 &authority_kind,
@@ -132,6 +143,7 @@ pub(super) fn validate_candidates(
             authority_kind,
             category,
             memory_type,
+            temporal_status,
             ownership: raw.ownership,
             title: raw.title.trim().to_owned(),
             content: raw.content.trim().to_owned(),
