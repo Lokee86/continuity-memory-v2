@@ -422,6 +422,14 @@ The hard selector ranking from this 2026-08-24 tuning closure remains `Sol-low >
 
 Full experimental history, provider-specific compatibility work, caveats, and exact comparison tables are recorded in [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md).
 
+### Luna medium/high Insomnia follow-up — 2026-09-07
+
+A focused all-Luna comparison reran the frozen 11-Episode / 314-turn tuning fixture with four workers, using Luna for semantic ledger, metadata, and wording at one consistent reasoning level per run. The measured `medium` run produced 63 Memories and scored `84.2%` Anchor / `86.7%` State / `75.0%` Omit / `100.0%` Authority / `81.8%` Grounding / `85.7%` Metadata / `100.0%` Guards. The measured `high` run produced 70 Memories and scored `89.5%` Anchor / `93.3%` State / `75.0%` Omit / `100.0%` Authority / `96.0%` Grounding / `81.2%` Metadata / `100.0%` Guards.
+
+High recovered the medium run's `custom-room-code-current-fact` miss and substantially improved grounding, but both levels missed `adopt-c-calibration-corpus` and retained `phase-renumbering`. Observed wall times were approximately `208.5 s` medium and `485.6 s` high, but the runs overlapped and are not a clean isolated throughput benchmark. The historical low result is not a strict same-contract baseline; the direct result is that Luna-high outperformed Luna-medium for semantic selection/grounding on this fixture while costing substantially more latency and leaving omit cleanliness at `75%`.
+
+The active `codex` credential was expired at test time, so the detached benchmark worktrees used the existing valid `codex-alt` credential without changing repository configuration. The comparison retained the historical deterministic missing-user-turn `omit` repair; the measured high run required it once. A resume attempt also exposed a benchmark-only defect: rebuilding frozen groups from already metadata-mutated saved ledgers can change group cardinality. The scored medium/high runs were restarted fresh with no resume state. Full failure lists and caveats are recorded in the semantic-validation document above.
+
 ### Benchmark baseline — 2026-08-15
 
 This repository state is the benchmark baseline for subsequent retrieval-quality changes. The baseline restores the retrieval behavior used by the existing Long Memory Evaluation machinery: 8-turn / 2-overlap fragments, `qwen/qwen3-embedding-8b` at 1024 dimensions, exact cosine semantic retrieval, the original lexical scoring formula, 30-candidate lexical/semantic fusion with `0.45/0.55` weights, duplicate-range removal, overlap diversification, and top-10 output.

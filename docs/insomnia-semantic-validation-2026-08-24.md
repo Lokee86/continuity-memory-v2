@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-This record captures the small-fixture validation of Insomnia semantic extraction, the evolution from the original two-pass authority-ledger experiment to the frozen three-model-pass tuning harness, and model/provider comparisons against `gpt-5.6-sol`, `stealth/ox-alpha`, and `gpt-5.6-luna` at low reasoning.
+This record captures the small-fixture validation of Insomnia semantic extraction, the evolution from the original two-pass authority-ledger experiment to the frozen three-model-pass tuning harness, model/provider comparisons against `gpt-5.6-sol`, `stealth/ox-alpha`, and `gpt-5.6-luna` at low reasoning, and the 2026-09-07 Luna medium/high reasoning follow-up on the frozen 11-Episode fixture.
 
 At the time of this 2026-08-24 validation, the authoritative Insomnia runtime was extractor contract `v3-0`: clause-level semantic selection followed by wording-only synthesis, while the final tuning harness added a separate metadata-classification pass. Current runtime contract `v3-1` has since ported the fixed-group classification seam and added dedicated User/Project owner routing; see ADR 0023. The measurements below remain historical model/prompt evidence and are not recomputed for that later routing change. The implementations in `examples/` and `tools/` remain benchmark/provider-compatibility harnesses rather than production execution paths.
 
@@ -167,9 +167,57 @@ Luna genuinely failed to select four durable gold states:
 
 It also retained Prompt-41 progress and phase-renumbering. The result establishes a meaningful model-capability floor for the pass-1 semantic task; the two-pass decomposition alone does not make a weaker selector reliable.
 
-## Current model ranking
+## Luna medium/high reasoning follow-up — 2026-09-07
 
-On this 11-Episode tuning fixture and current contract:
+A focused follow-up tested only `gpt-5.6-luna` at `medium` and `high` reasoning on the same frozen `corpus/insomnia-tuning-v1.jsonl` fixture. Each measured run used all 11 Episodes / 314 turns, four workers, `corpus/insomnia-gold-v3-tuning-v1.json`, and `tools/evaluate_insomnia_gold.py`. The experiment used the frozen three-pass tuning harness from commit `80486f4` in detached worktrees so benchmark-only changes could not alter `main`.
+
+Unlike the historical Sol/Luna/Sol architecture, these follow-up runs intentionally used Luna for all three model stages—semantic ledger, metadata classification, and wording—with the selected reasoning level applied consistently across the run. The intended comparison variable was therefore Luna reasoning effort: `medium` versus `high`.
+
+The configured `codex` device credential had expired and failed before producing Episode output with HTTP 401 `token_expired`. The already-stored `codex-alt` ChatGPT/Codex credential was valid, so the experimental harness used that credential without changing the repository's active model configuration.
+
+The measured results were:
+
+| Metric | Luna-medium | Luna-high |
+| --- | ---: | ---: |
+| Memories | 63 | 70 |
+| Anchor fidelity | 84.2% | 89.5% |
+| State coverage | 86.7% | 93.3% |
+| Omit cleanliness | 75.0% | 75.0% |
+| Authority | 100.0% | 100.0% |
+| Grounding | 81.8% | 96.0% |
+| Metadata | 85.7% | 81.2% |
+| Guards | 100.0% | 100.0% |
+
+Both evaluator runs scoped to 139 presented user turns containing 19 anchor cases, 15 retained-state cases, and 4 omit cases.
+
+Luna-medium failures:
+
+- Anchor/state miss: `adopt-c-calibration-corpus`.
+- Anchor/state miss: `custom-room-code-current-fact`.
+- Omit failure: `phase-renumbering` was retained.
+- Grounding failures: `creatureserver-mothballed`, `shipstats-now-grounded`, `collision-authority-narrow`, and `deleted-assets-contextual-correction`.
+- Metadata failures: `future-ship-variants` and `deleted-assets-contextual-correction`.
+
+Luna-high failures:
+
+- Anchor/state miss: `adopt-c-calibration-corpus`.
+- Omit failure: `phase-renumbering` was retained.
+- Grounding failure: `creatureserver-mothballed`.
+- Metadata failures: `workspace-repository-location`, `future-ship-variants`, and `deleted-assets-contextual-correction`.
+
+High therefore materially improved the semantic-selection side of the Luna-only comparison: Anchor rose from `84.2%` to `89.5%`, State from `86.7%` to `93.3%`, and Grounding from `81.8%` to `96.0%`. It recovered `custom-room-code-current-fact`, but it did not improve the persistent `phase-renumbering` false positive, and metadata agreement fell from `85.7%` to `81.2%`. High also emitted seven more Memories (`70` versus `63`).
+
+Observed end-to-end wall times were approximately `208.5 s` for medium and `485.6 s` for high. These are useful operational observations, not a clean throughput benchmark: the two runs overlapped for most of their execution and therefore competed for provider/account capacity and local resources. High was nevertheless visibly much slower in this run.
+
+Luna again exposed a ledger-completeness weakness. A preliminary medium attempt aborted because one user turn was absent from the ledger. The harness was then given the same narrow deterministic repair used in the historical Luna-low comparison: any missing user turn is inserted as an explicit `omit` entry and contributes no semantic state. The measured high run exercised that repair once. This repair cannot improve a missed gold state unless the missing turn should itself have been retained, in which case it remains an omission by construction.
+
+A separate resume attempt exposed a benchmark-harness defect and was discarded from the measurement. Saved ledger artifacts had already been mutated with post-group metadata; rebuilding synthesis groups from those post-classification ledgers could collapse groups that had been distinct when originally frozen, producing metadata group-count mismatches. The final medium and high measurements above were therefore fresh runs with no resume state. This is a harness-resume issue, not a model-quality result.
+
+The historical Luna-low result below (`68.4%` Anchor / `73.3%` State / `50.0%` Omit) remains useful as evidence that low reasoning was below the pass-1 capability threshold, but it is not a strict three-way baseline for this follow-up because it was measured under the earlier v6 comparison path. The valid direct conclusion from the 2026-09-07 experiment is **Luna-high > Luna-medium for semantic selection and grounding on this frozen fixture**, at substantially higher latency, while neither reasoning level solved over-retention.
+
+## Historical 2026-08-24 model ranking
+
+On this 11-Episode tuning fixture and the then-current contract:
 
 `Sol-low > Ox Alpha-low >> Luna-low`
 
