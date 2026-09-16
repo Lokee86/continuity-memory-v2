@@ -155,6 +155,7 @@ pub(super) fn validate_candidates(
             grounding_source_conversation_id: optional(&grounding_source.conversation_id),
             grounding_source_node_id: optional(&grounding_source.node_id),
             grounding_source_quote: optional(&grounding_source.quote),
+            routing_metadata: None,
         });
     }
     (accepted, rejected)

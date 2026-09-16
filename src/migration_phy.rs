@@ -33,6 +33,7 @@ pub(super) fn migrate(
         let transaction_time_ns = source.transaction_time_ns(memory.global_version);
         let source_ref = memory.source_ref.clone();
         let temporal_inference = memory.temporal_inference.clone();
+        let routing_metadata = memory.routing_metadata.clone();
         let draft = memory_draft(memory);
         output
             .container
@@ -49,6 +50,11 @@ pub(super) fn migrate(
             );
         output.container.clear_next_transaction_time_override();
         op(result)?;
+        if let Some(metadata) = routing_metadata {
+            op(output
+                .memories
+                .put_routing_metadata(&mut output.container, metadata))?;
+        }
     }
     for (transaction, transaction_time_ns) in graph {
         let graph_version = output.graph_version();

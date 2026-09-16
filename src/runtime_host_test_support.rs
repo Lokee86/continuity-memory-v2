@@ -1,7 +1,7 @@
 use crate::{
     Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, EpisodeConfig, GeneralEndpoint,
     GeneralEndpointError, InsomniaWorkerConfig, ReliquaryRuntimeHost, SimulatedEmbeddingEndpoint,
-    SimulatedGeneralEndpoint, VectorNormalization,
+    VectorNormalization,
 };
 use serde_json::{Value, json};
 use std::fs;
@@ -84,6 +84,7 @@ impl GeneralEndpoint for UserMemoryEndpoint {
                     "content":"The user prefers Helix for editing code."
                 }}
             })),
+            "insomnia_memory_routing_metadata" => routing_metadata_response(user_payload),
             _ => Err(GeneralEndpointError::Failure(format!(
                 "unexpected schema {schema_name}"
             ))),
@@ -273,23 +274,32 @@ pub(super) fn queue_memory_episode(cva: &mut Cva) {
 }
 
 pub(super) fn memory_endpoint() -> Arc<dyn GeneralEndpoint> {
-    Arc::new(SimulatedGeneralEndpoint::new(
-        "test-model",
-        vec![
-            json!({
-                "turns": {"u0": [{
-                    "disposition":"retain", "authority_kind":"direct", "category":"preference",
-                    "type":"project", "lifecycle":"current",
-                    "proposition":"The user prefers Helix for editing code.",
-                    "authority_source_node_id":"", "grounding_source_node_id":"",
-                    "reason":"durable preference"
-                }]},
-                "evidence_requests": []
-            }),
-            json!({"groups": {"g000": {
-                "title":"Preferred editor",
-                "content":"The user prefers Helix for editing code."
-            }}}),
-        ],
-    ))
+    Arc::new(UserMemoryEndpoint)
+}
+
+fn routing_metadata_response(user_payload: &str) -> Result<Value, GeneralEndpointError> {
+    let payload: Value = serde_json::from_str(user_payload)
+        .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
+    let mut memories = serde_json::Map::new();
+    for memory in payload["memories"].as_array().into_iter().flatten() {
+        let key = memory["memory_key"]
+            .as_str()
+            .ok_or(GeneralEndpointError::InvalidResponse("missing Memory key"))?;
+        let content = memory["content"].as_str().unwrap_or("");
+        let mentions = if content.contains("Helix") {
+            vec![json!({"field":"content", "text":"Helix"})]
+        } else {
+            Vec::new()
+        };
+        let terms = if content.contains("Helix") {
+            vec![Value::String("Helix".into())]
+        } else {
+            Vec::new()
+        };
+        memories.insert(
+            key.to_owned(),
+            json!({"entity_mentions": mentions, "lexical_terms": terms}),
+        );
+    }
+    Ok(json!({"memories": memories}))
 }

@@ -11,6 +11,7 @@ pub enum InsomniaSemanticStage {
     Metadata,
     Ownership,
     Wording,
+    Enrichment,
     Persistence,
 }
 
@@ -24,6 +25,7 @@ impl InsomniaSemanticStage {
             Self::Metadata => "metadata",
             Self::Ownership => "ownership",
             Self::Wording => "wording",
+            Self::Enrichment => "enrichment",
             Self::Persistence => "persistence",
         }
     }

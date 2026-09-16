@@ -132,6 +132,10 @@ impl Phylactery {
         self.memories.current_body_id(id)
     }
 
+    pub fn memory_routing_metadata(&self, id: MemoryId) -> Option<&crate::MemoryRoutingMetadata> {
+        self.memories.routing_metadata(id)
+    }
+
     pub fn sync(&self) -> Result<(), PhylacteryError> {
         self.container.sync()?;
         Ok(())

@@ -2,8 +2,8 @@ use crate::insomnia::completion::{InsomniaCompletion, InsomniaCompletionBody, en
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
     CHRONOS_INFERENCE_CONTRACT_VERSION, Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin,
-    MemoryDraft, MemoryRef, MemoryTemporalInference, TemporalIndicationKind, TemporalInference,
-    TemporalInferenceResolution,
+    MemoryDraft, MemoryEntityMention, MemoryRef, MemoryRoutingMetadata, MemoryTemporalInference,
+    MemoryTextField, TemporalIndicationKind, TemporalInference, TemporalInferenceResolution,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -159,6 +159,17 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
             bytes: memory_body_bytes("Decision", "Keep this"),
         }],
         records: vec![record],
+        routing_metadata: vec![MemoryRoutingMetadata {
+            memory_id: id,
+            body_id,
+            entity_mentions: vec![MemoryEntityMention {
+                field: MemoryTextField::Title,
+                start_byte: 0,
+                end_byte: 8,
+                text: "Decision".into(),
+            }],
+            lexical_terms: vec!["Keep".into()],
+        }],
     };
     right_cva
         .container
@@ -188,6 +199,9 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
             .canonical_expression,
         "March 2027"
     );
+    let routing = merged_memory.routing_metadata.as_ref().unwrap();
+    assert_eq!(routing.entity_mentions[0].text, "Decision");
+    assert_eq!(routing.lexical_terms, vec!["Keep"]);
     let attempt = &merged.insomnia_attempts(episode.id)[0];
     assert_eq!(attempt.memory_ids, vec![id]);
     assert_eq!(attempt.external_memory_refs[0].memory_id, id);

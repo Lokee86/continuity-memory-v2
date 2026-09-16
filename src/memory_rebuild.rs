@@ -1,11 +1,12 @@
 use crate::memory_codec::{decode_body, decode_format, decode_record, decode_version};
 use crate::memory_model::{MemoryRecord, memory_body_id};
-use crate::{MemoryError, ObjectRef};
+use crate::{Container, MemoryError, MemoryRoutingMetadata, ObjectRef};
 use std::collections::HashMap;
 
 pub(crate) struct MemoryOpenState {
     store: crate::memory_store::MemoryStore,
     pending_records: HashMap<ObjectRef, MemoryRecord>,
+    pending_routing_metadata: Vec<MemoryRoutingMetadata>,
     format_seen: bool,
 }
 
@@ -14,6 +15,7 @@ impl MemoryOpenState {
         Self {
             store: crate::memory_store::MemoryStore::empty(),
             pending_records: HashMap::new(),
+            pending_routing_metadata: Vec::new(),
             format_seen: false,
         }
     }
@@ -37,6 +39,8 @@ impl MemoryOpenState {
                 }
                 self.store.insert_rebuilt(record)?;
             }
+            self.pending_routing_metadata
+                .extend(completion.routing_metadata);
             return Ok(());
         }
         if decode_format(payload)? {
@@ -58,6 +62,10 @@ impl MemoryOpenState {
             self.pending_records.insert(chunk, record);
             return Ok(());
         }
+        if let Some(metadata) = crate::memory_routing_codec::decode(payload)? {
+            self.pending_routing_metadata.push(metadata);
+            return Ok(());
+        }
         if let Some(version) = decode_version(payload)? {
             if version.global_version == 0 || version.global_version > latest_global_version {
                 return Err(MemoryError::InvalidVersion);
@@ -76,7 +84,10 @@ impl MemoryOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(self) -> Result<crate::memory_store::MemoryStore, MemoryError> {
+    pub(crate) fn finish(
+        mut self,
+        container: &mut Container,
+    ) -> Result<crate::memory_store::MemoryStore, MemoryError> {
         if !self.format_seen {
             return Err(MemoryError::MissingFormat);
         }
@@ -84,6 +95,10 @@ impl MemoryOpenState {
             // Unversioned records are intentionally inert and may be left behind by an interrupted write.
         }
         self.store.validate_bodies()?;
+        for metadata in self.pending_routing_metadata {
+            self.store.insert_routing_metadata_rebuilt(metadata)?;
+        }
+        self.store.validate_routing_metadata(container)?;
         Ok(self.store)
     }
 }

@@ -6,6 +6,7 @@ pub(crate) struct PreparedMemoryBatch {
     pub(crate) records: Vec<MemoryRecord>,
     pub(crate) existing: Vec<Memory>,
     pub(crate) bodies: Vec<InsomniaCompletionBody>,
+    pub(crate) routing_metadata: Vec<MemoryRoutingMetadata>,
     pub(crate) global_version_start: u64,
 }
 
@@ -13,15 +14,20 @@ impl MemoryStore {
     pub(crate) fn stage_grouped_insomnia(
         &mut self,
         container: &mut Container,
-        drafts: Vec<(MemoryDraft, Option<MemoryTemporalInference>)>,
+        drafts: Vec<(
+            MemoryDraft,
+            Option<MemoryTemporalInference>,
+            Option<MemoryRoutingMetadata>,
+        )>,
     ) -> Result<PreparedMemoryBatch, MemoryError> {
         let global_version_start = container.next_version_candidate();
         let mut records = Vec::new();
         let mut existing = Vec::new();
         let mut bodies: Vec<InsomniaCompletionBody> = Vec::new();
+        let mut routing_metadata = Vec::new();
         let mut body_indexes: HashMap<MemoryBodyId, usize> = HashMap::new();
         let mut seen_mutations = HashSet::new();
-        for (draft, temporal_inference) in drafts {
+        for (draft, temporal_inference, routing) in drafts {
             validate_draft(&draft)?;
             if !seen_mutations.insert(draft.mutation_id.clone()) {
                 return Err(MemoryError::MutationConflict);
@@ -31,6 +37,11 @@ impl MemoryStore {
                 if !same_draft(&memory, &draft) {
                     return Err(MemoryError::MutationConflict);
                 }
+                if let Some(routing) = routing.as_ref()
+                    && memory.routing_metadata.as_ref() != Some(routing)
+                {
+                    return Err(MemoryError::RoutingMetadataConflict);
+                }
                 existing.push(memory);
                 continue;
             }
@@ -39,6 +50,9 @@ impl MemoryStore {
                 return Err(MemoryError::RevisionConflict);
             }
             let body_id = memory_body_id(&draft.title, &draft.content);
+            if let Some(routing) = routing.as_ref() {
+                validate_prepared_routing(&draft, id, body_id, routing)?;
+            }
             if let Some(inference) = &temporal_inference {
                 validate_temporal_inference_binding(body_id, draft.source_time_ns, inference)?;
             }
@@ -94,11 +108,15 @@ impl MemoryStore {
                 global_version,
                 memory_version,
             });
+            if let Some(routing) = routing {
+                routing_metadata.push(routing);
+            }
         }
         Ok(PreparedMemoryBatch {
             records,
             existing,
             bodies,
+            routing_metadata,
             global_version_start,
         })
     }
@@ -133,4 +151,59 @@ impl MemoryStore {
         }
         Ok(created)
     }
+
+    pub(crate) fn apply_grouped_routing_metadata(
+        &mut self,
+        metadata: &[MemoryRoutingMetadata],
+    ) -> Result<(), MemoryError> {
+        for value in metadata {
+            self.insert_routing_metadata_rebuilt(value.clone())?;
+        }
+        Ok(())
+    }
+}
+
+fn validate_prepared_routing(
+    draft: &MemoryDraft,
+    memory_id: MemoryId,
+    body_id: MemoryBodyId,
+    metadata: &MemoryRoutingMetadata,
+) -> Result<(), MemoryError> {
+    if metadata.memory_id != memory_id || metadata.body_id != body_id {
+        return Err(MemoryError::InvalidField("Memory routing metadata binding"));
+    }
+    if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS
+        || metadata.lexical_terms.len() > MAX_MEMORY_LEXICAL_TERMS
+    {
+        return Err(MemoryError::InvalidField("Memory routing metadata count"));
+    }
+    for mention in &metadata.entity_mentions {
+        if mention.text.is_empty()
+            || mention.text.len() > MAX_MEMORY_ROUTING_TEXT_BYTES
+            || mention.start_byte >= mention.end_byte
+        {
+            return Err(MemoryError::InvalidField("Memory entity mention"));
+        }
+        let source = match mention.field {
+            MemoryTextField::Title => draft.title.as_str(),
+            MemoryTextField::Content => draft.content.as_str(),
+        };
+        let start = mention.start_byte as usize;
+        let end = mention.end_byte as usize;
+        if !source.is_char_boundary(start)
+            || !source.is_char_boundary(end)
+            || source.get(start..end) != Some(mention.text.as_str())
+        {
+            return Err(MemoryError::InvalidField("Memory entity mention span"));
+        }
+    }
+    for term in &metadata.lexical_terms {
+        if term.trim().is_empty()
+            || term.len() > MAX_MEMORY_ROUTING_TEXT_BYTES
+            || (!draft.title.contains(term) && !draft.content.contains(term))
+        {
+            return Err(MemoryError::InvalidField("Memory lexical term grounding"));
+        }
+    }
+    Ok(())
 }

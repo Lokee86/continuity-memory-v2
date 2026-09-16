@@ -78,11 +78,13 @@ fn insomnia_temporal_inference_is_called_only_for_unresolved_prepared_memories()
                 temporal: assess_draft(&resolved_draft),
                 draft: resolved_draft,
                 temporal_inference: None,
+                routing_metadata: None,
             },
             PreparedMemory {
                 temporal: assess_draft(&unresolved_draft),
                 draft: unresolved_draft,
                 temporal_inference: None,
+                routing_metadata: None,
             },
         ],
         user_drafts: Vec::new(),

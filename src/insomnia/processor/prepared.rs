@@ -1,5 +1,6 @@
 use crate::{
-    InsomniaRejection, Memory, MemoryDraft, MemoryRef, MemorySourceRef, TemporalAssessment,
+    InsomniaRejection, Memory, MemoryDraft, MemoryRef, MemoryRoutingMetadata, MemorySourceRef,
+    TemporalAssessment,
 };
 
 pub(crate) struct PreparedApplication {
@@ -13,6 +14,7 @@ pub(crate) struct PreparedMemory {
     pub(crate) draft: MemoryDraft,
     pub(crate) temporal: TemporalAssessment,
     pub(crate) temporal_inference: Option<crate::TemporalInference>,
+    pub(crate) routing_metadata: Option<MemoryRoutingMetadata>,
 }
 
 pub(crate) struct PreparedUserMemory {

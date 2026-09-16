@@ -397,6 +397,10 @@ impl Cva {
         self.memories.current_body_id(id)
     }
 
+    pub fn memory_routing_metadata(&self, id: MemoryId) -> Option<&crate::MemoryRoutingMetadata> {
+        self.memories.routing_metadata(id)
+    }
+
     pub fn stats(&self) -> ArchiveStats {
         self.archive.stats()
     }

@@ -4,12 +4,12 @@ use super::{InsomniaProcessError, InsomniaProcessResult};
 use crate::insomnia::candidate::hex;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
 use crate::insomnia::store::InsomniaStore;
-use crate::memory_model::memory_id;
+use crate::memory_model::{memory_body_id, memory_id};
 use crate::memory_store::MemoryStore;
 use crate::{
     Archive, Container, Episode, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, InsomniaExtraction,
     InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft, MemoryRef,
-    MemorySourceRef, Phylactery,
+    MemoryRoutingMetadata, MemorySourceRef, Phylactery,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -65,11 +65,20 @@ pub(crate) fn prepare_application(
             updated_at_ns: completed_at_ns.max(episode.source_through_ns),
         };
         let temporal = crate::insomnia::temporal::assess_draft(&draft);
+        let routing_metadata = candidate
+            .routing_metadata
+            .map(|routing| MemoryRoutingMetadata {
+                memory_id: memory_id(&draft.mutation_id),
+                body_id: memory_body_id(&draft.title, &draft.content),
+                entity_mentions: routing.entity_mentions,
+                lexical_terms: routing.lexical_terms,
+            });
         match candidate.ownership {
             InsomniaOwnership::Project => project_drafts.push(PreparedMemory {
                 draft,
                 temporal,
                 temporal_inference: None,
+                routing_metadata,
             }),
             InsomniaOwnership::User => {
                 let owner_id = container.owner_id().ok_or_else(|| {
@@ -104,6 +113,7 @@ pub(crate) fn prepare_application(
                         draft,
                         temporal,
                         temporal_inference: None,
+                        routing_metadata,
                     },
                     source_ref,
                 });
@@ -138,32 +148,36 @@ pub(crate) fn publish_user_application(
             prepared.memory.temporal.analysis.source_timestamp_ns,
             draft.source_time_ns
         );
-        let memory = match phylactery.publish_memory_with_source_ref_and_temporal_inference(
-            None,
-            0,
-            draft.clone(),
-            prepared.source_ref.clone(),
-            temporal_inference,
-        ) {
-            Ok((memory, was_created)) => {
-                if was_created {
-                    created.push(memory.clone());
-                } else {
-                    existing.push(memory.clone());
-                }
-                memory
-            }
+        let (memory, was_created) = match phylactery
+            .publish_memory_with_source_ref_and_temporal_inference(
+                None,
+                0,
+                draft.clone(),
+                prepared.source_ref.clone(),
+                temporal_inference,
+            ) {
+            Ok(value) => value,
             Err(crate::MemoryError::MutationConflict) => {
                 let id = memory_id(&draft.mutation_id);
                 let memory = phylactery.memory(id)?;
                 if !same_routed_user_semantics(&memory, draft, &prepared.source_ref) {
                     return Err(crate::MemoryError::MutationConflict.into());
                 }
-                existing.push(memory.clone());
-                memory
+                (memory, false)
             }
             Err(error) => return Err(error.into()),
         };
+        if let Some(metadata) = prepared.memory.routing_metadata.clone() {
+            phylactery
+                .memories
+                .put_routing_metadata(&mut phylactery.container, metadata)?;
+        }
+        let memory = phylactery.memory(memory.id)?;
+        if was_created {
+            created.push(memory.clone());
+        } else {
+            existing.push(memory.clone());
+        }
         refs.push(MemoryRef {
             owner_id: owner_id.clone(),
             memory_id: memory.id,
@@ -211,7 +225,11 @@ pub(crate) fn commit_application(
                 prepared.draft.source_time_ns
             );
             let temporal_inference = prepared.bound_temporal_inference();
-            (prepared.draft, temporal_inference)
+            (
+                prepared.draft,
+                temporal_inference,
+                prepared.routing_metadata,
+            )
         })
         .collect();
     let batch = memories.stage_grouped_insomnia(container, project_drafts)?;
@@ -234,6 +252,7 @@ pub(crate) fn commit_application(
         global_version_start: batch.global_version_start,
         bodies: batch.bodies,
         records: batch.records,
+        routing_metadata: batch.routing_metadata,
     };
     let payload = encode_completion(&completion)
         .map_err(|_| crate::InsomniaError::InvalidField("completion record"))?;
@@ -249,7 +268,11 @@ pub(crate) fn commit_application(
         .map_err(crate::InsomniaError::from)?;
     container.sync().map_err(crate::InsomniaError::from)?;
     memories.apply_grouped_bodies(completion_chunk, &completion.bodies)?;
-    let created = memories.apply_grouped_records(container, &completion.records)?;
+    let mut created = memories.apply_grouped_records(container, &completion.records)?;
+    memories.apply_grouped_routing_metadata(&completion.routing_metadata)?;
+    for memory in &mut created {
+        *memory = memories.memory(container, memory.id)?;
+    }
     insomnia.apply_completion(&completion)?;
     Ok(InsomniaProcessResult {
         created,

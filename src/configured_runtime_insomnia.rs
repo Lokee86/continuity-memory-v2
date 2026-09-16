@@ -72,6 +72,11 @@ impl ConfiguredRuntime {
                 ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&self.switchboard)
                     .map_err(operation)?,
             );
+        } else {
+            extractor = extractor.with_enrichment_endpoint(
+                ConfiguredGeneralEndpoint::from_insomnia_switchboard(&self.switchboard)
+                    .map_err(operation)?,
+            );
         }
         if phy_path.is_some() {
             extractor = extractor.with_ownership_endpoint(

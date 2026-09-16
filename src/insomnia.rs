@@ -9,6 +9,7 @@ pub(crate) mod codec;
 pub(crate) mod completion;
 mod contract;
 mod cva;
+mod enrichment;
 mod error;
 mod evidence;
 mod extraction;
@@ -36,7 +37,7 @@ pub use evidence::{
 };
 pub use extraction::{
     InsomniaCandidate, InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtraction,
-    InsomniaExtractionError, InsomniaExtractor, InsomniaRejection,
+    InsomniaExtractionError, InsomniaExtractor, InsomniaRejection, InsomniaRoutingMetadata,
 };
 pub(crate) use extraction::{InsomniaEvidenceRound, InsomniaExtractionStage};
 pub use model::{
@@ -62,6 +63,8 @@ mod candidate_policy_tests;
 mod candidate_receipt_policy_tests;
 #[cfg(test)]
 mod completion_tests;
+#[cfg(test)]
+mod enrichment_tests;
 #[cfg(test)]
 mod evidence_flow_tests;
 #[cfg(test)]

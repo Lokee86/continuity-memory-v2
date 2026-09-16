@@ -1,4 +1,5 @@
 use crate::EpisodeId;
+use crate::memory_routing_model::MemoryRoutingMetadata;
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -86,6 +87,7 @@ pub struct Memory {
     pub source_time_ns: Option<i64>,
     pub source_ref: Option<MemorySourceRef>,
     pub temporal_inference: Option<MemoryTemporalInference>,
+    pub routing_metadata: Option<MemoryRoutingMetadata>,
     pub mutation_id: String,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,

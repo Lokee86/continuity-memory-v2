@@ -45,7 +45,7 @@ u64       global version
 ```
 Global versions begin at `1` and are semantically consecutive. Version order remains the canonical owner-local semantic mutation order. Current ordinary semantic publications persist one `CVAVERS2` ticket whose transaction timestamp records when the REL/PHY persistence layer allocated that version. `transaction_time_ns` is knowledge/system time only: it is distinct from source chronology (`source_time_ns`) and from world-valid time interpreted by Chronos.
 
-Legacy `CVAVERS1` tickets remain readable but have no transaction timestamp; reopen does not invent one. Wall-clock historical-cut lookup therefore resolves only a contiguous global-version prefix whose included versions all have known timestamps no later than the requested cut. It does not skip an untimestamped version or a later-timestamped earlier version to reach a higher global version. This remains truthful when divergent reconciliation preserves branch transaction times that are not monotonic in the newly linearized version order. Current `CVAINSC4` completion transactions are the atomic-range exception: they carry one explicit persistence-owned transaction timestamp for their contiguous embedded local REL Memory-version range, so those versions do not require standalone `CVAVERS2` chunks. Older `CVAINSC2`/`CVAINSC3` embedded ranges remain readable but untimestamped for transaction-time purposes. External owner-qualified Memory references consume no REL global/Memory versions. Immutable backing objects do not independently consume versions.
+Legacy `CVAVERS1` tickets remain readable but have no transaction timestamp; reopen does not invent one. Wall-clock historical-cut lookup therefore resolves only a contiguous global-version prefix whose included versions all have known timestamps no later than the requested cut. It does not skip an untimestamped version or a later-timestamped earlier version to reach a higher global version. This remains truthful when divergent reconciliation preserves branch transaction times that are not monotonic in the newly linearized version order. Current `CVAINSC5` completion transactions, and legacy `CVAINSC4` completions, are the atomic-range exception: they carry one explicit persistence-owned transaction timestamp for their contiguous embedded local REL Memory-version range, so those versions do not require standalone `CVAVERS2` chunks. Older `CVAINSC2`/`CVAINSC3` embedded ranges remain readable but untimestamped for transaction-time purposes. External owner-qualified Memory references and clock-neutral Memory routing metadata consume no REL global/Memory versions. Immutable backing objects do not independently consume versions.
 
 ### Durable owner identity
 
@@ -417,7 +417,23 @@ u64       Memory version
 u64       record chunk offset
 u64       record payload length
 ```
-Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR7`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC4` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR7` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR7`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC5` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR7` records, their body-bound routing metadata, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
+
+Clock-neutral Memory routing metadata may also be stored as a standalone attachment (used by PHY publication, migration, and semantic reconciliation):
+```text
+8 bytes   "CVAMRTE1"
+32 bytes  MemoryId
+32 bytes  MemoryBodyId
+u32       Entity-mention count (0..=64)
+repeated Entity mentions:
+    u8    text field: 1=title, 2=content
+    u32   start UTF-8 byte offset
+    u32   end UTF-8 byte offset
+    string exact mention text
+u32       lexical-term count (0..=64)
+repeated string exact lexical term
+```
+Every mention/term string is limited to 512 UTF-8 bytes. `MemoryId + MemoryBodyId` must identify the current immutable Memory body. Mention offsets must be valid character boundaries and slice to the stored text exactly; lexical terms must occur verbatim in title or content. One Memory may have at most one routing attachment: identical replay is idempotent and a different attachment for the same Memory conflicts. `CVAMRTE1` consumes no global or Memory version and carries no Entity ID/type/identity decision.
 
 ### Graph
 Format marker:
@@ -673,7 +689,7 @@ optional string last error
 
 Current successful Episode completion:
 ```text
-8 bytes   "CVAINSC4"
+8 bytes   "CVAINSC5"
 32 bytes  EpisodeId
 u32       attempt number
 i64       started_at_ns
@@ -700,19 +716,23 @@ repeated newly published records:
     u64   global version
     u64   memory version
     u32   encoded Memory-record length
-    N     complete "CVAMEMR6" record payload
+    N     complete "CVAMEMR7" record payload
+u32       embedded routing-metadata count
+repeated embedded routing metadata:
+    u32   encoded routing-metadata length
+    N     complete "CVAMRTE1" payload
 ```
 The embedded global-version count must equal the newly published local Memory-record count. For a non-empty local publication, record global versions are contiguous beginning at the stored first version. A completion with no new local REL Memories consumes no REL global versions even when it records external Memory references.
 
-`CVAINSC4` is the physical and logical visibility boundary for the REL side of an Insomnia success. Its `transaction_time_ns` is sampled by the Container immediately before publication and applies to every embedded global version in that atomic completion. New local content-addressed Memory bodies, their Memory records, their global-version allocation, owner-qualified external Memory references, and the compact successful Episode receipt all live inside this one outer REL chunk. No standalone local Memory-body, Memory-record, Memory-version, or `CVAVERS1` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing local bodies may be referenced without being re-embedded.
+`CVAINSC5` is the physical and logical visibility boundary for the REL side of an Insomnia success. Its `transaction_time_ns` is sampled by the Container immediately before publication and applies to every embedded global version in that atomic completion. New local content-addressed Memory bodies, their Memory records, their body-bound routing metadata, their global-version allocation, owner-qualified external Memory references, and the compact successful Episode receipt all live inside this one outer REL chunk. No standalone local Memory-body, Memory-record, Memory-version, routing-metadata, or `CVAVERS2` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing local bodies may be referenced without being re-embedded. Embedded routing metadata is validated only after its referenced Memory record/body has been reconstructed, but becomes visible from the same outer completion transaction.
 
 An external Memory reference is `string owner_id + 32-byte MemoryId`. The current routed implementation uses it for User-owned PHY Memories. Those Memories are published and synced in the PHY before the REL completion is appended, and are not REL semantic/version state. If the process fails after PHY publication but before the REL receipt, retry reuses the deterministic Memory mutation ID and accepts the existing PHY Memory only when its routed semantics match.
 
-If a `CVAINSC4` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer REL chunk, leaving no orphan local REL body, record, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. Any already-synced external PHY Memory remains durable and is reused by that retry. A valid completed transaction reconstructs all new local Memories plus the successful receipt and its external references together.
+If a `CVAINSC5` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer REL chunk, leaving no orphan local REL body, record, routing attachment, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. Any already-synced external PHY Memory/routing attachment remains durable and is reused by that retry. A valid completed transaction reconstructs all new local Memories, their embedded routing metadata, plus the successful receipt and its external references together.
 
-`CVAINSC3` remains decodable and retains owner-qualified external Memory references, but it predates explicit transaction time and its embedded versions therefore reopen with unknown transaction timestamps. `CVAINSC2` remains decodable with the same embedded local Memory transaction but no external-reference section and likewise has no transaction-time mapping. `CVAINSC1` also remains decodable; in that older format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk. V1/V2 completions reopen with an empty external-reference list. Current processing writes only `CVAINSC4`.
+`CVAINSC4` remains decodable with the same transaction timestamp, owner-qualified external Memory references, and atomic local Memory transaction as current V5, but it predates embedded routing metadata and therefore reopens with none from that completion. `CVAINSC3` retains external Memory references but predates explicit transaction time, so its embedded versions reopen with unknown transaction timestamps. `CVAINSC2` has the same embedded local Memory transaction but no external-reference section and likewise has no transaction-time mapping. `CVAINSC1` also remains decodable; in that older format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk. V1/V2 completions reopen with an empty external-reference list. Current processing writes only `CVAINSC5`.
 
-The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC4` REL transaction, with any routed external owner publication already durable.
+The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC5` REL transaction, with any routed external owner publication already durable.
 
 Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
 

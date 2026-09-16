@@ -17,6 +17,7 @@ pub enum MemoryError {
     SemanticMutation,
     MissingMemory,
     MutationConflict,
+    RoutingMetadataConflict,
     InvalidProvenance,
     InvalidVersion,
     VersionExhausted,

@@ -3,8 +3,9 @@ use crate::memory_codec::{
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
-    Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemorySourceRef,
-    MemoryStats, MemoryTemporalInference, ObjectRef,
+    Container, MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_LEXICAL_TERMS, MAX_MEMORY_ROUTING_TEXT_BYTES,
+    Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryRoutingMetadata,
+    MemorySourceRef, MemoryStats, MemoryTemporalInference, MemoryTextField, ObjectRef,
 };
 use std::collections::HashMap;
 
@@ -12,6 +13,7 @@ mod grouped_publish;
 
 pub(crate) struct MemoryStore {
     bodies: HashMap<MemoryBodyId, ObjectRef>,
+    routing_metadata: HashMap<MemoryId, MemoryRoutingMetadata>,
     records: Vec<MemoryRecord>,
     current: HashMap<MemoryId, usize>,
     by_mutation: HashMap<String, usize>,
@@ -22,6 +24,7 @@ impl MemoryStore {
     pub(crate) fn empty() -> Self {
         Self {
             bodies: HashMap::new(),
+            routing_metadata: HashMap::new(),
             records: Vec::new(),
             current: HashMap::new(),
             by_mutation: HashMap::new(),
@@ -244,6 +247,55 @@ impl MemoryStore {
         Ok(self.records[*index].body_id)
     }
 
+    pub(crate) fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {
+        self.routing_metadata.get(&id)
+    }
+
+    pub(crate) fn put_routing_metadata(
+        &mut self,
+        container: &mut Container,
+        metadata: MemoryRoutingMetadata,
+    ) -> Result<bool, MemoryError> {
+        self.validate_routing_binding(&metadata)?;
+        self.validate_routing_text(container, &metadata)?;
+        if let Some(existing) = self.routing_metadata.get(&metadata.memory_id) {
+            return if existing == &metadata {
+                Ok(false)
+            } else {
+                Err(MemoryError::RoutingMetadataConflict)
+            };
+        }
+        container.append(&crate::memory_routing_codec::encode(&metadata)?)?;
+        self.routing_metadata.insert(metadata.memory_id, metadata);
+        Ok(true)
+    }
+
+    pub(crate) fn insert_routing_metadata_rebuilt(
+        &mut self,
+        metadata: MemoryRoutingMetadata,
+    ) -> Result<(), MemoryError> {
+        self.validate_routing_binding(&metadata)?;
+        match self.routing_metadata.get(&metadata.memory_id) {
+            Some(existing) if existing == &metadata => Ok(()),
+            Some(_) => Err(MemoryError::RoutingMetadataConflict),
+            None => {
+                self.routing_metadata.insert(metadata.memory_id, metadata);
+                Ok(())
+            }
+        }
+    }
+
+    pub(crate) fn validate_routing_metadata(
+        &self,
+        container: &mut Container,
+    ) -> Result<(), MemoryError> {
+        for metadata in self.routing_metadata.values() {
+            self.validate_routing_binding(metadata)?;
+            self.validate_routing_text(container, metadata)?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn body_embedding_text(
         &self,
         container: &mut Container,
@@ -393,6 +445,65 @@ impl MemoryStore {
         Err(MemoryError::CorruptBody)
     }
 
+    fn validate_routing_binding(
+        &self,
+        metadata: &MemoryRoutingMetadata,
+    ) -> Result<(), MemoryError> {
+        if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS
+            || metadata.lexical_terms.len() > MAX_MEMORY_LEXICAL_TERMS
+        {
+            return Err(MemoryError::InvalidField("Memory routing metadata count"));
+        }
+        if self.current_body_id(metadata.memory_id)? != metadata.body_id {
+            return Err(MemoryError::InvalidField("Memory routing metadata binding"));
+        }
+        for mention in &metadata.entity_mentions {
+            if mention.text.is_empty()
+                || mention.text.len() > MAX_MEMORY_ROUTING_TEXT_BYTES
+                || mention.start_byte >= mention.end_byte
+            {
+                return Err(MemoryError::InvalidField("Memory entity mention"));
+            }
+        }
+        for term in &metadata.lexical_terms {
+            if term.trim().is_empty() || term.len() > MAX_MEMORY_ROUTING_TEXT_BYTES {
+                return Err(MemoryError::InvalidField("Memory lexical term"));
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_routing_text(
+        &self,
+        container: &mut Container,
+        metadata: &MemoryRoutingMetadata,
+    ) -> Result<(), MemoryError> {
+        let body = self.body_bytes(container, metadata.body_id)?;
+        let (title, content) = decode_memory_body(&body)?;
+        for mention in &metadata.entity_mentions {
+            let source = match mention.field {
+                MemoryTextField::Title => title.as_str(),
+                MemoryTextField::Content => content.as_str(),
+            };
+            let start = usize::try_from(mention.start_byte)
+                .map_err(|_| MemoryError::InvalidField("Memory entity mention span"))?;
+            let end = usize::try_from(mention.end_byte)
+                .map_err(|_| MemoryError::InvalidField("Memory entity mention span"))?;
+            if !source.is_char_boundary(start)
+                || !source.is_char_boundary(end)
+                || source.get(start..end) != Some(mention.text.as_str())
+            {
+                return Err(MemoryError::InvalidField("Memory entity mention span"));
+            }
+        }
+        for term in &metadata.lexical_terms {
+            if !title.contains(term) && !content.contains(term) {
+                return Err(MemoryError::InvalidField("Memory lexical term grounding"));
+            }
+        }
+        Ok(())
+    }
+
     fn put_body(
         &mut self,
         container: &mut Container,
@@ -444,6 +555,7 @@ impl MemoryStore {
             source_time_ns: record.source_time_ns,
             source_ref: record.source_ref.clone(),
             temporal_inference: record.temporal_inference.clone(),
+            routing_metadata: self.routing_metadata.get(&record.id).cloned(),
             mutation_id: record.mutation_id.clone(),
             created_at_ns: record.created_at_ns,
             updated_at_ns: record.updated_at_ns,

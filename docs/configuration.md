@@ -110,6 +110,12 @@ Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibili
 
 This route is optional. When configured, Insomnia uses it for extraction. When absent, `ModelSwitchboard::insomnia()` and `insomnia_auth()` fall back to the configured `models.general` route and credential. This keeps General as the default model path while allowing Insomnia to be independently routed when desired.
 
+### `models.insomnia_metadata`
+
+Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibility as `models.general`.
+
+This route is optional. When configured, Insomnia uses it for the bounded fixed-group category/type/lifecycle classifier and for the post-wording Entity/lexical routing-enrichment pass. When absent, fixed-group metadata classification is skipped, while configured finite/runtime-host enrichment still runs by falling back to the effective main Insomnia route. User/Project ownership classification has no separately persisted route: when enabled it also prefers `models.insomnia_metadata` and otherwise falls back to effective main Insomnia.
+
 ### `models.dream`
 
 Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibility as `models.general`.
@@ -175,7 +181,7 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 ## Current limitations
 
 - The default operating-system config location is not selected yet; callers currently supply a path.
-- General/Insomnia/Dream/embedding routes, encrypted credentials, credential references, request-auth attachment, direct `openai-ready` embedding/General HTTP execution, and provider-native `openai-codex` General/Insomnia/Dream Responses execution are implemented. Insomnia and Dream independently fall back to General when their dedicated routes are unset.
+- General/Insomnia/Insomnia-metadata/Dream/embedding routes, encrypted credentials, credential references, request-auth attachment, direct `openai-ready` embedding/General HTTP execution, and provider-native `openai-codex` General/Insomnia/Insomnia-metadata/Dream Responses execution are implemented. Insomnia and Dream independently fall back to General when their dedicated routes are unset; fixed-group metadata classification is skipped when its optional route is absent, while production Entity/lexical enrichment falls back to effective main Insomnia.
 - `openai-codex` ChatGPT device-code acquisition stores the returned ID/access/refresh tokens plus ChatGPT account ID as an encrypted credential object. OAuth token refresh is not implemented yet.
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.

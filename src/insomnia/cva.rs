@@ -223,6 +223,7 @@ impl Cva {
             global_version_start: self.container.next_version_candidate(),
             bodies: Vec::new(),
             records: Vec::new(),
+            routing_metadata: Vec::new(),
         };
         let payload = encode_completion(&completion)
             .map_err(|_| InsomniaError::InvalidField("completion record"))?;

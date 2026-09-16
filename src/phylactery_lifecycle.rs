@@ -122,7 +122,8 @@ impl Phylactery {
             ));
         }
 
-        let memories = memory_state.finish()?;
+        let mut container = container;
+        let memories = memory_state.finish(&mut container)?;
         ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
@@ -152,7 +153,7 @@ impl Phylactery {
 }
 
 fn reject_rel_only_payload(payload: &[u8]) -> Result<(), PhylacteryError> {
-    const REL_ONLY_PREFIXES: [&[u8; 8]; 23] = [
+    const REL_ONLY_PREFIXES: [&[u8; 8]; 26] = [
         b"CVAAFMT2",
         b"CVACONT1",
         b"CVANODE1",
@@ -165,6 +166,9 @@ fn reject_rel_only_payload(payload: &[u8]) -> Result<(), PhylacteryError> {
         b"CVAAREC1",
         b"CVAINSF1",
         b"CVAINSW1",
+        b"CVAINSC5",
+        b"CVAINSC4",
+        b"CVAINSC3",
         b"CVAINSC2",
         b"CVAINSC1",
         b"CVAINSA1",

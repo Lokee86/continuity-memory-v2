@@ -220,6 +220,8 @@ mod memory_retrieval_index;
 mod memory_retrieval_model;
 mod memory_retrieval_traversal;
 mod memory_retrieval_vectors;
+mod memory_routing_codec;
+mod memory_routing_model;
 mod memory_store;
 mod memory_temporal_codec;
 mod memory_temporal_codec_kind;
@@ -431,10 +433,10 @@ pub use insomnia::{
     InsomniaEvidenceTurn, InsomniaExtraction, InsomniaExtractionError, InsomniaExtractor,
     InsomniaLeaseToken, InsomniaOwnership, InsomniaPriority, InsomniaProcessError,
     InsomniaProcessResult, InsomniaProgressEvent, InsomniaProgressReporter, InsomniaRejection,
-    InsomniaSemanticStage, InsomniaStats, InsomniaWork, InsomniaWorkState, InsomniaWorkerConfig,
-    InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES, MAX_INSOMNIA_EVIDENCE_BYTES,
-    MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS, MAX_INSOMNIA_WORKERS,
-    insomnia_schema,
+    InsomniaRoutingMetadata, InsomniaSemanticStage, InsomniaStats, InsomniaWork, InsomniaWorkState,
+    InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_CANDIDATES,
+    MAX_INSOMNIA_EVIDENCE_BYTES, MAX_INSOMNIA_EVIDENCE_REQUESTS, MAX_INSOMNIA_EVIDENCE_TURNS,
+    MAX_INSOMNIA_WORKERS, insomnia_schema,
 };
 pub use interaction_background::{
     DEFAULT_RUNTIME_DREAM_BATCH, RuntimeBackgroundConfig, RuntimeBackgroundError,
@@ -465,6 +467,10 @@ pub use memory_retrieval_model::{
     DEFAULT_MEMORY_RETRIEVAL_MAX_DEPTH, DEFAULT_MEMORY_RETRIEVAL_SEEDS,
     DEFAULT_MEMORY_RETRIEVAL_SUBCENTROIDS, MemoryRetrievalConfig, MemoryRetrievalHit,
     MemoryRetrievalIndex, MemoryRetrievalMode, MemoryRetrievalResult,
+};
+pub use memory_routing_model::{
+    MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_LEXICAL_TERMS, MAX_MEMORY_ROUTING_TEXT_BYTES,
+    MemoryEntityMention, MemoryRoutingMetadata, MemoryTextField,
 };
 pub use memory_vector_error::MemoryVectorError;
 pub use memory_vector_model::{
@@ -684,6 +690,8 @@ mod memory_codec_tests;
 mod memory_retrieval_stale_tests;
 #[cfg(test)]
 mod memory_retrieval_tests;
+#[cfg(test)]
+mod memory_routing_tests;
 #[cfg(test)]
 mod memory_temporal_inference_tests;
 #[cfg(test)]

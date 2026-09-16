@@ -243,7 +243,7 @@ impl Cva {
         }
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
-        let memories = memory_state.finish()?;
+        let memories = memory_state.finish(&mut container)?;
         ego.validate_memory_version(memories.memory_version())?;
         memories.validate_provenance(&archive)?;
         dream_cooldowns.validate(&memories)?;

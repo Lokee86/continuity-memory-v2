@@ -1,12 +1,13 @@
 use crate::EpisodeId;
 use crate::memory_codec::{decode_record, encode_record};
 use crate::memory_model::MemoryRecord;
-use crate::{MemoryBodyId, MemoryRef};
+use crate::{MemoryBodyId, MemoryRef, MemoryRoutingMetadata};
 
 const COMPLETION_MAGIC_V1: [u8; 8] = *b"CVAINSC1";
 const COMPLETION_MAGIC_V2: [u8; 8] = *b"CVAINSC2";
 const COMPLETION_MAGIC_V3: [u8; 8] = *b"CVAINSC3";
 const COMPLETION_MAGIC_V4: [u8; 8] = *b"CVAINSC4";
+const COMPLETION_MAGIC_V5: [u8; 8] = *b"CVAINSC5";
 
 #[derive(Clone, Debug)]
 pub(crate) struct InsomniaCompletionBody {
@@ -29,6 +30,7 @@ pub(crate) struct InsomniaCompletion {
     pub(crate) global_version_start: u64,
     pub(crate) bodies: Vec<InsomniaCompletionBody>,
     pub(crate) records: Vec<MemoryRecord>,
+    pub(crate) routing_metadata: Vec<MemoryRoutingMetadata>,
 }
 
 pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &'static str> {
@@ -45,7 +47,7 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
                 .map(|body| body.bytes.len())
                 .sum::<usize>(),
     );
-    out.extend_from_slice(&COMPLETION_MAGIC_V4);
+    out.extend_from_slice(&COMPLETION_MAGIC_V5);
     out.extend_from_slice(&value.episode_id.0);
     out.extend_from_slice(&value.attempt.to_le_bytes());
     out.extend_from_slice(&value.started_at_ns.to_le_bytes());
@@ -97,6 +99,20 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
         out.extend_from_slice(&len.to_le_bytes());
         out.extend_from_slice(&encoded);
     }
+    if value.routing_metadata.len() > super::contract::MAX_INSOMNIA_CANDIDATES {
+        return Err("too many completion routing metadata records");
+    }
+    let routing_count = u32::try_from(value.routing_metadata.len())
+        .map_err(|_| "too many completion routing metadata records")?;
+    out.extend_from_slice(&routing_count.to_le_bytes());
+    for metadata in &value.routing_metadata {
+        let encoded = crate::memory_routing_codec::encode(metadata)
+            .map_err(|_| "invalid completion routing metadata")?;
+        let len =
+            u32::try_from(encoded.len()).map_err(|_| "completion routing metadata too large")?;
+        out.extend_from_slice(&len.to_le_bytes());
+        out.extend_from_slice(&encoded);
+    }
     Ok(out)
 }
 
@@ -106,7 +122,8 @@ pub(crate) fn decode_embedded_version_range(
     if bytes.len() < 8
         || (bytes[..8] != COMPLETION_MAGIC_V2
             && bytes[..8] != COMPLETION_MAGIC_V3
-            && bytes[..8] != COMPLETION_MAGIC_V4)
+            && bytes[..8] != COMPLETION_MAGIC_V4
+            && bytes[..8] != COMPLETION_MAGIC_V5)
     {
         return Ok(None);
     }
@@ -118,14 +135,15 @@ pub(crate) fn decode_embedded_version_range(
     if count > 0 && start == 0 {
         return Err("invalid completion global version range");
     }
-    let transaction_time_ns = if bytes[..8] == COMPLETION_MAGIC_V4 {
-        if bytes.len() < 84 {
-            return Err("short Insomnia v4 completion");
-        }
-        Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap()))
-    } else {
-        None
-    };
+    let transaction_time_ns =
+        if bytes[..8] == COMPLETION_MAGIC_V4 || bytes[..8] == COMPLETION_MAGIC_V5 {
+            if bytes.len() < 84 {
+                return Err("short Insomnia completion with transaction time");
+            }
+            Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap()))
+        } else {
+            None
+        };
     Ok(Some((start, count, transaction_time_ns)))
 }
 
@@ -133,8 +151,11 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
     if bytes.len() < 8 {
         return Ok(None);
     }
+    if bytes[..8] == COMPLETION_MAGIC_V5 {
+        return decode_completion_current(bytes, true).map(Some);
+    }
     if bytes[..8] == COMPLETION_MAGIC_V4 {
-        return decode_completion_v4(bytes).map(Some);
+        return decode_completion_current(bytes, false).map(Some);
     }
     if bytes[..8] == COMPLETION_MAGIC_V3 {
         return decode_completion_v3(bytes).map(Some);
@@ -148,9 +169,12 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
     Ok(None)
 }
 
-fn decode_completion_v4(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
+fn decode_completion_current(
+    bytes: &[u8],
+    has_routing_metadata: bool,
+) -> Result<InsomniaCompletion, &'static str> {
     if bytes.len() < 96 {
-        return Err("short Insomnia v4 completion");
+        return Err("short Insomnia current completion");
     }
     let episode_id = EpisodeId(bytes[8..40].try_into().unwrap());
     let attempt = u32::from_le_bytes(bytes[40..44].try_into().unwrap());
@@ -192,6 +216,11 @@ fn decode_completion_v4(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
     }
     let records = read_records(bytes, &mut cursor)?;
     validate_record_versions(global_version_start, global_version_count, &records)?;
+    let routing_metadata = if has_routing_metadata {
+        read_routing_metadata(bytes, &mut cursor)?
+    } else {
+        Vec::new()
+    };
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
     }
@@ -209,6 +238,7 @@ fn decode_completion_v4(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         global_version_start,
         bodies,
         records,
+        routing_metadata,
     })
 }
 
@@ -272,6 +302,7 @@ fn decode_completion_v3(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         global_version_start,
         bodies,
         records,
+        routing_metadata: Vec::new(),
     })
 }
 
@@ -344,6 +375,7 @@ fn decode_completion_v2(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         global_version_start,
         bodies,
         records,
+        routing_metadata: Vec::new(),
     })
 }
 
@@ -382,6 +414,7 @@ fn decode_completion_v1(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         global_version_start,
         bodies: Vec::new(),
         records,
+        routing_metadata: Vec::new(),
     })
 }
 
@@ -465,6 +498,32 @@ fn read_records(bytes: &[u8], cursor: &mut usize) -> Result<Vec<MemoryRecord>, &
         records.push(record);
     }
     Ok(records)
+}
+
+fn read_routing_metadata(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<Vec<MemoryRoutingMetadata>, &'static str> {
+    let count = read_u32(bytes, cursor)? as usize;
+    if count > super::contract::MAX_INSOMNIA_CANDIDATES {
+        return Err("too many completion routing metadata records");
+    }
+    let mut values = Vec::with_capacity(count);
+    for _ in 0..count {
+        let len = read_u32(bytes, cursor)? as usize;
+        let end = cursor
+            .checked_add(len)
+            .ok_or("completion routing metadata overflow")?;
+        let encoded = bytes
+            .get(*cursor..end)
+            .ok_or("truncated completion routing metadata")?;
+        *cursor = end;
+        let metadata = crate::memory_routing_codec::decode(encoded)
+            .map_err(|_| "invalid completion routing metadata")?
+            .ok_or("missing completion routing metadata")?;
+        values.push(metadata);
+    }
+    Ok(values)
 }
 
 fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), &'static str> {

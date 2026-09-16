@@ -1,3 +1,4 @@
+use super::enrichment;
 use super::evidence::{EvidenceRequest, parse_evidence_requests, resolve_evidence};
 use super::ledger;
 use super::metadata;
@@ -9,6 +10,12 @@ use crate::{
 use serde_json::{Value, json};
 use std::fmt;
 use std::sync::Arc;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InsomniaRoutingMetadata {
+    pub entity_mentions: Vec<crate::MemoryEntityMention>,
+    pub lexical_terms: Vec<String>,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaCandidate {
@@ -28,6 +35,7 @@ pub struct InsomniaCandidate {
     pub grounding_source_conversation_id: Option<String>,
     pub grounding_source_node_id: Option<String>,
     pub grounding_source_quote: Option<String>,
+    pub routing_metadata: Option<InsomniaRoutingMetadata>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,6 +117,7 @@ impl From<crate::TemporalInferenceError> for InsomniaExtractionError {
 pub struct InsomniaExtractor<E> {
     endpoint: E,
     metadata_endpoint: Option<Arc<dyn GeneralEndpoint>>,
+    enrichment_endpoint: Option<Arc<dyn GeneralEndpoint>>,
     ownership_endpoint: Option<Arc<dyn GeneralEndpoint>>,
     temporal_endpoint: Option<Arc<dyn GeneralEndpoint>>,
 }
@@ -118,6 +127,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         Self {
             endpoint,
             metadata_endpoint: None,
+            enrichment_endpoint: None,
             ownership_endpoint: None,
             temporal_endpoint: None,
         }
@@ -127,7 +137,17 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
     where
         M: GeneralEndpoint + 'static,
     {
-        self.metadata_endpoint = Some(Arc::new(endpoint));
+        let endpoint: Arc<dyn GeneralEndpoint> = Arc::new(endpoint);
+        self.metadata_endpoint = Some(Arc::clone(&endpoint));
+        self.enrichment_endpoint = Some(endpoint);
+        self
+    }
+
+    pub fn with_enrichment_endpoint<R>(mut self, endpoint: R) -> Self
+    where
+        R: GeneralEndpoint + 'static,
+    {
+        self.enrichment_endpoint = Some(Arc::new(endpoint));
         self
     }
 
@@ -456,8 +476,12 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             "insomnia_memory_wording",
             &synthesis::schema(&groups),
         )?;
-        let (candidates, rejected) =
+        let (mut candidates, rejected) =
             synthesis::materialize(episode, turns, &evidence_turns, &groups, &wording)?;
+        if let Some(enrichment_endpoint) = &self.enrichment_endpoint {
+            stage_reporter(InsomniaSemanticStage::Enrichment, candidates.len());
+            enrichment::enrich(enrichment_endpoint.as_ref(), &mut candidates)?;
+        }
         Ok(InsomniaExtraction {
             model: self.endpoint.model().to_owned(),
             candidates,

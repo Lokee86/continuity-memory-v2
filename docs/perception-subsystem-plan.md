@@ -32,9 +32,10 @@ Perception is not another full-corpus reasoning layer. Deterministic routing, Dr
 
 ```text
 Archive/source
-    -> Insomnia Memory extraction
-       -> Chronos Memory-level temporal analysis when indicated
-    -> Insomnia Entity/lexical metadata pass
+    -> Insomnia semantic extraction + final Memory wording
+    -> Insomnia Entity/lexical routing-metadata enrichment
+       -> Chronos Memory-level temporal assessment/inference when indicated
+    -> durable Memory publication
     -> Dream Memory-Web organization (consumes Chronos)
     -> Perception 1: Entity synthesis/association/disambiguation
     -> Perception Relationship lane: sparse relationship synthesis/maintenance
@@ -48,14 +49,14 @@ Observation reconsideration and ambiguity clarification are lifecycle/runtime me
 
 ## Insomnia enrichment prerequisite
 
-After authoritative Memory extraction, Insomnia runs a separate metadata pass that extracts:
+After final authoritative Memory wording, Insomnia runs a separate routing-metadata pass that extracts:
 
-- Entity mentions;
-- lexical terms useful for deterministic routing/context construction.
+- exact Entity mentions from title/content, persisted as field + UTF-8 byte span + verbatim text;
+- exact lexical terms copied from title/content for deterministic routing/context construction.
 
-It does **not** resolve/create Entities, decide identity, synthesize Observations, or create semantic authority beyond the Memory itself.
+The implemented record is `MemoryRoutingMetadata`, bound to exact `MemoryId + MemoryBodyId`. Each list is capped at 64 items and each emitted text value at 512 UTF-8 bytes. Write/reopen validation requires every mention span and lexical term to match the immutable Memory body exactly. The metadata is clock-neutral and remains valid across metadata/lifecycle revisions because the Memory body cannot mutate in place.
 
-Exact metadata schemas and persistence are implementation decisions.
+It does **not** resolve/create Entities, decide identity, assign Entity IDs/types, synthesize Observations, or create semantic authority beyond the Memory itself. Perception pass 1 remains the sole owner of Entity synthesis/association/disambiguation.
 
 ## Chronos temporal dependency
 
@@ -238,12 +239,14 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 
 ## Implementation sequence
 
-### A — Insomnia metadata seam
+### A — Insomnia metadata seam — implemented 2026-09-16
 
-- Define Entity-mention and lexical-term metadata contracts.
-- Add the post-extraction metadata pass.
-- Persist/derive owner-local routing metadata.
-- Add deterministic replay/idempotency tests.
+- `MemoryRoutingMetadata` defines bounded exact Entity mentions and lexical terms over immutable Memory text.
+- Insomnia contract `v3-2` adds a post-wording enrichment pass; configured/runtime-host execution uses `models.insomnia_metadata` when present and otherwise effective main Insomnia.
+- REL Project results embed routing metadata atomically in `CVAINSC5`; PHY/User results persist the same clock-neutral attachment beside the routed Memory.
+- Reopen validates `MemoryId + MemoryBodyId` binding and exact source text. Migration/reconciliation replay the attachment, identical writes are idempotent, and conflicts fail closed.
+
+The next implementation milestone is **B — Entity owner and pass 1**.
 
 ### B — Entity owner and pass 1
 

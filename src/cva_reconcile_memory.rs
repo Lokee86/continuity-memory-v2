@@ -73,6 +73,7 @@ pub(crate) fn replay_memory_tail(
         let draft = memory_draft(memory.clone());
         let source_ref = memory.source_ref.clone();
         let temporal_inference = memory.temporal_inference.clone();
+        let routing_metadata = memory.routing_metadata.clone();
         let publish = with_replayed_transaction_time(
             destination,
             revision.transaction_time_ns,
@@ -93,6 +94,11 @@ pub(crate) fn replay_memory_tail(
             Ok(value) => value,
             Err(error) => return Err(memory_replay_error(destination, &memory, error)),
         };
+        if let Some(metadata) = routing_metadata {
+            destination
+                .memories
+                .put_routing_metadata(&mut destination.container, metadata)?;
+        }
         if created {
             replayed += 1;
         } else {
@@ -178,6 +184,7 @@ fn replay_completion(
         global_version_start: destination.container.next_version_candidate(),
         bodies: Vec::new(),
         records: Vec::new(),
+        routing_metadata: Vec::new(),
     };
     let payload =
         encode_completion(&receipt).map_err(CvaReconcileError::InvalidInsomniaCompletion)?;
