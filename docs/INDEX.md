@@ -24,6 +24,7 @@
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
 - [Chronos subsystem plan](chronos-subsystem-plan.md) — accepted shared temporal architecture for deterministic-first indication detection, normalization, parsing/resolution, valid-time interpretation, and bounded inference across Insomnia, Dream, and Perception.
 - [Perception subsystem plan](perception-subsystem-plan.md) — accepted future architecture and staged implementation plan for Entity/Relationship/Observation synthesis, relationship privacy/composition, routing receptors, reconsideration, and ambiguity clarification.
+- [Derived semantic nodes exploration](derived-semantic-nodes-exploration.md) — exploratory Entity/Observation graph-node model, semantic authority, user authorship, derivation provenance, and Hindsight/Honcho boundary.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.
