@@ -43,6 +43,7 @@ pub fn memory(
         category: "validation".into(),
         memory_type: "fact".into(),
         authority_kind: "unknown".into(),
+        temporal_status: "unknown".into(),
         title: title.into(),
         content: content.into(),
         scope: "private".into(),

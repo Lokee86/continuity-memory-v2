@@ -17,6 +17,7 @@ fn draft(mutation_id: &str, title: &str, content: &str) -> MemoryDraft {
         category: "preference".into(),
         memory_type: "user".into(),
         authority_kind: "direct".into(),
+        temporal_status: "unknown".into(),
         title: title.into(),
         content: content.into(),
         scope: "user".into(),
@@ -100,6 +101,51 @@ fn source_reference_survives_metadata_revision_and_reopen() {
         reopened.memory(first.id).unwrap().source_ref,
         Some(source_ref)
     );
+}
+
+#[test]
+fn temporal_status_backfill_preserves_phy_source_reference() {
+    let path = test_path("temporal-status.phy");
+    let mut phy = Phylactery::create(&path).unwrap();
+    let source_ref = MemorySourceRef {
+        owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
+        source_episode_id: EpisodeId([8; 32]),
+        source_node_id: "u1".into(),
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+    };
+    let (first, _) = phy
+        .publish_memory_with_source_ref(
+            None,
+            0,
+            draft(
+                "user:temporal",
+                "Preference",
+                "The user prefers concise replies.",
+            ),
+            source_ref.clone(),
+        )
+        .unwrap();
+    let (updated, created) = phy
+        .set_memory_temporal_status(
+            first.id,
+            first.revision,
+            "current",
+            "temporal-backfill".into(),
+        )
+        .unwrap();
+    assert!(created);
+    assert_eq!(updated.temporal_status, "current");
+    assert_eq!(updated.source_ref, Some(source_ref.clone()));
+    phy.sync().unwrap();
+    drop(phy);
+
+    let mut reopened = Phylactery::open(path).unwrap();
+    let memory = reopened.memory(first.id).unwrap();
+    assert_eq!(memory.temporal_status, "current");
+    assert_eq!(memory.source_ref, Some(source_ref));
 }
 
 #[test]

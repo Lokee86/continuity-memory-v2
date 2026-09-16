@@ -151,6 +151,7 @@ fn lifecycle_draft(
         category: memory.category.clone(),
         memory_type: memory.memory_type.clone(),
         authority_kind: memory.authority_kind.clone(),
+        temporal_status: memory.temporal_status.clone(),
         title: memory.title.clone(),
         content: memory.content.clone(),
         scope: memory.scope.clone(),

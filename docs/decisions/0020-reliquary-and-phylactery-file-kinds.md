@@ -57,7 +57,7 @@ Project source/provenance remains a first-class part of the Project Reliquary mo
 
 ### Phylactery (`.phy`)
 
-Phylactery is the user-global Identity persistence domain. The implemented `.phy` owner set is deliberately narrow: Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. These owners reuse the same low-level codecs/stores where their semantics are genuinely shared.
+Phylactery is the user-global persistence domain. Its deliberately bounded owner set now includes Memories, Graph, Packed Vectors, Memory Vectors, Compatibility Profiles, and purpose-built Ego Identity/Personality/Anchor/web-synthesis records. Ego state is not represented as Memory records: it has its own append-only owner-local persistence so explicit persona/context conditioning does not become Memory-Web authority. Shared low-level mechanics are reused where their semantics are genuinely shared.
 
 A Phylactery Memory does not require source turns or a live originating Reliquary. Direct `.phy` Memory publication requires all REL-local Episode/node/conversation provenance fields to be absent, so PHY never stores another owner's source records. Routed User Memories may instead retain `MemorySourceRef`, an identifier-only owner-qualified reference to the originating REL, Episode, source node, and optional authority/grounding node identities. That reference may be unresolved without invalidating the PHY.
 

@@ -3,7 +3,7 @@ use crate::memory_model::MemoryRecord;
 use crate::{EpisodeId, MemoryBodyId, MemoryId, MemorySourceRef};
 
 #[test]
-fn memory_record_v5_round_trips_source_reference() {
+fn memory_record_v6_round_trips_source_reference_and_temporal_status() {
     let mut record = record("adoption");
     record.source_time_ns = Some(42);
     record.source_ref = Some(MemorySourceRef {
@@ -21,15 +21,25 @@ fn memory_record_v5_round_trips_source_reference() {
     assert_eq!(decoded.authority_kind, "adoption");
     assert_eq!(decoded.source_time_ns, Some(42));
     assert_eq!(decoded.source_ref, record.source_ref);
+    assert_eq!(decoded.temporal_status, "current");
     assert_eq!(decoded.category, record.category);
     assert_eq!(decoded.memory_type, record.memory_type);
+}
+
+#[test]
+fn legacy_memory_record_v5_reopens_with_unknown_temporal_status() {
+    let record = record("direct");
+    let bytes = legacy_v5_bytes(&record);
+    let decoded = decode_record(&bytes).unwrap().unwrap();
+    assert_eq!(decoded.temporal_status, "unknown");
+    assert_eq!(decoded.authority_kind, "direct");
 }
 
 #[test]
 fn legacy_memory_record_v4_reopens_without_source_reference() {
     let mut record = record("direct");
     record.source_time_ns = Some(42);
-    let mut bytes = encode_record(&record).unwrap();
+    let mut bytes = legacy_v5_bytes(&record);
     bytes[..8].copy_from_slice(b"CVAMEMR4");
     bytes.remove(93);
     let decoded = decode_record(&bytes).unwrap().unwrap();
@@ -70,10 +80,27 @@ fn legacy_memory_record_v2_reopens_with_unknown_authority_and_no_source_time() {
 
 fn legacy_v3_bytes(record: &MemoryRecord) -> Vec<u8> {
     assert_eq!(record.source_time_ns, None);
-    let mut bytes = encode_record(record).unwrap();
+    assert_eq!(record.source_ref, None);
+    let mut bytes = legacy_v5_bytes(record);
     bytes[..8].copy_from_slice(b"CVAMEMR3");
     bytes.remove(84);
     bytes.remove(84);
+    bytes
+}
+
+fn legacy_v5_bytes(record: &MemoryRecord) -> Vec<u8> {
+    assert_eq!(record.source_ref, None);
+    let mut bytes = encode_record(record).unwrap();
+    let mut cursor = 102 + usize::from(record.source_time_ns.is_some()) * 8;
+    skip_string(&bytes, &mut cursor); // category
+    skip_string(&bytes, &mut cursor); // memory type
+    skip_string(&bytes, &mut cursor); // authority kind
+    skip_string(&bytes, &mut cursor); // scope
+    skip_string(&bytes, &mut cursor); // Dream lifecycle
+    let temporal_start = cursor;
+    skip_string(&bytes, &mut cursor);
+    bytes.drain(temporal_start..cursor);
+    bytes[..8].copy_from_slice(b"CVAMEMR5");
     bytes
 }
 
@@ -90,6 +117,7 @@ fn record(authority_kind: &str) -> MemoryRecord {
         category: "decision".into(),
         memory_type: "project".into(),
         authority_kind: authority_kind.into(),
+        temporal_status: "current".into(),
         scope: "private".into(),
         lifecycle_state: "extracted".into(),
         archived: false,

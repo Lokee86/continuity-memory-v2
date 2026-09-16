@@ -22,6 +22,7 @@ fn draft(mutation_id: &str, lifecycle: &str, title: &str, content: &str) -> Memo
         category: "preference".into(),
         memory_type: "project".into(),
         authority_kind: "unknown".into(),
+        temporal_status: "unknown".into(),
         title: title.into(),
         content: content.into(),
         scope: "private".into(),

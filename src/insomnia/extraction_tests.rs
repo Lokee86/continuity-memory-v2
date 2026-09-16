@@ -138,6 +138,7 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
     let memory = &result.created[0];
     assert_eq!(memory.source_episode_id, Some(episode.id));
     assert_eq!(memory.source_node_id.as_deref(), Some("u0"));
+    assert_eq!(memory.temporal_status, "current");
     assert_eq!(
         cva.insomnia_work(episode.id).unwrap().state,
         InsomniaWorkState::Complete
@@ -145,8 +146,12 @@ fn claimed_episode_extracts_and_publishes_authoritative_memory() {
 
     cva.sync().unwrap();
     drop(cva);
-    let reopened = Cva::open(&path).unwrap();
+    let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.memory_stats().memories, 1);
+    assert_eq!(
+        reopened.memory(memory.id).unwrap().temporal_status,
+        "current"
+    );
     assert_eq!(reopened.insomnia_attempts(episode.id).len(), 1);
 }
 
@@ -319,6 +324,7 @@ fn authority_kind_is_required_and_preserved_by_structured_selection() {
     assert_eq!(extraction.candidates[0].authority_kind, "direct");
     assert_eq!(extraction.candidates[0].category, "preference");
     assert_eq!(extraction.candidates[0].memory_type, "communication");
+    assert_eq!(extraction.candidates[0].temporal_status, "current");
 }
 
 #[test]
@@ -439,6 +445,8 @@ fn structurally_distinct_groups_from_one_turn_have_distinct_candidate_keys() {
     ));
     let extraction = extractor.extract(&episode, &turns).unwrap();
     assert_eq!(extraction.candidates.len(), 2);
+    assert_eq!(extraction.candidates[0].temporal_status, "current");
+    assert_eq!(extraction.candidates[1].temporal_status, "future");
     assert_ne!(extraction.candidates[0].key, extraction.candidates[1].key);
 }
 

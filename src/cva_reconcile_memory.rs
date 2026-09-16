@@ -170,6 +170,7 @@ fn memory_draft(memory: Memory) -> MemoryDraft {
         category: memory.category,
         memory_type: memory.memory_type,
         authority_kind: memory.authority_kind,
+        temporal_status: memory.temporal_status,
         title: memory.title,
         content: memory.content,
         scope: memory.scope,

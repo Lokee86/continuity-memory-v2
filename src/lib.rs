@@ -65,6 +65,7 @@ mod cva_archive_vectors;
 mod cva_communities;
 mod cva_compatibility_profiles;
 mod cva_conversation;
+mod cva_ego;
 mod cva_error;
 mod cva_file_memory;
 mod cva_global_validation;
@@ -134,6 +135,10 @@ mod dream_verifier_schema;
 mod echo_codec;
 mod echo_model;
 mod echo_store;
+mod ego_codec;
+mod ego_error;
+mod ego_model;
+mod ego_store;
 mod embedding_endpoint;
 mod episode_builder;
 mod episode_codec;
@@ -213,6 +218,7 @@ mod phylactery_dream_candidates;
 mod phylactery_dream_canonical;
 mod phylactery_dream_lifecycle;
 mod phylactery_dream_publisher;
+mod phylactery_ego;
 mod phylactery_error;
 mod phylactery_graph;
 mod phylactery_lifecycle;
@@ -338,6 +344,11 @@ pub use dream_verifier_model::{
 };
 pub use dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_schema};
 pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
+pub use ego_error::EgoError;
+pub use ego_model::{
+    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoPersonality,
+    EgoWebSynthesis, MAX_EGO_ANCHOR_CHARS,
+};
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
@@ -570,6 +581,8 @@ mod dream_temporal_tests;
 mod dream_verifier_tests;
 #[cfg(test)]
 mod echo_tests;
+#[cfg(test)]
+mod ego_tests;
 #[cfg(test)]
 mod episode_tests;
 #[cfg(test)]

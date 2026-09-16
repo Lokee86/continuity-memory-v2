@@ -326,6 +326,7 @@ fn owner_candidate_core_accepts_persisted_memory_source_time() {
                 category: "preference".into(),
                 memory_type: "user".into(),
                 authority_kind: "direct".into(),
+                temporal_status: "unknown".into(),
                 title: "Answer style".into(),
                 content: "Prefer concise answers.".into(),
                 scope: "private".into(),

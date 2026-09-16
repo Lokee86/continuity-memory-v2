@@ -100,6 +100,7 @@ impl MemoryStore {
             category: draft.category.clone(),
             memory_type: draft.memory_type.clone(),
             authority_kind: draft.authority_kind.clone(),
+            temporal_status: draft.temporal_status.clone(),
             scope: draft.scope.clone(),
             lifecycle_state: draft.lifecycle_state.clone(),
             archived: draft.archived,
@@ -373,6 +374,7 @@ impl MemoryStore {
             category: record.category.clone(),
             memory_type: record.memory_type.clone(),
             authority_kind: record.authority_kind.clone(),
+            temporal_status: record.temporal_status.clone(),
             title,
             content,
             scope: record.scope.clone(),
@@ -431,6 +433,7 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
         (&draft.category, "category"),
         (&draft.memory_type, "memory type"),
         (&draft.authority_kind, "authority kind"),
+        (&draft.temporal_status, "temporal status"),
         (&draft.title, "title"),
         (&draft.content, "content"),
         (&draft.scope, "scope"),
@@ -446,6 +449,12 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
         "direct" | "correction" | "adoption" | "retention" | "unknown"
     ) {
         return Err(MemoryError::InvalidField("authority kind"));
+    }
+    if !matches!(
+        draft.temporal_status.as_str(),
+        "current" | "future" | "historical" | "unknown"
+    ) {
+        return Err(MemoryError::InvalidField("temporal status"));
     }
     if draft.updated_at_ns < draft.created_at_ns {
         return Err(MemoryError::InvalidField("updated_at_ns"));
@@ -484,6 +493,7 @@ fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
     memory.category == draft.category
         && memory.memory_type == draft.memory_type
         && memory.authority_kind == draft.authority_kind
+        && memory.temporal_status == draft.temporal_status
         && memory.title == draft.title
         && memory.content == draft.content
         && memory.scope == draft.scope

@@ -35,6 +35,7 @@ fn memory() -> MemoryDraft {
         category: "fact".into(),
         memory_type: "project".into(),
         authority_kind: "unknown".into(),
+        temporal_status: "unknown".into(),
         title: "Common memory".into(),
         content: "This memory has a derived vector.".into(),
         scope: "private".into(),

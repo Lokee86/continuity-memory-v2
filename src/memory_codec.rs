@@ -10,6 +10,7 @@ const RECORD_MAGIC_V2: [u8; 8] = *b"CVAMEMR2";
 const RECORD_MAGIC_V3: [u8; 8] = *b"CVAMEMR3";
 const RECORD_MAGIC_V4: [u8; 8] = *b"CVAMEMR4";
 const RECORD_MAGIC_V5: [u8; 8] = *b"CVAMEMR5";
+const RECORD_MAGIC_V6: [u8; 8] = *b"CVAMEMR6";
 const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 
 pub(crate) struct MemoryVersion {
@@ -62,7 +63,7 @@ pub(crate) fn decode_body(bytes: &[u8]) -> Result<Option<(MemoryBodyId, Vec<u8>)
 
 pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryError> {
     let mut out = Vec::with_capacity(256);
-    out.extend_from_slice(&RECORD_MAGIC_V5);
+    out.extend_from_slice(&RECORD_MAGIC_V6);
     out.extend_from_slice(&record.id.0);
     out.extend_from_slice(&record.revision.to_le_bytes());
     out.extend_from_slice(&record.body_id.0);
@@ -79,6 +80,7 @@ pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryErro
     write_string(&mut out, &record.authority_kind)?;
     write_string(&mut out, &record.scope)?;
     write_string(&mut out, &record.lifecycle_state)?;
+    write_string(&mut out, &record.temporal_status)?;
     write_optional_string(&mut out, record.source_node_id.as_deref())?;
     write_optional_string(&mut out, record.content_source_conversation_id.as_deref())?;
     write_optional_string(&mut out, record.content_source_node_id.as_deref())?;
@@ -92,7 +94,9 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     if bytes.len() < 8 {
         return Ok(None);
     }
-    let version = if bytes[..8] == RECORD_MAGIC_V5 {
+    let version = if bytes[..8] == RECORD_MAGIC_V6 {
+        6
+    } else if bytes[..8] == RECORD_MAGIC_V5 {
         5
     } else if bytes[..8] == RECORD_MAGIC_V4 {
         4
@@ -139,6 +143,11 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     };
     let scope = read_string(bytes, &mut cursor)?;
     let lifecycle_state = read_string(bytes, &mut cursor)?;
+    let temporal_status = if version >= 6 {
+        read_string(bytes, &mut cursor)?
+    } else {
+        "unknown".into()
+    };
     let source_node_id = read_optional_string(bytes, &mut cursor)?;
     let content_source_conversation_id = read_optional_string(bytes, &mut cursor)?;
     let content_source_node_id = read_optional_string(bytes, &mut cursor)?;
@@ -155,6 +164,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
         category,
         memory_type,
         authority_kind,
+        temporal_status,
         scope,
         lifecycle_state,
         archived,

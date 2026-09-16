@@ -62,6 +62,7 @@ pub(crate) fn prepare_application(
             category: candidate.category,
             memory_type: candidate.memory_type,
             authority_kind: candidate.authority_kind,
+            temporal_status: candidate.temporal_status,
             title: candidate.title,
             content: candidate.content,
             scope: scope.trim().to_owned(),
@@ -275,6 +276,7 @@ fn same_routed_user_semantics(
     memory.category == draft.category
         && memory.memory_type == draft.memory_type
         && memory.authority_kind == draft.authority_kind
+        && memory.temporal_status == draft.temporal_status
         && memory.scope == draft.scope
         && memory.lifecycle_state == draft.lifecycle_state
         && memory.archived == draft.archived

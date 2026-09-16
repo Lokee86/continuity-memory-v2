@@ -18,6 +18,8 @@
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
+- [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md) — activity-relative REL synthesis design, refresh policy, stress-fixture measurements, and Personality boundary.
+- [Ego Cross-chat context plan](ego-cross-chat-context-plan.md) — deterministic selection of recent active REL conversation compactions within the Ego context budget.
 - [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
 - [Chronos subsystem plan](chronos-subsystem-plan.md) — accepted shared temporal architecture for deterministic-first indication detection, normalization, parsing/resolution, valid-time interpretation, and bounded inference across Insomnia, Dream, and Perception.

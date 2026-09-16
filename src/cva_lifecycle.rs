@@ -11,6 +11,7 @@ use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::echo_store::EchoStore;
+use crate::ego_store::EgoStore;
 use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
@@ -149,6 +150,7 @@ impl Cva {
         let interaction_streams = InteractionStreamStore::default();
         let conversation_compactions = ConversationCompactionStore::empty();
         let echo = EchoStore::default();
+        let ego = EgoStore::reliquary();
         let project_history = ProjectHistoryStore::default();
         let project_files = ProjectFileStore::default();
         let rel_metadata = RelMetadataStore::default();
@@ -181,6 +183,7 @@ impl Cva {
             interaction_streams,
             conversation_compactions,
             echo,
+            ego,
             project_history,
             project_files,
             rel_metadata,
@@ -201,6 +204,7 @@ impl Cva {
         let mut interaction_streams = InteractionStreamStore::default();
         let mut compaction_state = ConversationCompactionOpenState::default();
         let mut echo = EchoStore::default();
+        let mut ego = EgoStore::reliquary();
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
         let mut rel_metadata = RelMetadataStore::default();
@@ -220,6 +224,7 @@ impl Cva {
             interaction_streams.ingest(payload)?;
             compaction_state.ingest(chunk, payload)?;
             echo.ingest(payload)?;
+            ego.ingest(payload)?;
             project_history.ingest(payload)?;
             project_files.ingest(payload)?;
             rel_metadata
@@ -239,6 +244,7 @@ impl Cva {
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
         let memories = memory_state.finish()?;
+        ego.validate_memory_version(memories.memory_version())?;
         memories.validate_provenance(&archive)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
@@ -281,6 +287,7 @@ impl Cva {
             interaction_streams,
             conversation_compactions,
             echo,
+            ego,
             project_history,
             project_files,
             rel_metadata,

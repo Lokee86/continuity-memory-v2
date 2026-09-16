@@ -17,6 +17,7 @@ fn draft(mutation: &str, memory_type: &str, content: &str) -> MemoryDraft {
         category: "fact".into(),
         memory_type: memory_type.into(),
         authority_kind: "direct".into(),
+        temporal_status: "unknown".into(),
         title: mutation.into(),
         content: content.into(),
         scope: "private".into(),

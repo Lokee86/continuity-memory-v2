@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, and Compatibility Profiles. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -57,6 +57,65 @@ repeated  string dependency REL owner ID
 ```
 
 The type label is optional display/organization metadata only and must not select Reliquary behavior. Dependency IDs are sorted and unique and represent explicit directed context dependencies. Self-dependency is rejected by the REL owner; graph-cycle and mounted-closure validation belongs to the multi-REL host because one REL cannot inspect the complete graph by itself. REL metadata consumes no Archive, Memory, Graph, or Vector Generation version.
+
+### Ego owner records
+
+Ego persistence is owner-local, append-only, and clock-neutral with respect to the existing Container semantic global clock. Ego maintains its own contiguous `ego_version` beginning at `1`; each logical document/Anchor also has an optimistic local revision beginning at `1`. Missing Ego records mean empty Ego state.
+
+PHY-only Identity records now support multiple stable Identity documents plus one active selection. New Identity revisions use:
+```text
+8 bytes   "CVAEIDN2"
+u64       ego_version
+16 bytes  Identity UUID
+u64       identity revision
+u8        deleted: 0=false, 1=true
+u8        activate: 0=false, 1=true
+string    UTF-8 Identity display name; empty only for tombstones
+string    UTF-8 Identity text; empty only for tombstones
+```
+The first live Identity is created with `activate=1`; later Identity creation/update does not implicitly replace the active Identity. Deletion appends a tombstone. An active Identity cannot be deleted while another live Identity exists, so switching is explicit. Deleting the only Identity leaves the PHY with no active Identity.
+
+Active Identity swaps are independent state transitions and do not revise either Identity document:
+```text
+8 bytes   "CVAEIDA1"
+u64       ego_version
+16 bytes  active Identity UUID
+```
+The target must identify a live Identity. Re-selecting the already-active Identity is an API no-op and writes no record.
+
+Legacy single-Identity `CVAEIDN1` records remain readable. They are projected as one stable reserved Identity with display name `Default` and are active on reopen; new writes use `CVAEIDN2`/`CVAEIDA1`.
+
+PHY-only Personality:
+```text
+8 bytes   "CVAEPER1"
+u64       ego_version
+u64       personality revision
+u64       source_memory_version
+string    UTF-8 Personality text
+```
+`source_memory_version` records the PHY Memory watermark from which the behavioral projection was synthesized. Personality is derived state in this contract; explicit user-authored conditioning belongs in Identity, Anchors, or the underlying communication memories. Reliquary open rejects either PHY-only record family.
+
+PHY/REL Anchor:
+```text
+8 bytes   "CVAEANC1"
+u64       ego_version
+16 bytes  Anchor UUID
+u64       Anchor revision
+u8        deleted: 0=false, 1=true
+u8        priority: 1=High, 2=Normal, 3=Low
+string    UTF-8 Anchor text; empty only for tombstones
+```
+Live Anchor text is limited to 2,500 Unicode scalar-value characters. Updates append a new revision. Deletion appends a tombstone and preserves history.
+
+PHY/REL cached Memory-Web synthesis:
+```text
+8 bytes   "CVAESYN1"
+u64       ego_version
+u64       synthesis revision
+u64       source_memory_version
+string    UTF-8 synthesis text
+```
+The source Memory version is a deterministic stale-input watermark; it may trail the owner's current `memory_version` but may not exceed it. Direct writes and reopen validation reject impossible future source cuts. The record does not itself run synthesis or claim Memory/Dream authority. Identity, Personality, and synthesis storage impose no policy-level text cap beyond the underlying length-prefixed record representation; context-budget bounds belong to later Ego synthesis/assembly policy. Ego records consume no `CVAVERS1`, Archive version, Memory version, Graph version, or Vector Generation version.
 
 ### Interaction-stream checkpoints
 
@@ -266,7 +325,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 ### Phylactery owner composition
 
-A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
+A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles, and accepts optional Ego Identity/Personality/Anchor/web-synthesis records. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
 The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
 
@@ -293,7 +352,7 @@ N bytes   content UTF-8
 ```
 Memory record:
 ```text
-8 bytes   "CVAMEMR5"
+8 bytes   "CVAMEMR6"
 32 bytes  MemoryId
 u64       revision
 32 bytes  MemoryBodyId
@@ -317,6 +376,7 @@ string    memory_type
 string    authority_kind
 string    scope
 string    lifecycle_state
+string    temporal_status
 optional  string source_node_id
 optional  string content_source_conversation_id
 optional  string content_source_node_id
@@ -324,9 +384,9 @@ optional  string grounding_source_conversation_id
 optional  string grounding_source_node_id
 string    mutation_id
 ```
-Optional fixed IDs, optional `source_time_ns`, optional `source_ref`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_ref` stores identifiers only; it does not embed source content. `source_time_ns` records source-derived semantic chronology independently of the reference and is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+Optional fixed IDs, optional `source_time_ns`, optional `source_ref`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_ref` stores identifiers only; it does not embed source content. `source_time_ns` records source-derived semantic chronology independently of the reference and is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `temporal_status` is the Insomnia proposition-time classification `current`, `future`, or `historical`; `unknown` is accepted only as the compatibility value for legacy/manual Memories whose original classification was not persisted. This field is independent of Dream-owned `lifecycle_state`: temporal status describes how the proposition was framed when extracted, while Dream lifecycle describes the Memory's current owner-local semantic state. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
 
-Legacy `CVAMEMR4`, `CVAMEMR3`, and `CVAMEMR2` records remain decodable with `source_ref = None`. R4 retains `source_time_ns` but predates the external source reference. R3 lacks both fields. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted.
+Legacy `CVAMEMR5`, `CVAMEMR4`, `CVAMEMR3`, and `CVAMEMR2` records remain decodable. R5 retains `source_time_ns` and `source_ref` but predates durable `temporal_status`; reopen assigns `temporal_status = "unknown"` rather than guessing a lost classifier result. R4 additionally predates the external source reference and reopens with `source_ref = None`. R3 lacks both `source_time_ns` and `source_ref`. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted. An explicit metadata-only Memory revision may backfill `unknown` temporal status without changing the immutable Memory body, source chronology, provenance, or Dream lifecycle.
 
 Standalone Memory publication metadata:
 ```text
@@ -336,7 +396,7 @@ u64       Memory version
 u64       record chunk offset
 u64       record payload length
 ```
-Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR4`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC3` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR4` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR6`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC3` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR6` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
 
 ### Graph
 Format marker:
@@ -618,7 +678,7 @@ repeated newly published records:
     u64   global version
     u64   memory version
     u32   encoded Memory-record length
-    N     complete "CVAMEMR4" record payload
+    N     complete "CVAMEMR6" record payload
 ```
 The embedded global-version count must equal the newly published local Memory-record count. For a non-empty local publication, record global versions are contiguous beginning at the stored first version. A completion with no new local REL Memories consumes no REL global versions even when it records external Memory references.
 
