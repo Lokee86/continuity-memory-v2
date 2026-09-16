@@ -262,6 +262,7 @@ fn synthetic_context(
             source_episode_id: None,
             source_time_ns: None,
             source_ref: None,
+            temporal_inference: None,
             mutation_id: format!("dream-validation-{tag}"),
             created_at_ns: 0,
             updated_at_ns: 0,

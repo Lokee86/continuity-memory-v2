@@ -6,7 +6,7 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction, parser-independent indication/normalization, the deterministic grammar baseline, and an explicit resolution-status contract are implemented. Insomnia now assesses prepared Memory drafts against authoritative `source_time_ns` and carries that assessment transiently to the publication seam. Detector calibration, bounded inference, inferred-state persistence/staleness, and Perception integration remain in progress.
+Shared-core extraction, parser-independent indication/normalization, the deterministic grammar baseline, explicit resolution status, bounded unresolved-only inference, and Insomnia persistence integration are implemented. Insomnia assesses prepared Memory drafts against authoritative `source_time_ns`, calls the temporal model only for unresolved residue, deterministically verifies every non-empty canonical answer, and persists only verified nondeterministic conclusions. Detector calibration and Perception integration remain in progress.
 
 Chronos owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, matcher, and resolution assessment under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` returns deterministic products; `chronos::assess` returns detection + analysis + `TemporalResolutionStatus::{NoTemporalMaterial,FullyResolved,Unresolved}` and the exact unresolved indications eligible for bounded inference. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
@@ -91,7 +91,7 @@ Run only when all are true:
 2. the consumer needs a temporal answer; and
 3. deterministic Chronos cannot safely resolve it.
 
-The model receives original semantic state, reference chronology, deterministic evidence/candidates, and a narrow unresolved question. It does not regenerate deterministic anchors already known.
+The model receives original semantic state, reference chronology, deterministic evidence/candidates, and only the narrow unresolved indications. It does not regenerate deterministic anchors already known. Each answer is a standalone canonical temporal expression or an explicit abstention. Chronos reparses every non-empty answer deterministically and rejects it unless it is fully resolvable as the same temporal indication kind as the source residue.
 
 ## Consumer contracts
 
@@ -107,7 +107,7 @@ Memory body
     -> unresolved: bounded Chronos inference
 ```
 
-Body/version identity must make this idempotent and invalidate inferred temporal state after semantic replacement.
+Accepted inference is bound to the exact `MemoryBodyId` plus authoritative `source_time_ns`. Identical mutation replay must preserve the same explicit inference; a conflicting inference under the same mutation identity is rejected. Lifecycle-only revisions retain inference while that binding still matches; a changed body/reference binding makes the prior inference stale and it is not carried forward.
 
 ### Dream
 
@@ -125,7 +125,7 @@ Perception still owns the Observation being synthesized.
 
 Deterministic Chronos products remain derived by default. Do not persist parsed anchors, normalized typos, recurrence patterns, or deterministic intervals merely to avoid cheap recomputation.
 
-Persist only non-deterministically inferred temporal conclusions that a durable consumer actually needs. Such state must retain enough semantic input/body/version identity to detect staleness.
+Persist only non-deterministically inferred temporal conclusions that a durable consumer actually needs. Memory-owned inference persists the model/contract, original source span/kind/evidence, deterministic-verifiable canonical expression, `MemoryBodyId`, and authoritative `source_time_ns`. The body/reference binding is the staleness key; deterministic anchors/intervals/durations/patterns remain recomputed derived state.
 
 A deterministic cache is permitted as disposable optimization state, never semantic authority.
 
@@ -153,12 +153,14 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Locale-ambiguous numeric dates, unqualified seasons, approximate periods, and other forms without one safe deterministic interpretation remain indication-only for bounded fallback.
 - Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction; add further deterministic grammar only from measured unambiguous cases.
 
-### C — Insomnia integration — started
+### C — Insomnia integration — implemented baseline
 
-- Prepared Insomnia Memory drafts are now assessed through `chronos::assess` using their authoritative `source_time_ns`; the transient `TemporalAssessment` stays paired with the prepared draft through the pre-publication seam.
-- Deterministic Chronos products remain unpersisted and do not overwrite Insomnia's existing category/type/lifecycle metadata contract.
-- Gate future temporal model calls behind `TemporalResolution::needs_inference()` and pass only `unresolved_indications` plus deterministic evidence to that bounded route.
-- Define body/version-bound inferred temporal persistence and staleness before enabling nondeterministic temporal conclusions.
+- Prepared Insomnia Memory drafts are assessed through `chronos::assess` using authoritative `source_time_ns`; deterministic Chronos products remain unpersisted and do not overwrite Insomnia's category/type/lifecycle metadata contract.
+- `TemporalInferencer` is invoked only when `TemporalResolution::needs_inference()` is true and receives only unresolved indications plus already-resolved deterministic evidence.
+- Model results are canonical expressions or abstentions. Every non-empty expression is reparsed by deterministic Chronos and must resolve as the same temporal indication kind before publication.
+- Verified nondeterministic conclusions persist in the Memory record as `MemoryTemporalInference`, bound to exact body identity plus reference time. REL reconciliation and PHY migration preserve that state.
+- RuntimeHost performs the temporal model call outside REL/PHY locks, then reacquires the owner lock and renews/revalidates the active Insomnia lease before publication.
+- `models.chronos` is an optional dedicated route; absent configuration falls back to the Insomnia route and then General.
 
 ### D — Dream consumer completion — partially implemented
 
@@ -178,12 +180,10 @@ Measure deterministic parse coverage, indication recall, fuzzy-detection false p
 
 ## Open implementation decisions
 
-- final Chronos API surface beyond the implemented `chronos::detect` / `chronos::analyze` / `chronos::assess` boundaries, resolution model, generic `Temporal*` model, and internal matcher;
+- final Chronos API surface beyond the implemented detect/analyze/assess/inference boundaries, resolution model, generic `Temporal*` model, and internal matcher;
 - indication-vocabulary coverage and calibrated fuzzy thresholds beyond the implemented conservative first pass;
 - remaining valid-time representation details beyond implemented optional-bound intervals, especially uncertainty and multi-evidence composition;
-- persistence schema for inferred-only conclusions;
-- model route used by fallback inference;
-- consumer adapters for deterministic validity synthesis; and
+- consumer adapters for deterministic validity synthesis, especially Perception Observation composition; and
 - whether any deterministic analysis warrants a disposable cache.
 
 ## Notes

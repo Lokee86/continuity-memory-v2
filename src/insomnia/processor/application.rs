@@ -66,7 +66,11 @@ pub(crate) fn prepare_application(
         };
         let temporal = crate::insomnia::temporal::assess_draft(&draft);
         match candidate.ownership {
-            InsomniaOwnership::Project => project_drafts.push(PreparedMemory { draft, temporal }),
+            InsomniaOwnership::Project => project_drafts.push(PreparedMemory {
+                draft,
+                temporal,
+                temporal_inference: None,
+            }),
             InsomniaOwnership::User => {
                 let owner_id = container.owner_id().ok_or_else(|| {
                     InsomniaProcessError::InvalidCandidate(
@@ -96,7 +100,11 @@ pub(crate) fn prepare_application(
                 draft.grounding_source_node_id = None;
                 draft.source_episode_id = None;
                 user_drafts.push(PreparedUserMemory {
-                    memory: PreparedMemory { draft, temporal },
+                    memory: PreparedMemory {
+                        draft,
+                        temporal,
+                        temporal_inference: None,
+                    },
                     source_ref,
                 });
             }
@@ -124,16 +132,18 @@ pub(crate) fn publish_user_application(
     let mut existing = Vec::new();
     let mut refs = Vec::with_capacity(drafts.len());
     for prepared in drafts {
+        let temporal_inference = prepared.memory.bound_temporal_inference();
         let draft = &prepared.memory.draft;
         debug_assert_eq!(
             prepared.memory.temporal.analysis.source_timestamp_ns,
             draft.source_time_ns
         );
-        let memory = match phylactery.publish_memory_with_source_ref(
+        let memory = match phylactery.publish_memory_with_source_ref_and_temporal_inference(
             None,
             0,
             draft.clone(),
             prepared.source_ref.clone(),
+            temporal_inference,
         ) {
             Ok((memory, was_created)) => {
                 if was_created {
@@ -200,7 +210,8 @@ pub(crate) fn commit_application(
                 prepared.temporal.analysis.source_timestamp_ns,
                 prepared.draft.source_time_ns
             );
-            prepared.draft
+            let temporal_inference = prepared.bound_temporal_inference();
+            (prepared.draft, temporal_inference)
         })
         .collect();
     let batch = memories.stage_grouped_insomnia(container, project_drafts)?;

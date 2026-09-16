@@ -30,9 +30,11 @@ fn provider_auth_and_capabilities_are_explicit() {
     );
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::General));
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Insomnia));
+    assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Chronos));
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Dream));
     assert!(!ModelProvider::OpenAiCodex.supports(ModelCapability::Embedding));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Insomnia));
+    assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Chronos));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Dream));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Embedding));
 }
@@ -67,6 +69,11 @@ fn routes_and_credentials_round_trip_and_attach_auth_headers() {
         .apply_to(&mut metadata);
     assert_eq!(metadata["Authorization"], "Bearer ready-key");
     assert!(!metadata.contains_key("ChatGPT-Account-ID"));
+
+    let mut chronos = BTreeMap::new();
+    switchboard.chronos_auth().unwrap().apply_to(&mut chronos);
+    assert_eq!(chronos["Authorization"], "Bearer ready-key");
+    assert!(!chronos.contains_key("ChatGPT-Account-ID"));
 
     let mut dream = BTreeMap::new();
     switchboard.dream_auth().unwrap().apply_to(&mut dream);
@@ -104,6 +111,7 @@ fn invalid_provider_routes_are_rejected() {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
+        chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiCodex,
@@ -126,6 +134,7 @@ fn invalid_provider_routes_are_rejected() {
         }),
         insomnia: None,
         insomnia_metadata: None,
+        chronos: None,
         dream: None,
         embedding: None,
     };
@@ -168,6 +177,25 @@ fn insomnia_ownership_prefers_metadata_then_main() {
     without_metadata.insomnia_metadata = None;
     let switchboard = ModelSwitchboard::new(without_metadata, configured_credentials()).unwrap();
     assert_eq!(switchboard.insomnia_ownership(), switchboard.insomnia());
+}
+
+#[test]
+fn chronos_route_falls_back_to_insomnia_then_general_when_unset() {
+    let mut models = configured_models();
+    models.chronos = None;
+    let switchboard = ModelSwitchboard::new(models.clone(), configured_credentials()).unwrap();
+    assert_eq!(switchboard.chronos(), switchboard.insomnia());
+
+    models.insomnia = None;
+    let switchboard = ModelSwitchboard::new(models, configured_credentials()).unwrap();
+    assert_eq!(switchboard.chronos(), switchboard.general());
+}
+
+#[test]
+fn configured_chronos_endpoint_uses_dedicated_route() {
+    let switchboard = ModelSwitchboard::new(configured_models(), configured_credentials()).unwrap();
+    let endpoint = ConfiguredGeneralEndpoint::from_chronos_switchboard(&switchboard).unwrap();
+    assert_eq!(endpoint.model(), "chronos-model");
 }
 
 #[test]
@@ -236,6 +264,13 @@ fn configured_models() -> ModelSwitchboardConfig {
             url: Some("https://example.test/v1/chat/completions".into()),
             credential_id: id("ready"),
             reasoning_effort: None,
+        }),
+        chronos: Some(GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: "chronos-model".into(),
+            url: Some("https://example.test/v1/chat/completions".into()),
+            credential_id: id("ready"),
+            reasoning_effort: Some(crate::ModelReasoningEffort::Low),
         }),
         dream: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,

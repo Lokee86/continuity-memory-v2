@@ -232,6 +232,9 @@ fn explicit_adoption_can_use_assistant_content_with_user_authority() {
                 "Episode inactivity boundary",
                 "Episodes use a fifteen minute inactivity boundary.",
             ),
+            json!({
+                "resolutions": [{"id":"u000","canonical_expression":""}]
+            }),
         ],
     ));
     let result = cva

@@ -29,6 +29,11 @@ mod chronos_detection_model;
 mod chronos_duration;
 mod chronos_edit_distance;
 mod chronos_fuzzy;
+mod chronos_inference;
+mod chronos_inference_apply;
+mod chronos_inference_error;
+mod chronos_inference_model;
+mod chronos_inference_verify;
 mod chronos_loose_calendar;
 mod chronos_loose_explicit;
 mod chronos_loose_relative;
@@ -212,6 +217,8 @@ mod memory_retrieval_model;
 mod memory_retrieval_traversal;
 mod memory_retrieval_vectors;
 mod memory_store;
+mod memory_temporal_codec;
+mod memory_temporal_codec_kind;
 mod memory_vector_codec;
 mod memory_vector_error;
 mod memory_vector_model;
@@ -319,6 +326,11 @@ pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfi
 pub use cva::Cva;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
+pub use chronos_inference::{
+    CHRONOS_INFERENCE_CONTRACT_VERSION, CHRONOS_INFERENCE_SYSTEM_PROMPT, TemporalInferencer,
+};
+pub use chronos_inference_error::TemporalInferenceError;
+pub use chronos_inference_model::{TemporalInference, TemporalInferenceResolution};
 pub use chronos_model::{
     TemporalAnalysis, TemporalAnchor, TemporalDuration, TemporalDurationUnit, TemporalFrequency,
     TemporalGranularity, TemporalInterval, TemporalMatch, TemporalMatchKind, TemporalOrigin,
@@ -438,7 +450,7 @@ pub use master_key::{
 pub use memory_error::MemoryError;
 pub use memory_model::{
     Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRevisionId, MemorySourceRef,
-    MemoryStats,
+    MemoryStats, MemoryTemporalInference,
 };
 pub use memory_provenance_model::MemoryProvenance;
 pub use memory_retrieval_error::MemoryRetrievalError;
@@ -512,6 +524,8 @@ mod chronos_boundary_tests;
 mod chronos_calendar_language_tests;
 #[cfg(test)]
 mod chronos_duration_recurrence_tests;
+#[cfg(test)]
+mod chronos_inference_tests;
 #[cfg(test)]
 mod chronos_relative_tests;
 #[cfg(test)]
@@ -656,6 +670,8 @@ mod memory_codec_tests;
 mod memory_retrieval_stale_tests;
 #[cfg(test)]
 mod memory_retrieval_tests;
+#[cfg(test)]
+mod memory_temporal_inference_tests;
 #[cfg(test)]
 mod memory_tests;
 #[cfg(test)]

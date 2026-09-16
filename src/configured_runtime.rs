@@ -66,6 +66,13 @@ impl ConfiguredRuntime {
             .transpose()
             .map_err(operation)?
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
+        let chronos = config
+            .chronos
+            .as_ref()
+            .map(|_| ConfiguredGeneralEndpoint::from_chronos_switchboard(&self.switchboard))
+            .transpose()
+            .map_err(operation)?
+            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
         let dream = config
             .dream
             .as_ref()
@@ -80,13 +87,10 @@ impl ConfiguredRuntime {
             .transpose()
             .map_err(operation)?
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::EmbeddingEndpoint + Send + Sync>);
-        Ok(ReliquaryRuntimeRoutes::new(
-            general,
-            insomnia,
-            insomnia_metadata,
-            dream,
-            embedding,
-        ))
+        Ok(
+            ReliquaryRuntimeRoutes::new(general, insomnia, insomnia_metadata, dream, embedding)
+                .with_chronos(chronos),
+        )
     }
 }
 

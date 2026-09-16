@@ -1,8 +1,6 @@
-use crate::insomnia::store::InsomniaStore;
-use crate::memory_store::MemoryStore;
 use crate::{
-    Archive, Container, Cva, GeneralEndpoint, InsomniaExtraction, InsomniaExtractionError,
-    InsomniaExtractor, InsomniaRejection, InsomniaWork, InsomniaWorkState, Memory, MemoryError,
+    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor,
+    InsomniaRejection, InsomniaWork, InsomniaWorkState, Memory, MemoryError,
 };
 use std::fmt;
 
@@ -11,7 +9,7 @@ mod prepared;
 mod source_validation;
 
 pub(crate) use application::{commit_application, prepare_application, publish_user_application};
-pub(crate) use prepared::PreparedApplication;
+pub(crate) use prepared::{PreparedApplication, PreparedMemory};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaProcessResult {
@@ -91,12 +89,23 @@ impl Cva {
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
         let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
-        self.apply_claimed_insomnia_extraction(
-            claim,
+        let mut prepared = prepare_application(
+            &self.archive,
+            &mut self.container,
             &episode,
             &turns,
             extraction,
             scope,
+            completed_at_ns,
+        )?;
+        crate::insomnia::temporal::infer_prepared(extractor.temporal_endpoint(), &mut prepared)?;
+        commit_application(
+            &mut self.container,
+            &mut self.memories,
+            &mut self.insomnia,
+            claim,
+            prepared,
+            None,
             started_at_ns,
             completed_at_ns,
         )
@@ -113,7 +122,7 @@ impl Cva {
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
         let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
-        let prepared = prepare_application(
+        let mut prepared = prepare_application(
             &self.archive,
             &mut self.container,
             &episode,
@@ -122,6 +131,7 @@ impl Cva {
             scope,
             completed_at_ns,
         )?;
+        crate::insomnia::temporal::infer_prepared(extractor.temporal_endpoint(), &mut prepared)?;
         let user_publication = if prepared.user_drafts.is_empty() {
             None
         } else {
@@ -146,32 +156,6 @@ impl Cva {
     ) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
         claimed_episode_input_parts(&self.archive, &mut self.container, claim, scope)
     }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn apply_claimed_insomnia_extraction(
-        &mut self,
-        claim: &InsomniaWork,
-        episode: &crate::Episode,
-        turns: &[crate::ResolvedTurn],
-        extraction: InsomniaExtraction,
-        scope: &str,
-        started_at_ns: i64,
-        completed_at_ns: i64,
-    ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
-        apply_claimed_insomnia_extraction_parts(
-            &self.archive,
-            &mut self.container,
-            &mut self.memories,
-            &mut self.insomnia,
-            claim,
-            episode,
-            turns,
-            extraction,
-            scope,
-            started_at_ns,
-            completed_at_ns,
-        )
-    }
 }
 
 pub(crate) fn claimed_episode_input_parts(
@@ -187,69 +171,6 @@ pub(crate) fn claimed_episode_input_parts(
         .ok_or(InsomniaProcessError::MissingEpisode)?;
     let turns = archive.episode_turns(container, claim.episode_id)?;
     Ok((episode, turns))
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn apply_claimed_insomnia_extraction_parts(
-    archive: &Archive,
-    container: &mut Container,
-    memories: &mut MemoryStore,
-    insomnia: &mut InsomniaStore,
-    claim: &InsomniaWork,
-    episode: &crate::Episode,
-    turns: &[crate::ResolvedTurn],
-    extraction: InsomniaExtraction,
-    scope: &str,
-    started_at_ns: i64,
-    completed_at_ns: i64,
-) -> Result<InsomniaProcessResult, InsomniaProcessError> {
-    validate_claim(claim, scope)?;
-    if claim.episode_id != episode.id {
-        return Err(InsomniaProcessError::InvalidClaim);
-    }
-    let prepared = prepare_application(
-        archive,
-        container,
-        episode,
-        turns,
-        extraction,
-        scope,
-        completed_at_ns,
-    )?;
-    apply_prepared(
-        archive,
-        container,
-        memories,
-        insomnia,
-        claim,
-        prepared,
-        started_at_ns,
-        completed_at_ns,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn apply_prepared(
-    archive: &Archive,
-    container: &mut Container,
-    memories: &mut MemoryStore,
-    insomnia: &mut InsomniaStore,
-    claim: &InsomniaWork,
-    prepared: PreparedApplication,
-    started_at_ns: i64,
-    completed_at_ns: i64,
-) -> Result<InsomniaProcessResult, InsomniaProcessError> {
-    let _ = archive;
-    commit_application(
-        container,
-        memories,
-        insomnia,
-        claim,
-        prepared,
-        None,
-        started_at_ns,
-        completed_at_ns,
-    )
 }
 
 fn validate_claim(claim: &InsomniaWork, scope: &str) -> Result<(), InsomniaProcessError> {

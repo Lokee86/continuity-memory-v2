@@ -12,6 +12,7 @@ pub(crate) struct PreparedApplication {
 pub(crate) struct PreparedMemory {
     pub(crate) draft: MemoryDraft,
     pub(crate) temporal: TemporalAssessment,
+    pub(crate) temporal_inference: Option<crate::TemporalInference>,
 }
 
 pub(crate) struct PreparedUserMemory {
@@ -23,4 +24,19 @@ pub(crate) struct UserPublication {
     pub(crate) created: Vec<Memory>,
     pub(crate) existing: Vec<Memory>,
     pub(crate) refs: Vec<MemoryRef>,
+}
+
+impl PreparedMemory {
+    pub(crate) fn bound_temporal_inference(&self) -> Option<crate::MemoryTemporalInference> {
+        self.temporal_inference
+            .clone()
+            .map(|inference| crate::MemoryTemporalInference {
+                body_id: crate::memory_model::memory_body_id(
+                    &self.draft.title,
+                    &self.draft.content,
+                ),
+                source_time_ns: self.draft.source_time_ns,
+                inference,
+            })
+    }
 }

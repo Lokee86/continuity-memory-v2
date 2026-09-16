@@ -11,6 +11,7 @@ const RECORD_MAGIC_V3: [u8; 8] = *b"CVAMEMR3";
 const RECORD_MAGIC_V4: [u8; 8] = *b"CVAMEMR4";
 const RECORD_MAGIC_V5: [u8; 8] = *b"CVAMEMR5";
 const RECORD_MAGIC_V6: [u8; 8] = *b"CVAMEMR6";
+const RECORD_MAGIC_V7: [u8; 8] = *b"CVAMEMR7";
 const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 
 pub(crate) struct MemoryVersion {
@@ -63,7 +64,7 @@ pub(crate) fn decode_body(bytes: &[u8]) -> Result<Option<(MemoryBodyId, Vec<u8>)
 
 pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryError> {
     let mut out = Vec::with_capacity(256);
-    out.extend_from_slice(&RECORD_MAGIC_V6);
+    out.extend_from_slice(&RECORD_MAGIC_V7);
     out.extend_from_slice(&record.id.0);
     out.extend_from_slice(&record.revision.to_le_bytes());
     out.extend_from_slice(&record.body_id.0);
@@ -87,6 +88,7 @@ pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryErro
     write_optional_string(&mut out, record.grounding_source_conversation_id.as_deref())?;
     write_optional_string(&mut out, record.grounding_source_node_id.as_deref())?;
     write_string(&mut out, &record.mutation_id)?;
+    crate::memory_temporal_codec::write_optional(&mut out, record.temporal_inference.as_ref())?;
     Ok(out)
 }
 
@@ -94,7 +96,9 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     if bytes.len() < 8 {
         return Ok(None);
     }
-    let version = if bytes[..8] == RECORD_MAGIC_V6 {
+    let version = if bytes[..8] == RECORD_MAGIC_V7 {
+        7
+    } else if bytes[..8] == RECORD_MAGIC_V6 {
         6
     } else if bytes[..8] == RECORD_MAGIC_V5 {
         5
@@ -154,6 +158,11 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     let grounding_source_conversation_id = read_optional_string(bytes, &mut cursor)?;
     let grounding_source_node_id = read_optional_string(bytes, &mut cursor)?;
     let mutation_id = read_string(bytes, &mut cursor)?;
+    let temporal_inference = if version >= 7 {
+        crate::memory_temporal_codec::read_optional(bytes, &mut cursor)?
+    } else {
+        None
+    };
     if cursor != bytes.len() {
         return Err(MemoryError::CorruptRecord("memory record trailing bytes"));
     }
@@ -178,6 +187,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
         source_episode_id,
         source_time_ns,
         source_ref,
+        temporal_inference,
         mutation_id,
         created_at_ns,
         updated_at_ns,

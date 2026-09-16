@@ -1,6 +1,9 @@
+use crate::memory_model::memory_body_id;
 use crate::{
-    Cva, EchoEvent, EchoEventKind, FragmentConfig, GraphRelationKind, MemoryDraft, MigrationError,
-    Phylactery, ReliquaryScopeKind, SimulatedEmbeddingEndpoint, VectorNormalization, migrate_file,
+    CHRONOS_INFERENCE_CONTRACT_VERSION, Cva, EchoEvent, EchoEventKind, FragmentConfig,
+    GraphRelationKind, MemoryDraft, MemoryTemporalInference, MigrationError, Phylactery,
+    ReliquaryScopeKind, SimulatedEmbeddingEndpoint, TemporalIndicationKind, TemporalInference,
+    TemporalInferenceResolution, VectorNormalization, migrate_file,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -144,8 +147,33 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
     let source = dir.join("old.phy");
     let output = dir.join("new.phy");
     let mut phy = Phylactery::create_legacy_typed(&source).unwrap();
+    let a_draft = draft("user:a", "user", "prefers Helix; review biweekly");
+    let a_body_id = memory_body_id(&a_draft.title, &a_draft.content);
+    let temporal_inference = MemoryTemporalInference {
+        body_id: a_body_id,
+        source_time_ns: a_draft.source_time_ns,
+        inference: TemporalInference {
+            model: "chronos-test".into(),
+            contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
+            resolutions: vec![TemporalInferenceResolution {
+                start_byte: 22,
+                end_byte: 30,
+                kind: TemporalIndicationKind::Recurrence,
+                evidence: "biweekly".into(),
+                canonical_expression: "every two weeks".into(),
+            }],
+        },
+    };
     let (a, _) = phy
-        .publish_memory(None, 0, draft("user:a", "user", "prefers Helix"))
+        .memories
+        .publish_with_source_ref_and_temporal_inference(
+            &mut phy.container,
+            None,
+            0,
+            a_draft,
+            None,
+            Some(temporal_inference.clone()),
+        )
         .unwrap();
     let (b, _) = phy
         .publish_memory(None, 0, draft("user:b", "user", "prefers Nushell"))
@@ -166,7 +194,17 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
     assert!(result.owner_id.starts_with("phy-"));
 
     let mut migrated = Phylactery::open(&output).unwrap();
-    assert_eq!(migrated.memory(a.id).unwrap().content, "prefers Helix");
+    let migrated_a = migrated.memory(a.id).unwrap();
+    assert_eq!(migrated_a.content, "prefers Helix; review biweekly");
+    assert_eq!(migrated_a.temporal_inference, Some(temporal_inference));
+    assert_eq!(
+        migrated
+            .dream_temporal_analysis(a.id)
+            .unwrap()
+            .patterns
+            .len(),
+        1
+    );
     assert_eq!(migrated.memory_stats().memories, 2);
     assert_eq!(migrated.graph_stats().active_relations, 1);
     assert_eq!(migrated.compatibility_profile_stats().profiles, 1);

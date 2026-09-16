@@ -1,7 +1,9 @@
 use super::backpressure;
 use super::evidence::{hydrate_evidence_parts, plan_evidence};
 use super::extraction::{InsomniaEvidenceRound, InsomniaExtractionError};
-use super::processor::{commit_application, prepare_application, publish_user_application};
+use super::processor::{
+    PreparedApplication, commit_application, prepare_application, publish_user_application,
+};
 use crate::{
     Cva, InsomniaExtraction, InsomniaProcessResult, InsomniaWork, InsomniaWorkerConfig,
     InsomniaWorkerError, Phylactery,
@@ -70,30 +72,39 @@ impl Cva {
         hydrate_evidence_parts(&self.archive, &mut self.container, &plans)
     }
 
-    pub(crate) fn commit_runtime_insomnia(
+    pub(crate) fn prepare_runtime_insomnia_application(
         &mut self,
         claim: &RuntimeInsomniaClaim,
         extraction: InsomniaExtraction,
         config: &InsomniaWorkerConfig,
-    ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
-        self.commit_runtime_insomnia_inner(None, claim, extraction, config)
+    ) -> Result<PreparedApplication, InsomniaWorkerError> {
+        let prepared_at_ns = now_ns();
+        self.renew_insomnia_lease(
+            claim.work.episode_id,
+            claim
+                .work
+                .lease_token
+                .ok_or(crate::InsomniaError::InvalidLease)?,
+            prepared_at_ns,
+            config.lease_duration_ns,
+        )?;
+        prepare_application(
+            &self.archive,
+            &mut self.container,
+            &claim.episode,
+            &claim.turns,
+            extraction,
+            &config.scope,
+            prepared_at_ns,
+        )
+        .map_err(Into::into)
     }
 
-    pub(crate) fn commit_runtime_insomnia_routed(
-        &mut self,
-        phylactery: &mut Phylactery,
-        claim: &RuntimeInsomniaClaim,
-        extraction: InsomniaExtraction,
-        config: &InsomniaWorkerConfig,
-    ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
-        self.commit_runtime_insomnia_inner(Some(phylactery), claim, extraction, config)
-    }
-
-    fn commit_runtime_insomnia_inner(
+    pub(crate) fn commit_runtime_insomnia_prepared(
         &mut self,
         phylactery: Option<&mut Phylactery>,
         claim: &RuntimeInsomniaClaim,
-        extraction: InsomniaExtraction,
+        prepared: PreparedApplication,
         config: &InsomniaWorkerConfig,
     ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
         let completed_at_ns = now_ns();
@@ -105,15 +116,6 @@ impl Cva {
                 .ok_or(crate::InsomniaError::InvalidLease)?,
             completed_at_ns,
             config.lease_duration_ns,
-        )?;
-        let prepared = prepare_application(
-            &self.archive,
-            &mut self.container,
-            &claim.episode,
-            &claim.turns,
-            extraction,
-            &config.scope,
-            completed_at_ns,
         )?;
         let user_publication = match phylactery {
             Some(phylactery) if !prepared.user_drafts.is_empty() => {

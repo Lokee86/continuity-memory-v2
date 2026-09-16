@@ -31,6 +31,13 @@ pub struct MemoryRevisionId {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MemoryTemporalInference {
+    pub body_id: MemoryBodyId,
+    pub source_time_ns: Option<i64>,
+    pub inference: crate::TemporalInference,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemoryDraft {
     pub category: String,
     pub memory_type: String,
@@ -78,6 +85,7 @@ pub struct Memory {
     pub source_episode_id: Option<EpisodeId>,
     pub source_time_ns: Option<i64>,
     pub source_ref: Option<MemorySourceRef>,
+    pub temporal_inference: Option<MemoryTemporalInference>,
     pub mutation_id: String,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,
@@ -115,6 +123,7 @@ pub(crate) struct MemoryRecord {
     pub source_episode_id: Option<EpisodeId>,
     pub source_time_ns: Option<i64>,
     pub source_ref: Option<MemorySourceRef>,
+    pub temporal_inference: Option<MemoryTemporalInference>,
     pub mutation_id: String,
     pub created_at_ns: i64,
     pub updated_at_ns: i64,

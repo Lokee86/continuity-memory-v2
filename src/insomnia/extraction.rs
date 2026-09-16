@@ -95,10 +95,22 @@ impl From<GeneralEndpointError> for InsomniaExtractionError {
     }
 }
 
+impl From<crate::TemporalInferenceError> for InsomniaExtractionError {
+    fn from(value: crate::TemporalInferenceError) -> Self {
+        match value {
+            crate::TemporalInferenceError::Endpoint(error) => Self::Endpoint(error),
+            crate::TemporalInferenceError::InvalidOutput(message) => {
+                Self::InvalidOutput(format!("Chronos temporal inference: {message}"))
+            }
+        }
+    }
+}
+
 pub struct InsomniaExtractor<E> {
     endpoint: E,
     metadata_endpoint: Option<Arc<dyn GeneralEndpoint>>,
     ownership_endpoint: Option<Arc<dyn GeneralEndpoint>>,
+    temporal_endpoint: Option<Arc<dyn GeneralEndpoint>>,
 }
 
 impl<E: GeneralEndpoint> InsomniaExtractor<E> {
@@ -107,6 +119,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             endpoint,
             metadata_endpoint: None,
             ownership_endpoint: None,
+            temporal_endpoint: None,
         }
     }
 
@@ -124,6 +137,18 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
     {
         self.ownership_endpoint = Some(Arc::new(endpoint));
         self
+    }
+
+    pub fn with_temporal_endpoint<T>(mut self, endpoint: T) -> Self
+    where
+        T: GeneralEndpoint + 'static,
+    {
+        self.temporal_endpoint = Some(Arc::new(endpoint));
+        self
+    }
+
+    pub(crate) fn temporal_endpoint(&self) -> &dyn GeneralEndpoint {
+        self.temporal_endpoint.as_deref().unwrap_or(&self.endpoint)
     }
 
     pub fn model(&self) -> &str {

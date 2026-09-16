@@ -13,7 +13,7 @@ impl MemoryStore {
     pub(crate) fn stage_grouped_insomnia(
         &mut self,
         container: &mut Container,
-        drafts: Vec<MemoryDraft>,
+        drafts: Vec<(MemoryDraft, Option<MemoryTemporalInference>)>,
     ) -> Result<PreparedMemoryBatch, MemoryError> {
         let global_version_start = container.next_version_candidate();
         let mut records = Vec::new();
@@ -21,7 +21,7 @@ impl MemoryStore {
         let mut bodies: Vec<InsomniaCompletionBody> = Vec::new();
         let mut body_indexes: HashMap<MemoryBodyId, usize> = HashMap::new();
         let mut seen_mutations = HashSet::new();
-        for draft in drafts {
+        for (draft, temporal_inference) in drafts {
             validate_draft(&draft)?;
             if !seen_mutations.insert(draft.mutation_id.clone()) {
                 return Err(MemoryError::MutationConflict);
@@ -39,6 +39,9 @@ impl MemoryStore {
                 return Err(MemoryError::RevisionConflict);
             }
             let body_id = memory_body_id(&draft.title, &draft.content);
+            if let Some(inference) = &temporal_inference {
+                validate_temporal_inference_binding(body_id, draft.source_time_ns, inference)?;
+            }
             let body_bytes = memory_body_bytes(&draft.title, &draft.content);
             if self.bodies.contains_key(&body_id) {
                 if self.body_bytes(container, body_id)? != body_bytes {
@@ -84,6 +87,7 @@ impl MemoryStore {
                 source_episode_id: draft.source_episode_id,
                 source_time_ns: draft.source_time_ns,
                 source_ref: None,
+                temporal_inference,
                 mutation_id: draft.mutation_id,
                 created_at_ns: draft.created_at_ns,
                 updated_at_ns: draft.updated_at_ns,

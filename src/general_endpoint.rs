@@ -63,6 +63,22 @@ pub trait GeneralEndpoint: Send + Sync {
     ) -> Result<Value, GeneralEndpointError>;
 }
 
+impl<T: GeneralEndpoint + ?Sized> GeneralEndpoint for &T {
+    fn model(&self) -> &str {
+        (*self).model()
+    }
+
+    fn complete_json(
+        &self,
+        system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        (*self).complete_json(system_prompt, user_payload, schema_name, schema)
+    }
+}
+
 pub struct SimulatedGeneralEndpoint {
     model: String,
     responses: Mutex<Vec<Value>>,

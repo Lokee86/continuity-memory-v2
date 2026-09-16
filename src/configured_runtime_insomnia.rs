@@ -64,7 +64,9 @@ impl ConfiguredRuntime {
             .map_err(operation)?
             .with_batching(options.embedding_batch_size, options.embedding_concurrency)
             .map_err(operation)?;
-        let mut extractor = InsomniaExtractor::new(main);
+        let chronos = ConfiguredGeneralEndpoint::from_chronos_switchboard(&self.switchboard)
+            .map_err(operation)?;
+        let mut extractor = InsomniaExtractor::new(main).with_temporal_endpoint(chronos);
         if self.switchboard.insomnia_metadata().is_some() {
             extractor = extractor.with_metadata_endpoint(
                 ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&self.switchboard)

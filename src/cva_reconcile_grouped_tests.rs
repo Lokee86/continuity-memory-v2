@@ -1,6 +1,10 @@
 use crate::insomnia::completion::{InsomniaCompletion, InsomniaCompletionBody, encode_completion};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
-use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, MemoryDraft, MemoryRef};
+use crate::{
+    CHRONOS_INFERENCE_CONTRACT_VERSION, Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin,
+    MemoryDraft, MemoryRef, MemoryTemporalInference, TemporalIndicationKind, TemporalInference,
+    TemporalInferenceResolution,
+};
 use std::fs;
 use std::path::PathBuf;
 
@@ -114,6 +118,21 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         source_episode_id: Some(episode.id),
         source_time_ns: None,
         source_ref: None,
+        temporal_inference: Some(MemoryTemporalInference {
+            body_id,
+            source_time_ns: None,
+            inference: TemporalInference {
+                model: "chronos-test".into(),
+                contract_version: CHRONOS_INFERENCE_CONTRACT_VERSION.into(),
+                resolutions: vec![TemporalInferenceResolution {
+                    start_byte: 0,
+                    end_byte: 4,
+                    kind: TemporalIndicationKind::Calendar,
+                    evidence: "Keep".into(),
+                    canonical_expression: "March 2027".into(),
+                }],
+            },
+        }),
         mutation_id: draft.mutation_id,
         created_at_ns: 3,
         updated_at_ns: 4,
@@ -157,7 +176,18 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
     assert_eq!(result.replayed_memory_revisions, 1);
     assert_eq!(result.replayed_insomnia_completions, 1);
     let mut merged = Cva::open(output).unwrap();
-    assert_eq!(merged.memory(id).unwrap().mutation_id, "grouped-memory");
+    let merged_memory = merged.memory(id).unwrap();
+    assert_eq!(merged_memory.mutation_id, "grouped-memory");
+    assert_eq!(
+        merged_memory
+            .temporal_inference
+            .as_ref()
+            .unwrap()
+            .inference
+            .resolutions[0]
+            .canonical_expression,
+        "March 2027"
+    );
     let attempt = &merged.insomnia_attempts(episode.id)[0];
     assert_eq!(attempt.memory_ids, vec![id]);
     assert_eq!(attempt.external_memory_refs[0].memory_id, id);

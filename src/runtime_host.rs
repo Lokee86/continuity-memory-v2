@@ -73,6 +73,7 @@ pub struct ReliquaryRuntimeRoutes {
     general: Option<Arc<dyn GeneralEndpoint>>,
     insomnia: Option<Arc<dyn GeneralEndpoint>>,
     insomnia_metadata: Option<Arc<dyn GeneralEndpoint>>,
+    chronos: Option<Arc<dyn GeneralEndpoint>>,
     dream: Option<Arc<dyn GeneralEndpoint>>,
     embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
 }
@@ -89,6 +90,7 @@ impl ReliquaryRuntimeRoutes {
             general,
             insomnia,
             insomnia_metadata,
+            chronos: None,
             dream,
             embedding,
         }
@@ -104,6 +106,15 @@ impl ReliquaryRuntimeRoutes {
 
     pub(crate) fn insomnia_ownership(&self) -> Option<Arc<dyn GeneralEndpoint>> {
         self.insomnia_metadata().or_else(|| self.insomnia())
+    }
+
+    pub fn with_chronos(mut self, endpoint: Option<Arc<dyn GeneralEndpoint>>) -> Self {
+        self.chronos = endpoint;
+        self
+    }
+
+    pub(crate) fn chronos(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.chronos.clone().or_else(|| self.insomnia())
     }
 
     pub(crate) fn dream(&self) -> Option<Arc<dyn GeneralEndpoint>> {

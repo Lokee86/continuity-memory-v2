@@ -4,7 +4,7 @@ use crate::memory_codec::{
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
     Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemorySourceRef,
-    MemoryStats, ObjectRef,
+    MemoryStats, MemoryTemporalInference, ObjectRef,
 };
 use std::collections::HashMap;
 
@@ -41,7 +41,14 @@ impl MemoryStore {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
-        self.publish_with_source_ref(container, id, expected_revision, draft, None)
+        self.publish_with_source_ref_and_temporal_inference(
+            container,
+            id,
+            expected_revision,
+            draft,
+            None,
+            None,
+        )
     }
 
     pub(crate) fn publish_with_source_ref(
@@ -52,14 +59,44 @@ impl MemoryStore {
         draft: MemoryDraft,
         source_ref: Option<MemorySourceRef>,
     ) -> Result<(Memory, bool), MemoryError> {
+        self.publish_with_source_ref_and_temporal_inference(
+            container,
+            id,
+            expected_revision,
+            draft,
+            source_ref,
+            None,
+        )
+    }
+
+    pub(crate) fn publish_with_source_ref_and_temporal_inference(
+        &mut self,
+        container: &mut Container,
+        id: Option<MemoryId>,
+        expected_revision: u64,
+        draft: MemoryDraft,
+        source_ref: Option<MemorySourceRef>,
+        temporal_inference: Option<MemoryTemporalInference>,
+    ) -> Result<(Memory, bool), MemoryError> {
         validate_draft(&draft)?;
         validate_source_ref(source_ref.as_ref())?;
+        let candidate_body_id = memory_body_id(&draft.title, &draft.content);
+        if let Some(inference) = temporal_inference.as_ref() {
+            validate_temporal_inference_binding(
+                candidate_body_id,
+                draft.source_time_ns,
+                inference,
+            )?;
+        }
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = self.resolve_record(container, &self.records[index])?;
             let source_matches = source_ref
                 .as_ref()
                 .is_none_or(|source_ref| existing.source_ref.as_ref() == Some(source_ref));
-            return if same_draft(&existing, &draft) && source_matches {
+            let inference_matches = temporal_inference
+                .as_ref()
+                .is_none_or(|inference| existing.temporal_inference.as_ref() == Some(inference));
+            return if same_draft(&existing, &draft) && source_matches && inference_matches {
                 Ok((existing, false))
             } else {
                 Err(MemoryError::MutationConflict)
@@ -77,7 +114,6 @@ impl MemoryStore {
         let revision = expected_revision
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
-        let candidate_body_id = memory_body_id(&draft.title, &draft.content);
         if let Some(index) = self.current.get(&id).copied() {
             if self.records[index].body_id != candidate_body_id {
                 return Err(MemoryError::SemanticMutation);
@@ -88,6 +124,18 @@ impl MemoryStore {
                 .get(&id)
                 .and_then(|index| self.records[*index].source_ref.clone())
         });
+        let temporal_inference = match temporal_inference {
+            Some(inference) => Some(inference),
+            None => self.current.get(&id).and_then(|index| {
+                self.records[*index]
+                    .temporal_inference
+                    .clone()
+                    .filter(|inference| {
+                        inference.body_id == candidate_body_id
+                            && inference.source_time_ns == draft.source_time_ns
+                    })
+            }),
+        };
         let body_id = self.put_body(container, &draft.title, &draft.content)?;
         let memory_version = self.next_memory_version;
         let next_memory_version = memory_version
@@ -114,6 +162,7 @@ impl MemoryStore {
             source_episode_id: draft.source_episode_id,
             source_time_ns: draft.source_time_ns,
             source_ref,
+            temporal_inference,
             mutation_id: draft.mutation_id.clone(),
             created_at_ns: draft.created_at_ns,
             updated_at_ns: draft.updated_at_ns,
@@ -235,15 +284,19 @@ impl MemoryStore {
     }
 
     pub(crate) fn validate_bodies(&self) -> Result<(), MemoryError> {
-        if self
-            .records
-            .iter()
-            .all(|record| self.bodies.contains_key(&record.body_id))
-        {
-            Ok(())
-        } else {
-            Err(MemoryError::MissingBody)
+        for record in &self.records {
+            if !self.bodies.contains_key(&record.body_id) {
+                return Err(MemoryError::MissingBody);
+            }
+            if let Some(inference) = &record.temporal_inference {
+                validate_temporal_inference_binding(
+                    record.body_id,
+                    record.source_time_ns,
+                    inference,
+                )?;
+            }
         }
+        Ok(())
     }
 
     pub(crate) fn validate_provenance(&self, archive: &crate::Archive) -> Result<(), MemoryError> {
@@ -390,6 +443,7 @@ impl MemoryStore {
             source_episode_id: record.source_episode_id,
             source_time_ns: record.source_time_ns,
             source_ref: record.source_ref.clone(),
+            temporal_inference: record.temporal_inference.clone(),
             mutation_id: record.mutation_id.clone(),
             created_at_ns: record.created_at_ns,
             updated_at_ns: record.updated_at_ns,
@@ -458,6 +512,20 @@ fn validate_draft(draft: &MemoryDraft) -> Result<(), MemoryError> {
     }
     if draft.updated_at_ns < draft.created_at_ns {
         return Err(MemoryError::InvalidField("updated_at_ns"));
+    }
+    Ok(())
+}
+
+fn validate_temporal_inference_binding(
+    body_id: MemoryBodyId,
+    source_time_ns: Option<i64>,
+    inference: &MemoryTemporalInference,
+) -> Result<(), MemoryError> {
+    if inference.body_id != body_id
+        || inference.source_time_ns != source_time_ns
+        || inference.inference.resolutions.is_empty()
+    {
+        return Err(MemoryError::InvalidField("temporal inference binding"));
     }
     Ok(())
 }

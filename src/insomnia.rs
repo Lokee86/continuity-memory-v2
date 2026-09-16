@@ -22,7 +22,7 @@ pub(crate) mod rebuild;
 pub(crate) mod runtime_step;
 pub(crate) mod store;
 mod synthesis;
-mod temporal;
+pub(crate) mod temporal;
 mod worker;
 
 pub use backpressure::DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS;

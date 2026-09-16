@@ -121,7 +121,7 @@ where
         .copied()
         .filter(|relation| relation.source == memory.id || relation.target == memory.id)
         .collect();
-    let temporal = analyze_memory_temporal(&memory, source_timestamp_ns);
+    let temporal = analyze_memory_temporal(&memory, body_id, source_timestamp_ns);
     DreamMemoryContext {
         memory,
         body_id,

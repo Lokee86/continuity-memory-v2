@@ -1,3 +1,4 @@
+use crate::cva_memory_publish::publish_memory_parts_with_state;
 use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::memory_replay_error;
 use crate::insomnia::completion::{InsomniaCompletion, decode_completion, encode_completion};
@@ -70,14 +71,21 @@ pub(crate) fn replay_memory_tail(
     for revision in tail.revisions {
         let memory = revision.memory;
         let draft = memory_draft(memory.clone());
+        let source_ref = memory.source_ref.clone();
+        let temporal_inference = memory.temporal_inference.clone();
         let publish = with_replayed_transaction_time(
             destination,
             revision.transaction_time_ns,
             |destination| {
-                destination.publish_memory(
+                publish_memory_parts_with_state(
+                    &destination.archive,
+                    &mut destination.memories,
+                    &mut destination.container,
                     Some(memory.id),
                     memory.revision.saturating_sub(1),
                     draft,
+                    source_ref,
+                    temporal_inference,
                 )
             },
         );

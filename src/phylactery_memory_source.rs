@@ -8,13 +8,32 @@ impl Phylactery {
         draft: MemoryDraft,
         source_ref: MemorySourceRef,
     ) -> Result<(Memory, bool), MemoryError> {
-        self.memories.publish_with_source_ref(
-            &mut self.container,
+        self.publish_memory_with_source_ref_and_temporal_inference(
             id,
             expected_revision,
             draft,
-            Some(source_ref),
+            source_ref,
+            None,
         )
+    }
+
+    pub(crate) fn publish_memory_with_source_ref_and_temporal_inference(
+        &mut self,
+        id: Option<MemoryId>,
+        expected_revision: u64,
+        draft: MemoryDraft,
+        source_ref: MemorySourceRef,
+        temporal_inference: Option<crate::MemoryTemporalInference>,
+    ) -> Result<(Memory, bool), MemoryError> {
+        self.memories
+            .publish_with_source_ref_and_temporal_inference(
+                &mut self.container,
+                id,
+                expected_revision,
+                draft,
+                Some(source_ref),
+                temporal_inference,
+            )
     }
 
     pub fn backfill_memory_source_ref(

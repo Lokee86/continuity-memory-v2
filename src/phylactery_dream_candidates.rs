@@ -50,8 +50,10 @@ impl Phylactery {
         memory_id: MemoryId,
     ) -> Result<DreamTemporalAnalysis, MemoryError> {
         let memory = self.memories.memory(&mut self.container, memory_id)?;
+        let body_id = self.memories.current_body_id(memory_id)?;
         Ok(analyze_memory_temporal(
             &memory,
+            body_id,
             memory_source_timestamp_ns(&memory),
         ))
     }

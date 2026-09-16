@@ -36,6 +36,7 @@ fn live_endpoint_is_constructed_from_validated_switchboard() {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
+        chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,
@@ -61,6 +62,7 @@ fn zero_batching_limits_are_rejected() {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
+        chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
             provider: ModelProvider::OpenAiReady,

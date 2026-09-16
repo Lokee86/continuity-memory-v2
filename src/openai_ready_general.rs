@@ -92,6 +92,22 @@ impl OpenAiReadyGeneralEndpoint {
         Self::from_route(route, auth, StructuredMode::ForcedTool)
     }
 
+    pub fn from_chronos_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route = switchboard
+            .chronos()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Chronos, Insomnia, and general routes are not configured",
+            ))?;
+        let auth = switchboard
+            .chronos_auth()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Chronos auth is missing",
+            ))?;
+        Self::from_route(route, auth, StructuredMode::ForcedTool)
+    }
+
     pub fn from_dream_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

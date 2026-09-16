@@ -361,7 +361,7 @@ N bytes   content UTF-8
 ```
 Memory record:
 ```text
-8 bytes   "CVAMEMR6"
+8 bytes   "CVAMEMR7"
 32 bytes  MemoryId
 u64       revision
 32 bytes  MemoryBodyId
@@ -392,10 +392,22 @@ optional  string content_source_node_id
 optional  string grounding_source_conversation_id
 optional  string grounding_source_node_id
 string    mutation_id
+optional  verified temporal inference
+          32 bytes MemoryBodyId binding
+          optional i64 source_time_ns binding
+          string model
+          string contract_version
+          u8 resolution count (1..=32)
+          repeated resolutions:
+              u32 start_byte
+              u32 end_byte
+              u8 indication kind: 1=Explicit, 2=Calendar, 3=Relative, 4=Boundary, 5=Recurrence, 6=Duration
+              string original evidence
+              string canonical_expression
 ```
-Optional fixed IDs, optional `source_time_ns`, optional `source_ref`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_ref` stores identifiers only; it does not embed source content. `source_time_ns` records source-derived semantic chronology independently of the reference and is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `temporal_status` is the Insomnia proposition-time classification `current`, `future`, or `historical`; `unknown` is accepted only as the compatibility value for legacy/manual Memories whose original classification was not persisted. This field is independent of Dream-owned `lifecycle_state`: temporal status describes how the proposition was framed when extracted, while Dream lifecycle describes the Memory's current owner-local semantic state. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions.
+Optional fixed IDs, optional `source_time_ns`, optional `source_ref`, and optional strings use a one-byte `0`/`1` presence flag followed by the encoded value when present. `source_ref` stores identifiers only; it does not embed source content. `source_time_ns` records source-derived semantic chronology independently of the reference and is distinct from Memory creation/update bookkeeping. `authority_kind` is one of `direct`, `correction`, `adoption`, `retention`, or `unknown`; current Insomnia writes the first four, while legacy/manual records may use `unknown`. `temporal_status` is the Insomnia proposition-time classification `current`, `future`, or `historical`; `unknown` is accepted only as the compatibility value for legacy/manual Memories whose original classification was not persisted. This field is independent of Dream-owned `lifecycle_state`: temporal status describes how the proposition was framed when extracted, while Dream lifecycle describes the Memory's current owner-local semantic state. `MemoryId` for an automatically assigned new Memory is SHA-256 over `"continuity-memory-id\0"`, the mutation-ID byte length as `u64`, and the mutation-ID UTF-8 bytes. A Memory's `MemoryBodyId` cannot change across revisions. A current R7 record may additionally carry verified nondeterministic Chronos inference. The inference is valid only when its embedded `MemoryBodyId` and `source_time_ns` exactly match the enclosing record. It stores the producing model/contract plus each original unresolved source span/kind/evidence and a non-empty canonical expression that passed deterministic same-kind Chronos verification. Lifecycle/metadata revisions may carry it forward only while that binding remains exact; a changed body/reference binding drops the prior inference as stale. Deterministic Chronos products are never stored in this field.
 
-Legacy `CVAMEMR5`, `CVAMEMR4`, `CVAMEMR3`, and `CVAMEMR2` records remain decodable. R5 retains `source_time_ns` and `source_ref` but predates durable `temporal_status`; reopen assigns `temporal_status = "unknown"` rather than guessing a lost classifier result. R4 additionally predates the external source reference and reopens with `source_ref = None`. R3 lacks both `source_time_ns` and `source_ref`. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted. An explicit metadata-only Memory revision may backfill `unknown` temporal status without changing the immutable Memory body, source chronology, provenance, or Dream lifecycle.
+Legacy `CVAMEMR6`, `CVAMEMR5`, `CVAMEMR4`, `CVAMEMR3`, and `CVAMEMR2` records remain decodable. R6 has durable `temporal_status` but predates verified temporal inference and therefore reopens with `temporal_inference = None`. R5 retains `source_time_ns` and `source_ref` but predates durable `temporal_status`; reopen assigns `temporal_status = "unknown"` rather than guessing a lost classifier result. R4 additionally predates the external source reference and reopens with `source_ref = None`. R3 lacks both `source_time_ns` and `source_ref`. R2 additionally lacks `authority_kind`; reopen assigns `authority_kind = "unknown"` rather than inferring provenance that was never persisted. An explicit metadata-only Memory revision may backfill `unknown` temporal status without changing the immutable Memory body, source chronology, provenance, or Dream lifecycle.
 
 Standalone Memory publication metadata:
 ```text
@@ -405,7 +417,7 @@ u64       Memory version
 u64       record chunk offset
 u64       record payload length
 ```
-Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR6`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC4` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR6` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR7`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC4` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR7` records, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
 
 ### Graph
 Format marker:

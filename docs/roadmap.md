@@ -155,9 +155,9 @@ Near-term work should:
 - expand/calibrate the implemented indication detector and bounded temporal-vocabulary normalizer from measured recall/false positives rather than broad spell correction;
 - keep the implemented deterministic grammar conservative: qualified seasons and safe loose-calendar forms are covered, while further grammar additions should come from measured unambiguous cases rather than locale/hemisphere guesses;
 - keep deterministic Chronos output derived/unpersisted by default;
-- invoke bounded temporal inference only when an indication exists and deterministic resolution is insufficient;
-- continue the started Insomnia integration from transient prepared-Memory assessment into bounded unresolved-only inference plus body/version-bound inferred-state invalidation, while preserving Dream compatibility and adding Perception Observation consumption; and
-- bind any persisted inferred temporal conclusion to the semantic body/version that justified it so edits/replacements make stale inference detectable.
+- calibrate the implemented unresolved-only inference route from measured need/cost: canonical model answers are deterministically same-kind verified before publication, and abstention remains valid;
+- preserve the implemented Memory inference binding to exact `MemoryBodyId + source_time_ns`, including reconciliation/migration behavior and stale-on-binding-change semantics; and
+- add Perception Observation consumption plus any additional Dream validity/ordering outputs only where measurement demonstrates need.
 
 Chronos owns source/valid-time interpretation mechanics. Wall-clock transaction/knowledge time is already implemented and remains owned by the timestamped global/container version stream.
 

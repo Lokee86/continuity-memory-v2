@@ -1,4 +1,7 @@
-use crate::{TemporalAnalysis, TemporalAssessment, TemporalDetection, TemporalMatch};
+use crate::{
+    TemporalAnalysis, TemporalAssessment, TemporalDetection, TemporalInference,
+    TemporalInferenceError, TemporalMatch,
+};
 
 /// Detect possible world-time material without requiring that Chronos can already parse it.
 pub fn detect(text: &str) -> TemporalDetection {
@@ -26,6 +29,20 @@ pub fn assess(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAssess
         analysis,
         resolution,
     }
+}
+
+/// Rehydrate a verified bounded inference by deterministically re-parsing its canonical
+/// expressions and merging them into ordinary derived Chronos analysis.
+pub fn analyze_with_inference(
+    text: &str,
+    reference_timestamp_ns: Option<i64>,
+    inference: &TemporalInference,
+) -> Result<TemporalAnalysis, TemporalInferenceError> {
+    crate::chronos_inference_apply::apply_inference(
+        analyze(text, reference_timestamp_ns),
+        inference,
+        reference_timestamp_ns,
+    )
 }
 
 fn analyze_detected(

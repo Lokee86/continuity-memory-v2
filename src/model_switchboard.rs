@@ -12,6 +12,7 @@ pub enum ModelCapability {
     General,
     Insomnia,
     InsomniaMetadata,
+    Chronos,
     Dream,
     Embedding,
 }
@@ -22,6 +23,7 @@ impl ModelCapability {
             Self::General => "general",
             Self::Insomnia => "insomnia",
             Self::InsomniaMetadata => "insomnia_metadata",
+            Self::Chronos => "chronos",
             Self::Dream => "dream",
             Self::Embedding => "embedding",
         }
@@ -99,6 +101,7 @@ impl ModelProvider {
                 ModelCapability::General
                 | ModelCapability::Insomnia
                 | ModelCapability::InsomniaMetadata
+                | ModelCapability::Chronos
                 | ModelCapability::Dream,
             ) => true,
             (Self::OpenAiReady, ModelCapability::Embedding) => true,
@@ -146,6 +149,7 @@ pub struct ModelSwitchboardConfig {
     pub general: Option<GeneralModelEndpoint>,
     pub insomnia: Option<GeneralModelEndpoint>,
     pub insomnia_metadata: Option<GeneralModelEndpoint>,
+    pub chronos: Option<GeneralModelEndpoint>,
     pub dream: Option<GeneralModelEndpoint>,
     pub embedding: Option<EmbeddingModelEndpoint>,
 }
@@ -186,6 +190,10 @@ impl ModelSwitchboard {
 
     pub fn insomnia_ownership(&self) -> Option<&GeneralModelEndpoint> {
         self.insomnia_metadata().or_else(|| self.insomnia())
+    }
+
+    pub fn chronos(&self) -> Option<&GeneralModelEndpoint> {
+        self.config.chronos.as_ref().or_else(|| self.insomnia())
     }
 
     pub fn dream(&self) -> Option<&GeneralModelEndpoint> {
@@ -236,6 +244,16 @@ impl ModelSwitchboard {
         })
     }
 
+    pub fn chronos_auth(&self) -> Option<ModelRequestAuth> {
+        self.chronos().map(|endpoint| {
+            resolve_auth(
+                endpoint.provider,
+                &endpoint.credential_id,
+                &self.credentials,
+            )
+        })
+    }
+
     pub fn dream_auth(&self) -> Option<ModelRequestAuth> {
         self.dream().map(|endpoint| {
             resolve_auth(
@@ -269,6 +287,9 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
         validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.insomnia_metadata {
+        validate_general_endpoint(endpoint)?;
+    }
+    if let Some(endpoint) = &config.chronos {
         validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.dream {

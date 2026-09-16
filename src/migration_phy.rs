@@ -31,11 +31,22 @@ pub(super) fn migrate(
     for (id, revision) in revisions {
         let memory = op(source.memory_revision(id, revision))?;
         let transaction_time_ns = source.transaction_time_ns(memory.global_version);
+        let source_ref = memory.source_ref.clone();
+        let temporal_inference = memory.temporal_inference.clone();
+        let draft = memory_draft(memory);
         output
             .container
             .set_next_transaction_time_override(transaction_time_ns);
-        let result =
-            output.publish_memory(Some(id), revision.saturating_sub(1), memory_draft(memory));
+        let result = output
+            .memories
+            .publish_with_source_ref_and_temporal_inference(
+                &mut output.container,
+                Some(id),
+                revision.saturating_sub(1),
+                draft,
+                source_ref,
+                temporal_inference,
+            );
         output.container.clear_next_transaction_time_override();
         op(result)?;
     }

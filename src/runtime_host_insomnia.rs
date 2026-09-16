@@ -72,6 +72,9 @@ pub(super) fn worker_loop(
         {
             extractor = extractor.with_ownership_endpoint(SharedGeneralEndpoint(ownership));
         }
+        if let Some(temporal) = routes.chronos() {
+            extractor = extractor.with_temporal_endpoint(SharedGeneralEndpoint(temporal));
+        }
         let claim = {
             let mut runtime = shared
                 .runtime
@@ -102,43 +105,61 @@ fn process_claim(
         }
         Err(error) => Err(error),
     };
+    let extraction = match extraction {
+        Ok(extraction) => extraction,
+        Err(error) => return fail_claim(shared, &claim, &error),
+    };
+    let mut prepared = {
+        let mut runtime = shared
+            .runtime
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        runtime
+            .cva
+            .prepare_runtime_insomnia_application(&claim, extraction, &shared.config)
+            .map_err(operation)?
+    };
+    if let Err(error) =
+        crate::insomnia::temporal::infer_prepared(extractor.temporal_endpoint(), &mut prepared)
+    {
+        return fail_claim(shared, &claim, &error);
+    }
     let mut runtime = shared
         .runtime
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    match extraction {
-        Ok(extraction) => {
-            let mut phylactery = shared
-                .phylactery
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            match phylactery.as_mut() {
-                Some(phylactery) => runtime
-                    .cva
-                    .commit_runtime_insomnia_routed(phylactery, &claim, extraction, &shared.config)
-                    .map_err(operation)?,
-                None => runtime
-                    .cva
-                    .commit_runtime_insomnia(&claim, extraction, &shared.config)
-                    .map_err(operation)?,
-            };
-            drop(phylactery);
-            drop(runtime);
-            notify_work(&shared.signal)
-        }
-        Err(error) => {
-            if let Some(retry_after_ns) = crate::insomnia::backpressure::retry_after_ns(&error) {
-                let until = crate::insomnia::runtime_step::now_ns().saturating_add(retry_after_ns);
-                shared
-                    .insomnia_backpressure_until_ns
-                    .fetch_max(until, Ordering::SeqCst);
-            }
-            runtime
-                .cva
-                .fail_runtime_insomnia(&claim, &error, &shared.config)
-                .map_err(operation)
-        }
+    let mut phylactery = shared
+        .phylactery
+        .lock()
+        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+    runtime
+        .cva
+        .commit_runtime_insomnia_prepared(phylactery.as_mut(), &claim, prepared, &shared.config)
+        .map_err(operation)?;
+    drop(phylactery);
+    drop(runtime);
+    notify_work(&shared.signal)
+}
+
+fn fail_claim(
+    shared: &Shared,
+    claim: &RuntimeInsomniaClaim,
+    error: &crate::InsomniaExtractionError,
+) -> Result<(), ReliquaryRuntimeHostError> {
+    if let Some(retry_after_ns) = crate::insomnia::backpressure::retry_after_ns(error) {
+        let until = crate::insomnia::runtime_step::now_ns().saturating_add(retry_after_ns);
+        shared
+            .insomnia_backpressure_until_ns
+            .fetch_max(until, Ordering::SeqCst);
     }
+    let mut runtime = shared
+        .runtime
+        .lock()
+        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+    runtime
+        .cva
+        .fail_runtime_insomnia(claim, error, &shared.config)
+        .map_err(operation)
 }
 
 fn backpressure_wait(shared: &Shared) -> Option<Duration> {
