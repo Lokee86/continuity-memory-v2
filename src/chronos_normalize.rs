@@ -1,5 +1,6 @@
 use crate::{
-    TemporalAnchor, TemporalDuration, TemporalInterval, TemporalPattern, TemporalTimeOfDay,
+    TemporalAnchor, TemporalApproximateDuration, TemporalDuration, TemporalDurationRange,
+    TemporalInterval, TemporalPattern, TemporalTimeOfDay,
 };
 
 pub(crate) fn anchors(values: &mut Vec<TemporalAnchor>) {
@@ -60,6 +61,38 @@ pub(crate) fn durations(values: &mut Vec<TemporalDuration>) {
         (left.amount, left.unit, &left.evidence).cmp(&(right.amount, right.unit, &right.evidence))
     });
     values.dedup_by(|left, right| left.amount == right.amount && left.unit == right.unit);
+}
+
+pub(crate) fn duration_ranges(values: &mut Vec<TemporalDurationRange>) {
+    values.sort_by(|left, right| {
+        (left.min_amount, left.max_amount, left.unit, &left.evidence).cmp(&(
+            right.min_amount,
+            right.max_amount,
+            right.unit,
+            &right.evidence,
+        ))
+    });
+    values.dedup_by(|left, right| {
+        left.min_amount == right.min_amount
+            && left.max_amount == right.max_amount
+            && left.unit == right.unit
+    });
+}
+
+pub(crate) fn approximate_durations(values: &mut Vec<TemporalApproximateDuration>) {
+    values.sort_by(|left, right| {
+        (left.amount, left.approximation, left.unit, &left.evidence).cmp(&(
+            right.amount,
+            right.approximation,
+            right.unit,
+            &right.evidence,
+        ))
+    });
+    values.dedup_by(|left, right| {
+        left.amount == right.amount
+            && left.approximation == right.approximation
+            && left.unit == right.unit
+    });
 }
 
 pub(crate) fn intervals(values: &mut Vec<TemporalInterval>) {

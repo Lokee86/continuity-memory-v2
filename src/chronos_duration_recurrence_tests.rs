@@ -108,17 +108,6 @@ fn ambiguous_cadence_is_detected_but_not_guessed() {
             .patterns
             .is_empty()
     );
-
-    let approximate = detect("The outage lasted about two weeks.");
-    assert!(approximate.indications.iter().any(|indication| {
-        indication.kind == TemporalIndicationKind::Duration
-            && indication.evidence.eq_ignore_ascii_case("weeks")
-    }));
-    assert!(
-        analyze("The outage lasted about two weeks.", None)
-            .durations
-            .is_empty()
-    );
 }
 
 #[test]

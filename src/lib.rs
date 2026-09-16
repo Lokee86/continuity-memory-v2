@@ -335,9 +335,10 @@ pub use chronos_inference::{
 pub use chronos_inference_error::TemporalInferenceError;
 pub use chronos_inference_model::{TemporalInference, TemporalInferenceResolution};
 pub use chronos_model::{
-    TemporalAnalysis, TemporalAnchor, TemporalClockPrecision, TemporalDuration,
-    TemporalDurationUnit, TemporalFrequency, TemporalGranularity, TemporalInterval, TemporalMatch,
-    TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalTimeOfDay, TemporalWeekday,
+    TemporalAnalysis, TemporalAnchor, TemporalApproximateDuration, TemporalClockPrecision,
+    TemporalDuration, TemporalDurationApproximation, TemporalDurationRange, TemporalDurationUnit,
+    TemporalFrequency, TemporalGranularity, TemporalInterval, TemporalMatch, TemporalMatchKind,
+    TemporalOrigin, TemporalPattern, TemporalTimeOfDay, TemporalWeekday,
 };
 pub use chronos_model::{
     TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
@@ -529,6 +530,8 @@ mod chronos_calendar_language_tests;
 mod chronos_detection_tests;
 #[cfg(test)]
 mod chronos_duration_recurrence_tests;
+#[cfg(test)]
+mod chronos_duration_uncertainty_tests;
 #[cfg(test)]
 mod chronos_inference_tests;
 #[cfg(test)]

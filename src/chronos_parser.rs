@@ -33,10 +33,14 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
     mirror_range_anchors(&anchors, &mut intervals);
     let mut times_of_day = crate::chronos_time_of_day::extract_times_of_day(text);
     let mut durations = crate::chronos_duration::extract_durations(text);
+    let mut duration_ranges = crate::chronos_duration::extract_duration_ranges(text);
+    let mut approximate_durations = crate::chronos_duration::extract_approximate_durations(text);
     let mut patterns = crate::chronos_recurrence::extract_recurrence(text);
     crate::chronos_normalize::anchors(&mut anchors);
     crate::chronos_normalize::times_of_day(&mut times_of_day);
     crate::chronos_normalize::durations(&mut durations);
+    crate::chronos_normalize::duration_ranges(&mut duration_ranges);
+    crate::chronos_normalize::approximate_durations(&mut approximate_durations);
     crate::chronos_normalize::intervals(&mut intervals);
     crate::chronos_normalize::patterns(&mut patterns);
     TemporalAnalysis {
@@ -44,6 +48,8 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
         anchors,
         times_of_day,
         durations,
+        duration_ranges,
+        approximate_durations,
         intervals,
         patterns,
     }
@@ -83,6 +89,20 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
             .iter()
             .any(|existing| existing.amount == candidate.amount && existing.unit == candidate.unit)
     });
+    extra.duration_ranges.retain(|candidate| {
+        !base.duration_ranges.iter().any(|existing| {
+            existing.min_amount == candidate.min_amount
+                && existing.max_amount == candidate.max_amount
+                && existing.unit == candidate.unit
+        })
+    });
+    extra.approximate_durations.retain(|candidate| {
+        !base.approximate_durations.iter().any(|existing| {
+            existing.amount == candidate.amount
+                && existing.approximation == candidate.approximation
+                && existing.unit == candidate.unit
+        })
+    });
     extra.intervals.retain(|candidate| {
         !base.intervals.iter().any(|existing| {
             existing.start_ns == candidate.start_ns
@@ -104,11 +124,16 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
     base.anchors.append(&mut extra.anchors);
     base.times_of_day.append(&mut extra.times_of_day);
     base.durations.append(&mut extra.durations);
+    base.duration_ranges.append(&mut extra.duration_ranges);
+    base.approximate_durations
+        .append(&mut extra.approximate_durations);
     base.intervals.append(&mut extra.intervals);
     base.patterns.append(&mut extra.patterns);
     crate::chronos_normalize::anchors(&mut base.anchors);
     crate::chronos_normalize::times_of_day(&mut base.times_of_day);
     crate::chronos_normalize::durations(&mut base.durations);
+    crate::chronos_normalize::duration_ranges(&mut base.duration_ranges);
+    crate::chronos_normalize::approximate_durations(&mut base.approximate_durations);
     crate::chronos_normalize::intervals(&mut base.intervals);
     crate::chronos_normalize::patterns(&mut base.patterns);
 }

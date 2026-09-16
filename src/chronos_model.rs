@@ -35,6 +35,17 @@ pub enum TemporalDurationUnit {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum TemporalDurationApproximation {
+    About,
+    Around,
+    Approximately,
+    Roughly,
+    Couple,
+    Few,
+    Several,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum TemporalFrequency {
     Daily,
     Weekly,
@@ -91,6 +102,22 @@ pub struct TemporalDuration {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalDurationRange {
+    pub min_amount: u16,
+    pub max_amount: u16,
+    pub unit: TemporalDurationUnit,
+    pub evidence: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalApproximateDuration {
+    pub amount: Option<u16>,
+    pub approximation: TemporalDurationApproximation,
+    pub unit: TemporalDurationUnit,
+    pub evidence: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TemporalInterval {
     pub start_ns: Option<i64>,
     pub end_ns: Option<i64>,
@@ -106,6 +133,8 @@ pub struct TemporalAnalysis {
     pub anchors: Vec<TemporalAnchor>,
     pub times_of_day: Vec<TemporalTimeOfDay>,
     pub durations: Vec<TemporalDuration>,
+    pub duration_ranges: Vec<TemporalDurationRange>,
+    pub approximate_durations: Vec<TemporalApproximateDuration>,
     pub intervals: Vec<TemporalInterval>,
     pub patterns: Vec<TemporalPattern>,
 }

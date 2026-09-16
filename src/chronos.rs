@@ -66,6 +66,12 @@ fn analyze_detected(
     for duration in &mut corrected.durations {
         duration.evidence = detected.restore_evidence(text, &duration.evidence);
     }
+    for duration in &mut corrected.duration_ranges {
+        duration.evidence = detected.restore_evidence(text, &duration.evidence);
+    }
+    for duration in &mut corrected.approximate_durations {
+        duration.evidence = detected.restore_evidence(text, &duration.evidence);
+    }
     for interval in &mut corrected.intervals {
         interval.evidence = detected.restore_evidence(text, &interval.evidence);
     }

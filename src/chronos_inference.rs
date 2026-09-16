@@ -180,6 +180,20 @@ fn resolved_evidence(assessment: &TemporalAssessment) -> Vec<String> {
         .chain(
             assessment
                 .analysis
+                .duration_ranges
+                .iter()
+                .map(|value| value.evidence.clone()),
+        )
+        .chain(
+            assessment
+                .analysis
+                .approximate_durations
+                .iter()
+                .map(|value| value.evidence.clone()),
+        )
+        .chain(
+            assessment
+                .analysis
                 .intervals
                 .iter()
                 .map(|value| value.evidence.clone()),

@@ -29,6 +29,10 @@ fn analysis_matches_kind(kind: TemporalIndicationKind, analysis: &TemporalAnalys
         }
         TemporalIndicationKind::Boundary => !analysis.intervals.is_empty(),
         TemporalIndicationKind::Recurrence => !analysis.patterns.is_empty(),
-        TemporalIndicationKind::Duration => !analysis.durations.is_empty(),
+        TemporalIndicationKind::Duration => {
+            !analysis.durations.is_empty()
+                || !analysis.duration_ranges.is_empty()
+                || !analysis.approximate_durations.is_empty()
+        }
     }
 }
