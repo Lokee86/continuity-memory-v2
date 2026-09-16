@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-15.
+Accepted — 2026-08-15. Post-extraction Entity/lexical metadata enrichment is amended by [ADR 0033](0033-perception-entities-observations-and-ambiguity.md). Memory-level temporal interpretation is assigned to shared Chronos by [ADR 0035](0035-chronos-shared-temporal-semantics.md).
 
 ## Context
 

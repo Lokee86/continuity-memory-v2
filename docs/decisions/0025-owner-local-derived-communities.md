@@ -4,7 +4,7 @@ Parent index: [Architectural decisions](INDEX.md)
 
 ## Status
 
-Accepted and implemented — 2026-08-27. Semantic naming amended by [ADR 0031](0031-dream-derived-community-semantic-names.md).
+Accepted and implemented — 2026-08-27. Semantic naming amended by [ADR 0031](0031-dream-derived-community-semantic-names.md). Recursive semantic subdivision and Perception processing-neighbourhood use are amended by [ADR 0033](0033-perception-entities-observations-and-ambiguity.md).
 
 ## Context
 

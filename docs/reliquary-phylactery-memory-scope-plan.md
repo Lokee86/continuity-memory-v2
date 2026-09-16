@@ -14,7 +14,7 @@ Durable state is partitioned by semantic owner rather than stored in one global 
 
 Design record. **Reliquary** and **Phylactery** are accepted names under [ADR 0018](decisions/0018-reliquary-and-phylactery-naming.md). [ADR 0020](decisions/0020-reliquary-and-phylactery-file-kinds.md) establishes the `.rel`/`.phy` product file split, and [ADR 0021](decisions/0021-typed-reliquary-scopes-and-connections.md) established Organization/Project/Connection typed Reliquary identity.
 
-Organization/Project hierarchy is the active near-term scope-composition direction. Connection/relationship scope expansion is mothballed: the existing typed Connection file identity remains supported, but no new Connection routing, inheritance, or relationship-graph behavior should be inferred from this record until a concrete product requirement reactivates it.
+ADR 0029 replaced behavioral Organization/Project/Connection REL classes with homogeneous RELs and explicit dependency-based context inheritance. ADR 0034 subsequently reactivated relationship-specific semantic state as a sparse Relationship layer over owner-qualified Entity references. Legacy typed Connection file identity remains compatibility-only; Relationships are not separate REL classes or independent Memory Webs.
 
 ## Problem
 
@@ -25,11 +25,11 @@ The retained typed owner identities and active ownership boundaries are:
 - **User / Phylactery** — user-global Identity state that persists across work;
 - **Organization / Reliquary** — company/organization state that persists across projects;
 - **Project / Reliquary** — bounded work state specific to one project;
-- **Connection / Reliquary** — implemented typed file identity whose richer relationship-state semantics are deferred by [ADR 0029](decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md).
+- **Relationship layer** — ADR 0034's sparse semantic containers over existing owner-qualified Entities. Relationship state is owned by a REL or PHY, may reference Entities across mounted owner Memory Webs, and does not create a separate `.rel`/`.phy` owner.
 
 These are ownership boundaries first. Retrieval and context composition are separate concerns.
 
-A company policy does not become Project state because it was used while working on a project. A project delivery delay does not become Organization state because company personnel observed it. ADR 0021 used recurring supplier reliability as an example of possible relationship-owned state; ADR 0029 deliberately defers deciding or routing that case through Connection scope.
+A company policy does not become Project state because it was used while working on a project. A project delivery delay does not become Organization state because company personnel observed it. Relationship state follows the same ownership rule: organization-visible supplier/coworker state belongs to the relevant REL relationship layer, while user-private personal relationship state belongs to that user's PHY relationship layer.
 
 ## Product file direction
 
@@ -124,17 +124,17 @@ Project owns durable state specific to one bounded body of work.
 
 Project state includes project source/history, files, decisions, constraints, schedules, deliveries, issues, Memories, provenance, vectors, Graph state, owner-local Dream-derived lifecycle/relationship state, and later Ego-derived project context.
 
-A Project may inherit applicable Organization context without transferring ownership of that inherited state into the Project. Connection-derived context is not part of the active model while Connection scope expansion is mothballed.
+A Project may inherit applicable Organization context without transferring ownership of that inherited state into the Project. Relationship context composes separately from the active PHY plus authorized active RELs under ADR 0034; it does not transfer relationship ownership into the Project.
 
-## Deferred Connection design history
+## Relationship design amendment
 
-ADR 0021 established the typed Connection identity and explored durable relationship state, participant roles, classifications, and graph edges. ADR 0029 mothballs that semantic expansion for the immediate architecture.
+ADR 0021 established the original typed Connection identity and explored durable relationship state, participant roles, classifications, and graph edges. ADR 0029 correctly retired Connection as a behavioral REL class. ADR 0034 now reactivates the useful relational semantics without restoring a Connection REL.
 
-The retained exploration identified possible relationship-owned state such as communication norms, cross-project history, reliability patterns, negotiated expectations, unresolved account-level issues, and durable commitments. It also favored extensible classification plus directional participant roles over rigid `VendorConnection`/`ClientConnection` subclasses.
+The active design is a sparse Relationship layer owned by ordinary RELs/PHYs. Relationships reference existing Entities by owner-qualified identity, may carry bounded relationship-local derived state, and may span currently mounted owner Memory Webs without creating cross-owner Dream Memory edges or independent nested Memory Webs.
 
-Those ideas are **not current implementation requirements**. No Connection class/role vocabulary, learned-state router, inheritance rule, or scope-graph edge vocabulary is frozen. If a concrete product requirement reactivates Connection scope behavior, it requires a new or explicitly amending decision rather than implementation from this historical sketch.
+The same participants may therefore have separate personal, organization, and project Relationships. REL-owned relationship state is portable/shared with that REL; PHY-owned relationship state is private and only the active PHY contributes it to normal runtime composition. Extensible classification and directional participant roles remain preferred over rigid `VendorConnection`/`ClientConnection` subclasses.
 
-## Scope hierarchy and deferred relationship graph
+## Scope hierarchy and Relationship graph
 
 The active near-term topology is a hierarchy among simultaneously open RELs, with Organization able to own or provide inherited context to Projects while each Project remains isolated from sibling Project state by default.
 
@@ -149,7 +149,7 @@ Organization
 
 Hierarchy controls default context inheritance; it does not transfer durable ownership. Project A state must not become visible to Project B merely because both share an Organization parent.
 
-The broader typed graph/DAG design for Connection/relationship scopes is deferred. Earlier examples involving client/vendor/consultant Connection edges are retained only as historical design exploration and are not an active implementation requirement. If Connection scope work is reactivated, structural/contextual versus associative edges will need an explicit new decision.
+REL dependency topology remains separate from the ADR 0034 Relationship graph. Dependencies answer ambient context inheritance among REL owners; Relationships answer typed relational state among Entity participants. The effective Relationship graph is composed at runtime from the active PHY relationship layer plus authorized active-REL relationship layers. It does not become a second REL dependency graph.
 
 ## Context composition
 
@@ -164,7 +164,7 @@ current interaction
 + applicable Organization state
 ```
 
-Sibling/inactive Projects do not participate automatically. Connection participation is deferred under ADR 0029 rather than silently folded into this hierarchy.
+Sibling/inactive Projects do not participate automatically. Relationship participation follows owner visibility instead: authorized active REL relationship layers may participate, while only the active PHY contributes private relationship state.
 
 Context composition must preserve three separate questions:
 
@@ -217,13 +217,13 @@ The invariant is:
 
 > **Scopes may consume permitted evidence from other scopes, but they never acquire another scope merely by containing its file. Cross-scope state movement is semantic extraction/publication, not recursive repository ingestion.**
 
-This keeps physical repositories independent while allowing explicit composition across the active User, Organization, and Project boundaries. Any later Connection composition requires reactivation under ADR 0029.
+This keeps physical repositories independent while allowing explicit composition across User and REL boundaries. ADR 0034 adds Relationship composition over those owners without recursively ingesting or merging their Memory Webs.
 
 ## Interaction/event boundary
 
 Ordinary meetings, messages, conversations, and interactions are primarily durable evidence/history, not automatically independent scopes.
 
-One interaction may eventually feed more than one authorized owner, for example separate Project and Organization propositions. Connection publication is excluded from the active routing model while ADR 0029 is in force.
+One interaction may eventually feed more than one authorized owner, for example separate Project and Organization propositions. Relationship synthesis is not another Insomnia Memory-publication destination; Perception derives Relationship state after Entity resolution under ADR 0034.
 
 This is preferable to creating an Interaction scope for every event.
 
@@ -233,7 +233,7 @@ A new scope kind should be created only when the thing has durable state and lif
 
 The first persistence classifier is now implemented as `user | project` under ADR 0023. It is deliberately conservative and remains only the first boundary, not the complete long-term ownership model.
 
-The current classifier/router supports `user | project`. Organization is the next plausible non-user destination only after its learned-state authority and hierarchy rules are explicit. Connection is not an implied next classifier destination; ADR 0029 defers it.
+The current classifier/router supports `user | project`. Organization is the next plausible non-user Memory destination only after its learned-state authority and hierarchy rules are explicit. Relationship is not an Insomnia Memory-owner destination: ADR 0034 assigns Relationship synthesis/maintenance to Perception over already-owned semantic evidence.
 
 Organization classification must not imply permission to create governed policies, permissions, contractual terms, or standing instructions. Scope classification answers **where a proposition belongs**; authority/policy answers **whether and how it may be written**.
 
@@ -247,7 +247,7 @@ The implemented `v3-1` extraction/routing sequence is:
 
 Persistence ownership is a separately testable classification/routing stage. For the current User/Project slice it runs after groups are fixed (and after metadata when configured) but before wording, and may change only the destination owner. It cannot change the durable proposition, authority/provenance, category/type/lifecycle, group membership, or candidate identity.
 
-A later governance/export-policy stage may still be required before learned Organization publication. Connection publication remains deferred. That is separate from the now-resolved placement of User/Project ownership classification.
+A later governance/export-policy stage may still be required before learned Organization publication. Relationship synthesis remains separate from Memory ownership classification and occurs later in Perception. That is separate from the now-resolved placement of User/Project ownership classification.
 
 Any future Organization ownership classifier should be evaluated independently from authority policy: a correct ownership prediction can still result in `do not publish` or `require explicit authorization` for the proposed state type.
 
@@ -273,7 +273,7 @@ The near-term resolver should:
 - exclude sibling/inactive Projects by default; and
 - combine/rank the resulting evidence within a context budget.
 
-This allows Projects and Organizations to grow independently without forcing every Memory into one global candidate set. Connection retrieval/composition remains deferred.
+This allows Projects and Organizations to grow independently without forcing every Memory into one global candidate set. Relationship retrieval/composition follows ADR 0034: compose authorized active-REL Relationship layers with the active PHY Relationship layer, never a non-active PHY.
 
 ## Validation requirements
 
@@ -290,7 +290,7 @@ Active/near-term scope fixtures should eventually include:
 - source-export-denied cases where destination Memory can remain valid without source content; and
 - inactive/mothballed scope cases verifying unrelated state does not enter ordinary retrieval.
 
-If Connection semantics are reactivated later, relationship-owned routing, structural versus associative context, and participant-role behavior require a separate fixture suite tied to that new decision.
+Relationship fixtures must prove sparse materialization, participant-role/cardinality behavior, separate personal/organization/project Relationships for the same Entities, REL portability, and strict exclusion of non-active PHY relationship state.
 
 Evaluate ownership accuracy separately from extraction coverage, semantic metadata, wording quality, authorization, export-policy enforcement, and context-resolution accuracy.
 
@@ -308,12 +308,13 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 - correction, supersession, deduplication, and retirement across each active owner kind;
 - cross-owner context composition belongs to retrieval/Ego rather than Dream; Dream remains strictly owner-local and does not federate REL/PHY candidates or persist cross-file Graph relationships;
 - Ego/context assembly budget and conflict resolution across User/Organization/Project context;
-- what concrete product requirement, if any, is sufficient to reactivate Connection scope semantics under ADR 0029;
+- exact persistence/versioning of ADR 0034 Relationships, owner-qualified Entity references, relationship materialization thresholds, and runtime authorization beyond the active-PHY baseline;
 
 ## Related docs
 
 - [ADR 0021 — Typed Reliquary scopes and Connection state](decisions/0021-typed-reliquary-scopes-and-connections.md)
 - [ADR 0029 — Active REL hierarchy and deferred Connection scope](decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md)
+- [ADR 0034 — Cross-owner Relationship graph and active-PHY privacy boundary](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
 - [ADR 0020 — Reliquary and Phylactery file kinds](decisions/0020-reliquary-and-phylactery-file-kinds.md)
 - [Insomnia semantic validation — 2026-08-24](insomnia-semantic-validation-2026-08-24.md)
 - [Roadmap](roadmap.md)
@@ -323,4 +324,4 @@ Evaluate ownership accuracy separately from extraction coverage, semantic metada
 
 ## Notes
 
-This is a retained design record, not the active planning owner. Current Organization/Project hierarchy and deferred Connection direction are governed by ADR 0029 and the roadmap; typed file identity remains governed by ADRs 0020/0021.
+This is a retained design record, not the active planning owner. Current homogeneous REL/dependency behavior is governed by ADR 0029; Relationship semantics and privacy/composition are governed by ADR 0034; implementation sequencing belongs to the roadmap.

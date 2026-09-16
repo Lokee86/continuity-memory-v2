@@ -44,7 +44,22 @@ Future work should:
 
 The current reconciliation API remains compatibility behavior; do not expand it into a second project VCS.
 
-### 3. Complete the live runtime seam
+### 3. Add transaction time to the global version stream
+
+Correct the current knowledge-time gap by attaching a durable wall-clock transaction timestamp to each allocated global/container version. Version order remains the canonical mutation order; the timestamp adds the missing mapping from logical history to when a REL/PHY actually acquired or committed that state.
+
+Requirements:
+
+- timestamp the version stream once per allocated global version rather than duplicating knowledge-time fields across Memories, Graph relations, Observations, Relationships, or other versioned semantic objects;
+- preserve `source_time_ns` as evidence/source chronology and keep it semantically distinct from transaction/knowledge time;
+- keep deterministically derived Dream temporal extraction unpersisted and cheaply recomputable; it is not transaction time;
+- expose deterministic `version_at_or_before(transaction_time)` / equivalent historical-cut lookup so wall-clock belief-state queries can resolve to the existing versioned state machinery;
+- define backwards-compatible handling for existing untimestamped version records/containers without fabricating historical timestamps; and
+- preserve transaction timestamps through packing, reconciliation, import/export, restore, and other semantic-history operations.
+
+This is owner-local epistemic/system time, not world-validity time. Valid-time interpretation is owned separately by Chronos under ADR 0035; its consumer-specific inferred-state persistence is not part of the version-stream transaction clock.
+
+### 4. Complete the live runtime seam
 
 Finish the host-facing runtime behavior that is not yet covered by the in-process `InteractionRuntime` / `ReliquaryRuntimeHost` boundary:
 
@@ -57,7 +72,7 @@ Finish the host-facing runtime behavior that is not yet covered by the in-proces
 
 Do not turn Reliquary into an independently deployed service merely to host these capabilities. Any future IPC/server boundary requires a separate architectural decision.
 
-### 4. Complete the workspace management API
+### 5. Complete the workspace management API
 
 Expose the remaining concrete owner operations Warlock needs without creating a generalized mutable semantic object layer.
 
@@ -72,7 +87,7 @@ Needed surfaces include:
 
 The management layer composes existing owners; it does not become a new semantic owner.
 
-### 5. Production import and interoperability adapters
+### 6. Production import and interoperability adapters
 
 Add normalized ingestion for historical and external interaction sources:
 
@@ -86,7 +101,7 @@ Add normalized ingestion for historical and external interaction sources:
 
 ACP remains an adapter, not a canonical storage schema. See [ADR 0015](decisions/0015-acp-inline-interaction-stream.md) and [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
 
-### 6. File usability
+### 7. File usability
 
 Add product-facing file operations without reintroducing REL-owned project-file history:
 
@@ -97,7 +112,7 @@ Add product-facing file operations without reintroducing REL-owned project-file 
 - file-content indexing and retrieval separated from filename metadata; and
 - generated-artifact provenance and lifecycle policy.
 
-### 7. Runtime and security hardening
+### 8. Runtime and security hardening
 
 Complete production hardening:
 
@@ -123,7 +138,7 @@ Near-term scope work should:
 - keep governed Organization state distinct from learned observations; and
 - define explicit cross-file Memory/source export and lineage semantics.
 
-Connection/relationship scope expansion is not an immediate target. Existing typed Connection identity remains a supported file kind, but new relationship-routing/hierarchy behavior stays mothballed under [ADR 0029](decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md) until a concrete product requirement reactivates it.
+Relationship-specific semantic state is now reactivated by [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), but **not** as a Connection REL class. Implement a sparse Relationship layer over owner-qualified Entity references: REL-owned relationship state is portable/shared with that REL, PHY-owned relationship state is private to the active PHY, and the effective Relationship graph is composed at runtime from the active PHY plus authorized active RELs. Existing legacy Connection-typed REL identity remains compatibility-only.
 
 ## Reliquary / Phylactery product transition
 
@@ -146,6 +161,22 @@ Routine prompt tuning on the adversarial fixture remains frozen. Future work is 
 
 Do not resume benchmark-specific prompt squeezing merely to chase stochastic fixture misses.
 
+## Chronos
+
+Modularize and expand the current Dream temporal machinery into the shared Chronos subsystem defined by [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md) and the [Chronos subsystem plan](chronos-subsystem-plan.md).
+
+Near-term work should:
+
+- extract/generalize the existing deterministic `dream_temporal*` parser/model/matcher behind a shared Chronos boundary without creating a second temporal stack;
+- add high-recall deterministic temporal-indication detection, including bounded typo tolerance for temporal vocabulary;
+- expand deterministic parsing for numeric and word-number relative expressions, months/years, ranges/boundaries, durations, recurrence, and safe loose calendar forms;
+- keep deterministic Chronos output derived/unpersisted by default;
+- invoke bounded temporal inference only when an indication exists and deterministic resolution is insufficient;
+- integrate Chronos into Insomnia Memory processing, Dream Memory-Web reasoning, and Perception Observation processing; and
+- bind any persisted inferred temporal conclusion to the semantic body/version that justified it so edits/replacements make stale inference detectable.
+
+Chronos owns source/valid-time interpretation mechanics. Wall-clock transaction/knowledge time remains owned by the timestamped global/container version stream in Immediate Priority 3.
+
 ## Echo retrieval surface
 
 Expose bounded source-scoped Echo expansion to higher-level context assembly.
@@ -166,12 +197,40 @@ Treat further Dream architecture as measurement-driven rather than continuing un
 Potential future work includes:
 
 - bounded reconsideration only for observed unresolved/ambiguous cases;
-- model-enriched temporal interpretation only where deterministic chronology is insufficient;
+- migration of Dream's current temporal candidate/context implementation onto shared Chronos without changing Dream's Memory-to-Memory ownership;
 - derived temporal acceleration only if measured candidate cost warrants it;
 - additional relationship provenance/evidence persistence where product inspection requires it; and
 - new relation classes only with explicit publication and lifecycle semantics.
 
 The shipped design and validation history belong to current architecture/reference and retained validation material, not this roadmap.
+
+## Perception
+
+Implement the Entity/Relationship/Observation semantic layer defined by [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md), [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), and the detailed [Perception subsystem plan](perception-subsystem-plan.md).
+
+The implementation sequence is:
+
+1. add a post-extraction Insomnia metadata pass for Entity mentions and lexical terms without moving Entity authority into Insomnia;
+2. implement Perception pass 1 for owner-local Entity synthesis, association, durable identity, and ambiguity preservation;
+3. implement the ADR 0034 Relationship lane: sparse typed Relationship containers over owner-qualified Entity references, cross-owner references without cross-owner Dream edges, relationship-local derived state, and the active-PHY/authorized-REL visibility boundary;
+4. extend derived Communities to recursive Leiden subdivision, stopping when no genuine subcommunities remain, and add ephemeral bounded local processing neighbourhoods for oversized irreducible leaves;
+5. implement Observation persistence and pass 3 for bounded multi-Memory extrapolation with exact support/derivation lineage;
+6. implement pass 4 to generate and separately embed high-recall Observation routing receptors;
+7. implement pass 2 as strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/Relationship-routed candidates rather than an all-Observation scan;
+8. add mutation-threshold and wall-time Observation reconsideration, where zero relevant wall-time mutations deterministically mark stale and non-zero mutations trigger semantic reconsideration; and
+9. add persistent Entity/Observation ambiguity plus deterministic runtime clarification injection on later relevant user turns.
+
+Perception must preserve these scaling boundaries:
+
+- no exhaustive `new Memory x all Observations` inference path;
+- no exhaustive Entity-pair Relationship inference path and no automatic Relationship-per-Entity materialization;
+- no non-active PHY Relationship traversal through shared REL Entities;
+- no forced/fake Leiden subdivisions solely to meet context budgets;
+- no routing receptor as evidentiary authority;
+- no deletion/invalidation of Observations merely because confirming evidence failed to arrive; and
+- no general curiosity/open-question framework beyond Entity/Observation ambiguity in the initial subsystem.
+
+Scale/quality gates should measure receptor recall, pairwise false positives, recursive-Community/local-neighbourhood coverage, inference cost growth, and stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
 
 ## Memory-web and retrieval integration
 
@@ -179,6 +238,7 @@ Future integration work:
 
 - attach reusable `MemoryRetrievalIndex` lifecycle to Ego/runtime so repeated queries reuse derived indexes and rebuild deterministically when stale;
 - compose owner-local REL and PHY retrieval above those primitives without creating cross-owner Dream/Graph authority;
+- compose the effective Relationship graph separately from active-PHY Relationships plus authorized active-REL Relationships, preserving Relationship-owner visibility and portable shared REL state;
 - measure release-mode latency against `GlobalExact` during rollout;
 - consider explicit lower-cost routing modes only if production economics justify them;
 - tune the implemented Community-lineage continuation/material-change thresholds only from real archive behavior; continuity-preserving Community IDs remain unnecessary while derived lineage is sufficient;
@@ -269,6 +329,11 @@ The current roadmap does not include:
 - [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md)
 - [ADR 0028](decisions/0028-project-folder-and-repository-bootstrap-contract.md)
 - [ADR 0029](decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md)
+- [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md)
+- [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
+- [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
+- [Chronos subsystem plan](chronos-subsystem-plan.md)
+- [Perception subsystem plan](perception-subsystem-plan.md)
 
 ## Notes
 

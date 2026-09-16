@@ -1,6 +1,6 @@
 # ADR 0024: Owner-local Dream processing
 
-Status: Accepted and implemented, 2026-08-27
+Status: Accepted and implemented, 2026-08-27. Dream temporal machinery is generalized into shared Chronos by ADR 0035 without changing Dream's owner-local Graph authority.
 
 Owners: Dream candidate discovery, Graph publication, Memory lifecycle projection, ReliquaryRuntimeHost
 

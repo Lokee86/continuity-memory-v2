@@ -4,7 +4,7 @@ Parent index: [Architectural decisions](INDEX.md)
 
 ## Status
 
-Accepted — 2026-09-04. Supersedes ADR 0021's behavioral distinction between Organization, Project, and Connection Reliquaries. Legacy typed REL headers remain readable for compatibility, but new RELs are homogeneous.
+Accepted — 2026-09-04. Supersedes ADR 0021's behavioral distinction between Organization, Project, and Connection Reliquaries. Legacy typed REL headers remain readable for compatibility, but new RELs are homogeneous. The relationship-specific semantic-state mothballing in this ADR is superseded by ADR 0034; ADR 0034 does not restore Connection as a REL class.
 
 ## Context
 
@@ -50,9 +50,11 @@ A REL without a repository association remains a valid REL. A REL with a reposit
 
 The Phylactery remains the separate user-owned durable scope. This ADR removes classes within REL; it does not collapse user and REL ownership into one file kind.
 
-### Relationship/Connection scope semantics remain mothballed
+### Relationship/Connection REL semantics remain retired
 
-The earlier idea of a special relationship/Connection owner is not part of the active model. Old Connection-typed files remain readable as legacy RELs. If relationship-specific ownership is ever reintroduced, it requires a concrete product requirement and a new architectural decision.
+The earlier idea of a special relationship/Connection **REL owner** is not part of the active model. Old Connection-typed files remain readable as legacy RELs.
+
+ADR 0034 subsequently reactivates relationship-specific semantic state as a separate sparse Relationship layer over owner-qualified Entity references. That layer may span REL/PHY Entity identities and carry bounded relationship-local derived state, but it does not reintroduce Connection as a REL class or give each relationship an independent Memory Web.
 
 ## Consequences
 
@@ -91,6 +93,7 @@ Rejected. It creates sibling/project cross-contamination and makes mounting a RE
 - [ADR 0021 — Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md)
 - [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
 - [Roadmap](../roadmap.md)
+- [ADR 0034 — Cross-owner Relationship graph and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
 - [Architecture](../architecture.md)
 
 ## Notes

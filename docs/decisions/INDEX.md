@@ -11,7 +11,7 @@
 - [ADR 0009: Expandable model switchboard](0009-expandable-model-switchboard.md) — **Accepted**, 2026-08-14.
 - [ADR 0010: Encrypted credential objects](0010-encrypted-credential-objects.md) — **Accepted**, 2026-08-14.
 - [ADR 0011: Detachable repo-local CLI](0011-detachable-repo-local-cli.md) — **Accepted**, 2026-08-15.
-- [ADR 0012: Deterministic episodes and Insomnia memory authority](0012-deterministic-episodes-and-insomnia-memory-authority.md) — **Accepted**, 2026-08-15.
+- [ADR 0012: Deterministic episodes and Insomnia memory authority](0012-deterministic-episodes-and-insomnia-memory-authority.md) — **Accepted; metadata enrichment amended by ADR 0033; Memory temporal interpretation assigned to Chronos by ADR 0035**, 2026-08-15.
 - [ADR 0013: Immutable Memory Vector bindings](0013-immutable-memory-vector-bindings.md) — **Accepted**, 2026-08-15.
 - [ADR 0014: Echo historical reasoning traces](0014-echo-historical-reasoning-traces.md) — **Accepted**, 2026-08-16.
 - [ADR 0015: ACP inline interaction stream](0015-acp-inline-interaction-stream.md) — **Accepted for ACP adapter capture semantics; amended by ADR 0016**, 2026-08-17.
@@ -23,12 +23,15 @@
 - [ADR 0021: Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md) — **Accepted for logical scope ownership and typed Reliquary identity; provisional context/Connection expansion amended by ADR 0029**, 2026-08-25.
 - [ADR 0022: Durable typed owner identity](0022-durable-typed-owner-identity.md) — **Accepted and implemented**, 2026-08-26.
 - [ADR 0023: Insomnia durable owner routing](0023-insomnia-durable-owner-routing.md) — **Accepted and implemented**, 2026-08-27.
-- [ADR 0024: Owner-local Dream processing](0024-owner-local-dream-processing.md) — **Accepted and implemented; extracted-only scheduling amended by ADR 0030**, 2026-08-27.
+- [ADR 0024: Owner-local Dream processing](0024-owner-local-dream-processing.md) — **Accepted and implemented; extracted-only scheduling amended by ADR 0030; temporal machinery generalized by ADR 0035**, 2026-08-27.
 - [ADR 0025: Owner-local derived Graph communities](0025-owner-local-derived-communities.md) — **Accepted and implemented; semantic naming amended by ADR 0031**, 2026-08-27.
 - [ADR 0026: Community-routed owner-local Memory retrieval](0026-community-routed-memory-retrieval.md) — **Accepted and implemented**, 2026-08-29.
 - [ADR 0027: Warlock project repositories and Reliquary storage boundary](0027-warlock-project-repositories-and-reliquary-storage-boundary.md) — **Accepted**, 2026-09-02.
 - [ADR 0028: Project folder and repository bootstrap contract](0028-project-folder-and-repository-bootstrap-contract.md) — **Accepted**, 2026-09-02.
-- [ADR 0029: Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md) — **Accepted; amends ADR 0021's provisional context/Connection direction**, 2026-09-04.
+- [ADR 0029: Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md) — **Accepted for homogeneous RELs and dependency context; relationship mothballing superseded by ADR 0034**, 2026-09-04.
 - [ADR 0030: Provenance-anchored Dream maintenance](0030-provenance-anchored-dream-maintenance.md) — **Accepted and implemented; amends ADR 0024's extracted-only scheduling**, 2026-09-05.
 - [ADR 0031: Dream-derived community semantic names and user override](0031-dream-derived-community-semantic-names.md) — **Accepted and implemented; amends ADR 0025's presentation-only naming boundary; continuity amended by ADR 0032**, 2026-09-05.
 - [ADR 0032: Derived Community lineage and semantic-name continuity](0032-community-lineage-and-name-continuity.md) — **Accepted and implemented; amends ADR 0025/0031 for changed-membership continuity**, 2026-09-07.
+- [ADR 0033: Perception entities, observations, and ambiguity handling](0033-perception-entities-observations-and-ambiguity.md) — **Accepted; design decision, not yet implemented; amends ADR 0012/0025; Relationship synthesis added by ADR 0034; Observation temporal interpretation delegated to Chronos by ADR 0035**, 2026-09-08.
+- [ADR 0034: Cross-owner Relationship graph and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md) — **Accepted; design decision, not yet implemented; amends ADR 0029/0033**, 2026-09-08.
+- [ADR 0035: Chronos shared temporal semantics](0035-chronos-shared-temporal-semantics.md) — **Accepted; design decision, not yet implemented as a standalone shared subsystem; generalizes current Dream temporal machinery for Insomnia/Dream/Perception**, 2026-09-09.

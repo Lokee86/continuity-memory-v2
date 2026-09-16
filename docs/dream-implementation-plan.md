@@ -180,6 +180,8 @@ source chronology + explicit expressions
 
 Model enrichment is optional and only for genuinely unresolved temporal semantics. Deterministic verification of any model-enriched temporal result remains required.
 
+This section records the shipped Dream-owned implementation. Future temporal ownership is generalized by [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md): the existing deterministic Dream temporal machinery becomes the nucleus of shared **Chronos**, consumed by Insomnia, Dream, and Perception. Chronos expands deterministic indication detection/parsing first and uses bounded inference only for unresolved temporal semantics; it does not change Dream's Memory-to-Memory relationship authority.
+
 Do not restore the old CTX expanded temporal-dimension/gravity representation. Do not mix record creation time into semantic event chronology.
 
 ## Memory identity and re-evaluation

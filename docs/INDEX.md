@@ -11,7 +11,7 @@
 - [Community scan-and-merge benchmark — 2026-08-27](community-scan-merge-benchmark-2026-08-27.md) — synthetic scaling and modularity comparison for community algorithm v2 against monolithic Leiden.
 - [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md) — small owner-split routing and synthetic scale evidence that established the requirements for a larger real Memory-Web validation.
 - [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md) — five-fold 1,087-Memory validation of four-sub-centroid/top-4 routing, end-to-end traversal quality, vector-work reduction, and context-diversity checks.
-- [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) — retained scope-ownership rationale, typed REL/PHY design, authority separation, Organization→Project hierarchy direction, and deferred Connection/relationship exploration.
+- [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) — retained scope-ownership rationale, REL/PHY authority separation, dependency-based REL composition, and the ADR 0034 owner-local/cross-owner-referential Relationship layer.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.
@@ -20,6 +20,8 @@
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
 - [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
+- [Chronos subsystem plan](chronos-subsystem-plan.md) — accepted shared temporal architecture for deterministic-first indication detection, normalization, parsing/resolution, valid-time interpretation, and bounded inference across Insomnia, Dream, and Perception.
+- [Perception subsystem plan](perception-subsystem-plan.md) — accepted future architecture and staged implementation plan for Entity/Relationship/Observation synthesis, relationship privacy/composition, routing receptors, reconsideration, and ambiguity clarification.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.
