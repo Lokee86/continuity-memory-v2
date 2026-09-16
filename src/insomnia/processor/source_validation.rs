@@ -1,5 +1,33 @@
 use crate::{Archive, Container, InsomniaCandidate};
 
+pub(super) fn candidate_source_time_ns(
+    archive: &Archive,
+    candidate: &InsomniaCandidate,
+    turns: &[crate::ResolvedTurn],
+) -> Result<i64, super::InsomniaProcessError> {
+    if let (Some(conversation_id), Some(node_id)) = (
+        candidate.authority_source_conversation_id.as_deref(),
+        candidate.authority_source_node_id.as_deref(),
+    ) {
+        return archive
+            .nodes
+            .get(conversation_id, node_id)
+            .map(|node| node.timestamp_ns)
+            .ok_or_else(|| {
+                super::InsomniaProcessError::InvalidCandidate(
+                    "authority source timestamp is unavailable".into(),
+                )
+            });
+    }
+    turns
+        .iter()
+        .find(|turn| turn.node_id == candidate.source_node_id)
+        .map(|turn| turn.timestamp_ns)
+        .ok_or_else(|| {
+            super::InsomniaProcessError::InvalidCandidate("source timestamp is unavailable".into())
+        })
+}
+
 pub(super) fn validate_candidate_sources(
     archive: &Archive,
     container: &mut Container,

@@ -6,9 +6,9 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction, parser-independent indication/normalization, relative offsets, bounded/open intervals, exact standalone durations, broader deterministic recurrence, hemisphere-qualified seasons, and the planned safe loose-calendar baseline are implemented. Detector calibration, bounded inference, and consumer integrations beyond Dream remain in progress.
+Shared-core extraction, parser-independent indication/normalization, the deterministic grammar baseline, and an explicit resolution-status contract are implemented. Insomnia now assesses prepared Memory drafts against authoritative `source_time_ns` and carries that assessment transiently to the publication seam. Detector calibration, bounded inference, inferred-state persistence/staleness, and Perception integration remain in progress.
 
-Chronos now owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` may use a transient corrected view but maps any corrected evidence back to the exact original text. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
+Chronos owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, matcher, and resolution assessment under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` returns deterministic products; `chronos::assess` returns detection + analysis + `TemporalResolutionStatus::{NoTemporalMaterial,FullyResolved,Unresolved}` and the exact unresolved indications eligible for bounded inference. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
 ## Overview
 
@@ -37,9 +37,10 @@ semantic unit + reference chronology
     -> indication detector
     -> bounded normalization
     -> deterministic parser/resolver
-    -> temporal analysis
-         -> complete: return derived result
-         -> unresolved + relevant: bounded inference fallback
+    -> temporal assessment
+         -> no temporal material: stop
+         -> fully resolved: return derived result
+         -> unresolved residue + relevant: bounded inference fallback
 ```
 
 The semantic unit differs by consumer; temporal primitives remain shared.
@@ -152,11 +153,12 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Locale-ambiguous numeric dates, unqualified seasons, approximate periods, and other forms without one safe deterministic interpretation remain indication-only for bounded fallback.
 - Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction; add further deterministic grammar only from measured unambiguous cases.
 
-### C — Insomnia integration
+### C — Insomnia integration — started
 
-- Invoke Chronos for eligible Memory bodies.
-- Gate temporal model calls behind deterministic unresolved state.
-- Define body/version-bound inferred temporal persistence and staleness.
+- Prepared Insomnia Memory drafts are now assessed through `chronos::assess` using their authoritative `source_time_ns`; the transient `TemporalAssessment` stays paired with the prepared draft through the pre-publication seam.
+- Deterministic Chronos products remain unpersisted and do not overwrite Insomnia's existing category/type/lifecycle metadata contract.
+- Gate future temporal model calls behind `TemporalResolution::needs_inference()` and pass only `unresolved_indications` plus deterministic evidence to that bounded route.
+- Define body/version-bound inferred temporal persistence and staleness before enabling nondeterministic temporal conclusions.
 
 ### D — Dream consumer completion — partially implemented
 
@@ -176,7 +178,7 @@ Measure deterministic parse coverage, indication recall, fuzzy-detection false p
 
 ## Open implementation decisions
 
-- final Chronos API surface beyond the implemented `chronos::detect` / `chronos::analyze` boundaries, detection model, generic `Temporal*` model, and internal matcher;
+- final Chronos API surface beyond the implemented `chronos::detect` / `chronos::analyze` / `chronos::assess` boundaries, resolution model, generic `Temporal*` model, and internal matcher;
 - indication-vocabulary coverage and calibrated fuzzy thresholds beyond the implemented conservative first pass;
 - remaining valid-time representation details beyond implemented optional-bound intervals, especially uncertainty and multi-evidence composition;
 - persistence schema for inferred-only conclusions;

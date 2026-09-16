@@ -7,11 +7,11 @@ use crate::{
 use std::fmt;
 
 mod application;
+mod prepared;
 mod source_validation;
 
-pub(crate) use application::{
-    PreparedApplication, commit_application, prepare_application, publish_user_application,
-};
+pub(crate) use application::{commit_application, prepare_application, publish_user_application};
+pub(crate) use prepared::PreparedApplication;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaProcessResult {

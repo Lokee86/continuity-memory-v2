@@ -41,6 +41,8 @@ mod chronos_recurrence;
 mod chronos_recurrence_interval;
 mod chronos_relative;
 mod chronos_relative_offset;
+mod chronos_resolution;
+mod chronos_resolution_model;
 mod chronos_season;
 mod chronos_vocabulary;
 mod community_codec;
@@ -328,6 +330,9 @@ pub use chronos_model::{
     TemporalOrigin as DreamTemporalOrigin, TemporalPattern as DreamTemporalPattern,
     TemporalWeekday as DreamTemporalWeekday,
 };
+pub use chronos_resolution_model::{
+    TemporalAssessment, TemporalResolution, TemporalResolutionStatus,
+};
 pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
@@ -507,6 +512,8 @@ mod chronos_calendar_language_tests;
 mod chronos_duration_recurrence_tests;
 #[cfg(test)]
 mod chronos_relative_tests;
+#[cfg(test)]
+mod chronos_resolution_tests;
 #[cfg(test)]
 mod chronos_tests;
 #[cfg(all(test, feature = "community-benchmarks"))]

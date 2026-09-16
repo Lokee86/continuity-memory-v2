@@ -6,7 +6,7 @@ Implementation planning: [Chronos subsystem plan](../chronos-subsystem-plan.md) 
 
 ## Status
 
-Accepted — 2026-09-09. Shared deterministic core extraction, indication/normalization, relative offsets, bounded/open intervals, exact standalone durations, broader recurrence, hemisphere-qualified seasons, and the safe loose-calendar baseline are implemented; bounded inference and Insomnia/Perception integration remain future work.
+Accepted — 2026-09-09. Shared deterministic core extraction, indication/normalization, the conservative grammar baseline, and explicit resolution status are implemented. Insomnia now invokes Chronos while preparing extracted Memory drafts and carries the transient assessment to its pre-publication seam; bounded inference, inferred-state persistence/staleness, and Perception integration remain future work.
 
 The former deterministic `dream_temporal*` parser/model/calendar/recurrence/matcher implementation is now owned by `chronos*`. Chronos also exposes parser-independent indication detection with original byte spans and bounded contextual typo correction over temporal vocabulary. Dream retains a thin owner-specific source-time adapter and compatibility aliases rather than a second temporal stack.
 
@@ -157,7 +157,7 @@ Rejected. Chronos only needs bounded fuzzy recognition of temporal vocabulary.
 
 ## Open implementation questions
 
-- final Chronos APIs beyond the implemented `chronos::detect` / `chronos::analyze` boundaries, detection model, generic `Temporal*` types, and internal matcher;
+- final Chronos APIs beyond the implemented `chronos::detect` / `chronos::analyze` / `chronos::assess` boundaries, resolution model, generic `Temporal*` types, and internal matcher;
 - broader indication-vocabulary coverage and fuzzy-match calibration beyond the implemented conservative first pass;
 - expanded deterministic grammar;
 - remaining valid-time representation details beyond implemented optional-bound intervals, especially recurrence composition, granularity synthesis, and uncertainty;

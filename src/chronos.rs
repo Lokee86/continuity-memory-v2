@@ -1,4 +1,4 @@
-use crate::{TemporalAnalysis, TemporalDetection, TemporalMatch};
+use crate::{TemporalAnalysis, TemporalAssessment, TemporalDetection, TemporalMatch};
 
 /// Detect possible world-time material without requiring that Chronos can already parse it.
 pub fn detect(text: &str) -> TemporalDetection {
@@ -11,6 +11,28 @@ pub fn detect(text: &str) -> TemporalDetection {
 /// their authoritative source/reference time and pass it through this shared boundary.
 pub fn analyze(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAnalysis {
     let detected = crate::chronos_detection::detect_and_normalize(text);
+    analyze_detected(text, reference_timestamp_ns, &detected)
+}
+
+/// Detect and deterministically analyze temporal material, then report whether any detected
+/// temporal evidence remains unresolved and is therefore eligible for bounded inference.
+pub fn assess(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAssessment {
+    let detected = crate::chronos_detection::detect_and_normalize(text);
+    let analysis = analyze_detected(text, reference_timestamp_ns, &detected);
+    let detection = detected.detection.clone();
+    let resolution = crate::chronos_resolution::assess_resolution(text, &detection, &analysis);
+    TemporalAssessment {
+        detection,
+        analysis,
+        resolution,
+    }
+}
+
+fn analyze_detected(
+    text: &str,
+    reference_timestamp_ns: Option<i64>,
+    detected: &crate::chronos_detection::DetectedTemporalText,
+) -> TemporalAnalysis {
     let mut analysis = crate::chronos_parser::parse_temporal(text, reference_timestamp_ns);
     let Some(normalized_text) = detected.normalized_text.as_deref() else {
         return analysis;

@@ -249,7 +249,7 @@ pub(super) fn wait_phylactery_revisions(host: &ReliquaryRuntimeHost, target: usi
 }
 
 fn wait_until(mut ready: impl FnMut() -> bool, operation: &str) {
-    for _ in 0..300 {
+    for _ in 0..1_000 {
         if ready() {
             return;
         }

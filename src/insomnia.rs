@@ -22,6 +22,7 @@ pub(crate) mod rebuild;
 pub(crate) mod runtime_step;
 pub(crate) mod store;
 mod synthesis;
+mod temporal;
 mod worker;
 
 pub use backpressure::DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS;
@@ -79,6 +80,8 @@ mod queue_recovery_tests;
 mod queue_tests;
 #[cfg(test)]
 mod scheduler_tests;
+#[cfg(test)]
+mod temporal_tests;
 #[cfg(test)]
 mod test_support;
 #[cfg(test)]

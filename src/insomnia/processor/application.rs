@@ -1,4 +1,5 @@
-use super::source_validation::validate_candidate_sources;
+use super::prepared::{PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication};
+use super::source_validation::{candidate_source_time_ns, validate_candidate_sources};
 use super::{InsomniaProcessError, InsomniaProcessResult};
 use crate::insomnia::candidate::hex;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
@@ -10,24 +11,6 @@ use crate::{
     InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft, MemoryRef,
     MemorySourceRef, Phylactery,
 };
-
-pub(crate) struct PreparedApplication {
-    pub(crate) project_drafts: Vec<MemoryDraft>,
-    pub(crate) user_drafts: Vec<PreparedUserMemory>,
-    pub(crate) rejected: Vec<InsomniaRejection>,
-    pub(crate) model: String,
-}
-
-pub(crate) struct PreparedUserMemory {
-    pub(crate) draft: MemoryDraft,
-    pub(crate) source_ref: MemorySourceRef,
-}
-
-pub(crate) struct UserPublication {
-    pub(crate) created: Vec<Memory>,
-    pub(crate) existing: Vec<Memory>,
-    pub(crate) refs: Vec<MemoryRef>,
-}
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn prepare_application(
@@ -81,8 +64,9 @@ pub(crate) fn prepare_application(
             created_at_ns: episode.source_through_ns,
             updated_at_ns: completed_at_ns.max(episode.source_through_ns),
         };
+        let temporal = crate::insomnia::temporal::assess_draft(&draft);
         match candidate.ownership {
-            InsomniaOwnership::Project => project_drafts.push(draft),
+            InsomniaOwnership::Project => project_drafts.push(PreparedMemory { draft, temporal }),
             InsomniaOwnership::User => {
                 let owner_id = container.owner_id().ok_or_else(|| {
                     InsomniaProcessError::InvalidCandidate(
@@ -111,7 +95,10 @@ pub(crate) fn prepare_application(
                 draft.grounding_source_conversation_id = None;
                 draft.grounding_source_node_id = None;
                 draft.source_episode_id = None;
-                user_drafts.push(PreparedUserMemory { draft, source_ref });
+                user_drafts.push(PreparedUserMemory {
+                    memory: PreparedMemory { draft, temporal },
+                    source_ref,
+                });
             }
         }
     }
@@ -137,7 +124,11 @@ pub(crate) fn publish_user_application(
     let mut existing = Vec::new();
     let mut refs = Vec::with_capacity(drafts.len());
     for prepared in drafts {
-        let draft = &prepared.draft;
+        let draft = &prepared.memory.draft;
+        debug_assert_eq!(
+            prepared.memory.temporal.analysis.source_timestamp_ns,
+            draft.source_time_ns
+        );
         let memory = match phylactery.publish_memory_with_source_ref(
             None,
             0,
@@ -201,7 +192,18 @@ pub(crate) fn commit_application(
         existing: Vec::new(),
         refs: Vec::new(),
     });
-    let batch = memories.stage_grouped_insomnia(container, prepared.project_drafts)?;
+    let project_drafts = prepared
+        .project_drafts
+        .into_iter()
+        .map(|prepared| {
+            debug_assert_eq!(
+                prepared.temporal.analysis.source_timestamp_ns,
+                prepared.draft.source_time_ns
+            );
+            prepared.draft
+        })
+        .collect();
+    let batch = memories.stage_grouped_insomnia(container, project_drafts)?;
     let existing = batch.existing;
     let mut memory_ids: Vec<_> = batch.records.iter().map(|record| record.id).collect();
     memory_ids.extend(existing.iter().map(|memory| memory.id));
@@ -245,34 +247,6 @@ pub(crate) fn commit_application(
         user_existing: user_publication.existing,
         rejected: prepared.rejected,
     })
-}
-
-fn candidate_source_time_ns(
-    archive: &Archive,
-    candidate: &crate::InsomniaCandidate,
-    turns: &[crate::ResolvedTurn],
-) -> Result<i64, InsomniaProcessError> {
-    if let (Some(conversation_id), Some(node_id)) = (
-        candidate.authority_source_conversation_id.as_deref(),
-        candidate.authority_source_node_id.as_deref(),
-    ) {
-        return archive
-            .nodes
-            .get(conversation_id, node_id)
-            .map(|node| node.timestamp_ns)
-            .ok_or_else(|| {
-                InsomniaProcessError::InvalidCandidate(
-                    "authority source timestamp is unavailable".into(),
-                )
-            });
-    }
-    turns
-        .iter()
-        .find(|turn| turn.node_id == candidate.source_node_id)
-        .map(|turn| turn.timestamp_ns)
-        .ok_or_else(|| {
-            InsomniaProcessError::InvalidCandidate("source timestamp is unavailable".into())
-        })
 }
 
 fn same_routed_user_semantics(
