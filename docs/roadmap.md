@@ -152,8 +152,8 @@ Modularize and expand the current Dream temporal machinery into the shared Chron
 
 Near-term work should:
 
-- add high-recall deterministic temporal-indication detection, including bounded typo tolerance for temporal vocabulary;
-- expand deterministic parsing for numeric and word-number relative expressions, months/years, ranges/boundaries, durations, recurrence, and safe loose calendar forms;
+- expand/calibrate the implemented indication detector and bounded temporal-vocabulary normalizer from measured recall/false positives rather than broad spell correction;
+- expand deterministic parsing for numeric and word-number relative expressions, months/years, ranges/boundaries, durations, recurrence, seasons, and safe loose calendar forms;
 - keep deterministic Chronos output derived/unpersisted by default;
 - invoke bounded temporal inference only when an indication exists and deterministic resolution is insufficient;
 - integrate Chronos into Insomnia Memory processing, Dream Memory-Web reasoning, and Perception Observation processing; and
@@ -181,7 +181,7 @@ Treat further Dream architecture as measurement-driven rather than continuing un
 Potential future work includes:
 
 - bounded reconsideration only for observed unresolved/ambiguous cases;
-- migration of Dream's current temporal candidate/context implementation onto shared Chronos without changing Dream's Memory-to-Memory ownership;
+- shared Chronos temporal ordering/validity outputs for Dream only where measured reasoning needs them, without changing Dream's Memory-to-Memory ownership;
 - derived temporal acceleration only if measured candidate cost warrants it;
 - additional relationship provenance/evidence persistence where product inspection requires it; and
 - new relation classes only with explicit publication and lifecycle semantics.

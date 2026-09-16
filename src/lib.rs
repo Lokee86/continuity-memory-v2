@@ -22,11 +22,16 @@ pub mod chronos;
 mod chronos_absolute;
 mod chronos_absolute_calendar;
 mod chronos_calendar;
+mod chronos_detection;
+mod chronos_detection_model;
+mod chronos_edit_distance;
+mod chronos_fuzzy;
 mod chronos_match;
 mod chronos_model;
 mod chronos_parser;
 mod chronos_recurrence;
 mod chronos_relative;
+mod chronos_vocabulary;
 mod community_codec;
 mod community_error;
 mod community_leiden;
@@ -299,6 +304,7 @@ pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
 pub type Reliquary = Cva;
+pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_model::{
     TemporalAnalysis, TemporalAnchor, TemporalFrequency, TemporalGranularity, TemporalMatch,
     TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalWeekday,

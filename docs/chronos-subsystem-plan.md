@@ -6,9 +6,9 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction implemented; deterministic coverage expansion and consumer integrations beyond Dream remain in progress.
+Shared-core extraction plus the first parser-independent indication/normalization seam are implemented; deterministic grammar expansion and consumer integrations beyond Dream remain in progress.
 
-Chronos now owns the shared temporal model, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
+Chronos now owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` may use a transient corrected view but maps any corrected evidence back to the exact original text. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
 ## Overview
 
@@ -138,13 +138,13 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Dream resolves authoritative Memory source time and delegates analysis/matching to Chronos.
 - Existing Dream temporal tests remain green, with direct Chronos contract tests added.
 
-### B — Detection and deterministic coverage
+### B — Detection and deterministic coverage — partially implemented
 
-- Add indication detection independent of full parsing.
-- Add bounded fuzzy temporal-vocabulary recognition with original-span preservation.
+- Parser-independent `chronos::detect` now reports explicit/calendar/relative/boundary/recurrence/contextual-duration indications with original byte spans.
+- Bounded one-edit/transposition correction now covers selected temporal vocabulary with contextual guards; normalized tokens are transient and corrected parse evidence maps back to the exact original span.
 - Add numeric and word-number relative units including months/years.
-- Expand range/boundary, duration, recurrence, and safe loose-calendar parsing.
-- Measure typo recall and false positives.
+- Expand range/boundary, duration, recurrence, seasons, and safe loose-calendar parsing.
+- Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction.
 
 ### C — Insomnia integration
 
@@ -170,8 +170,8 @@ Measure deterministic parse coverage, indication recall, fuzzy-detection false p
 
 ## Open implementation decisions
 
-- final Chronos API surface beyond the implemented `chronos::analyze` boundary, generic `Temporal*` model, and internal matcher;
-- indication vocabulary and fuzzy thresholds;
+- final Chronos API surface beyond the implemented `chronos::detect` / `chronos::analyze` boundaries, detection model, generic `Temporal*` model, and internal matcher;
+- indication-vocabulary coverage and calibrated fuzzy thresholds beyond the implemented conservative first pass;
 - valid-time result representation;
 - persistence schema for inferred-only conclusions;
 - model route used by fallback inference;

@@ -36,6 +36,30 @@ pub(crate) fn push_claimed(claimed_spans: &mut Vec<TextSpan>, span: TextSpan) {
     claimed_spans.push(span);
 }
 
+pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: TemporalAnalysis) {
+    extra.anchors.retain(|candidate| {
+        !base.anchors.iter().any(|existing| {
+            existing.start_ns == candidate.start_ns
+                && existing.end_ns == candidate.end_ns
+                && existing.granularity == candidate.granularity
+                && existing.origin == candidate.origin
+        })
+    });
+    extra.patterns.retain(|candidate| {
+        !base.patterns.iter().any(|existing| {
+            existing.frequency == candidate.frequency
+                && existing.interval == candidate.interval
+                && existing.weekday == candidate.weekday
+                && existing.month_day == candidate.month_day
+                && existing.month == candidate.month
+        })
+    });
+    base.anchors.append(&mut extra.anchors);
+    base.patterns.append(&mut extra.patterns);
+    normalize_anchors(&mut base.anchors);
+    normalize_patterns(&mut base.patterns);
+}
+
 fn normalize_anchors(values: &mut Vec<TemporalAnchor>) {
     values.sort_by(|left, right| {
         (
