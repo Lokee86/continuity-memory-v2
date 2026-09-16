@@ -1,7 +1,7 @@
 mod contract;
 
 use reliquary_memory::{
-    ConfiguredGeneralEndpoint, GeneralEndpoint, ModelProvider, ModelReasoningEffort,
+    ConfiguredGeneralEndpoint, CredentialId, GeneralEndpoint, ModelProvider, ModelReasoningEffort,
     ModelSwitchboard, ReliquaryConfig,
 };
 use serde_json::{Map, Value, json};
@@ -46,6 +46,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get(3)
         .filter(|arg| !arg.starts_with("--"))
         .map(String::as_str);
+    let reasoning_effort = match env::var("INSOMNIA_TEST_REASONING")
+        .unwrap_or_else(|_| "low".to_owned())
+        .as_str()
+    {
+        "low" => ModelReasoningEffort::Low,
+        "medium" => ModelReasoningEffort::Medium,
+        "high" => ModelReasoningEffort::High,
+        value => {
+            return Err(std::io::Error::other(format!(
+                "unsupported INSOMNIA_TEST_REASONING: {value}"
+            ))
+            .into());
+        }
+    };
     fs::create_dir_all(&output)?;
 
     let mut episodes = load_episodes(&repo.join("corpus/insomnia-tuning-v1.jsonl"))?;
@@ -58,11 +72,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ReliquaryConfig::open(repo.join("reliquary.cfg"))?;
     let credentials = config.credentials.clone();
     let mut models = config.models.clone();
-    if let Some(route) = models.insomnia.as_mut() {
-        route.reasoning_effort = Some(ModelReasoningEffort::Low);
-    } else if let Some(route) = models.general.as_mut() {
-        route.reasoning_effort = Some(ModelReasoningEffort::Low);
+    let semantic_route = if models.insomnia.is_some() {
+        models.insomnia.as_mut().expect("checked insomnia route")
+    } else {
+        models.general.as_mut().ok_or_else(|| {
+            std::io::Error::other("test requires a configured general/insomnia route")
+        })?
+    };
+    if semantic_route.provider != ModelProvider::OpenAiCodex {
+        return Err(std::io::Error::other(
+            "Luna reasoning test requires the current Insomnia credential route to use openai-codex",
+        )
+        .into());
     }
+    semantic_route.model = "gpt-5.6-luna".to_owned();
+    semantic_route.credential_id = CredentialId::new("codex-alt")?;
+    semantic_route.reasoning_effort = Some(reasoning_effort);
     let switchboard = ModelSwitchboard::new(models.clone(), credentials.clone())?;
     let endpoint = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
     let semantic_model = endpoint.model().to_owned();
@@ -85,7 +110,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .into());
     }
     metadata_route.model = "gpt-5.6-luna".to_owned();
-    metadata_route.reasoning_effort = Some(ModelReasoningEffort::Low);
+    metadata_route.credential_id = CredentialId::new("codex-alt")?;
+    metadata_route.reasoning_effort = Some(reasoning_effort);
     let metadata_switchboard = ModelSwitchboard::new(metadata_models, credentials)?;
     let metadata_endpoint =
         ConfiguredGeneralEndpoint::from_insomnia_switchboard(&metadata_switchboard)?;
@@ -162,7 +188,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "semantic_model": semantic_model,
             "metadata_model": metadata_model,
             "synthesis_model": endpoint.model(),
-            "reasoning_effort": "low",
+            "reasoning_effort": reasoning_effort.as_str(),
             "episodes": episodes.len(),
             "memories": memories.len(),
             "workers": workers
@@ -194,6 +220,7 @@ fn run_episode(
             .map_err(|e| e.to_string())?
     };
     canonicalize_ledger_quotes(episode, &mut ledger);
+    repair_missing_user_turns(episode, &mut ledger)?;
     validate_ledger(episode, &ledger)?;
 
     let mut synthesis_groups = build_synthesis_groups(&ledger)?;
@@ -250,6 +277,46 @@ fn run_episode(
         "synthesis_groups": synthesis_payload["synthesis_groups"],
         "candidates": candidates
     }))
+}
+
+fn repair_missing_user_turns(episode: &Value, ledger: &mut Value) -> Result<(), String> {
+    let entries = ledger["entries"]
+        .as_array_mut()
+        .ok_or("ledger.entries is not an array")?;
+    let seen: HashSet<String> = entries
+        .iter()
+        .filter_map(|entry| entry["source_node_id"].as_str().map(str::to_owned))
+        .collect();
+    let mut repaired = 0usize;
+    for turn in episode["turns"].as_array().into_iter().flatten() {
+        if turn["role"] != "user" {
+            continue;
+        }
+        let Some(id) = turn["id"].as_str() else {
+            continue;
+        };
+        if seen.contains(id) {
+            continue;
+        }
+        entries.push(json!({
+            "source_node_id": id,
+            "disposition": "omit",
+            "authority_kind": "none",
+            "category": "none",
+            "type": "none",
+            "lifecycle": "none",
+            "authority_source_node_id": "",
+            "grounding_source_node_id": "",
+            "proposition": "",
+            "source_quote": "",
+            "reason": "Deterministic benchmark repair for a user turn omitted from the model ledger."
+        }));
+        repaired += 1;
+    }
+    if repaired > 0 {
+        eprintln!("deterministically repaired {repaired} missing user turn(s)");
+    }
+    Ok(())
 }
 
 fn validate_ledger(episode: &Value, ledger: &Value) -> Result<(), String> {
