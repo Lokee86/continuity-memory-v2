@@ -172,6 +172,7 @@ fn user_creation_draft(
         grounding_source_node_id: None,
         source_episode_id: None,
         source_time_ns: Some(now_ns),
+        temporal_status: "unknown".into(),
         mutation_id: format!("user_creation:{}", Uuid::new_v4()),
         created_at_ns: now_ns,
         updated_at_ns: now_ns,

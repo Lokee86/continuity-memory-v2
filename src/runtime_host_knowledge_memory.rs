@@ -95,6 +95,7 @@ fn replacement_draft(current: &Memory, title: String, content: String, now_ns: i
         grounding_source_node_id: current.grounding_source_node_id.clone(),
         source_episode_id: current.source_episode_id,
         source_time_ns: current.source_time_ns,
+        temporal_status: current.temporal_status.clone(),
         mutation_id: format!("{provenance}:{}", Uuid::new_v4()),
         created_at_ns: current.created_at_ns,
         updated_at_ns: now_ns.max(current.updated_at_ns.saturating_add(1)),

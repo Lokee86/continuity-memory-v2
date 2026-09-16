@@ -184,6 +184,7 @@ fn draft(mutation_id: &str, title: &str, lifecycle_state: &str, time: i64) -> Me
         grounding_source_node_id: None,
         source_episode_id: None,
         source_time_ns: Some(time),
+        temporal_status: "unknown".into(),
         mutation_id: mutation_id.into(),
         created_at_ns: time,
         updated_at_ns: time,
