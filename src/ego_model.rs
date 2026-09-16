@@ -1,6 +1,11 @@
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct EgoIdentityId(pub [u8; 16]);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EgoIdentity {
+    pub id: EgoIdentityId,
     pub revision: u64,
+    pub name: String,
     pub text: String,
 }
 

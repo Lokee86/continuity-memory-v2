@@ -346,8 +346,8 @@ pub use dream_verifier_schema::{DREAM_VERIFIER_SYSTEM_PROMPT, dream_verifier_sch
 pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use ego_error::EgoError;
 pub use ego_model::{
-    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoPersonality, EgoWebSynthesis,
-    MAX_EGO_ANCHOR_CHARS,
+    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoPersonality,
+    EgoWebSynthesis, MAX_EGO_ANCHOR_CHARS,
 };
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,

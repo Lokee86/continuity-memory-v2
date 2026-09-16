@@ -62,13 +62,28 @@ The type label is optional display/organization metadata only and must not selec
 
 Ego persistence is owner-local, append-only, and clock-neutral with respect to the existing Container semantic global clock. Ego maintains its own contiguous `ego_version` beginning at `1`; each logical document/Anchor also has an optimistic local revision beginning at `1`. Missing Ego records mean empty Ego state.
 
-PHY-only Identity:
+PHY-only Identity records now support multiple stable Identity documents plus one active selection. New Identity revisions use:
 ```text
-8 bytes   "CVAEIDN1"
+8 bytes   "CVAEIDN2"
 u64       ego_version
+16 bytes  Identity UUID
 u64       identity revision
-string    UTF-8 Identity text
+u8        deleted: 0=false, 1=true
+u8        activate: 0=false, 1=true
+string    UTF-8 Identity display name; empty only for tombstones
+string    UTF-8 Identity text; empty only for tombstones
 ```
+The first live Identity is created with `activate=1`; later Identity creation/update does not implicitly replace the active Identity. Deletion appends a tombstone. An active Identity cannot be deleted while another live Identity exists, so switching is explicit. Deleting the only Identity leaves the PHY with no active Identity.
+
+Active Identity swaps are independent state transitions and do not revise either Identity document:
+```text
+8 bytes   "CVAEIDA1"
+u64       ego_version
+16 bytes  active Identity UUID
+```
+The target must identify a live Identity. Re-selecting the already-active Identity is an API no-op and writes no record.
+
+Legacy single-Identity `CVAEIDN1` records remain readable. They are projected as one stable reserved Identity with display name `Default` and are active on reopen; new writes use `CVAEIDN2`/`CVAEIDA1`.
 
 PHY-only Personality:
 ```text

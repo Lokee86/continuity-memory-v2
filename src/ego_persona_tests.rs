@@ -131,7 +131,7 @@ fn revisions_are_guarded_and_rel_rejects_phy_persona_records() {
 
     let rel_path = test_path("foreign-persona.rel");
     let mut rel = Cva::create(&rel_path).unwrap();
-    let payload = encode(&EgoRecord::Identity {
+    let payload = encode(&EgoRecord::LegacyIdentity {
         ego_version: 1,
         revision: 1,
         text: "This does not belong in a REL.".into(),

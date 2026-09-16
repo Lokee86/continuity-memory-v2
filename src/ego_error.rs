@@ -9,6 +9,7 @@ pub enum EgoError {
     InvalidSourceMemoryVersion { source: u64, current: u64 },
     RevisionConflict { expected: u64, actual: u64 },
     NotFound(&'static str),
+    ActiveIdentityDeletion,
 }
 
 impl fmt::Display for EgoError {
@@ -26,6 +27,10 @@ impl fmt::Display for EgoError {
                 "Ego revision conflict: expected {expected}, actual {actual}"
             ),
             Self::NotFound(kind) => write!(f, "Ego {kind} was not found"),
+            Self::ActiveIdentityDeletion => write!(
+                f,
+                "active Ego Identity cannot be deleted while another Identity exists"
+            ),
         }
     }
 }

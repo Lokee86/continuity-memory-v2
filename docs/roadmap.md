@@ -187,13 +187,23 @@ Future integration work:
 
 ## Ego
 
-The first Ego substrate is now underway: REL/PHY persist owner-local Anchors and cached web synthesis, while PHY additionally persists Identity and Personality. These records deliberately do not yet perform inference, scheduling, cross-owner assembly, or prompt injection.
+The first Ego substrate is implemented in this branch. REL/PHY persist owner-local Anchors and cached web synthesis; PHY additionally persists Personality and multiple stable Identity documents with one explicit active selection. Identity records have stable IDs, independent revisions/tombstones, explicit no-op-safe activation, legacy single-Identity compatibility, and a compatibility accessor/mutator for the active Identity. These durable records deliberately do not yet perform inference, scheduling, cross-owner assembly, or prompt injection.
 
 Memory-Web synthesis now has a concrete design direction. REL synthesis should use a bounded REL-local activity window rather than calendar age, so dormant projects do not decay and activity in another REL cannot displace their state. Objective preprocessing is limited to explicit validity such as archived/historical exclusion and Dream-owned duplicate collapse; categories/types remain synthesis structure rather than deterministic relevance filters.
 
 Refresh is intentionally batched. Let `W` be the synthesis activity window, `N` a considerably smaller activity-unit check interval, and `M` the accumulated Memory-Web mutation threshold. Every `N` activity units, Ego performs only a cheap deterministic change check; it resynthesizes from the current `W`-unit window only after the accumulated mutation delta reaches `M`. Below `M`, the delta carries forward. There is no age-based refresh backstop: `W` bounds synthesis input and is not a maximum synthesis lifetime.
 
 The exact activity-unit definition plus calibrated `W`/`N`/`M` values remain measurement work. PHY must be measured separately before inheriting the REL policy; the current 28-day PHY is much smaller than the REL stress case.
+
+Current Ego status:
+
+- durable owner-local Ego persistence is implemented for PHY Identity/Personality, PHY/REL Anchors, and cached owner-local Memory-Web synthesis;
+- multi-Identity PHY support is implemented in this branch, including stable Identity IDs, one explicit active selection, swapping, independent revisions/tombstones, and legacy single-Identity compatibility;
+- Memory-Web synthesis policy is designed but synthesis inference, activity accounting, and refresh scheduling are not implemented;
+- Personality ownership and evidence boundaries are settled, but synthesis mechanics, refresh policy, user-edit interaction, output shape, and budget remain unresolved;
+- deterministic Cross-chat selection policy is designed but not implemented;
+- multi-REL hierarchy/context composition and explicit PHY context composition remain unimplemented; and
+- final Ego context assembly, budgeting calibration, and Warlock prompt injection remain unimplemented.
 
 Next, Ego should:
 
