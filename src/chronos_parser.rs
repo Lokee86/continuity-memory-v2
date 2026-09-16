@@ -35,12 +35,14 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
     let mut durations = crate::chronos_duration::extract_durations(text);
     let mut duration_ranges = crate::chronos_duration::extract_duration_ranges(text);
     let mut approximate_durations = crate::chronos_duration::extract_approximate_durations(text);
+    let mut event_relations = crate::chronos_event_relative::extract_event_relations(text);
     let mut patterns = crate::chronos_recurrence::extract_recurrence(text);
     crate::chronos_normalize::anchors(&mut anchors);
     crate::chronos_normalize::times_of_day(&mut times_of_day);
     crate::chronos_normalize::durations(&mut durations);
     crate::chronos_normalize::duration_ranges(&mut duration_ranges);
     crate::chronos_normalize::approximate_durations(&mut approximate_durations);
+    crate::chronos_normalize::event_relations(&mut event_relations);
     crate::chronos_normalize::intervals(&mut intervals);
     crate::chronos_normalize::patterns(&mut patterns);
     TemporalAnalysis {
@@ -50,6 +52,7 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
         durations,
         duration_ranges,
         approximate_durations,
+        event_relations,
         intervals,
         patterns,
     }
@@ -103,6 +106,14 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
                 && existing.unit == candidate.unit
         })
     });
+    extra.event_relations.retain(|candidate| {
+        !base.event_relations.iter().any(|existing| {
+            existing.amount == candidate.amount
+                && existing.unit == candidate.unit
+                && existing.direction == candidate.direction
+                && existing.reference_event == candidate.reference_event
+        })
+    });
     extra.intervals.retain(|candidate| {
         !base.intervals.iter().any(|existing| {
             existing.start_ns == candidate.start_ns
@@ -127,6 +138,7 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
     base.duration_ranges.append(&mut extra.duration_ranges);
     base.approximate_durations
         .append(&mut extra.approximate_durations);
+    base.event_relations.append(&mut extra.event_relations);
     base.intervals.append(&mut extra.intervals);
     base.patterns.append(&mut extra.patterns);
     crate::chronos_normalize::anchors(&mut base.anchors);
@@ -134,6 +146,7 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
     crate::chronos_normalize::durations(&mut base.durations);
     crate::chronos_normalize::duration_ranges(&mut base.duration_ranges);
     crate::chronos_normalize::approximate_durations(&mut base.approximate_durations);
+    crate::chronos_normalize::event_relations(&mut base.event_relations);
     crate::chronos_normalize::intervals(&mut base.intervals);
     crate::chronos_normalize::patterns(&mut base.patterns);
 }

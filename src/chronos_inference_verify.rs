@@ -27,12 +27,15 @@ fn analysis_matches_kind(kind: TemporalIndicationKind, analysis: &TemporalAnalys
         TemporalIndicationKind::Relative => {
             !analysis.anchors.is_empty() || !analysis.intervals.is_empty()
         }
-        TemporalIndicationKind::Boundary => !analysis.intervals.is_empty(),
+        TemporalIndicationKind::Boundary => {
+            !analysis.intervals.is_empty() || !analysis.event_relations.is_empty()
+        }
         TemporalIndicationKind::Recurrence => !analysis.patterns.is_empty(),
         TemporalIndicationKind::Duration => {
             !analysis.durations.is_empty()
                 || !analysis.duration_ranges.is_empty()
                 || !analysis.approximate_durations.is_empty()
+                || !analysis.event_relations.is_empty()
         }
     }
 }

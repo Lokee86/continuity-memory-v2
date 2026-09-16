@@ -1,6 +1,6 @@
 use crate::{
     TemporalAnchor, TemporalApproximateDuration, TemporalDuration, TemporalDurationRange,
-    TemporalInterval, TemporalPattern, TemporalTimeOfDay,
+    TemporalEventRelation, TemporalInterval, TemporalPattern, TemporalTimeOfDay,
 };
 
 pub(crate) fn anchors(values: &mut Vec<TemporalAnchor>) {
@@ -92,6 +92,31 @@ pub(crate) fn approximate_durations(values: &mut Vec<TemporalApproximateDuration
         left.amount == right.amount
             && left.approximation == right.approximation
             && left.unit == right.unit
+    });
+}
+
+pub(crate) fn event_relations(values: &mut Vec<TemporalEventRelation>) {
+    values.sort_by(|left, right| {
+        (
+            left.amount,
+            left.unit,
+            left.direction,
+            &left.reference_event,
+            &left.evidence,
+        )
+            .cmp(&(
+                right.amount,
+                right.unit,
+                right.direction,
+                &right.reference_event,
+                &right.evidence,
+            ))
+    });
+    values.dedup_by(|left, right| {
+        left.amount == right.amount
+            && left.unit == right.unit
+            && left.direction == right.direction
+            && left.reference_event == right.reference_event
     });
 }
 

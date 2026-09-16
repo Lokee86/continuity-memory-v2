@@ -194,6 +194,13 @@ fn resolved_evidence(assessment: &TemporalAssessment) -> Vec<String> {
         .chain(
             assessment
                 .analysis
+                .event_relations
+                .iter()
+                .map(|value| value.evidence.clone()),
+        )
+        .chain(
+            assessment
+                .analysis
                 .intervals
                 .iter()
                 .map(|value| value.evidence.clone()),

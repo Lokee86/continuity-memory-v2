@@ -72,6 +72,9 @@ fn analyze_detected(
     for duration in &mut corrected.approximate_durations {
         duration.evidence = detected.restore_evidence(text, &duration.evidence);
     }
+    for relation in &mut corrected.event_relations {
+        relation.evidence = detected.restore_evidence(text, &relation.evidence);
+    }
     for interval in &mut corrected.intervals {
         interval.evidence = detected.restore_evidence(text, &interval.evidence);
     }

@@ -189,6 +189,7 @@ pub fn recurring_case() -> (
         durations: Vec::new(),
         duration_ranges: Vec::new(),
         approximate_durations: Vec::new(),
+        event_relations: Vec::new(),
         intervals: Vec::new(),
         patterns: vec![pattern.clone()],
     };
@@ -199,6 +200,7 @@ pub fn recurring_case() -> (
         durations: Vec::new(),
         duration_ranges: Vec::new(),
         approximate_durations: Vec::new(),
+        event_relations: Vec::new(),
         intervals: Vec::new(),
         patterns: vec![pattern],
     };

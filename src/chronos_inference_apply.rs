@@ -28,6 +28,9 @@ pub(crate) fn apply_inference(
         for duration in &mut inferred.approximate_durations {
             duration.evidence = resolution.evidence.clone();
         }
+        for relation in &mut inferred.event_relations {
+            relation.evidence = resolution.evidence.clone();
+        }
         for interval in &mut inferred.intervals {
             interval.evidence = resolution.evidence.clone();
         }
