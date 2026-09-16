@@ -438,6 +438,14 @@ The historical LME score has not been rerun against this v2 implementation. The 
 
 A current-format cold-cache sample has not yet been recorded. Larger-population realistic-dimension vector runs require repeated cache eviction plus one open per sample before conclusions about cold scaling, segmentation, or checkpoints.
 
+### Chronos detector calibration — 2026-09-16
+
+The first indication-detector calibration used production `chronos::assess` over frozen real Memory corpora plus LongMemEval labelled temporal-reasoning answer sessions. The primary 28-day REL contains 1,396 Memories with authoritative source time. Before contextual guards, 244 Memories were marked temporal and 239 were unresolved; inspection showed dominant false-positive boundary/fuzzy traffic such as `through the audioflow seam`, `before the other changes`, `Match -> march`, `early -> yearly`, and uncontextualized four-digit dimensions. After calibration, the same REL has 24 temporal Memories, 22 unresolved Memories, zero fuzzy corrections, and unresolved residue consisting of 24 duration indications plus one calendar indication. The paired 28-day PHY has 124 Memories, 9 temporal Memories, 8 unresolved Memories, zero corrections, and only duration residue. The frozen 14-day REL/PHY control showed the same duration-dominated pattern, so the precision improvement was not specific to the later project vocabulary.
+
+LongMemEval recall was checked only on the labelled temporal-reasoning population rather than all distractor turns: 133 cases, 288 answer-bearing source sessions, and 3,324 unique answer-session turns. Chronos detected temporal material in 283/288 answer sessions (98.3%). Tightening ambiguous calendar terms removed 105 unresolved calendar indications while preserving the same 283/288 session recall. The five sessions with no detected content-time material were cases whose temporal reasoning depends on source/session chronology plus approximate wording such as `recently`, `just completed`, `just helped`, or `just got back`; those are recorded as an uncertainty/approximate-valid-time coverage gap rather than forcing unverifiable detector output.
+
+The calibration also exposed deterministic coverage gaps rather than detector-threshold problems: standalone clock times, approximate/compound durations, partial conversational calendar forms, and event-relative offsets. Fuzzy normalization remains deliberately bounded; numbered-list punctuation is now an adjacency barrier so `3. Weeds ...` cannot become `3 weeks`, while true adjacent typos such as `three mnoths` remain correctable. These measurements justify the current precision guards, not arbitrary grammar expansion.
+
 ## Failure modes
 
 - `cargo fmt --check` catches Rust formatting drift.

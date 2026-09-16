@@ -6,7 +6,7 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction, parser-independent indication/normalization, the deterministic grammar baseline, explicit resolution status, bounded unresolved-only inference, and Insomnia persistence integration are implemented. Insomnia assesses prepared Memory drafts against authoritative `source_time_ns`, calls the temporal model only for unresolved residue, deterministically verifies every non-empty canonical answer, and persists only verified nondeterministic conclusions. Detector calibration and Perception integration remain in progress.
+Shared-core extraction, parser-independent indication/normalization, the deterministic grammar baseline, explicit resolution status, bounded unresolved-only inference, and Insomnia persistence integration are implemented. Insomnia assesses prepared Memory drafts against authoritative `source_time_ns`, calls the temporal model only for unresolved residue, deterministically verifies every non-empty canonical answer, and persists only verified nondeterministic conclusions. The first detector calibration pass is complete against frozen 14/28-day REL/PHY Memories plus LongMemEval temporal-reasoning answer sessions; Perception integration and measured grammar expansion remain future work.
 
 Chronos owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, matcher, and resolution assessment under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` returns deterministic products; `chronos::assess` returns detection + analysis + `TemporalResolutionStatus::{NoTemporalMaterial,FullyResolved,Unresolved}` and the exact unresolved indications eligible for bounded inference. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
@@ -151,7 +151,7 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Hemisphere-qualified named seasons are implemented as meteorological three-month `Season` anchors. Northern/southern hemisphere must be explicit; unqualified season language remains detected but unresolved rather than inheriting a machine/user locale assumption.
 - Safe loose-calendar parsing now covers common English month abbreviations with explicit years, ordinal `day of Month YYYY`, reference-bound `this|next|last Month`, and `Month day this|next|last year`. Reference-bound forms require authoritative source/reference time.
 - Locale-ambiguous numeric dates, unqualified seasons, approximate periods, and other forms without one safe deterministic interpretation remain indication-only for bounded fallback.
-- Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction; add further deterministic grammar only from measured unambiguous cases.
+- The first detector calibration pass is complete: contextual boundary/recurrence/calendar guards, contextual standalone-year detection, and adjacency-aware fuzzy correction were tuned against frozen REL/PHY Memories and labelled LongMemEval temporal-reasoning answer sessions. Further vocabulary/grammar expansion remains measurement-driven.
 
 ### C — Insomnia integration — implemented baseline
 

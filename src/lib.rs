@@ -25,6 +25,8 @@ mod chronos_boundary;
 mod chronos_boundary_endpoint;
 mod chronos_calendar;
 mod chronos_detection;
+mod chronos_detection_context;
+mod chronos_detection_explicit;
 mod chronos_detection_model;
 mod chronos_duration;
 mod chronos_edit_distance;
@@ -522,6 +524,8 @@ mod archive_vector_tests;
 mod chronos_boundary_tests;
 #[cfg(test)]
 mod chronos_calendar_language_tests;
+#[cfg(test)]
+mod chronos_detection_tests;
 #[cfg(test)]
 mod chronos_duration_recurrence_tests;
 #[cfg(test)]

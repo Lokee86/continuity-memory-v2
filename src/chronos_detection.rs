@@ -1,3 +1,4 @@
+use crate::chronos_detection_explicit::explicit_indications;
 use crate::chronos_fuzzy::fuzzy_word;
 use crate::chronos_vocabulary::exact_kind;
 use crate::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
@@ -6,11 +7,6 @@ use std::sync::LazyLock;
 
 static TOKEN_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[A-Za-z]+|\d+").expect("valid Chronos token regex"));
-static EXPLICIT_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\b(?:\d{4}(?:-\d{1,2}(?:-\d{1,2})?)?|\d{1,2}:\d{2}(?::\d{2})?)\b")
-        .expect("valid Chronos explicit regex")
-});
-
 #[derive(Clone, Debug)]
 pub(crate) struct DetectedTemporalText {
     pub(crate) detection: TemporalDetection,
@@ -27,16 +23,16 @@ struct AppliedCorrection {
 }
 
 #[derive(Clone, Debug)]
-struct Token<'a> {
-    start: usize,
-    end: usize,
-    value: &'a str,
-    lower: String,
+pub(crate) struct Token<'a> {
+    pub(crate) start: usize,
+    pub(crate) end: usize,
+    pub(crate) value: &'a str,
+    pub(crate) lower: String,
 }
 
 pub(crate) fn detect_and_normalize(text: &str) -> DetectedTemporalText {
     let tokens = tokens(text);
-    let mut indications = explicit_indications(text);
+    let mut indications = explicit_indications(text, &tokens);
     let mut replacements = Vec::new();
 
     for (index, token) in tokens.iter().enumerate() {
@@ -56,10 +52,16 @@ pub(crate) fn detect_and_normalize(text: &str) -> DetectedTemporalText {
             indications.push(indication(text, token.start, token.end, kind, None));
             continue;
         }
+        let previous_adjacent = previous.is_some_and(|value| {
+            text[value.end..token.start]
+                .chars()
+                .all(|character| character.is_ascii_whitespace() || character == '-')
+        });
         let Some((normalized, kind)) = fuzzy_word(
             token.value,
             previous.map(|value| value.lower.as_str()),
             next.map(|value| value.lower.as_str()),
+            previous_adjacent,
             capitalized,
         ) else {
             continue;
@@ -137,21 +139,6 @@ fn tokens(text: &str) -> Vec<Token<'_>> {
             end: found.end(),
             value: found.as_str(),
             lower: found.as_str().to_ascii_lowercase(),
-        })
-        .collect()
-}
-
-fn explicit_indications(text: &str) -> Vec<TemporalIndication> {
-    EXPLICIT_RE
-        .find_iter(text)
-        .map(|found| {
-            indication(
-                text,
-                found.start(),
-                found.end(),
-                TemporalIndicationKind::Explicit,
-                None,
-            )
         })
         .collect()
 }

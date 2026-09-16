@@ -6,7 +6,7 @@ Implementation planning: [Chronos subsystem plan](../chronos-subsystem-plan.md) 
 
 ## Status
 
-Accepted — 2026-09-09. Shared deterministic core extraction, indication/normalization, the conservative grammar baseline, explicit resolution status, bounded unresolved-only inference, and Memory-bound inferred-state persistence/staleness are implemented. Insomnia invokes Chronos over prepared Memory drafts, runs temporal inference only for unresolved residue, and persists only same-kind deterministically verified nondeterministic conclusions. Perception integration remains future work.
+Accepted — 2026-09-09. Shared deterministic core extraction, indication/normalization, the conservative grammar baseline, explicit resolution status, bounded unresolved-only inference, Memory-bound inferred-state persistence/staleness, and the first corpus-calibrated detector precision pass are implemented. Insomnia invokes Chronos over prepared Memory drafts, runs temporal inference only for unresolved residue, and persists only same-kind deterministically verified nondeterministic conclusions. Perception integration remains future work.
 
 The former deterministic `dream_temporal*` parser/model/calendar/recurrence/matcher implementation is now owned by `chronos*`. Chronos also exposes parser-independent indication detection with original byte spans and bounded contextual typo correction over temporal vocabulary. Dream retains a thin owner-specific source-time adapter and compatibility aliases rather than a second temporal stack.
 
@@ -158,7 +158,7 @@ Rejected. Chronos only needs bounded fuzzy recognition of temporal vocabulary.
 ## Open implementation questions
 
 - final Chronos APIs beyond the implemented detection/analysis/assessment/inference boundaries, resolution model, generic `Temporal*` types, and internal matcher;
-- broader indication-vocabulary coverage and fuzzy-match calibration beyond the implemented conservative first pass;
+- future indication-vocabulary or fuzzy-match expansion beyond the measured corpus-calibrated baseline;
 - expanded deterministic grammar;
 - remaining valid-time representation details beyond implemented optional-bound intervals, especially recurrence composition, granularity synthesis, and uncertainty; and
 - exact multi-evidence Observation temporal-synthesis contract.
