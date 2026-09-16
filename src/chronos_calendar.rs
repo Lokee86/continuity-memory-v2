@@ -86,6 +86,18 @@ pub(crate) fn weekday_date(source: Date, target: TemporalWeekday, forward: bool)
     shift_days(source, distance)
 }
 
+pub(crate) fn weekday_on_or_after(source: Date, target: TemporalWeekday) -> Option<Date> {
+    let current = weekday_number(source.weekday()) as i64;
+    let target = temporal_weekday_number(target) as i64;
+    shift_days(source, (target - current).rem_euclid(7))
+}
+
+pub(crate) fn weekday_on_or_before(source: Date, target: TemporalWeekday) -> Option<Date> {
+    let current = weekday_number(source.weekday()) as i64;
+    let target = temporal_weekday_number(target) as i64;
+    shift_days(source, -((current - target).rem_euclid(7)))
+}
+
 pub(crate) fn month_number(month: Month) -> u8 {
     match month {
         Month::January => 1,

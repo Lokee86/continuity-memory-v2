@@ -21,6 +21,8 @@ mod archive_vector_store;
 pub mod chronos;
 mod chronos_absolute;
 mod chronos_absolute_calendar;
+mod chronos_boundary;
+mod chronos_boundary_endpoint;
 mod chronos_calendar;
 mod chronos_detection;
 mod chronos_detection_model;
@@ -308,8 +310,8 @@ pub use cva::Cva;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_model::{
-    TemporalAnalysis, TemporalAnchor, TemporalFrequency, TemporalGranularity, TemporalMatch,
-    TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalWeekday,
+    TemporalAnalysis, TemporalAnchor, TemporalFrequency, TemporalGranularity, TemporalInterval,
+    TemporalMatch, TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalWeekday,
 };
 pub use chronos_model::{
     TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
@@ -489,6 +491,8 @@ mod archive_search_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod chronos_boundary_tests;
 #[cfg(test)]
 mod chronos_relative_tests;
 #[cfg(test)]

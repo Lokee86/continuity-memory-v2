@@ -228,7 +228,7 @@ fn extract_years(text: &str, claimed_spans: &mut Vec<TextSpan>, anchors: &mut Ve
     }
 }
 
-fn parse_month(value: &str) -> Option<Month> {
+pub(crate) fn parse_month(value: &str) -> Option<Month> {
     match value.to_ascii_lowercase().as_str() {
         "january" => Some(Month::January),
         "february" => Some(Month::February),

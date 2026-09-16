@@ -1,4 +1,4 @@
-use crate::{TemporalAnalysis, TemporalAnchor, TemporalPattern};
+use crate::{TemporalAnalysis, TemporalAnchor, TemporalInterval, TemporalPattern};
 
 #[derive(Clone, Copy)]
 pub(crate) struct TextSpan {
@@ -9,6 +9,14 @@ pub(crate) struct TextSpan {
 pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> TemporalAnalysis {
     let mut claimed = Vec::new();
     let mut anchors = Vec::new();
+    let mut intervals = Vec::new();
+    crate::chronos_boundary::extract_boundaries(
+        text,
+        source_timestamp_ns,
+        &mut claimed,
+        &mut anchors,
+        &mut intervals,
+    );
     crate::chronos_absolute::extract_absolute(text, &mut claimed, &mut anchors);
     crate::chronos_relative::extract_relative(
         text,
@@ -16,12 +24,15 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
         &mut claimed,
         &mut anchors,
     );
+    mirror_range_anchors(&anchors, &mut intervals);
     let mut patterns = crate::chronos_recurrence::extract_recurrence(text);
     normalize_anchors(&mut anchors);
+    normalize_intervals(&mut intervals);
     normalize_patterns(&mut patterns);
     TemporalAnalysis {
         source_timestamp_ns,
         anchors,
+        intervals,
         patterns,
     }
 }
@@ -45,6 +56,15 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
                 && existing.origin == candidate.origin
         })
     });
+    extra.intervals.retain(|candidate| {
+        !base.intervals.iter().any(|existing| {
+            existing.start_ns == candidate.start_ns
+                && existing.end_ns == candidate.end_ns
+                && existing.start_granularity == candidate.start_granularity
+                && existing.end_granularity == candidate.end_granularity
+                && existing.origin == candidate.origin
+        })
+    });
     extra.patterns.retain(|candidate| {
         !base.patterns.iter().any(|existing| {
             existing.frequency == candidate.frequency
@@ -55,9 +75,35 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
         })
     });
     base.anchors.append(&mut extra.anchors);
+    base.intervals.append(&mut extra.intervals);
     base.patterns.append(&mut extra.patterns);
     normalize_anchors(&mut base.anchors);
+    normalize_intervals(&mut base.intervals);
     normalize_patterns(&mut base.patterns);
+}
+
+fn mirror_range_anchors(anchors: &[TemporalAnchor], intervals: &mut Vec<TemporalInterval>) {
+    for anchor in anchors
+        .iter()
+        .filter(|anchor| anchor.granularity == crate::TemporalGranularity::Range)
+    {
+        if intervals.iter().any(|interval| {
+            interval.start_ns == Some(anchor.start_ns)
+                && interval.end_ns == Some(anchor.end_ns)
+                && interval.origin == anchor.origin
+                && interval.evidence == anchor.evidence
+        }) {
+            continue;
+        }
+        intervals.push(TemporalInterval {
+            start_ns: Some(anchor.start_ns),
+            end_ns: Some(anchor.end_ns),
+            start_granularity: Some(crate::TemporalGranularity::Range),
+            end_granularity: Some(crate::TemporalGranularity::Range),
+            origin: anchor.origin,
+            evidence: anchor.evidence.clone(),
+        });
+    }
 }
 
 fn normalize_anchors(values: &mut Vec<TemporalAnchor>) {
@@ -81,6 +127,34 @@ fn normalize_anchors(values: &mut Vec<TemporalAnchor>) {
         left.start_ns == right.start_ns
             && left.end_ns == right.end_ns
             && left.granularity == right.granularity
+            && left.origin == right.origin
+    });
+}
+
+fn normalize_intervals(values: &mut Vec<TemporalInterval>) {
+    values.sort_by(|left, right| {
+        (
+            left.start_ns,
+            left.end_ns,
+            left.start_granularity,
+            left.end_granularity,
+            left.origin,
+            &left.evidence,
+        )
+            .cmp(&(
+                right.start_ns,
+                right.end_ns,
+                right.start_granularity,
+                right.end_granularity,
+                right.origin,
+                &right.evidence,
+            ))
+    });
+    values.dedup_by(|left, right| {
+        left.start_ns == right.start_ns
+            && left.end_ns == right.end_ns
+            && left.start_granularity == right.start_granularity
+            && left.end_granularity == right.end_granularity
             && left.origin == right.origin
     });
 }

@@ -6,7 +6,7 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction, the first parser-independent indication/normalization seam, and numeric/word-number relative day/week/month/year offsets are implemented; further deterministic grammar expansion and consumer integrations beyond Dream remain in progress.
+Shared-core extraction, the first parser-independent indication/normalization seam, numeric/word-number relative day/week/month/year offsets, and deterministic bounded/open interval parsing are implemented; further deterministic grammar expansion and consumer integrations beyond Dream remain in progress.
 
 Chronos now owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` may use a transient corrected view but maps any corrected evidence back to the exact original text. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
@@ -78,7 +78,7 @@ Resolve against authoritative source/reference chronology. Never substitute Memo
 
 Provide deterministic overlap, ordering, recurrence identity, compatibility, and proposition-level valid-time interpretation where syntax and semantic-unit structure make that safe.
 
-The valid-time representation must support points/intervals, open bounds, recurrence, and granularity. Add uncertainty only when actual semantics require it.
+The valid-time representation now includes `TemporalInterval` with independently optional start/end bounds and per-bound granularity. Existing bounded `Range` anchors remain as compatibility projections for Dream. Recurrence remains represented separately; add uncertainty only when actual semantics require it.
 
 Current Dream temporal-match behavior is now implemented behind this seam with compatibility tests.
 
@@ -143,7 +143,9 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Parser-independent `chronos::detect` now reports explicit/calendar/relative/boundary/recurrence/contextual-duration indications with original byte spans.
 - Bounded one-edit/transposition correction now covers selected temporal vocabulary with contextual guards; normalized tokens are transient and corrected parse evidence maps back to the exact original span.
 - Numeric and English word-number relative day/week/month/year offsets are implemented through ninety-nine for word forms; month/year shifts use calendar-aware end-of-month clamping.
-- Expand range/boundary, standalone duration, recurrence, seasons, and safe loose-calendar parsing.
+- Bounded `from … to/through/until …` ranges and open `since`/`until`/`before`/`after`/`starting`/`ending` boundaries are implemented as derived `TemporalInterval` values; bounded intervals also retain compatibility `Range` anchors.
+- Boundary endpoints reuse deterministic explicit/relative parsing and support reference-bound bare months/weekdays, including cross-year month ranges.
+- Expand standalone duration, recurrence, seasons, and broader safe loose-calendar parsing.
 - Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction.
 
 ### C — Insomnia integration
@@ -172,7 +174,7 @@ Measure deterministic parse coverage, indication recall, fuzzy-detection false p
 
 - final Chronos API surface beyond the implemented `chronos::detect` / `chronos::analyze` boundaries, detection model, generic `Temporal*` model, and internal matcher;
 - indication-vocabulary coverage and calibrated fuzzy thresholds beyond the implemented conservative first pass;
-- valid-time result representation;
+- remaining valid-time representation details beyond implemented optional-bound intervals, especially uncertainty and multi-evidence composition;
 - persistence schema for inferred-only conclusions;
 - model route used by fallback inference;
 - consumer adapters for deterministic validity synthesis; and

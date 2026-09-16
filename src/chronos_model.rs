@@ -54,10 +54,21 @@ pub struct TemporalPattern {
     pub evidence: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalInterval {
+    pub start_ns: Option<i64>,
+    pub end_ns: Option<i64>,
+    pub start_granularity: Option<TemporalGranularity>,
+    pub end_granularity: Option<TemporalGranularity>,
+    pub origin: TemporalOrigin,
+    pub evidence: String,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct TemporalAnalysis {
     pub source_timestamp_ns: Option<i64>,
     pub anchors: Vec<TemporalAnchor>,
+    pub intervals: Vec<TemporalInterval>,
     pub patterns: Vec<TemporalPattern>,
 }
 
