@@ -142,6 +142,47 @@ fn project_attachment_must_be_registered_before_attach() {
 }
 
 #[test]
+fn legacy_embedded_attachment_can_gain_project_backing_without_changing_file_id() {
+    let path = rel_path();
+    let bytes = b"legacy-embedded-pdf";
+    let mut cva = Cva::create_project(&path).unwrap();
+    let file = cva
+        .store_file("plan.pdf".into(), Some("application/pdf".into()), bytes)
+        .unwrap();
+    let reference = project_ref(bytes, "revision-legacy", "warlock/uploads/plan.pdf");
+
+    assert!(
+        cva.bind_legacy_project_file(file.id, reference.clone())
+            .unwrap()
+    );
+    assert_eq!(cva.project_file_ref(file.id), Some(reference.clone()));
+    assert_eq!(cva.file_bytes(file.id).unwrap(), bytes);
+    cva.sync().unwrap();
+    drop(cva);
+
+    let mut reopened = Cva::open_project(path).unwrap();
+    assert_eq!(reopened.project_file_ref(file.id), Some(reference));
+    assert_eq!(reopened.file_bytes(file.id).unwrap(), bytes);
+}
+
+#[test]
+fn legacy_project_binding_rejects_mismatched_content_hash() {
+    let path = rel_path();
+    let mut cva = Cva::create_project(path).unwrap();
+    let file = cva
+        .store_file("plan.pdf".into(), None, b"legacy-bytes")
+        .unwrap();
+    let reference = project_ref(
+        b"different-bytes",
+        "revision-legacy",
+        "warlock/uploads/plan.pdf",
+    );
+
+    assert!(cva.bind_legacy_project_file(file.id, reference).is_err());
+    assert!(cva.project_file_ref(file.id).is_none());
+}
+
+#[test]
 fn divergent_reconcile_replays_project_file_binding_and_source_attachment() {
     let left = rel_path();
     let right = rel_path();

@@ -561,6 +561,39 @@ impl Cva {
         Ok(file)
     }
 
+    pub fn bind_legacy_project_file(
+        &mut self,
+        file_id: crate::FileId,
+        reference: crate::ProjectFileRef,
+    ) -> Result<bool, CvaError> {
+        let file = self
+            .archive
+            .file(file_id)
+            .cloned()
+            .ok_or_else(|| CvaError::ProjectFile("legacy attachment file is missing".into()))?;
+        let content_hash = reference.content_hash.ok_or_else(|| {
+            CvaError::ProjectFile("project-backed attachments require a content hash".into())
+        })?;
+        if content_hash != file.content_id.0 {
+            return Err(CvaError::ProjectFile(
+                "legacy attachment content hash does not match the project reference".into(),
+            ));
+        }
+        let legacy = crate::file_store::build_stored_file_from_content_id(
+            file.filename.clone(),
+            file.mime_type.clone(),
+            file.content_id,
+            file.byte_length,
+        )?;
+        if legacy.id != file.id {
+            return Err(CvaError::ProjectFile(
+                "only legacy embedded attachment identities can be rebound".into(),
+            ));
+        }
+        self.project_files
+            .put(&mut self.container, file.id, reference)
+    }
+
     pub fn project_file_ref(&self, file_id: crate::FileId) -> Option<crate::ProjectFileRef> {
         self.project_files.get(file_id).cloned()
     }

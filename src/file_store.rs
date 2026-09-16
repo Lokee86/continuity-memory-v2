@@ -81,27 +81,29 @@ impl Archive {
         if let Some(value) = file.mime_type.as_deref() {
             validate_text(value, "mime type")?;
         }
-        let expected_id = match project_files.get(file.id) {
+        let legacy_id = file_id(
+            &file.filename,
+            file.mime_type.as_deref(),
+            file.content_id,
+            file.byte_length,
+        );
+        let valid_id = match project_files.get(file.id) {
             Some(reference) => {
                 if reference.content_hash != Some(file.content_id.0) {
                     return Err(ArchiveError::CorruptFile);
                 }
-                project_file_id(
+                let project_id = project_file_id(
                     &file.filename,
                     file.mime_type.as_deref(),
                     file.content_id,
                     file.byte_length,
                     reference,
-                )
+                );
+                file.id == project_id || file.id == legacy_id
             }
-            None => file_id(
-                &file.filename,
-                file.mime_type.as_deref(),
-                file.content_id,
-                file.byte_length,
-            ),
+            None => file.id == legacy_id,
         };
-        if file.id != expected_id {
+        if !valid_id {
             return Err(ArchiveError::InvalidFileId);
         }
         if !self.contents.contains(file.content_id) && !project_files.contains(file.id) {
