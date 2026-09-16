@@ -31,15 +31,18 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
         &mut anchors,
     );
     mirror_range_anchors(&anchors, &mut intervals);
+    let mut times_of_day = crate::chronos_time_of_day::extract_times_of_day(text);
     let mut durations = crate::chronos_duration::extract_durations(text);
     let mut patterns = crate::chronos_recurrence::extract_recurrence(text);
     crate::chronos_normalize::anchors(&mut anchors);
+    crate::chronos_normalize::times_of_day(&mut times_of_day);
     crate::chronos_normalize::durations(&mut durations);
     crate::chronos_normalize::intervals(&mut intervals);
     crate::chronos_normalize::patterns(&mut patterns);
     TemporalAnalysis {
         source_timestamp_ns,
         anchors,
+        times_of_day,
         durations,
         intervals,
         patterns,
@@ -62,6 +65,15 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
             existing.start_ns == candidate.start_ns
                 && existing.end_ns == candidate.end_ns
                 && existing.granularity == candidate.granularity
+                && existing.origin == candidate.origin
+        })
+    });
+    extra.times_of_day.retain(|candidate| {
+        !base.times_of_day.iter().any(|existing| {
+            existing.hour == candidate.hour
+                && existing.minute == candidate.minute
+                && existing.second == candidate.second
+                && existing.precision == candidate.precision
                 && existing.origin == candidate.origin
         })
     });
@@ -90,10 +102,12 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
         })
     });
     base.anchors.append(&mut extra.anchors);
+    base.times_of_day.append(&mut extra.times_of_day);
     base.durations.append(&mut extra.durations);
     base.intervals.append(&mut extra.intervals);
     base.patterns.append(&mut extra.patterns);
     crate::chronos_normalize::anchors(&mut base.anchors);
+    crate::chronos_normalize::times_of_day(&mut base.times_of_day);
     crate::chronos_normalize::durations(&mut base.durations);
     crate::chronos_normalize::intervals(&mut base.intervals);
     crate::chronos_normalize::patterns(&mut base.patterns);

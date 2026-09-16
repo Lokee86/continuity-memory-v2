@@ -1,4 +1,6 @@
-use crate::{TemporalAnchor, TemporalDuration, TemporalInterval, TemporalPattern};
+use crate::{
+    TemporalAnchor, TemporalDuration, TemporalInterval, TemporalPattern, TemporalTimeOfDay,
+};
 
 pub(crate) fn anchors(values: &mut Vec<TemporalAnchor>) {
     values.sort_by(|left, right| {
@@ -21,6 +23,34 @@ pub(crate) fn anchors(values: &mut Vec<TemporalAnchor>) {
         left.start_ns == right.start_ns
             && left.end_ns == right.end_ns
             && left.granularity == right.granularity
+            && left.origin == right.origin
+    });
+}
+
+pub(crate) fn times_of_day(values: &mut Vec<TemporalTimeOfDay>) {
+    values.sort_by(|left, right| {
+        (
+            left.hour,
+            left.minute,
+            left.second,
+            left.precision,
+            left.origin,
+            &left.evidence,
+        )
+            .cmp(&(
+                right.hour,
+                right.minute,
+                right.second,
+                right.precision,
+                right.origin,
+                &right.evidence,
+            ))
+    });
+    values.dedup_by(|left, right| {
+        left.hour == right.hour
+            && left.minute == right.minute
+            && left.second == right.second
+            && left.precision == right.precision
             && left.origin == right.origin
     });
 }

@@ -185,6 +185,7 @@ pub fn recurring_case() -> (
     let left_temporal = DreamTemporalAnalysis {
         source_timestamp_ns: Some(1),
         anchors: Vec::new(),
+        times_of_day: Vec::new(),
         durations: Vec::new(),
         intervals: Vec::new(),
         patterns: vec![pattern.clone()],
@@ -192,6 +193,7 @@ pub fn recurring_case() -> (
     let right_temporal = DreamTemporalAnalysis {
         source_timestamp_ns: Some(2),
         anchors: Vec::new(),
+        times_of_day: Vec::new(),
         durations: Vec::new(),
         intervals: Vec::new(),
         patterns: vec![pattern],

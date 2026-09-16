@@ -37,6 +37,12 @@ fn resolved_spans(text: &str, analysis: &TemporalAnalysis) -> Vec<(usize, usize)
         .map(|value| value.evidence.as_str())
         .chain(
             analysis
+                .times_of_day
+                .iter()
+                .map(|value| value.evidence.as_str()),
+        )
+        .chain(
+            analysis
                 .durations
                 .iter()
                 .map(|value| value.evidence.as_str()),
@@ -73,6 +79,7 @@ fn indication_resolved(indication: &TemporalIndication, spans: &[(usize, usize)]
 
 fn has_analysis_output(analysis: &TemporalAnalysis) -> bool {
     !(analysis.anchors.is_empty()
+        && analysis.times_of_day.is_empty()
         && analysis.durations.is_empty()
         && analysis.intervals.is_empty()
         && analysis.patterns.is_empty())

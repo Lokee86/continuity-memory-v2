@@ -51,6 +51,7 @@ mod chronos_relative_offset;
 mod chronos_resolution;
 mod chronos_resolution_model;
 mod chronos_season;
+mod chronos_time_of_day;
 mod chronos_vocabulary;
 mod community_codec;
 mod community_error;
@@ -334,9 +335,9 @@ pub use chronos_inference::{
 pub use chronos_inference_error::TemporalInferenceError;
 pub use chronos_inference_model::{TemporalInference, TemporalInferenceResolution};
 pub use chronos_model::{
-    TemporalAnalysis, TemporalAnchor, TemporalDuration, TemporalDurationUnit, TemporalFrequency,
-    TemporalGranularity, TemporalInterval, TemporalMatch, TemporalMatchKind, TemporalOrigin,
-    TemporalPattern, TemporalWeekday,
+    TemporalAnalysis, TemporalAnchor, TemporalClockPrecision, TemporalDuration,
+    TemporalDurationUnit, TemporalFrequency, TemporalGranularity, TemporalInterval, TemporalMatch,
+    TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalTimeOfDay, TemporalWeekday,
 };
 pub use chronos_model::{
     TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
@@ -536,6 +537,8 @@ mod chronos_relative_tests;
 mod chronos_resolution_tests;
 #[cfg(test)]
 mod chronos_tests;
+#[cfg(test)]
+mod chronos_time_of_day_tests;
 #[cfg(all(test, feature = "community-benchmarks"))]
 mod community_end_to_end_bench;
 #[cfg(all(test, feature = "community-benchmarks"))]

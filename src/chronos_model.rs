@@ -17,6 +17,12 @@ pub enum TemporalOrigin {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum TemporalClockPrecision {
+    Minute,
+    Second,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum TemporalDurationUnit {
     Second,
     Minute,
@@ -68,6 +74,16 @@ pub struct TemporalPattern {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalTimeOfDay {
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
+    pub precision: TemporalClockPrecision,
+    pub origin: TemporalOrigin,
+    pub evidence: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TemporalDuration {
     pub amount: u16,
     pub unit: TemporalDurationUnit,
@@ -88,6 +104,7 @@ pub struct TemporalInterval {
 pub struct TemporalAnalysis {
     pub source_timestamp_ns: Option<i64>,
     pub anchors: Vec<TemporalAnchor>,
+    pub times_of_day: Vec<TemporalTimeOfDay>,
     pub durations: Vec<TemporalDuration>,
     pub intervals: Vec<TemporalInterval>,
     pub patterns: Vec<TemporalPattern>,

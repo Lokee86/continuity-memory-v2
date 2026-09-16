@@ -79,7 +79,7 @@ Resolve against authoritative source/reference chronology. Never substitute Memo
 
 Provide deterministic overlap, ordering, recurrence identity, compatibility, and proposition-level valid-time interpretation where syntax and semantic-unit structure make that safe.
 
-The valid-time representation now includes `TemporalInterval` with independently optional start/end bounds and per-bound granularity. Existing bounded `Range` anchors remain as compatibility projections for Dream. Exact standalone durations are represented separately as `TemporalDuration { amount, unit, evidence }`, and recurrence remains a separate pattern model. Add uncertainty only when actual semantics require it.
+The valid-time representation now includes `TemporalInterval` with independently optional start/end bounds and per-bound granularity. Existing bounded `Range` anchors remain as compatibility projections for Dream. Exact standalone durations are represented separately as `TemporalDuration { amount, unit, evidence }`; meridiem-qualified standalone clock expressions are represented as `TemporalTimeOfDay` values without inventing a calendar date; and recurrence remains a separate pattern model. Add uncertainty only when actual semantics require it.
 
 Current Dream temporal-match behavior is now implemented behind this seam with compatibility tests.
 
@@ -147,6 +147,7 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Bounded `from … to/through/until …` ranges and open `since`/`until`/`before`/`after`/`starting`/`ending` boundaries are implemented as derived `TemporalInterval` values; bounded intervals also retain compatibility `Range` anchors.
 - Boundary endpoints reuse deterministic explicit/relative parsing and support reference-bound bare months/weekdays, including cross-year month ranges.
 - Exact standalone durations are implemented for bounded numeric/word-number quantities across seconds/minutes/hours/days/weeks/months/quarters/years without converting calendar units to fixed nanoseconds.
+- Meridiem-qualified standalone clock expressions such as `6:45 AM` and `6:45:30 pm` are implemented as derived `TemporalTimeOfDay` values with minute/second precision. They are not coerced into an absolute instant from source time. Bare colon-number forms remain unresolved pending precision calibration against technical notation.
 - Recurrence now supports word-number intervals and explicit alternation such as `every three weeks`, `every other Tuesday`, and `every other month`, while preserving specific `every month/year on …` precedence. Ambiguous cadence words such as `biweekly` remain parser-unresolved but are detected so later bounded inference can handle them.
 - Hemisphere-qualified named seasons are implemented as meteorological three-month `Season` anchors. Northern/southern hemisphere must be explicit; unqualified season language remains detected but unresolved rather than inheriting a machine/user locale assumption.
 - Safe loose-calendar parsing now covers common English month abbreviations with explicit years, ordinal `day of Month YYYY`, reference-bound `this|next|last Month`, and `Month day this|next|last year`. Reference-bound forms require authoritative source/reference time.

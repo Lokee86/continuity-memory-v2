@@ -52,7 +52,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 
 ## Temporal/Chronos limits
 - The calibrated detector intentionally does not treat approximate recency words such as `recently` or constructions such as `just completed` as resolvable valid-time evidence. LongMemEval temporal-reasoning cases demonstrate that some event ordering can rely only on source/session chronology plus such wording; Chronos needs an explicit uncertainty/approximate-valid-time representation before broadening this detector path.
-- Standalone wall-clock expressions such as `6:45 AM` are detected but not yet represented/resolved as time-of-day semantics, so they remain unresolved.
+- Meridiem-qualified standalone wall-clock expressions such as `6:45 AM` are represented as derived `TemporalTimeOfDay` values without inventing a calendar date. Bare colon-number forms such as `12:34` remain indication-only until corpus calibration can distinguish clock syntax from technical notation; timezone-bearing and date+time composition also remain future work.
 - Conversational/approximate durations and compound ranges such as `a few hours`, `10-15 minutes`, `past few months`, and event-relative forms such as `30 minutes before cooking` remain coverage gaps unless another deterministic supported form resolves the same residue.
 - Detector calibration is measurement-driven rather than a general spellchecker: bounded fuzzy correction remains intentionally conservative, and future grammar/vocabulary additions should preserve the measured false-positive reductions before they are promoted.
 

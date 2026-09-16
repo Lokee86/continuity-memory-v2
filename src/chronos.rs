@@ -60,6 +60,9 @@ fn analyze_detected(
     for anchor in &mut corrected.anchors {
         anchor.evidence = detected.restore_evidence(text, &anchor.evidence);
     }
+    for time_of_day in &mut corrected.times_of_day {
+        time_of_day.evidence = detected.restore_evidence(text, &time_of_day.evidence);
+    }
     for duration in &mut corrected.durations {
         duration.evidence = detected.restore_evidence(text, &duration.evidence);
     }
