@@ -112,6 +112,7 @@ mod cva_reconcile_interaction;
 mod cva_reconcile_memory;
 mod cva_reconcile_promote;
 mod cva_reconcile_repack;
+mod cva_repack;
 mod cva_turn_ingest;
 mod cva_vector_generations;
 mod cva_vector_recovery;
@@ -337,6 +338,7 @@ pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
+pub use cva_repack::ProjectAttachmentRepackResult;
 pub use cva_vector_recovery::DerivedVectorRecovery;
 pub use dream_candidate_error::DreamCandidateError;
 pub use dream_candidate_model::{

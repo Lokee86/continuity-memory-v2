@@ -1,5 +1,6 @@
 use crate::{
-    ArchiveError, Cva, InteractionRole, InteractionRuntime, ProjectFileRef, ProjectRepositoryKind,
+    ArchiveError, Cva, IncomingAttachment, InteractionRole, InteractionRuntime, ProjectFileRef,
+    ProjectRepositoryKind,
     ProjectRepositoryRef, ProjectRevisionRef, StoredFile,
 };
 use sha2::{Digest, Sha256};
@@ -180,6 +181,93 @@ fn legacy_project_binding_rejects_mismatched_content_hash() {
 
     assert!(cva.bind_legacy_project_file(file.id, reference).is_err());
     assert!(cva.project_file_ref(file.id).is_none());
+}
+
+#[test]
+fn project_backed_repack_removes_legacy_attachment_payload_without_replaying_state() {
+    let path = rel_path();
+    let output = rel_path();
+    let bytes = b"legacy-embedded-pdf";
+    let mut cva = Cva::create_project(&path).unwrap();
+    let ingested = cva
+        .ingest_turn(crate::IncomingTurn {
+            id: "message-1".into(),
+            conversation_id: "session-1".into(),
+            parent_id: None,
+            role: "user".into(),
+            timestamp_ns: 1,
+            content: "Review this plan".into(),
+            attachments: vec![IncomingAttachment {
+                filename: "plan.pdf".into(),
+                mime_type: Some("application/pdf".into()),
+                bytes: bytes.to_vec(),
+            }],
+            project_attachments: Vec::new(),
+        })
+        .unwrap();
+    let file = ingested.attachments[0].clone();
+    let reference = project_ref(bytes, "revision-legacy", "warlock/uploads/plan.pdf");
+    cva.bind_legacy_project_file(file.id, reference.clone())
+        .unwrap();
+    let owner_uuid = cva.owner_uuid();
+    let global_version = cva.latest_global_version();
+    let archive_version = cva.archive_version();
+    let memory_version = cva.memory_version();
+    let graph_version = cva.graph_version();
+    let before_size = fs::metadata(&path).unwrap().len();
+
+    let result = cva.repack_project_backed_attachments(&output).unwrap();
+    assert_eq!(result.dropped_content_objects, 1);
+    assert!(result.output_file_bytes < before_size);
+    drop(cva);
+
+    let mut reopened = Cva::open_project(output).unwrap();
+    assert_eq!(reopened.owner_uuid(), owner_uuid);
+    assert_eq!(reopened.latest_global_version(), global_version);
+    assert_eq!(reopened.archive_version(), archive_version);
+    assert_eq!(reopened.memory_version(), memory_version);
+    assert_eq!(reopened.graph_version(), graph_version);
+    assert_eq!(reopened.project_file_ref(file.id), Some(reference));
+    assert_eq!(
+        reopened.files_for_source("session-1", "message-1"),
+        vec![file.clone()]
+    );
+    assert!(matches!(
+        reopened.file_bytes(file.id),
+        Err(ArchiveError::MissingContent)
+    ));
+}
+
+#[test]
+fn project_backed_repack_keeps_content_shared_with_unbound_file() {
+    let path = rel_path();
+    let output = rel_path();
+    let shared = b"shared-content";
+    let removable = b"remove-me";
+    let mut cva = Cva::create_project(&path).unwrap();
+    let backed_shared = cva.store_file("backed.txt".into(), None, shared).unwrap();
+    let unbound_shared = cva.store_file("unbound.txt".into(), None, shared).unwrap();
+    let backed_unique = cva.store_file("unique.txt".into(), None, removable).unwrap();
+    cva.bind_legacy_project_file(
+        backed_shared.id,
+        project_ref(shared, "revision-1", "warlock/uploads/backed.txt"),
+    )
+    .unwrap();
+    cva.bind_legacy_project_file(
+        backed_unique.id,
+        project_ref(removable, "revision-1", "warlock/uploads/unique.txt"),
+    )
+    .unwrap();
+
+    let result = cva.repack_project_backed_attachments(&output).unwrap();
+    assert_eq!(result.dropped_content_objects, 1);
+    let mut reopened = Cva::open_project(output).unwrap();
+    assert_eq!(reopened.file_bytes(backed_shared.id).unwrap(), shared);
+    assert_eq!(reopened.file_bytes(unbound_shared.id).unwrap(), shared);
+    assert!(matches!(
+        reopened.file_bytes(backed_unique.id),
+        Err(ArchiveError::MissingContent)
+    ));
 }
 
 #[test]

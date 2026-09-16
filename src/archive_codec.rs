@@ -81,6 +81,20 @@ pub fn encode_file(file: &StoredFile) -> Result<Vec<u8>, ArchiveError> {
     Ok(out)
 }
 
+pub(crate) fn decode_content_id(bytes: &[u8]) -> Result<Option<ContentId>, ArchiveError> {
+    if bytes.len() < 8 || bytes[..8] != CONTENT_MAGIC {
+        return Ok(None);
+    }
+    if bytes.len() < 44 {
+        return Err(ArchiveError::CorruptRecord("short content record"));
+    }
+    let len = u32::from_le_bytes(bytes[40..44].try_into().unwrap()) as usize;
+    if 44_usize.checked_add(len) != Some(bytes.len()) {
+        return Err(ArchiveError::CorruptRecord("invalid content length"));
+    }
+    Ok(Some(ContentId(bytes[8..40].try_into().unwrap())))
+}
+
 pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 8 {
         return Ok(ArchiveRecord::Other);

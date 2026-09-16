@@ -146,7 +146,6 @@ impl Container {
         Self::create_with_identity_and_uuid(path, identity, *Uuid::new_v4().as_bytes())
     }
 
-    #[cfg(test)]
     pub(crate) fn create_with_legacy_identity(
         path: impl AsRef<Path>,
         identity: ContainerIdentity,
@@ -360,6 +359,33 @@ impl Container {
         Ok(chunks)
     }
 
+    pub(crate) fn create_empty_like(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Self, ContainerError> {
+        match (self.header_len, self.identity, self.owner_uuid) {
+            (LEGACY_HEADER_LEN, None, None) => Self::create(path),
+            (LEGACY_TYPED_HEADER_LEN, Some(identity), None) => {
+                Self::create_with_legacy_identity(path, identity)
+            }
+            (IDENTITY_HEADER_LEN, Some(identity), Some(owner_uuid)) => {
+                Self::create_with_identity_and_uuid(path, identity, owner_uuid)
+            }
+            _ => Err(ContainerError::InvalidIdentity),
+        }
+    }
+
+    pub(crate) fn object_payloads(
+        &mut self,
+    ) -> Result<Vec<(ObjectRef, Vec<u8>)>, ContainerError> {
+        let objects = self.chunks()?;
+        let mut payloads = Vec::with_capacity(objects.len());
+        for object in objects {
+            payloads.push((object, self.read(object)?));
+        }
+        Ok(payloads)
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -436,7 +462,6 @@ fn encode_header(version: FormatVersion) -> [u8; LEGACY_HEADER_LEN as usize] {
     header
 }
 
-#[cfg(test)]
 fn encode_legacy_identity_header(
     identity: ContainerIdentity,
 ) -> [u8; LEGACY_TYPED_HEADER_LEN as usize] {

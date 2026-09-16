@@ -25,6 +25,7 @@ pub enum CvaError {
     RelMetadata(String),
     ProjectHistory(String),
     ProjectFile(String),
+    Repack(String),
     SemanticGlobalVersionConflict(u64),
     InvalidContainerIdentity(&'static str),
 }
@@ -50,6 +51,7 @@ impl fmt::Display for CvaError {
             Self::RelMetadata(error) => write!(f, "REL metadata error: {error}"),
             Self::ProjectHistory(error) => write!(f, "project history error: {error}"),
             Self::ProjectFile(error) => write!(f, "project file error: {error}"),
+            Self::Repack(error) => write!(f, "REL repack error: {error}"),
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }
