@@ -1,4 +1,4 @@
-use crate::DreamTemporalWeekday;
+use crate::TemporalWeekday;
 use time::{Date, Duration, Month, OffsetDateTime, Weekday};
 
 pub(crate) fn date_from_ns(timestamp_ns: i64) -> Option<Date> {
@@ -66,11 +66,7 @@ pub(crate) fn shift_year_start(date: Date, delta: i32) -> Option<Date> {
     Date::from_calendar_date(date.year().checked_add(delta)?, Month::January, 1).ok()
 }
 
-pub(crate) fn weekday_date(
-    source: Date,
-    target: DreamTemporalWeekday,
-    forward: bool,
-) -> Option<Date> {
+pub(crate) fn weekday_date(source: Date, target: TemporalWeekday, forward: bool) -> Option<Date> {
     let current = weekday_number(source.weekday()) as i64;
     let target = temporal_weekday_number(target) as i64;
     let distance = if forward {
@@ -118,14 +114,14 @@ fn weekday_number(weekday: Weekday) -> u8 {
     }
 }
 
-fn temporal_weekday_number(weekday: DreamTemporalWeekday) -> u8 {
+fn temporal_weekday_number(weekday: TemporalWeekday) -> u8 {
     match weekday {
-        DreamTemporalWeekday::Monday => 0,
-        DreamTemporalWeekday::Tuesday => 1,
-        DreamTemporalWeekday::Wednesday => 2,
-        DreamTemporalWeekday::Thursday => 3,
-        DreamTemporalWeekday::Friday => 4,
-        DreamTemporalWeekday::Saturday => 5,
-        DreamTemporalWeekday::Sunday => 6,
+        TemporalWeekday::Monday => 0,
+        TemporalWeekday::Tuesday => 1,
+        TemporalWeekday::Wednesday => 2,
+        TemporalWeekday::Thursday => 3,
+        TemporalWeekday::Friday => 4,
+        TemporalWeekday::Saturday => 5,
+        TemporalWeekday::Sunday => 6,
     }
 }

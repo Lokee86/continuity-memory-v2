@@ -1,7 +1,7 @@
+use crate::chronos::analyze as parse_temporal;
 use crate::dream_candidate_test_support::{
     install_vectors, memory, memory_with_created_at, memory_with_source_time, test_path,
 };
-use crate::dream_temporal_parser::parse_temporal;
 use crate::{
     Cva, DreamCandidateConfig, DreamTemporalFrequency, DreamTemporalGranularity,
     DreamTemporalMatchKind, DreamTemporalOrigin, DreamTemporalWeekday,

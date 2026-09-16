@@ -1,6 +1,6 @@
-use crate::dream_temporal_calendar::{day_span, instant_to_ns};
-use crate::dream_temporal_parser::{TextSpan, claimed, push_claimed};
-use crate::{DreamTemporalAnchor, DreamTemporalGranularity, DreamTemporalOrigin};
+use crate::chronos_calendar::{day_span, instant_to_ns};
+use crate::chronos_parser::{TextSpan, claimed, push_claimed};
+use crate::{TemporalAnchor, TemporalGranularity, TemporalOrigin};
 use regex::Regex;
 use std::sync::LazyLock;
 use time::format_description::well_known::Rfc3339;
@@ -20,19 +20,19 @@ static ISO_DATE_RE: LazyLock<Regex> =
 pub(crate) fn extract_absolute(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     extract_timestamps(text, claimed_spans, anchors);
     extract_date_ranges(text, claimed_spans, anchors);
-    crate::dream_temporal_absolute_calendar::extract_natural_dates(text, claimed_spans, anchors);
+    crate::chronos_absolute_calendar::extract_natural_dates(text, claimed_spans, anchors);
     extract_iso_dates(text, claimed_spans, anchors);
-    crate::dream_temporal_absolute_calendar::extract_coarse(text, claimed_spans, anchors);
+    crate::chronos_absolute_calendar::extract_coarse(text, claimed_spans, anchors);
 }
 
 fn extract_timestamps(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for found in TIMESTAMP_RE.find_iter(text) {
         let span = TextSpan {
@@ -52,7 +52,7 @@ fn extract_timestamps(
             found.as_str(),
             start_ns,
             start_ns.saturating_add(1),
-            DreamTemporalGranularity::Instant,
+            TemporalGranularity::Instant,
         ));
         push_claimed(claimed_spans, span);
     }
@@ -61,7 +61,7 @@ fn extract_timestamps(
 fn extract_date_ranges(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for captures in DATE_RANGE_RE.captures_iter(text) {
         let found = captures.get(0).unwrap();
@@ -86,7 +86,7 @@ fn extract_date_ranges(
             found.as_str(),
             start_ns,
             end_ns,
-            DreamTemporalGranularity::Range,
+            TemporalGranularity::Range,
         ));
         push_claimed(claimed_spans, span);
     }
@@ -95,7 +95,7 @@ fn extract_date_ranges(
 fn extract_iso_dates(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for found in ISO_DATE_RE.find_iter(text) {
         let span = TextSpan {
@@ -115,7 +115,7 @@ fn extract_iso_dates(
             found.as_str(),
             start_ns,
             end_ns,
-            DreamTemporalGranularity::Day,
+            TemporalGranularity::Day,
         ));
         push_claimed(claimed_spans, span);
     }
@@ -125,13 +125,13 @@ pub(crate) fn explicit_anchor(
     evidence: &str,
     start_ns: i64,
     end_ns: i64,
-    granularity: DreamTemporalGranularity,
-) -> DreamTemporalAnchor {
-    DreamTemporalAnchor {
+    granularity: TemporalGranularity,
+) -> TemporalAnchor {
+    TemporalAnchor {
         start_ns,
         end_ns,
         granularity,
-        origin: DreamTemporalOrigin::Explicit,
+        origin: TemporalOrigin::Explicit,
         evidence: evidence.to_owned(),
     }
 }

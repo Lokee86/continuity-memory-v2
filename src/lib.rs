@@ -18,6 +18,15 @@ mod archive_vector_error;
 mod archive_vector_model;
 mod archive_vector_rebuild;
 mod archive_vector_store;
+pub mod chronos;
+mod chronos_absolute;
+mod chronos_absolute_calendar;
+mod chronos_calendar;
+mod chronos_match;
+mod chronos_model;
+mod chronos_parser;
+mod chronos_recurrence;
+mod chronos_relative;
 mod community_codec;
 mod community_error;
 mod community_leiden;
@@ -120,14 +129,6 @@ mod dream_publisher_error;
 mod dream_publisher_model;
 mod dream_source_time;
 mod dream_temporal;
-mod dream_temporal_absolute;
-mod dream_temporal_absolute_calendar;
-mod dream_temporal_calendar;
-mod dream_temporal_match;
-mod dream_temporal_model;
-mod dream_temporal_parser;
-mod dream_temporal_recurrence;
-mod dream_temporal_relative;
 mod dream_verifier;
 mod dream_verifier_error;
 mod dream_verifier_model;
@@ -298,6 +299,17 @@ pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
 pub type Reliquary = Cva;
+pub use chronos_model::{
+    TemporalAnalysis, TemporalAnchor, TemporalFrequency, TemporalGranularity, TemporalMatch,
+    TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalWeekday,
+};
+pub use chronos_model::{
+    TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
+    TemporalFrequency as DreamTemporalFrequency, TemporalGranularity as DreamTemporalGranularity,
+    TemporalMatch as DreamTemporalMatch, TemporalMatchKind as DreamTemporalMatchKind,
+    TemporalOrigin as DreamTemporalOrigin, TemporalPattern as DreamTemporalPattern,
+    TemporalWeekday as DreamTemporalWeekday,
+};
 pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
@@ -332,11 +344,6 @@ pub use dream_processor_frontier::{
 pub use dream_processor_model::{DreamProcessResult, DreamProcessedPair};
 pub use dream_publisher_error::DreamPublicationError;
 pub use dream_publisher_model::DreamPublicationOutcome;
-pub use dream_temporal_model::{
-    DreamTemporalAnalysis, DreamTemporalAnchor, DreamTemporalFrequency, DreamTemporalGranularity,
-    DreamTemporalMatch, DreamTemporalMatchKind, DreamTemporalOrigin, DreamTemporalPattern,
-    DreamTemporalWeekday,
-};
 pub use dream_verifier::DreamVerifier;
 pub use dream_verifier_error::DreamVerificationError;
 pub use dream_verifier_model::{
@@ -474,6 +481,8 @@ mod archive_search_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod chronos_tests;
 #[cfg(all(test, feature = "community-benchmarks"))]
 mod community_end_to_end_bench;
 #[cfg(all(test, feature = "community-benchmarks"))]

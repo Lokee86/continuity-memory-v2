@@ -1,6 +1,6 @@
-use crate::dream_temporal_parser::{TextSpan, claimed, push_claimed};
-use crate::dream_temporal_relative::parse_weekday;
-use crate::{DreamTemporalFrequency, DreamTemporalPattern, DreamTemporalWeekday};
+use crate::chronos_parser::{TextSpan, claimed, push_claimed};
+use crate::chronos_relative::parse_weekday;
+use crate::{TemporalFrequency, TemporalPattern, TemporalWeekday};
 use regex::Regex;
 use std::sync::LazyLock;
 
@@ -29,7 +29,7 @@ static MONTHLY_DAY_RE: LazyLock<Regex> = LazyLock::new(|| {
         .unwrap()
 });
 
-pub(crate) fn extract_recurrence(text: &str) -> Vec<DreamTemporalPattern> {
+pub(crate) fn extract_recurrence(text: &str) -> Vec<TemporalPattern> {
     let mut result = Vec::new();
     let mut claimed_spans = Vec::new();
     for captures in YEARLY_DATE_RE.captures_iter(text) {
@@ -43,8 +43,8 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<DreamTemporalPattern> {
         if !valid_month_day(month, day) {
             continue;
         }
-        result.push(DreamTemporalPattern {
-            frequency: DreamTemporalFrequency::Yearly,
+        result.push(TemporalPattern {
+            frequency: TemporalFrequency::Yearly,
             interval: 1,
             weekday: None,
             month_day: Some(day),
@@ -69,7 +69,7 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<DreamTemporalPattern> {
         let found = captures.get(0).unwrap();
         result.push(pattern(
             found.as_str(),
-            DreamTemporalFrequency::Monthly,
+            TemporalFrequency::Monthly,
             1,
             None,
             Some(day),
@@ -88,7 +88,7 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<DreamTemporalPattern> {
         };
         result.push(pattern(
             captures.get(0).unwrap().as_str(),
-            DreamTemporalFrequency::Weekly,
+            TemporalFrequency::Weekly,
             1,
             Some(weekday),
             None,
@@ -100,7 +100,7 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<DreamTemporalPattern> {
         };
         result.push(pattern(
             captures.get(0).unwrap().as_str(),
-            DreamTemporalFrequency::Weekly,
+            TemporalFrequency::Weekly,
             1,
             Some(weekday),
             None,
@@ -146,12 +146,12 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<DreamTemporalPattern> {
 
 fn pattern(
     evidence: &str,
-    frequency: DreamTemporalFrequency,
+    frequency: TemporalFrequency,
     interval: u16,
-    weekday: Option<DreamTemporalWeekday>,
+    weekday: Option<TemporalWeekday>,
     month_day: Option<u8>,
-) -> DreamTemporalPattern {
-    DreamTemporalPattern {
+) -> TemporalPattern {
+    TemporalPattern {
         frequency,
         interval,
         weekday,
@@ -161,13 +161,13 @@ fn pattern(
     }
 }
 
-fn unit_frequency(value: &str) -> Option<DreamTemporalFrequency> {
+fn unit_frequency(value: &str) -> Option<TemporalFrequency> {
     match value.to_ascii_lowercase().as_str() {
-        "day" => Some(DreamTemporalFrequency::Daily),
-        "week" => Some(DreamTemporalFrequency::Weekly),
-        "month" => Some(DreamTemporalFrequency::Monthly),
-        "quarter" => Some(DreamTemporalFrequency::Quarterly),
-        "year" => Some(DreamTemporalFrequency::Yearly),
+        "day" => Some(TemporalFrequency::Daily),
+        "week" => Some(TemporalFrequency::Weekly),
+        "month" => Some(TemporalFrequency::Monthly),
+        "quarter" => Some(TemporalFrequency::Quarterly),
+        "year" => Some(TemporalFrequency::Yearly),
         _ => None,
     }
 }
@@ -200,13 +200,13 @@ fn valid_month_day(month: u8, day: u8) -> bool {
     (1..=max).contains(&day)
 }
 
-fn cadence_frequency(value: &str) -> Option<DreamTemporalFrequency> {
+fn cadence_frequency(value: &str) -> Option<TemporalFrequency> {
     match value.to_ascii_lowercase().as_str() {
-        "daily" => Some(DreamTemporalFrequency::Daily),
-        "weekly" => Some(DreamTemporalFrequency::Weekly),
-        "monthly" => Some(DreamTemporalFrequency::Monthly),
-        "quarterly" => Some(DreamTemporalFrequency::Quarterly),
-        "yearly" | "annually" => Some(DreamTemporalFrequency::Yearly),
+        "daily" => Some(TemporalFrequency::Daily),
+        "weekly" => Some(TemporalFrequency::Weekly),
+        "monthly" => Some(TemporalFrequency::Monthly),
+        "quarterly" => Some(TemporalFrequency::Quarterly),
+        "yearly" | "annually" => Some(TemporalFrequency::Yearly),
         _ => None,
     }
 }

@@ -1,11 +1,9 @@
-use crate::dream_temporal_calendar::{
+use crate::chronos_calendar::{
     date_from_ns, day_span, month_span, quarter_span, shift_days, shift_month_start,
     shift_week_start, shift_year_start, week_span, weekday_date, year_span,
 };
-use crate::dream_temporal_parser::{TextSpan, claimed, push_claimed};
-use crate::{
-    DreamTemporalAnchor, DreamTemporalGranularity, DreamTemporalOrigin, DreamTemporalWeekday,
-};
+use crate::chronos_parser::{TextSpan, claimed, push_claimed};
+use crate::{TemporalAnchor, TemporalGranularity, TemporalOrigin, TemporalWeekday};
 use regex::Regex;
 use std::sync::LazyLock;
 
@@ -25,7 +23,7 @@ pub(crate) fn extract_relative(
     text: &str,
     source_timestamp_ns: Option<i64>,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     let Some(source_date) = source_timestamp_ns.and_then(date_from_ns) else {
         return;
@@ -57,7 +55,7 @@ fn extract_periods(
     text: &str,
     source_date: time::Date,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for captures in PERIOD_RE.captures_iter(text) {
         let found = captures.get(0).unwrap();
@@ -78,16 +76,16 @@ fn extract_periods(
         let value = match unit.as_str() {
             "week" => shift_week_start(source_date, offset)
                 .and_then(week_span)
-                .map(|bounds| (bounds, DreamTemporalGranularity::Week)),
+                .map(|bounds| (bounds, TemporalGranularity::Week)),
             "month" => shift_month_start(source_date, offset as i32)
                 .and_then(month_span)
-                .map(|bounds| (bounds, DreamTemporalGranularity::Month)),
+                .map(|bounds| (bounds, TemporalGranularity::Month)),
             "quarter" => shift_month_start(source_date, offset as i32 * 3)
                 .and_then(quarter_span)
-                .map(|bounds| (bounds, DreamTemporalGranularity::Quarter)),
+                .map(|bounds| (bounds, TemporalGranularity::Quarter)),
             "year" => shift_year_start(source_date, offset as i32)
                 .and_then(year_span)
-                .map(|bounds| (bounds, DreamTemporalGranularity::Year)),
+                .map(|bounds| (bounds, TemporalGranularity::Year)),
             _ => None,
         };
         let Some(((start_ns, end_ns), granularity)) = value else {
@@ -107,7 +105,7 @@ fn extract_numeric(
     text: &str,
     source_date: time::Date,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for captures in NUMERIC_RE.captures_iter(text) {
         let found = captures.get(0).unwrap();
@@ -144,7 +142,7 @@ fn extract_simple(
     text: &str,
     source_date: time::Date,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for found in SIMPLE_RE.find_iter(text) {
         let span = TextSpan {
@@ -172,7 +170,7 @@ fn push_day(
     date: time::Date,
     span: TextSpan,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     let Some((start_ns, end_ns)) = day_span(date) else {
         return;
@@ -181,7 +179,7 @@ fn push_day(
         evidence,
         start_ns,
         end_ns,
-        DreamTemporalGranularity::Day,
+        TemporalGranularity::Day,
     ));
     push_claimed(claimed_spans, span);
 }
@@ -190,26 +188,26 @@ fn relative_anchor(
     evidence: &str,
     start_ns: i64,
     end_ns: i64,
-    granularity: DreamTemporalGranularity,
-) -> DreamTemporalAnchor {
-    DreamTemporalAnchor {
+    granularity: TemporalGranularity,
+) -> TemporalAnchor {
+    TemporalAnchor {
         start_ns,
         end_ns,
         granularity,
-        origin: DreamTemporalOrigin::Relative,
+        origin: TemporalOrigin::Relative,
         evidence: evidence.to_owned(),
     }
 }
 
-pub(crate) fn parse_weekday(value: &str) -> Option<DreamTemporalWeekday> {
+pub(crate) fn parse_weekday(value: &str) -> Option<TemporalWeekday> {
     match value.to_ascii_lowercase().as_str() {
-        "monday" => Some(DreamTemporalWeekday::Monday),
-        "tuesday" => Some(DreamTemporalWeekday::Tuesday),
-        "wednesday" => Some(DreamTemporalWeekday::Wednesday),
-        "thursday" => Some(DreamTemporalWeekday::Thursday),
-        "friday" => Some(DreamTemporalWeekday::Friday),
-        "saturday" => Some(DreamTemporalWeekday::Saturday),
-        "sunday" => Some(DreamTemporalWeekday::Sunday),
+        "monday" => Some(TemporalWeekday::Monday),
+        "tuesday" => Some(TemporalWeekday::Tuesday),
+        "wednesday" => Some(TemporalWeekday::Wednesday),
+        "thursday" => Some(TemporalWeekday::Thursday),
+        "friday" => Some(TemporalWeekday::Friday),
+        "saturday" => Some(TemporalWeekday::Saturday),
+        "sunday" => Some(TemporalWeekday::Sunday),
         _ => None,
     }
 }

@@ -1,7 +1,7 @@
-use crate::dream_temporal_absolute::explicit_anchor;
-use crate::dream_temporal_calendar::{day_span, month_span, quarter_span, year_span};
-use crate::dream_temporal_parser::{TextSpan, claimed, push_claimed};
-use crate::{DreamTemporalAnchor, DreamTemporalGranularity};
+use crate::chronos_absolute::explicit_anchor;
+use crate::chronos_calendar::{day_span, month_span, quarter_span, year_span};
+use crate::chronos_parser::{TextSpan, claimed, push_claimed};
+use crate::{TemporalAnchor, TemporalGranularity};
 use regex::Regex;
 use std::sync::LazyLock;
 use time::{Date, Month};
@@ -25,7 +25,7 @@ static CONTEXT_YEAR_RE: LazyLock<Regex> =
 pub(crate) fn extract_natural_dates(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for captures in MONTH_DAY_YEAR_RE.captures_iter(text) {
         push_natural_date(
@@ -52,7 +52,7 @@ pub(crate) fn extract_natural_dates(
 pub(crate) fn extract_coarse(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     extract_quarters(text, claimed_spans, anchors);
     extract_months(text, claimed_spans, anchors);
@@ -65,7 +65,7 @@ fn push_natural_date(
     day: &str,
     year: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     let span = TextSpan {
         start: found.start(),
@@ -89,7 +89,7 @@ fn push_natural_date(
         found.as_str(),
         start_ns,
         end_ns,
-        DreamTemporalGranularity::Day,
+        TemporalGranularity::Day,
     ));
     push_claimed(claimed_spans, span);
 }
@@ -97,7 +97,7 @@ fn push_natural_date(
 fn extract_quarters(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for captures in QUARTER_RE.captures_iter(text) {
         let found = captures.get(0).unwrap();
@@ -132,7 +132,7 @@ fn extract_quarters(
             found.as_str(),
             start_ns,
             end_ns,
-            DreamTemporalGranularity::Quarter,
+            TemporalGranularity::Quarter,
         ));
         push_claimed(claimed_spans, span);
     }
@@ -141,7 +141,7 @@ fn extract_quarters(
 fn extract_months(
     text: &str,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     for captures in MONTH_YEAR_RE.captures_iter(text) {
         push_month(
@@ -172,7 +172,7 @@ fn push_month(
     month: Option<Month>,
     year: Option<i32>,
     claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
+    anchors: &mut Vec<TemporalAnchor>,
 ) {
     let span = TextSpan {
         start: found.start(),
@@ -194,16 +194,12 @@ fn push_month(
         found.as_str(),
         start_ns,
         end_ns,
-        DreamTemporalGranularity::Month,
+        TemporalGranularity::Month,
     ));
     push_claimed(claimed_spans, span);
 }
 
-fn extract_years(
-    text: &str,
-    claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<DreamTemporalAnchor>,
-) {
+fn extract_years(text: &str, claimed_spans: &mut Vec<TextSpan>, anchors: &mut Vec<TemporalAnchor>) {
     for captures in CONTEXT_YEAR_RE.captures_iter(text) {
         let found = captures.get(0).unwrap();
         let span = TextSpan {
@@ -226,7 +222,7 @@ fn extract_years(
             found.as_str(),
             start_ns,
             end_ns,
-            DreamTemporalGranularity::Year,
+            TemporalGranularity::Year,
         ));
         push_claimed(claimed_spans, span);
     }

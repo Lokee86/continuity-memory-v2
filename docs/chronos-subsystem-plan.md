@@ -6,9 +6,9 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Accepted architecture; implementation not yet started as a standalone shared subsystem.
+Shared-core extraction implemented; deterministic coverage expansion and consumer integrations beyond Dream remain in progress.
 
-Current temporal behavior remains implemented under `dream_temporal*`. Chronos modularizes and expands that machinery rather than creating a parallel stack.
+Chronos now owns the shared temporal model, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
 ## Overview
 
@@ -80,7 +80,7 @@ Provide deterministic overlap, ordering, recurrence identity, compatibility, and
 
 The valid-time representation must support points/intervals, open bounds, recurrence, and granularity. Add uncertainty only when actual semantics require it.
 
-Current Dream temporal-match behavior should migrate behind this seam with compatibility tests.
+Current Dream temporal-match behavior is now implemented behind this seam with compatibility tests.
 
 ## Inference fallback
 
@@ -112,7 +112,7 @@ Body/version identity must make this idempotent and invalidate inferred temporal
 
 Dream consumes Chronos for temporal candidate discovery, source-relative content-time interpretation, anchor/range overlap, recurrence matching, temporal ordering, and pair-classification context.
 
-Current Dream temporal behavior remains compatible while parser/matcher ownership migrates to Chronos.
+Current Dream temporal behavior remains compatible with parser/matcher ownership now in Chronos.
 
 ### Perception
 
@@ -130,11 +130,13 @@ A deterministic cache is permitted as disposable optimization state, never seman
 
 ## Implementation sequence
 
-### A — Shared core
+### A — Shared core — implemented
 
-- Introduce the Chronos module boundary.
-- Move/generalize current Dream temporal model/parser/matcher behind it.
-- Preserve current Dream temporal tests and behavior.
+- `chronos::analyze` is the shared deterministic analysis boundary.
+- The former Dream temporal model/parser/calendar/relative/recurrence/matcher modules now live under Chronos ownership.
+- Generic `Temporal*` types are canonical; existing `DreamTemporal*` names remain compatibility re-exports.
+- Dream resolves authoritative Memory source time and delegates analysis/matching to Chronos.
+- Existing Dream temporal tests remain green, with direct Chronos contract tests added.
 
 ### B — Detection and deterministic coverage
 
@@ -150,11 +152,11 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Gate temporal model calls behind deterministic unresolved state.
 - Define body/version-bound inferred temporal persistence and staleness.
 
-### D — Dream migration
+### D — Dream consumer completion — partially implemented
 
-- Replace Dream-specific temporal plumbing with Chronos calls.
-- Preserve temporal candidate retrieval and classifier context behavior.
-- Remove duplicate parser ownership after compatibility is proven.
+- Parser/matcher ownership and temporal candidate matching now route through Chronos.
+- Preserve temporal candidate retrieval and classifier context behavior as deterministic coverage expands.
+- Add shared temporal ordering/validity outputs to Dream only when those Chronos primitives are implemented; Dream retains Memory-to-Memory semantic authority.
 
 ### E — Perception integration
 
@@ -168,7 +170,7 @@ Measure deterministic parse coverage, indication recall, fuzzy-detection false p
 
 ## Open implementation decisions
 
-- exact Chronos API surface;
+- final Chronos API surface beyond the implemented `chronos::analyze` boundary, generic `Temporal*` model, and internal matcher;
 - indication vocabulary and fuzzy thresholds;
 - valid-time result representation;
 - persistence schema for inferred-only conclusions;

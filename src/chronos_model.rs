@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DreamTemporalGranularity {
+pub enum TemporalGranularity {
     Instant,
     Day,
     Week,
@@ -10,13 +10,13 @@ pub enum DreamTemporalGranularity {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DreamTemporalOrigin {
+pub enum TemporalOrigin {
     Explicit,
     Relative,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DreamTemporalFrequency {
+pub enum TemporalFrequency {
     Daily,
     Weekly,
     Monthly,
@@ -25,7 +25,7 @@ pub enum DreamTemporalFrequency {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DreamTemporalWeekday {
+pub enum TemporalWeekday {
     Monday,
     Tuesday,
     Wednesday,
@@ -36,33 +36,33 @@ pub enum DreamTemporalWeekday {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DreamTemporalAnchor {
+pub struct TemporalAnchor {
     pub start_ns: i64,
     pub end_ns: i64,
-    pub granularity: DreamTemporalGranularity,
-    pub origin: DreamTemporalOrigin,
+    pub granularity: TemporalGranularity,
+    pub origin: TemporalOrigin,
     pub evidence: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DreamTemporalPattern {
-    pub frequency: DreamTemporalFrequency,
+pub struct TemporalPattern {
+    pub frequency: TemporalFrequency,
     pub interval: u16,
-    pub weekday: Option<DreamTemporalWeekday>,
+    pub weekday: Option<TemporalWeekday>,
     pub month_day: Option<u8>,
     pub month: Option<u8>,
     pub evidence: String,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct DreamTemporalAnalysis {
+pub struct TemporalAnalysis {
     pub source_timestamp_ns: Option<i64>,
-    pub anchors: Vec<DreamTemporalAnchor>,
-    pub patterns: Vec<DreamTemporalPattern>,
+    pub anchors: Vec<TemporalAnchor>,
+    pub patterns: Vec<TemporalPattern>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DreamTemporalMatchKind {
+pub enum TemporalMatchKind {
     ExactInstant,
     ExactDay,
     ExactWeek,
@@ -74,10 +74,10 @@ pub enum DreamTemporalMatchKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DreamTemporalMatch {
-    pub kind: DreamTemporalMatchKind,
-    pub source_anchor: Option<DreamTemporalAnchor>,
-    pub candidate_anchor: Option<DreamTemporalAnchor>,
-    pub source_pattern: Option<DreamTemporalPattern>,
-    pub candidate_pattern: Option<DreamTemporalPattern>,
+pub struct TemporalMatch {
+    pub kind: TemporalMatchKind,
+    pub source_anchor: Option<TemporalAnchor>,
+    pub candidate_anchor: Option<TemporalAnchor>,
+    pub source_pattern: Option<TemporalPattern>,
+    pub candidate_pattern: Option<TemporalPattern>,
 }

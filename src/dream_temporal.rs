@@ -1,5 +1,5 @@
+use crate::chronos::analyze;
 use crate::dream_source_time::reliquary_source_timestamp_ns;
-use crate::dream_temporal_parser::parse_temporal;
 use crate::{Cva, DreamTemporalAnalysis, Memory, MemoryError, MemoryId};
 
 impl Cva {
@@ -17,7 +17,7 @@ pub(crate) fn analyze_memory_temporal(
     memory: &Memory,
     source_timestamp_ns: Option<i64>,
 ) -> DreamTemporalAnalysis {
-    parse_temporal(
+    analyze(
         &format!("{}\n{}", memory.title, memory.content),
         source_timestamp_ns,
     )

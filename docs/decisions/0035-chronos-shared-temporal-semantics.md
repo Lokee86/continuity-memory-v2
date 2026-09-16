@@ -6,9 +6,9 @@ Implementation planning: [Chronos subsystem plan](../chronos-subsystem-plan.md) 
 
 ## Status
 
-Accepted — 2026-09-09. Design decision; not yet implemented as a standalone shared subsystem.
+Accepted — 2026-09-09. Shared deterministic core extraction implemented; broader deterministic coverage, bounded inference, and Insomnia/Perception integration remain future work.
 
-The current deterministic `dream_temporal*` implementation remains shipped behavior and becomes the implementation nucleus for Chronos rather than a second temporal stack.
+The former deterministic `dream_temporal*` parser/model/calendar/recurrence/matcher implementation is now owned by `chronos*`. Dream retains a thin owner-specific source-time adapter and compatibility aliases rather than a second temporal stack.
 
 ## Context
 
@@ -129,7 +129,7 @@ Reliquary gains one temporal vocabulary/resolution engine across single-Memory, 
 
 Most temporal work remains deterministic and storage-free. Model cost is paid only for unresolved residue.
 
-The current `dream_temporal*` implementation is preserved as useful machinery but its future ownership becomes shared Chronos.
+The former Dream temporal machinery is preserved under shared Chronos ownership; Dream-specific code now supplies only owner-local reference chronology and consumer context.
 
 Together with wall-clock global-version timestamps, Chronos provides valid-time semantics while the version stream provides transaction/knowledge time.
 
@@ -157,7 +157,7 @@ Rejected. Chronos only needs bounded fuzzy recognition of temporal vocabulary.
 
 ## Open implementation questions
 
-- exact Chronos APIs/types during migration from `dream_temporal*`;
+- final Chronos APIs beyond the implemented `chronos::analyze` boundary, generic `Temporal*` types, and internal matcher;
 - indication vocabulary and fuzzy-match thresholds;
 - expanded deterministic grammar;
 - exact valid-time representation for points, intervals, recurrence, granularity, and uncertainty;

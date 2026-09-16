@@ -1,4 +1,4 @@
-use crate::{DreamTemporalAnalysis, DreamTemporalAnchor, DreamTemporalPattern};
+use crate::{TemporalAnalysis, TemporalAnchor, TemporalPattern};
 
 #[derive(Clone, Copy)]
 pub(crate) struct TextSpan {
@@ -6,23 +6,20 @@ pub(crate) struct TextSpan {
     pub(crate) end: usize,
 }
 
-pub(crate) fn parse_temporal(
-    text: &str,
-    source_timestamp_ns: Option<i64>,
-) -> DreamTemporalAnalysis {
+pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> TemporalAnalysis {
     let mut claimed = Vec::new();
     let mut anchors = Vec::new();
-    crate::dream_temporal_absolute::extract_absolute(text, &mut claimed, &mut anchors);
-    crate::dream_temporal_relative::extract_relative(
+    crate::chronos_absolute::extract_absolute(text, &mut claimed, &mut anchors);
+    crate::chronos_relative::extract_relative(
         text,
         source_timestamp_ns,
         &mut claimed,
         &mut anchors,
     );
-    let mut patterns = crate::dream_temporal_recurrence::extract_recurrence(text);
+    let mut patterns = crate::chronos_recurrence::extract_recurrence(text);
     normalize_anchors(&mut anchors);
     normalize_patterns(&mut patterns);
-    DreamTemporalAnalysis {
+    TemporalAnalysis {
         source_timestamp_ns,
         anchors,
         patterns,
@@ -39,7 +36,7 @@ pub(crate) fn push_claimed(claimed_spans: &mut Vec<TextSpan>, span: TextSpan) {
     claimed_spans.push(span);
 }
 
-fn normalize_anchors(values: &mut Vec<DreamTemporalAnchor>) {
+fn normalize_anchors(values: &mut Vec<TemporalAnchor>) {
     values.sort_by(|left, right| {
         (
             left.start_ns,
@@ -64,7 +61,7 @@ fn normalize_anchors(values: &mut Vec<DreamTemporalAnchor>) {
     });
 }
 
-fn normalize_patterns(values: &mut Vec<DreamTemporalPattern>) {
+fn normalize_patterns(values: &mut Vec<TemporalPattern>) {
     values.sort_by(|left, right| {
         (
             left.frequency,

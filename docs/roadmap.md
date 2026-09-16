@@ -152,7 +152,6 @@ Modularize and expand the current Dream temporal machinery into the shared Chron
 
 Near-term work should:
 
-- extract/generalize the existing deterministic `dream_temporal*` parser/model/matcher behind a shared Chronos boundary without creating a second temporal stack;
 - add high-recall deterministic temporal-indication detection, including bounded typo tolerance for temporal vocabulary;
 - expand deterministic parsing for numeric and word-number relative expressions, months/years, ranges/boundaries, durations, recurrence, and safe loose calendar forms;
 - keep deterministic Chronos output derived/unpersisted by default;
@@ -160,7 +159,7 @@ Near-term work should:
 - integrate Chronos into Insomnia Memory processing, Dream Memory-Web reasoning, and Perception Observation processing; and
 - bind any persisted inferred temporal conclusion to the semantic body/version that justified it so edits/replacements make stale inference detectable.
 
-Chronos owns source/valid-time interpretation mechanics. Wall-clock transaction/knowledge time remains owned by the timestamped global/container version stream in Immediate Priority 3.
+Chronos owns source/valid-time interpretation mechanics. Wall-clock transaction/knowledge time is already implemented and remains owned by the timestamped global/container version stream.
 
 ## Echo retrieval surface
 
