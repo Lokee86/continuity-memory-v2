@@ -12,7 +12,8 @@ pub(crate) fn exact_kind(
         "since" | "until" | "before" | "after" | "starting" | "ending" | "through" => {
             TemporalIndicationKind::Boundary
         }
-        "every" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "annually" => {
+        "every" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "annually"
+        | "biweekly" | "bimonthly" | "semiweekly" | "semimonthly" => {
             TemporalIndicationKind::Recurrence
         }
         value if is_calendar_word(value) && calendar_context(previous, next, capitalized) => {

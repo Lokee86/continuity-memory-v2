@@ -26,13 +26,16 @@ mod chronos_boundary_endpoint;
 mod chronos_calendar;
 mod chronos_detection;
 mod chronos_detection_model;
+mod chronos_duration;
 mod chronos_edit_distance;
 mod chronos_fuzzy;
 mod chronos_match;
 mod chronos_model;
+mod chronos_normalize;
 mod chronos_number;
 mod chronos_parser;
 mod chronos_recurrence;
+mod chronos_recurrence_interval;
 mod chronos_relative;
 mod chronos_relative_offset;
 mod chronos_vocabulary;
@@ -310,8 +313,9 @@ pub use cva::Cva;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_model::{
-    TemporalAnalysis, TemporalAnchor, TemporalFrequency, TemporalGranularity, TemporalInterval,
-    TemporalMatch, TemporalMatchKind, TemporalOrigin, TemporalPattern, TemporalWeekday,
+    TemporalAnalysis, TemporalAnchor, TemporalDuration, TemporalDurationUnit, TemporalFrequency,
+    TemporalGranularity, TemporalInterval, TemporalMatch, TemporalMatchKind, TemporalOrigin,
+    TemporalPattern, TemporalWeekday,
 };
 pub use chronos_model::{
     TemporalAnalysis as DreamTemporalAnalysis, TemporalAnchor as DreamTemporalAnchor,
@@ -493,6 +497,8 @@ mod archive_tests;
 mod archive_vector_tests;
 #[cfg(test)]
 mod chronos_boundary_tests;
+#[cfg(test)]
+mod chronos_duration_recurrence_tests;
 #[cfg(test)]
 mod chronos_relative_tests;
 #[cfg(test)]

@@ -21,6 +21,9 @@ pub fn analyze(text: &str, reference_timestamp_ns: Option<i64>) -> TemporalAnaly
     for anchor in &mut corrected.anchors {
         anchor.evidence = detected.restore_evidence(text, &anchor.evidence);
     }
+    for duration in &mut corrected.durations {
+        duration.evidence = detected.restore_evidence(text, &duration.evidence);
+    }
     for interval in &mut corrected.intervals {
         interval.evidence = detected.restore_evidence(text, &interval.evidence);
     }

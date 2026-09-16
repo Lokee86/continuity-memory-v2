@@ -1,3 +1,5 @@
+pub(crate) const WORD_NUMBER_RE: &str = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\\s]+(?:one|two|three|four|five|six|seven|eight|nine))?";
+
 pub(crate) fn parse_number(value: &str) -> Option<i64> {
     if let Ok(number) = value.parse::<i64>() {
         return Some(number);

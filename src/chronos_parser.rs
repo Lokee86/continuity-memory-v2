@@ -1,4 +1,4 @@
-use crate::{TemporalAnalysis, TemporalAnchor, TemporalInterval, TemporalPattern};
+use crate::{TemporalAnalysis, TemporalAnchor, TemporalInterval};
 
 #[derive(Clone, Copy)]
 pub(crate) struct TextSpan {
@@ -25,13 +25,16 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
         &mut anchors,
     );
     mirror_range_anchors(&anchors, &mut intervals);
+    let mut durations = crate::chronos_duration::extract_durations(text);
     let mut patterns = crate::chronos_recurrence::extract_recurrence(text);
-    normalize_anchors(&mut anchors);
-    normalize_intervals(&mut intervals);
-    normalize_patterns(&mut patterns);
+    crate::chronos_normalize::anchors(&mut anchors);
+    crate::chronos_normalize::durations(&mut durations);
+    crate::chronos_normalize::intervals(&mut intervals);
+    crate::chronos_normalize::patterns(&mut patterns);
     TemporalAnalysis {
         source_timestamp_ns,
         anchors,
+        durations,
         intervals,
         patterns,
     }
@@ -56,6 +59,12 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
                 && existing.origin == candidate.origin
         })
     });
+    extra.durations.retain(|candidate| {
+        !base
+            .durations
+            .iter()
+            .any(|existing| existing.amount == candidate.amount && existing.unit == candidate.unit)
+    });
     extra.intervals.retain(|candidate| {
         !base.intervals.iter().any(|existing| {
             existing.start_ns == candidate.start_ns
@@ -75,11 +84,13 @@ pub(crate) fn merge_temporal_analysis(base: &mut TemporalAnalysis, mut extra: Te
         })
     });
     base.anchors.append(&mut extra.anchors);
+    base.durations.append(&mut extra.durations);
     base.intervals.append(&mut extra.intervals);
     base.patterns.append(&mut extra.patterns);
-    normalize_anchors(&mut base.anchors);
-    normalize_intervals(&mut base.intervals);
-    normalize_patterns(&mut base.patterns);
+    crate::chronos_normalize::anchors(&mut base.anchors);
+    crate::chronos_normalize::durations(&mut base.durations);
+    crate::chronos_normalize::intervals(&mut base.intervals);
+    crate::chronos_normalize::patterns(&mut base.patterns);
 }
 
 fn mirror_range_anchors(anchors: &[TemporalAnchor], intervals: &mut Vec<TemporalInterval>) {
@@ -104,85 +115,4 @@ fn mirror_range_anchors(anchors: &[TemporalAnchor], intervals: &mut Vec<Temporal
             evidence: anchor.evidence.clone(),
         });
     }
-}
-
-fn normalize_anchors(values: &mut Vec<TemporalAnchor>) {
-    values.sort_by(|left, right| {
-        (
-            left.start_ns,
-            left.end_ns,
-            left.granularity,
-            left.origin,
-            &left.evidence,
-        )
-            .cmp(&(
-                right.start_ns,
-                right.end_ns,
-                right.granularity,
-                right.origin,
-                &right.evidence,
-            ))
-    });
-    values.dedup_by(|left, right| {
-        left.start_ns == right.start_ns
-            && left.end_ns == right.end_ns
-            && left.granularity == right.granularity
-            && left.origin == right.origin
-    });
-}
-
-fn normalize_intervals(values: &mut Vec<TemporalInterval>) {
-    values.sort_by(|left, right| {
-        (
-            left.start_ns,
-            left.end_ns,
-            left.start_granularity,
-            left.end_granularity,
-            left.origin,
-            &left.evidence,
-        )
-            .cmp(&(
-                right.start_ns,
-                right.end_ns,
-                right.start_granularity,
-                right.end_granularity,
-                right.origin,
-                &right.evidence,
-            ))
-    });
-    values.dedup_by(|left, right| {
-        left.start_ns == right.start_ns
-            && left.end_ns == right.end_ns
-            && left.start_granularity == right.start_granularity
-            && left.end_granularity == right.end_granularity
-            && left.origin == right.origin
-    });
-}
-
-fn normalize_patterns(values: &mut Vec<TemporalPattern>) {
-    values.sort_by(|left, right| {
-        (
-            left.frequency,
-            left.interval,
-            left.weekday,
-            left.month_day,
-            left.month,
-            &left.evidence,
-        )
-            .cmp(&(
-                right.frequency,
-                right.interval,
-                right.weekday,
-                right.month_day,
-                right.month,
-                &right.evidence,
-            ))
-    });
-    values.dedup_by(|left, right| {
-        left.frequency == right.frequency
-            && left.interval == right.interval
-            && left.weekday == right.weekday
-            && left.month_day == right.month_day
-            && left.month == right.month
-    });
 }

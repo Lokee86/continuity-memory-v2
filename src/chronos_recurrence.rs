@@ -1,22 +1,9 @@
 use crate::chronos_parser::{TextSpan, claimed, push_claimed};
-use crate::chronos_relative::parse_weekday;
-use crate::{TemporalFrequency, TemporalPattern, TemporalWeekday};
+use crate::chronos_recurrence_interval::extract_interval_recurrence;
+use crate::{TemporalFrequency, TemporalPattern};
 use regex::Regex;
 use std::sync::LazyLock;
 
-static WEEKDAY_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"(?i)\b(?:every|each)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
-    )
-    .unwrap()
-});
-static PLURAL_WEEKDAY_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s\b").unwrap()
-});
-static INTERVAL_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)\b(?:every|each)\s+(?:(\d{1,4})\s+)?(day|week|month|quarter|year)s?\b")
-        .unwrap()
-});
 static CADENCE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b(daily|weekly|monthly|quarterly|yearly|annually)\b").unwrap()
 });
@@ -70,8 +57,6 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<TemporalPattern> {
         result.push(pattern(
             found.as_str(),
             TemporalFrequency::Monthly,
-            1,
-            None,
             Some(day),
         ));
         push_claimed(
@@ -82,51 +67,7 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<TemporalPattern> {
             },
         );
     }
-    for captures in WEEKDAY_RE.captures_iter(text) {
-        let Some(weekday) = parse_weekday(&captures[1]) else {
-            continue;
-        };
-        result.push(pattern(
-            captures.get(0).unwrap().as_str(),
-            TemporalFrequency::Weekly,
-            1,
-            Some(weekday),
-            None,
-        ));
-    }
-    for captures in PLURAL_WEEKDAY_RE.captures_iter(text) {
-        let Some(weekday) = parse_weekday(&captures[1]) else {
-            continue;
-        };
-        result.push(pattern(
-            captures.get(0).unwrap().as_str(),
-            TemporalFrequency::Weekly,
-            1,
-            Some(weekday),
-            None,
-        ));
-    }
-    for captures in INTERVAL_RE.captures_iter(text) {
-        let found = captures.get(0).unwrap();
-        let span = TextSpan {
-            start: found.start(),
-            end: found.end(),
-        };
-        if claimed(span, &claimed_spans) {
-            continue;
-        }
-        let interval = captures
-            .get(1)
-            .and_then(|value| value.as_str().parse::<u16>().ok())
-            .unwrap_or(1);
-        if interval == 0 {
-            continue;
-        }
-        let Some(frequency) = unit_frequency(&captures[2]) else {
-            continue;
-        };
-        result.push(pattern(found.as_str(), frequency, interval, None, None));
-    }
+    result.extend(extract_interval_recurrence(text, &claimed_spans));
     for captures in CADENCE_RE.captures_iter(text) {
         let found = captures.get(0).unwrap();
         let span = TextSpan {
@@ -139,36 +80,19 @@ pub(crate) fn extract_recurrence(text: &str) -> Vec<TemporalPattern> {
         let Some(frequency) = cadence_frequency(&captures[1]) else {
             continue;
         };
-        result.push(pattern(found.as_str(), frequency, 1, None, None));
+        result.push(pattern(found.as_str(), frequency, None));
     }
     result
 }
 
-fn pattern(
-    evidence: &str,
-    frequency: TemporalFrequency,
-    interval: u16,
-    weekday: Option<TemporalWeekday>,
-    month_day: Option<u8>,
-) -> TemporalPattern {
+fn pattern(evidence: &str, frequency: TemporalFrequency, month_day: Option<u8>) -> TemporalPattern {
     TemporalPattern {
         frequency,
-        interval,
-        weekday,
+        interval: 1,
+        weekday: None,
         month_day,
         month: None,
         evidence: evidence.to_owned(),
-    }
-}
-
-fn unit_frequency(value: &str) -> Option<TemporalFrequency> {
-    match value.to_ascii_lowercase().as_str() {
-        "day" => Some(TemporalFrequency::Daily),
-        "week" => Some(TemporalFrequency::Weekly),
-        "month" => Some(TemporalFrequency::Monthly),
-        "quarter" => Some(TemporalFrequency::Quarterly),
-        "year" => Some(TemporalFrequency::Yearly),
-        _ => None,
     }
 }
 

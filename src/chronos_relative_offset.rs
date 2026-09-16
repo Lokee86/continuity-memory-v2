@@ -1,17 +1,15 @@
 use crate::chronos_calendar::{day_span, shift_days, shift_months_clamped};
-use crate::chronos_number::parse_number;
+use crate::chronos_number::{WORD_NUMBER_RE, parse_number};
 use crate::chronos_parser::{TextSpan, claimed, push_claimed};
 use crate::{TemporalAnchor, TemporalGranularity, TemporalOrigin};
 use regex::Regex;
 use std::sync::LazyLock;
 use time::Date;
 
-const WORD_NUMBER: &str = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\\s]+(?:one|two|three|four|five|six|seven|eight|nine))?";
-
 static OFFSET_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(
         r"(?i)\b(?:in\s+({number}|\d{{1,4}})\s+(day|week|month|year)s?|({number}|\d{{1,4}})\s+(day|week|month|year)s?\s+ago)\b",
-        number = WORD_NUMBER
+        number = WORD_NUMBER_RE
     ))
     .expect("valid Chronos relative-offset regex")
 });

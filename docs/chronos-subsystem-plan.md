@@ -6,7 +6,7 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction, the first parser-independent indication/normalization seam, numeric/word-number relative day/week/month/year offsets, and deterministic bounded/open interval parsing are implemented; further deterministic grammar expansion and consumer integrations beyond Dream remain in progress.
+Shared-core extraction, the first parser-independent indication/normalization seam, numeric/word-number relative offsets, bounded/open intervals, exact standalone durations, and broader deterministic recurrence are implemented; seasons, broader loose-calendar parsing, and consumer integrations beyond Dream remain in progress.
 
 Chronos now owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` may use a transient corrected view but maps any corrected evidence back to the exact original text. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
@@ -78,7 +78,7 @@ Resolve against authoritative source/reference chronology. Never substitute Memo
 
 Provide deterministic overlap, ordering, recurrence identity, compatibility, and proposition-level valid-time interpretation where syntax and semantic-unit structure make that safe.
 
-The valid-time representation now includes `TemporalInterval` with independently optional start/end bounds and per-bound granularity. Existing bounded `Range` anchors remain as compatibility projections for Dream. Recurrence remains represented separately; add uncertainty only when actual semantics require it.
+The valid-time representation now includes `TemporalInterval` with independently optional start/end bounds and per-bound granularity. Existing bounded `Range` anchors remain as compatibility projections for Dream. Exact standalone durations are represented separately as `TemporalDuration { amount, unit, evidence }`, and recurrence remains a separate pattern model. Add uncertainty only when actual semantics require it.
 
 Current Dream temporal-match behavior is now implemented behind this seam with compatibility tests.
 
@@ -145,7 +145,9 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Numeric and English word-number relative day/week/month/year offsets are implemented through ninety-nine for word forms; month/year shifts use calendar-aware end-of-month clamping.
 - Bounded `from … to/through/until …` ranges and open `since`/`until`/`before`/`after`/`starting`/`ending` boundaries are implemented as derived `TemporalInterval` values; bounded intervals also retain compatibility `Range` anchors.
 - Boundary endpoints reuse deterministic explicit/relative parsing and support reference-bound bare months/weekdays, including cross-year month ranges.
-- Expand standalone duration, recurrence, seasons, and broader safe loose-calendar parsing.
+- Exact standalone durations are implemented for bounded numeric/word-number quantities across seconds/minutes/hours/days/weeks/months/quarters/years without converting calendar units to fixed nanoseconds.
+- Recurrence now supports word-number intervals and explicit alternation such as `every three weeks`, `every other Tuesday`, and `every other month`, while preserving specific `every month/year on …` precedence. Ambiguous cadence words such as `biweekly` remain parser-unresolved but are detected so later bounded inference can handle them.
+- Expand seasons and broader safe loose-calendar parsing.
 - Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction.
 
 ### C — Insomnia integration
