@@ -62,6 +62,13 @@ pub(crate) fn shift_month_start(date: Date, delta: i32) -> Option<Date> {
     Date::from_calendar_date(year, Month::try_from(month).ok()?, 1).ok()
 }
 
+pub(crate) fn shift_months_clamped(date: Date, delta: i32) -> Option<Date> {
+    let target = shift_month_start(date, delta)?;
+    let next = shift_month_start(target, 1)?;
+    let last_day = next.previous_day()?.day();
+    Date::from_calendar_date(target.year(), target.month(), date.day().min(last_day)).ok()
+}
+
 pub(crate) fn shift_year_start(date: Date, delta: i32) -> Option<Date> {
     Date::from_calendar_date(date.year().checked_add(delta)?, Month::January, 1).ok()
 }

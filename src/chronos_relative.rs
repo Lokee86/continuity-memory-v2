@@ -3,6 +3,7 @@ use crate::chronos_calendar::{
     shift_week_start, shift_year_start, week_span, weekday_date, year_span,
 };
 use crate::chronos_parser::{TextSpan, claimed, push_claimed};
+use crate::chronos_relative_offset::extract_relative_offsets;
 use crate::{TemporalAnchor, TemporalGranularity, TemporalOrigin, TemporalWeekday};
 use regex::Regex;
 use std::sync::LazyLock;
@@ -13,9 +14,6 @@ static WEEKDAY_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 static PERIOD_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\b(this|next|last)\s+(week|month|quarter|year)\b").unwrap());
-static NUMERIC_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)\b(?:in\s+(\d{1,4})\s+(day|week)s?|(\d{1,4})\s+(day|week)s?\s+ago)\b").unwrap()
-});
 static SIMPLE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\b(today|yesterday|tomorrow)\b").unwrap());
 
@@ -47,7 +45,7 @@ pub(crate) fn extract_relative(
         push_day(found.as_str(), date, span, claimed_spans, anchors);
     }
     extract_periods(text, source_date, claimed_spans, anchors);
-    extract_numeric(text, source_date, claimed_spans, anchors);
+    extract_relative_offsets(text, source_date, claimed_spans, anchors);
     extract_simple(text, source_date, claimed_spans, anchors);
 }
 
@@ -98,43 +96,6 @@ fn extract_periods(
             granularity,
         ));
         push_claimed(claimed_spans, span);
-    }
-}
-
-fn extract_numeric(
-    text: &str,
-    source_date: time::Date,
-    claimed_spans: &mut Vec<TextSpan>,
-    anchors: &mut Vec<TemporalAnchor>,
-) {
-    for captures in NUMERIC_RE.captures_iter(text) {
-        let found = captures.get(0).unwrap();
-        let span = TextSpan {
-            start: found.start(),
-            end: found.end(),
-        };
-        if claimed(span, claimed_spans) {
-            continue;
-        }
-        let future = captures.get(1).is_some();
-        let number = captures.get(1).or_else(|| captures.get(3));
-        let unit = captures.get(2).or_else(|| captures.get(4));
-        let (Some(number), Some(unit)) = (number, unit) else {
-            continue;
-        };
-        let Ok(number) = number.as_str().parse::<i64>() else {
-            continue;
-        };
-        let multiplier = if unit.as_str().eq_ignore_ascii_case("week") {
-            7
-        } else {
-            1
-        };
-        let days = number.saturating_mul(multiplier) * if future { 1 } else { -1 };
-        let Some(date) = shift_days(source_date, days) else {
-            continue;
-        };
-        push_day(found.as_str(), date, span, claimed_spans, anchors);
     }
 }
 

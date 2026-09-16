@@ -55,7 +55,7 @@ fn shared_chronos_matcher_preserves_exact_day_scoring() {
 }
 
 #[test]
-fn detector_preserves_unresolved_temporal_material_and_original_span() {
+fn detector_preserves_correctable_temporal_material_and_original_span() {
     let text = "That happened three mnoths ago.";
     let detection = detect(text);
     let corrected = detection
@@ -72,11 +72,15 @@ fn detector_preserves_unresolved_temporal_material_and_original_span() {
     );
     assert!(detection.has_indications());
     assert!(detection.has_corrections());
-    assert!(
-        analyze(text, Some(timestamp_ns(2026, Month::August, 24, 12)))
-            .anchors
-            .is_empty()
-    );
+
+    let analysis = analyze(text, Some(timestamp_ns(2026, Month::August, 24, 12)));
+    let anchor = analysis
+        .anchors
+        .iter()
+        .find(|anchor| anchor.origin == TemporalOrigin::Relative)
+        .expect("normalized word-number month offset should now resolve");
+    assert_eq!(anchor.start_ns, day_start_ns(2026, Month::May, 24));
+    assert_eq!(anchor.evidence, "three mnoths ago");
 }
 
 #[test]

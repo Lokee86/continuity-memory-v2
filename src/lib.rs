@@ -28,9 +28,11 @@ mod chronos_edit_distance;
 mod chronos_fuzzy;
 mod chronos_match;
 mod chronos_model;
+mod chronos_number;
 mod chronos_parser;
 mod chronos_recurrence;
 mod chronos_relative;
+mod chronos_relative_offset;
 mod chronos_vocabulary;
 mod community_codec;
 mod community_error;
@@ -487,6 +489,8 @@ mod archive_search_tests;
 mod archive_tests;
 #[cfg(test)]
 mod archive_vector_tests;
+#[cfg(test)]
+mod chronos_relative_tests;
 #[cfg(test)]
 mod chronos_tests;
 #[cfg(all(test, feature = "community-benchmarks"))]

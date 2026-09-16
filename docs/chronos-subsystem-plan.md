@@ -6,7 +6,7 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction plus the first parser-independent indication/normalization seam are implemented; deterministic grammar expansion and consumer integrations beyond Dream remain in progress.
+Shared-core extraction, the first parser-independent indication/normalization seam, and numeric/word-number relative day/week/month/year offsets are implemented; further deterministic grammar expansion and consumer integrations beyond Dream remain in progress.
 
 Chronos now owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` may use a transient corrected view but maps any corrected evidence back to the exact original text. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
@@ -142,8 +142,8 @@ A deterministic cache is permitted as disposable optimization state, never seman
 
 - Parser-independent `chronos::detect` now reports explicit/calendar/relative/boundary/recurrence/contextual-duration indications with original byte spans.
 - Bounded one-edit/transposition correction now covers selected temporal vocabulary with contextual guards; normalized tokens are transient and corrected parse evidence maps back to the exact original span.
-- Add numeric and word-number relative units including months/years.
-- Expand range/boundary, duration, recurrence, seasons, and safe loose-calendar parsing.
+- Numeric and English word-number relative day/week/month/year offsets are implemented through ninety-nine for word forms; month/year shifts use calendar-aware end-of-month clamping.
+- Expand range/boundary, standalone duration, recurrence, seasons, and safe loose-calendar parsing.
 - Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction.
 
 ### C — Insomnia integration

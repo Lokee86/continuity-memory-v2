@@ -6,7 +6,7 @@ Implementation planning: [Chronos subsystem plan](../chronos-subsystem-plan.md) 
 
 ## Status
 
-Accepted — 2026-09-09. Shared deterministic core extraction plus the first indication/normalization seam are implemented; broader deterministic coverage, bounded inference, and Insomnia/Perception integration remain future work.
+Accepted — 2026-09-09. Shared deterministic core extraction, the first indication/normalization seam, and numeric/word-number relative day/week/month/year resolution are implemented; broader deterministic coverage, bounded inference, and Insomnia/Perception integration remain future work.
 
 The former deterministic `dream_temporal*` parser/model/calendar/recurrence/matcher implementation is now owned by `chronos*`. Chronos also exposes parser-independent indication detection with original byte spans and bounded contextual typo correction over temporal vocabulary. Dream retains a thin owner-specific source-time adapter and compatibility aliases rather than a second temporal stack.
 
