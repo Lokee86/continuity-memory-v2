@@ -359,10 +359,7 @@ impl Container {
         Ok(chunks)
     }
 
-    pub(crate) fn create_empty_like(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Self, ContainerError> {
+    pub(crate) fn create_empty_like(&self, path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         match (self.header_len, self.identity, self.owner_uuid) {
             (LEGACY_HEADER_LEN, None, None) => Self::create(path),
             (LEGACY_TYPED_HEADER_LEN, Some(identity), None) => {
@@ -375,9 +372,7 @@ impl Container {
         }
     }
 
-    pub(crate) fn object_payloads(
-        &mut self,
-    ) -> Result<Vec<(ObjectRef, Vec<u8>)>, ContainerError> {
+    pub(crate) fn object_payloads(&mut self) -> Result<Vec<(ObjectRef, Vec<u8>)>, ContainerError> {
         let objects = self.chunks()?;
         let mut payloads = Vec::with_capacity(objects.len());
         for object in objects {

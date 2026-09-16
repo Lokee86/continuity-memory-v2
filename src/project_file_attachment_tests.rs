@@ -1,7 +1,6 @@
 use crate::{
     ArchiveError, Cva, IncomingAttachment, InteractionRole, InteractionRuntime, ProjectFileRef,
-    ProjectRepositoryKind,
-    ProjectRepositoryRef, ProjectRevisionRef, StoredFile,
+    ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, StoredFile,
 };
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -247,7 +246,9 @@ fn project_backed_repack_keeps_content_shared_with_unbound_file() {
     let mut cva = Cva::create_project(&path).unwrap();
     let backed_shared = cva.store_file("backed.txt".into(), None, shared).unwrap();
     let unbound_shared = cva.store_file("unbound.txt".into(), None, shared).unwrap();
-    let backed_unique = cva.store_file("unique.txt".into(), None, removable).unwrap();
+    let backed_unique = cva
+        .store_file("unique.txt".into(), None, removable)
+        .unwrap();
     cva.bind_legacy_project_file(
         backed_shared.id,
         project_ref(shared, "revision-1", "warlock/uploads/backed.txt"),

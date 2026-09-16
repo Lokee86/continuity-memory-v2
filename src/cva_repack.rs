@@ -230,7 +230,8 @@ mod tests {
             graph_version: 2,
             mutation: old,
         };
-        let graph = relocate_payload(&crate::graph_codec::encode_version(graph), &relocated).unwrap();
+        let graph =
+            relocate_payload(&crate::graph_codec::encode_version(graph), &relocated).unwrap();
         assert_eq!(
             crate::graph_codec::decode_version(&graph)
                 .unwrap()
