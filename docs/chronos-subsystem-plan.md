@@ -6,7 +6,7 @@ Decision owner: [ADR 0035](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Status
 
-Shared-core extraction, the first parser-independent indication/normalization seam, numeric/word-number relative offsets, bounded/open intervals, exact standalone durations, and broader deterministic recurrence are implemented; seasons, broader loose-calendar parsing, and consumer integrations beyond Dream remain in progress.
+Shared-core extraction, parser-independent indication/normalization, relative offsets, bounded/open intervals, exact standalone durations, broader deterministic recurrence, hemisphere-qualified seasons, and the planned safe loose-calendar baseline are implemented. Detector calibration, bounded inference, and consumer integrations beyond Dream remain in progress.
 
 Chronos now owns the shared temporal model, detector, bounded vocabulary normalizer, parser, calendar resolution, recurrence extraction, and matcher under `chronos*`. `chronos::detect` preserves original indication spans even when parsing fails; `chronos::analyze` may use a transient corrected view but maps any corrected evidence back to the exact original text. Dream preserves its existing public behavior through a thin Memory/source-time adapter and compatibility aliases for the former `DreamTemporal*` public type names.
 
@@ -138,7 +138,7 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Dream resolves authoritative Memory source time and delegates analysis/matching to Chronos.
 - Existing Dream temporal tests remain green, with direct Chronos contract tests added.
 
-### B — Detection and deterministic coverage — partially implemented
+### B — Detection and deterministic coverage — baseline implemented
 
 - Parser-independent `chronos::detect` now reports explicit/calendar/relative/boundary/recurrence/contextual-duration indications with original byte spans.
 - Bounded one-edit/transposition correction now covers selected temporal vocabulary with contextual guards; normalized tokens are transient and corrected parse evidence maps back to the exact original span.
@@ -147,8 +147,10 @@ A deterministic cache is permitted as disposable optimization state, never seman
 - Boundary endpoints reuse deterministic explicit/relative parsing and support reference-bound bare months/weekdays, including cross-year month ranges.
 - Exact standalone durations are implemented for bounded numeric/word-number quantities across seconds/minutes/hours/days/weeks/months/quarters/years without converting calendar units to fixed nanoseconds.
 - Recurrence now supports word-number intervals and explicit alternation such as `every three weeks`, `every other Tuesday`, and `every other month`, while preserving specific `every month/year on …` precedence. Ambiguous cadence words such as `biweekly` remain parser-unresolved but are detected so later bounded inference can handle them.
-- Expand seasons and broader safe loose-calendar parsing.
-- Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction.
+- Hemisphere-qualified named seasons are implemented as meteorological three-month `Season` anchors. Northern/southern hemisphere must be explicit; unqualified season language remains detected but unresolved rather than inheriting a machine/user locale assumption.
+- Safe loose-calendar parsing now covers common English month abbreviations with explicit years, ordinal `day of Month YYYY`, reference-bound `this|next|last Month`, and `Month day this|next|last year`. Reference-bound forms require authoritative source/reference time.
+- Locale-ambiguous numeric dates, unqualified seasons, approximate periods, and other forms without one safe deterministic interpretation remain indication-only for bounded fallback.
+- Expand/calibrate the indication vocabulary and fuzzy thresholds against measured typo recall and false positives rather than broad spell correction; add further deterministic grammar only from measured unambiguous cases.
 
 ### C — Insomnia integration
 

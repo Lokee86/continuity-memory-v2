@@ -16,7 +16,10 @@ pub(crate) fn exact_kind(
         | "biweekly" | "bimonthly" | "semiweekly" | "semimonthly" => {
             TemporalIndicationKind::Recurrence
         }
-        value if is_calendar_word(value) && calendar_context(previous, next, capitalized) => {
+        value
+            if (is_calendar_word(value) || is_month_abbreviation(value))
+                && calendar_context(previous, next, capitalized) =>
+        {
             TemporalIndicationKind::Calendar
         }
         value if is_unit(value) && unit_context(previous, next) => TemporalIndicationKind::Duration,
@@ -89,6 +92,24 @@ fn is_unit(value: &str) -> bool {
             | "minutes"
             | "second"
             | "seconds"
+    )
+}
+
+fn is_month_abbreviation(value: &str) -> bool {
+    matches!(
+        value,
+        "jan"
+            | "feb"
+            | "mar"
+            | "apr"
+            | "jun"
+            | "jul"
+            | "aug"
+            | "sep"
+            | "sept"
+            | "oct"
+            | "nov"
+            | "dec"
     )
 }
 

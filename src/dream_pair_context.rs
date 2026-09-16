@@ -92,6 +92,7 @@ fn granularity_name(value: DreamTemporalGranularity) -> &'static str {
         DreamTemporalGranularity::Week => "week",
         DreamTemporalGranularity::Month => "month",
         DreamTemporalGranularity::Quarter => "quarter",
+        DreamTemporalGranularity::Season => "season",
         DreamTemporalGranularity::Year => "year",
         DreamTemporalGranularity::Range => "range",
     }

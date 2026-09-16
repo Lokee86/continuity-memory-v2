@@ -29,6 +29,9 @@ mod chronos_detection_model;
 mod chronos_duration;
 mod chronos_edit_distance;
 mod chronos_fuzzy;
+mod chronos_loose_calendar;
+mod chronos_loose_explicit;
+mod chronos_loose_relative;
 mod chronos_match;
 mod chronos_model;
 mod chronos_normalize;
@@ -38,6 +41,7 @@ mod chronos_recurrence;
 mod chronos_recurrence_interval;
 mod chronos_relative;
 mod chronos_relative_offset;
+mod chronos_season;
 mod chronos_vocabulary;
 mod community_codec;
 mod community_error;
@@ -497,6 +501,8 @@ mod archive_tests;
 mod archive_vector_tests;
 #[cfg(test)]
 mod chronos_boundary_tests;
+#[cfg(test)]
+mod chronos_calendar_language_tests;
 #[cfg(test)]
 mod chronos_duration_recurrence_tests;
 #[cfg(test)]

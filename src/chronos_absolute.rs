@@ -25,6 +25,8 @@ pub(crate) fn extract_absolute(
     extract_timestamps(text, claimed_spans, anchors);
     extract_date_ranges(text, claimed_spans, anchors);
     crate::chronos_absolute_calendar::extract_natural_dates(text, claimed_spans, anchors);
+    crate::chronos_loose_calendar::extract_explicit(text, claimed_spans, anchors);
+    crate::chronos_season::extract_seasons(text, claimed_spans, anchors);
     extract_iso_dates(text, claimed_spans, anchors);
     crate::chronos_absolute_calendar::extract_coarse(text, claimed_spans, anchors);
 }

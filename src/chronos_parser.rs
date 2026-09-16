@@ -18,6 +18,12 @@ pub(crate) fn parse_temporal(text: &str, source_timestamp_ns: Option<i64>) -> Te
         &mut intervals,
     );
     crate::chronos_absolute::extract_absolute(text, &mut claimed, &mut anchors);
+    crate::chronos_loose_calendar::extract_relative(
+        text,
+        source_timestamp_ns,
+        &mut claimed,
+        &mut anchors,
+    );
     crate::chronos_relative::extract_relative(
         text,
         source_timestamp_ns,

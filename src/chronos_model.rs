@@ -5,6 +5,7 @@ pub enum TemporalGranularity {
     Week,
     Month,
     Quarter,
+    Season,
     Year,
     Range,
 }
@@ -99,6 +100,7 @@ pub enum TemporalMatchKind {
     ExactWeek,
     ExactMonth,
     ExactQuarter,
+    ExactSeason,
     ExactYear,
     RangeOverlap,
     Recurrence,

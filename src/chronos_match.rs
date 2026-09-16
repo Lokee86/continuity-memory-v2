@@ -69,6 +69,7 @@ fn classify_anchor_match(
             TemporalGranularity::Week => (TemporalMatchKind::ExactWeek, 0.92),
             TemporalGranularity::Month => (TemporalMatchKind::ExactMonth, 0.88),
             TemporalGranularity::Quarter => (TemporalMatchKind::ExactQuarter, 0.84),
+            TemporalGranularity::Season => (TemporalMatchKind::ExactSeason, 0.82),
             TemporalGranularity::Year => (TemporalMatchKind::ExactYear, 0.8),
             TemporalGranularity::Range => (TemporalMatchKind::RangeOverlap, 0.96),
         };

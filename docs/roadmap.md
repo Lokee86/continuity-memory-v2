@@ -153,7 +153,7 @@ Modularize and expand the current Dream temporal machinery into the shared Chron
 Near-term work should:
 
 - expand/calibrate the implemented indication detector and bounded temporal-vocabulary normalizer from measured recall/false positives rather than broad spell correction;
-- expand deterministic parsing beyond the implemented relative offsets, bounded/open intervals, exact standalone durations, and broader recurrence into seasons and broader safe loose calendar forms;
+- keep the implemented deterministic grammar conservative: qualified seasons and safe loose-calendar forms are covered, while further grammar additions should come from measured unambiguous cases rather than locale/hemisphere guesses;
 - keep deterministic Chronos output derived/unpersisted by default;
 - invoke bounded temporal inference only when an indication exists and deterministic resolution is insufficient;
 - integrate Chronos into Insomnia Memory processing, Dream Memory-Web reasoning, and Perception Observation processing; and
