@@ -12,6 +12,10 @@ Accepted architecture; implementation not yet started.
 
 This document owns the implementation shape for Perception. ADR 0033 owns the architectural decision and rationale. Shipped behavior must move to current-state docs when implemented.
 
+## Overview
+
+Perception is the planned post-Dream semantic layer for durable Entities, sparse owner-qualified Relationships, and synthesized Observations. It uses bounded deterministic routing and inference rather than full-corpus reasoning.
+
 ## Purpose
 
 Perception materializes semantic structure implicit in the organized Memory Web that is neither a directly remembered proposition nor an ordinary Dream relationship.
@@ -304,6 +308,10 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 - Mutation-accounting boundaries and wall-time policy.
 - Observation duplicate/canonical reconciliation mechanics.
 - Retrieval/Ego treatment of Entities and Observations once implemented.
+
+## Notes
+
+This remains future architecture. The earlier derived-semantic-nodes exploration is retained as design history; ADRs 0033–0035 and this plan own the current accepted direction.
 
 ## Related docs
 

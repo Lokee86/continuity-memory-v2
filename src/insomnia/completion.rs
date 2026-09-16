@@ -6,6 +6,7 @@ use crate::{MemoryBodyId, MemoryRef};
 const COMPLETION_MAGIC_V1: [u8; 8] = *b"CVAINSC1";
 const COMPLETION_MAGIC_V2: [u8; 8] = *b"CVAINSC2";
 const COMPLETION_MAGIC_V3: [u8; 8] = *b"CVAINSC3";
+const COMPLETION_MAGIC_V4: [u8; 8] = *b"CVAINSC4";
 
 #[derive(Clone, Debug)]
 pub(crate) struct InsomniaCompletionBody {
@@ -19,6 +20,7 @@ pub(crate) struct InsomniaCompletion {
     pub(crate) attempt: u32,
     pub(crate) started_at_ns: i64,
     pub(crate) completed_at_ns: i64,
+    pub(crate) transaction_time_ns: i64,
     pub(crate) extractor_model: String,
     pub(crate) extractor_version: String,
     pub(crate) rejected_count: u32,
@@ -43,7 +45,7 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
                 .map(|body| body.bytes.len())
                 .sum::<usize>(),
     );
-    out.extend_from_slice(&COMPLETION_MAGIC_V3);
+    out.extend_from_slice(&COMPLETION_MAGIC_V4);
     out.extend_from_slice(&value.episode_id.0);
     out.extend_from_slice(&value.attempt.to_le_bytes());
     out.extend_from_slice(&value.started_at_ns.to_le_bytes());
@@ -51,6 +53,7 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
     out.extend_from_slice(&value.rejected_count.to_le_bytes());
     out.extend_from_slice(&value.global_version_start.to_le_bytes());
     out.extend_from_slice(&global_version_count.to_le_bytes());
+    out.extend_from_slice(&value.transaction_time_ns.to_le_bytes());
     write_string(&mut out, &value.extractor_model)?;
     write_string(&mut out, &value.extractor_version)?;
     let memory_count =
@@ -99,8 +102,12 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
 
 pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
-) -> Result<Option<(u64, u32)>, &'static str> {
-    if bytes.len() < 8 || (bytes[..8] != COMPLETION_MAGIC_V2 && bytes[..8] != COMPLETION_MAGIC_V3) {
+) -> Result<Option<(u64, u32, Option<i64>)>, &'static str> {
+    if bytes.len() < 8
+        || (bytes[..8] != COMPLETION_MAGIC_V2
+            && bytes[..8] != COMPLETION_MAGIC_V3
+            && bytes[..8] != COMPLETION_MAGIC_V4)
+    {
         return Ok(None);
     }
     if bytes.len() < 76 {
@@ -111,12 +118,23 @@ pub(crate) fn decode_embedded_version_range(
     if count > 0 && start == 0 {
         return Err("invalid completion global version range");
     }
-    Ok(Some((start, count)))
+    let transaction_time_ns = if bytes[..8] == COMPLETION_MAGIC_V4 {
+        if bytes.len() < 84 {
+            return Err("short Insomnia v4 completion");
+        }
+        Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap()))
+    } else {
+        None
+    };
+    Ok(Some((start, count, transaction_time_ns)))
 }
 
 pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletion>, &'static str> {
     if bytes.len() < 8 {
         return Ok(None);
+    }
+    if bytes[..8] == COMPLETION_MAGIC_V4 {
+        return decode_completion_v4(bytes).map(Some);
     }
     if bytes[..8] == COMPLETION_MAGIC_V3 {
         return decode_completion_v3(bytes).map(Some);
@@ -128,6 +146,70 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
         return decode_completion_v1(bytes).map(Some);
     }
     Ok(None)
+}
+
+fn decode_completion_v4(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
+    if bytes.len() < 96 {
+        return Err("short Insomnia v4 completion");
+    }
+    let episode_id = EpisodeId(bytes[8..40].try_into().unwrap());
+    let attempt = u32::from_le_bytes(bytes[40..44].try_into().unwrap());
+    let started_at_ns = i64::from_le_bytes(bytes[44..52].try_into().unwrap());
+    let completed_at_ns = i64::from_le_bytes(bytes[52..60].try_into().unwrap());
+    let rejected_count = u32::from_le_bytes(bytes[60..64].try_into().unwrap());
+    let global_version_start = u64::from_le_bytes(bytes[64..72].try_into().unwrap());
+    let global_version_count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
+    let transaction_time_ns = i64::from_le_bytes(bytes[76..84].try_into().unwrap());
+    if global_version_count > 0 && global_version_start == 0 {
+        return Err("invalid completion global version range");
+    }
+    let mut cursor = 84;
+    let extractor_model = read_string(bytes, &mut cursor)?;
+    let extractor_version = read_string(bytes, &mut cursor)?;
+    let memory_ids = read_memory_ids(bytes, &mut cursor)?;
+    let external_memory_refs = read_memory_refs(bytes, &mut cursor)?;
+    let body_count = read_u32(bytes, &mut cursor)? as usize;
+    let mut bodies = Vec::with_capacity(body_count);
+    for _ in 0..body_count {
+        let id_end = cursor
+            .checked_add(32)
+            .ok_or("completion body id overflow")?;
+        let id_raw = bytes
+            .get(cursor..id_end)
+            .ok_or("truncated completion body id")?;
+        cursor = id_end;
+        let len = read_u32(bytes, &mut cursor)? as usize;
+        let end = cursor.checked_add(len).ok_or("completion body overflow")?;
+        let body = bytes
+            .get(cursor..end)
+            .ok_or("truncated completion body")?
+            .to_vec();
+        cursor = end;
+        bodies.push(InsomniaCompletionBody {
+            id: MemoryBodyId(id_raw.try_into().unwrap()),
+            bytes: body,
+        });
+    }
+    let records = read_records(bytes, &mut cursor)?;
+    validate_record_versions(global_version_start, global_version_count, &records)?;
+    if cursor != bytes.len() {
+        return Err("Insomnia completion trailing bytes");
+    }
+    Ok(InsomniaCompletion {
+        episode_id,
+        attempt,
+        started_at_ns,
+        completed_at_ns,
+        transaction_time_ns,
+        extractor_model,
+        extractor_version,
+        rejected_count,
+        memory_ids,
+        external_memory_refs,
+        global_version_start,
+        bodies,
+        records,
+    })
 }
 
 fn decode_completion_v3(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
@@ -181,6 +263,7 @@ fn decode_completion_v3(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         attempt,
         started_at_ns,
         completed_at_ns,
+        transaction_time_ns: 0,
         extractor_model,
         extractor_version,
         rejected_count,
@@ -252,6 +335,7 @@ fn decode_completion_v2(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         attempt,
         started_at_ns,
         completed_at_ns,
+        transaction_time_ns: 0,
         extractor_model,
         extractor_version,
         rejected_count,
@@ -289,6 +373,7 @@ fn decode_completion_v1(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         attempt,
         started_at_ns,
         completed_at_ns,
+        transaction_time_ns: 0,
         extractor_model,
         extractor_version,
         rejected_count,

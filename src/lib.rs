@@ -661,6 +661,8 @@ mod search_tests;
 #[cfg(test)]
 mod semantic_search_tests;
 #[cfg(test)]
+mod transaction_time_tests;
+#[cfg(test)]
 mod turn_ingest_tests;
 #[cfg(test)]
 mod vector_generation_tests;

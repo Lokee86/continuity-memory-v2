@@ -205,11 +205,14 @@ pub(crate) fn commit_application(
     let existing = batch.existing;
     let mut memory_ids: Vec<_> = batch.records.iter().map(|record| record.id).collect();
     memory_ids.extend(existing.iter().map(|memory| memory.id));
+    let transaction_time_ns =
+        Container::transaction_time_now_ns().map_err(crate::InsomniaError::from)?;
     let completion = InsomniaCompletion {
         episode_id: claim.episode_id,
         attempt: claim.attempt_count,
         started_at_ns,
         completed_at_ns,
+        transaction_time_ns,
         extractor_model: prepared.model,
         extractor_version: INSOMNIA_EXTRACTOR_CONTRACT_VERSION.into(),
         rejected_count: prepared.rejected.len() as u32,
@@ -225,7 +228,11 @@ pub(crate) fn commit_application(
         .append(&payload)
         .map_err(crate::InsomniaError::from)?;
     container
-        .commit_embedded_version_range(completion.global_version_start, completion.records.len())
+        .commit_embedded_version_range_at(
+            completion.global_version_start,
+            completion.records.len(),
+            Some(completion.transaction_time_ns),
+        )
         .map_err(crate::InsomniaError::from)?;
     container.sync().map_err(crate::InsomniaError::from)?;
     memories.apply_grouped_bodies(completion_chunk, &completion.bodies)?;

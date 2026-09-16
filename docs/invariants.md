@@ -29,10 +29,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 15. **Reviving an old conversation creates a new local branch identity; it does not rewind an existing branch or the Archive.**
 16. **Fragment identity is branch-neutral.**
 17. **Live fragment materialization is append-only.**
-18. **Global version is ordering only.** It is not a CVA root or semantic dependency identity.
+18. **Global version is the canonical semantic mutation order.** It is not a CVA root or semantic dependency identity. Current version tickets additionally map that order to owner-local transaction time; wall-clock timestamps never replace integer version ordering, and a wall-clock cut may expose only a contiguous global-version prefix whose included timestamps are all known and within the requested time.
 19. **Archive version is a local watermark only.** It orders Archive mutations but is not Archive ancestry.
 20. **Global and Archive clocks are independent.** Archive versions are contiguous; global versions between Archive records may have gaps.
-21. **Normal Archive writes stay Archive-local.** They cannot require reading/republishing unrelated database heads.
+21. **Normal Archive writes stay Archive-local.** They cannot require reading/republishing unrelated database heads. Transaction time remains owner-local knowledge time attached to global versions; it cannot substitute for `source_time_ns`, Chronos valid time, or event chronology, and legacy untimestamped versions remain unknown rather than being backfilled heuristically.
 22. **Whole-Archive historical state is a cut, not one giant record.** `A=N` identifies records/revisions visible through that watermark.
 23. **Checkpointing and historical semantics are distinct.** Checkpoints accelerate reconstruction; clocks/revisions define historical ordering.
 24. **Persistent ordering uses exact integers.** No floating-point version identity.

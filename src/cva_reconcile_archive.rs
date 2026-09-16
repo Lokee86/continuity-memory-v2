@@ -1,5 +1,6 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
 use crate::archive_history_codec::decode_record_version;
+use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{
     ArchiveError, Branch, ConversationMetadata, Cva, CvaReconcileError, Episode, FileMemoryLink,
@@ -16,9 +17,19 @@ pub(crate) enum ArchiveReplayRecord {
     File(StoredFile, Option<Vec<u8>>, Option<ProjectFileRef>),
 }
 
+struct ArchiveReplayEntry {
+    record: ArchiveReplayRecord,
+    transaction_time_ns: Option<i64>,
+}
+
+pub(crate) struct FileMemoryLinkReplay {
+    link: FileMemoryLink,
+    transaction_time_ns: Option<i64>,
+}
+
 pub(crate) struct ArchiveTail {
-    pub(crate) records: Vec<ArchiveReplayRecord>,
-    pub(crate) file_memory_links: Vec<FileMemoryLink>,
+    records: Vec<ArchiveReplayEntry>,
+    pub(crate) file_memory_links: Vec<FileMemoryLinkReplay>,
 }
 
 pub(crate) fn read_archive_tail(
@@ -34,11 +45,12 @@ pub(crate) fn read_archive_tail(
         let Some(version) = decode_record_version(&payload)? else {
             continue;
         };
+        let transaction_time_ns = cva.transaction_time_ns(version.global_version);
         let record_payload = cva.container.read(version.record)?;
-        match decode_record(&record_payload)? {
+        let record = match decode_record(&record_payload)? {
             ArchiveRecord::Node(node) => {
                 let content = cva.archive.content(&mut cva.container, node.content_id)?;
-                records.push(ArchiveReplayRecord::Node(IncomingTurn {
+                ArchiveReplayRecord::Node(IncomingTurn {
                     id: node.id,
                     conversation_id: node.conversation_id,
                     parent_id: node.parent_id,
@@ -47,7 +59,7 @@ pub(crate) fn read_archive_tail(
                     content,
                     attachments: Vec::new(),
                     project_attachments: Vec::new(),
-                }));
+                })
             }
             ArchiveRecord::IngestedTurn(turn) => {
                 let content = cva
@@ -67,7 +79,7 @@ pub(crate) fn read_archive_tail(
                         });
                     }
                 }
-                records.push(ArchiveReplayRecord::IngestedTurn(IncomingTurn {
+                ArchiveReplayRecord::IngestedTurn(IncomingTurn {
                     id: turn.node.id,
                     conversation_id: turn.node.conversation_id,
                     parent_id: turn.node.parent_id,
@@ -76,31 +88,39 @@ pub(crate) fn read_archive_tail(
                     content,
                     attachments,
                     project_attachments,
-                }));
+                })
             }
-            ArchiveRecord::Branch(branch) => records.push(ArchiveReplayRecord::Branch(branch)),
+            ArchiveRecord::Branch(branch) => ArchiveReplayRecord::Branch(branch),
             ArchiveRecord::ConversationMetadata(metadata) => {
-                records.push(ArchiveReplayRecord::ConversationMetadata(metadata))
+                ArchiveReplayRecord::ConversationMetadata(metadata)
             }
-            ArchiveRecord::Episode(episode) => records.push(ArchiveReplayRecord::Episode(episode)),
+            ArchiveRecord::Episode(episode) => ArchiveReplayRecord::Episode(episode),
             ArchiveRecord::File(file) => {
                 if let Some(reference) = cva.project_file_ref(file.id) {
-                    records.push(ArchiveReplayRecord::File(file, None, Some(reference)));
+                    ArchiveReplayRecord::File(file, None, Some(reference))
                 } else {
                     let bytes = cva.archive.file_bytes(&mut cva.container, file.id)?;
-                    records.push(ArchiveReplayRecord::File(file, Some(bytes), None));
+                    ArchiveReplayRecord::File(file, Some(bytes), None)
                 }
             }
-            ArchiveRecord::FileMemoryLink(link) => file_memory_links.push(link),
-            ArchiveRecord::Fragment(fragment) => {
-                records.push(ArchiveReplayRecord::Fragment(fragment))
+            ArchiveRecord::FileMemoryLink(link) => {
+                file_memory_links.push(FileMemoryLinkReplay {
+                    link,
+                    transaction_time_ns,
+                });
+                continue;
             }
+            ArchiveRecord::Fragment(fragment) => ArchiveReplayRecord::Fragment(fragment),
             ArchiveRecord::Content(_, _) | ArchiveRecord::Other => {
                 return Err(CvaReconcileError::Archive(
                     ArchiveError::InvalidArchiveRecordVersion,
                 ));
             }
-        }
+        };
+        records.push(ArchiveReplayEntry {
+            record,
+            transaction_time_ns,
+        });
     }
 
     Ok(ArchiveTail {
@@ -114,88 +134,73 @@ pub(crate) fn replay_archive_tail(
     tail: &ArchiveTail,
 ) -> Result<usize, CvaReconcileError> {
     let before = destination.archive_version();
-    for record in &tail.records {
-        match record {
-            ArchiveReplayRecord::Node(turn) => {
-                if let Err(error) = destination.append_node(
-                    turn.id.clone(),
-                    turn.conversation_id.clone(),
-                    turn.parent_id.clone(),
-                    turn.role.clone(),
-                    turn.timestamp_ns,
-                    &turn.content,
-                ) {
-                    return Err(archive_replay_error(destination, record, error));
-                }
-            }
-            ArchiveReplayRecord::IngestedTurn(turn) => {
-                if let Err(error) = destination.ingest_turn(turn.clone()) {
-                    return Err(archive_replay_error(destination, record, error));
-                }
-            }
-            ArchiveReplayRecord::Branch(branch) => {
-                if let Err(error) = destination.append_branch(branch.clone()) {
-                    return Err(archive_replay_error(destination, record, error));
-                }
-            }
-            ArchiveReplayRecord::ConversationMetadata(metadata) => {
-                if let Err(error) = destination
-                    .archive
-                    .put_conversation_metadata(&mut destination.container, metadata.clone())
-                {
-                    return Err(archive_replay_error(destination, record, error));
-                }
-            }
-            ArchiveReplayRecord::Episode(episode) => {
-                if let Err(error) = destination
-                    .archive
-                    .put_episode(&mut destination.container, episode.clone())
-                {
-                    return Err(archive_replay_error(destination, record, error));
-                }
-            }
-            ArchiveReplayRecord::Fragment(fragment) => {
-                if let Err(error) = destination
-                    .archive
-                    .put_fragment(&mut destination.container, fragment.clone())
-                {
-                    return Err(archive_replay_error(destination, record, error));
-                }
-            }
-            ArchiveReplayRecord::File(file, bytes, project_ref) => match (bytes, project_ref) {
-                (Some(bytes), None) => {
-                    if let Err(error) =
-                        destination.store_file(file.filename.clone(), file.mime_type.clone(), bytes)
-                    {
-                        return Err(archive_replay_error(destination, record, error));
-                    }
-                }
-                (None, Some(reference)) => {
-                    destination.register_project_file(
-                        file.filename.clone(),
-                        file.mime_type.clone(),
-                        file.byte_length,
-                        reference.clone(),
-                    )?;
-                }
-                _ => {
-                    return Err(CvaReconcileError::UnsupportedSemanticOwner(
-                        "invalid project-file replay record",
-                    ));
-                }
-            },
-        }
+    for entry in &tail.records {
+        with_replayed_transaction_time(destination, entry.transaction_time_ns, |destination| {
+            replay_archive_record(destination, &entry.record)
+        })?;
     }
     Ok(destination.archive_version().saturating_sub(before) as usize)
 }
 
+fn replay_archive_record(
+    destination: &mut Cva,
+    record: &ArchiveReplayRecord,
+) -> Result<(), CvaReconcileError> {
+    let archive_result = match record {
+        ArchiveReplayRecord::Node(turn) => destination
+            .append_node(
+                turn.id.clone(),
+                turn.conversation_id.clone(),
+                turn.parent_id.clone(),
+                turn.role.clone(),
+                turn.timestamp_ns,
+                &turn.content,
+            )
+            .map(|_| ()),
+        ArchiveReplayRecord::IngestedTurn(turn) => {
+            destination.ingest_turn(turn.clone()).map(|_| ())
+        }
+        ArchiveReplayRecord::Branch(branch) => destination.append_branch(branch.clone()),
+        ArchiveReplayRecord::ConversationMetadata(metadata) => destination
+            .archive
+            .put_conversation_metadata(&mut destination.container, metadata.clone())
+            .map(|_| ()),
+        ArchiveReplayRecord::Episode(episode) => destination
+            .archive
+            .put_episode(&mut destination.container, episode.clone())
+            .map(|_| ()),
+        ArchiveReplayRecord::Fragment(fragment) => destination
+            .archive
+            .put_fragment(&mut destination.container, fragment.clone())
+            .map(|_| ()),
+        ArchiveReplayRecord::File(file, Some(bytes), None) => destination
+            .store_file(file.filename.clone(), file.mime_type.clone(), bytes)
+            .map(|_| ()),
+        ArchiveReplayRecord::File(file, None, Some(reference)) => {
+            return destination
+                .register_project_file(
+                    file.filename.clone(),
+                    file.mime_type.clone(),
+                    file.byte_length,
+                    reference.clone(),
+                )
+                .map(|_| ())
+                .map_err(CvaReconcileError::from);
+        }
+        ArchiveReplayRecord::File(_, _, _) => Err(ArchiveError::InvalidArchiveRecordVersion),
+    };
+    archive_result.map_err(|error| archive_replay_error(destination, record, error))
+}
+
 pub(crate) fn replay_file_memory_links(
     destination: &mut Cva,
-    links: &[FileMemoryLink],
+    links: &[FileMemoryLinkReplay],
 ) -> Result<usize, CvaReconcileError> {
     let before = destination.archive_version();
-    for link in links {
-        destination.link_file_to_memory(link.file_id, link.memory_id)?;
+    for entry in links {
+        with_replayed_transaction_time(destination, entry.transaction_time_ns, |destination| {
+            destination.link_file_to_memory(entry.link.file_id, entry.link.memory_id)
+        })?;
     }
     Ok(destination.archive_version().saturating_sub(before) as usize)
 }

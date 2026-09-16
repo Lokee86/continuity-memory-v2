@@ -128,10 +128,61 @@ fn global_versions_survive_reopen() {
     let mut container = Container::create(&path).unwrap();
     assert_eq!(container.allocate_version().unwrap(), 1);
     assert_eq!(container.allocate_version().unwrap(), 2);
+    assert!(container.transaction_time_ns(1).is_some());
+    assert!(container.transaction_time_ns(2).is_some());
     container.sync().unwrap();
     drop(container);
 
     let mut reopened = Container::open(path).unwrap();
     assert_eq!(reopened.latest_version(), 2);
+    assert!(reopened.transaction_time_ns(1).is_some());
+    assert!(reopened.transaction_time_ns(2).is_some());
     assert_eq!(reopened.allocate_version().unwrap(), 3);
+}
+
+#[test]
+fn transaction_times_round_trip_and_resolve_version_cuts() {
+    let path = test_path("transaction-times.cva");
+    let mut container = Container::create(&path).unwrap();
+    assert_eq!(
+        container
+            .allocate_version_with_transaction_time(Some(100))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        container
+            .allocate_version_with_transaction_time(Some(250))
+            .unwrap(),
+        2
+    );
+    assert_eq!(container.transaction_time_ns(1), Some(100));
+    assert_eq!(container.transaction_time_ns(2), Some(250));
+    assert_eq!(container.version_at_or_before(99), None);
+    assert_eq!(container.version_at_or_before(100), Some(1));
+    assert_eq!(container.version_at_or_before(249), Some(1));
+    assert_eq!(container.version_at_or_before(250), Some(2));
+    container.sync().unwrap();
+    drop(container);
+
+    let reopened = Container::open(path).unwrap();
+    assert_eq!(reopened.transaction_time_ns(1), Some(100));
+    assert_eq!(reopened.transaction_time_ns(2), Some(250));
+    assert_eq!(reopened.version_at_or_before(250), Some(2));
+}
+
+#[test]
+fn legacy_versions_reopen_without_fabricated_transaction_time() {
+    let path = test_path("legacy-version-time.cva");
+    let mut container = Container::create(&path).unwrap();
+    let mut payload = Vec::from(*b"CVAVERS1");
+    payload.extend_from_slice(&1_u64.to_le_bytes());
+    container.append(&payload).unwrap();
+    container.sync().unwrap();
+    drop(container);
+
+    let reopened = Container::open(path).unwrap();
+    assert_eq!(reopened.latest_version(), 1);
+    assert_eq!(reopened.transaction_time_ns(1), None);
+    assert_eq!(reopened.version_at_or_before(i64::MAX), None);
 }

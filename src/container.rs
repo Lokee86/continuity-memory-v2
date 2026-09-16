@@ -1,6 +1,7 @@
 #[path = "container_scan.rs"]
 mod scan;
 
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
@@ -110,6 +111,8 @@ pub struct Container {
     owner_uuid: Option<[u8; 16]>,
     pub(crate) header_len: u64,
     pub(crate) next_version: u64,
+    pub(crate) transaction_times: BTreeMap<u64, i64>,
+    pub(crate) next_transaction_time_override: Option<Option<i64>>,
 }
 
 impl Container {
@@ -131,6 +134,8 @@ impl Container {
             owner_uuid: None,
             header_len: LEGACY_HEADER_LEN,
             next_version: 1,
+            transaction_times: BTreeMap::new(),
+            next_transaction_time_override: None,
         })
     }
 
@@ -163,6 +168,8 @@ impl Container {
             owner_uuid: None,
             header_len: LEGACY_TYPED_HEADER_LEN,
             next_version: 1,
+            transaction_times: BTreeMap::new(),
+            next_transaction_time_override: None,
         })
     }
 
@@ -188,6 +195,8 @@ impl Container {
             owner_uuid: Some(owner_uuid),
             header_len: IDENTITY_HEADER_LEN,
             next_version: 1,
+            transaction_times: BTreeMap::new(),
+            next_transaction_time_override: None,
         })
     }
 
@@ -407,6 +416,7 @@ pub enum ContainerError {
     InvalidIdentity,
     InvalidChunkRef(ObjectRef),
     InvalidVersionRecord,
+    InvalidTransactionTime,
     VersionExhausted,
     ChunkTooLarge,
 }

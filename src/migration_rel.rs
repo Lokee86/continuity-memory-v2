@@ -146,11 +146,17 @@ fn copy_vectors(
         )?;
     }
     for generation in generations {
-        let migrated = op(output.publish_vector_generation(
+        let transaction_time_ns = source.transaction_time_ns(generation.global_version);
+        output
+            .container
+            .set_next_transaction_time_override(transaction_time_ns);
+        let result = output.publish_vector_generation(
             generation.compatibility_profile_id,
             generation.archive_vector_id,
             generation.source_archive_version,
-        ))?;
+        );
+        output.container.clear_next_transaction_time_override();
+        let migrated = op(result)?;
         require_same(generation.id, migrated.id, "Vector Generation")?;
     }
     Ok(())

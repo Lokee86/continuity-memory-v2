@@ -44,22 +44,7 @@ Future work should:
 
 The current reconciliation API remains compatibility behavior; do not expand it into a second project VCS.
 
-### 3. Add transaction time to the global version stream
-
-Correct the current knowledge-time gap by attaching a durable wall-clock transaction timestamp to each allocated global/container version. Version order remains the canonical mutation order; the timestamp adds the missing mapping from logical history to when a REL/PHY actually acquired or committed that state.
-
-Requirements:
-
-- timestamp the version stream once per allocated global version rather than duplicating knowledge-time fields across Memories, Graph relations, Observations, Relationships, or other versioned semantic objects;
-- preserve `source_time_ns` as evidence/source chronology and keep it semantically distinct from transaction/knowledge time;
-- keep deterministically derived Dream temporal extraction unpersisted and cheaply recomputable; it is not transaction time;
-- expose deterministic `version_at_or_before(transaction_time)` / equivalent historical-cut lookup so wall-clock belief-state queries can resolve to the existing versioned state machinery;
-- define backwards-compatible handling for existing untimestamped version records/containers without fabricating historical timestamps; and
-- preserve transaction timestamps through packing, reconciliation, import/export, restore, and other semantic-history operations.
-
-This is owner-local epistemic/system time, not world-validity time. Valid-time interpretation is owned separately by Chronos under ADR 0035; its consumer-specific inferred-state persistence is not part of the version-stream transaction clock.
-
-### 4. Complete the live runtime seam
+### 3. Complete the live runtime seam
 
 Finish the host-facing runtime behavior that is not yet covered by the in-process `InteractionRuntime` / `ReliquaryRuntimeHost` boundary:
 
@@ -72,7 +57,7 @@ Finish the host-facing runtime behavior that is not yet covered by the in-proces
 
 Do not turn Reliquary into an independently deployed service merely to host these capabilities. Any future IPC/server boundary requires a separate architectural decision.
 
-### 5. Complete the workspace management API
+### 4. Complete the workspace management API
 
 Expose the remaining concrete owner operations Warlock needs without creating a generalized mutable semantic object layer.
 
@@ -87,7 +72,7 @@ Needed surfaces include:
 
 The management layer composes existing owners; it does not become a new semantic owner.
 
-### 6. Production import and interoperability adapters
+### 5. Production import and interoperability adapters
 
 Add normalized ingestion for historical and external interaction sources:
 
@@ -101,7 +86,7 @@ Add normalized ingestion for historical and external interaction sources:
 
 ACP remains an adapter, not a canonical storage schema. See [ADR 0015](decisions/0015-acp-inline-interaction-stream.md) and [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
 
-### 7. File usability
+### 6. File usability
 
 Add product-facing file operations without reintroducing REL-owned project-file history:
 
@@ -112,7 +97,7 @@ Add product-facing file operations without reintroducing REL-owned project-file 
 - file-content indexing and retrieval separated from filename metadata; and
 - generated-artifact provenance and lifecycle policy.
 
-### 8. Runtime and security hardening
+### 7. Runtime and security hardening
 
 Complete production hardening:
 

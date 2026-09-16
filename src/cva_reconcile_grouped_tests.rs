@@ -125,6 +125,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         attempt: 1,
         started_at_ns: 5,
         completed_at_ns: 6,
+        transaction_time_ns: 600,
         extractor_model: "test-model".into(),
         extractor_version: "v1".into(),
         rejected_count: 0,
@@ -146,7 +147,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         .unwrap();
     right_cva
         .container
-        .commit_embedded_version_range(global_version, 1)
+        .commit_embedded_version_range_at(global_version, 1, Some(600))
         .unwrap();
     right_cva.sync().unwrap();
     drop(right_cva);

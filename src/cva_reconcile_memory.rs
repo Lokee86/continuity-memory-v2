@@ -1,3 +1,4 @@
+use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::memory_replay_error;
 use crate::insomnia::completion::{InsomniaCompletion, decode_completion, encode_completion};
 use crate::memory_codec::{
@@ -10,8 +11,13 @@ use crate::{
 use std::collections::HashSet;
 
 pub(crate) struct MemoryTail {
-    revisions: Vec<Memory>,
+    revisions: Vec<MemoryReplayRevision>,
     completions: Vec<InsomniaCompletion>,
+}
+
+struct MemoryReplayRevision {
+    memory: Memory,
+    transaction_time_ns: Option<i64>,
 }
 
 pub(crate) struct MemoryReplayResult {
@@ -61,13 +67,21 @@ pub(crate) fn replay_memory_tail(
 ) -> Result<MemoryReplayResult, CvaReconcileError> {
     let mut replayed = 0;
     let mut duplicates = 0;
-    for memory in tail.revisions {
+    for revision in tail.revisions {
+        let memory = revision.memory;
         let draft = memory_draft(memory.clone());
-        let (_, created) = match destination.publish_memory(
-            Some(memory.id),
-            memory.revision.saturating_sub(1),
-            draft,
-        ) {
+        let publish = with_replayed_transaction_time(
+            destination,
+            revision.transaction_time_ns,
+            |destination| {
+                destination.publish_memory(
+                    Some(memory.id),
+                    memory.revision.saturating_sub(1),
+                    draft,
+                )
+            },
+        );
+        let (_, created) = match publish {
             Ok(value) => value,
             Err(error) => return Err(memory_replay_error(destination, &memory, error)),
         };
@@ -96,10 +110,15 @@ fn push_revision(
     id: crate::MemoryId,
     revision: u64,
     seen: &mut HashSet<(crate::MemoryId, u64)>,
-    revisions: &mut Vec<Memory>,
+    revisions: &mut Vec<MemoryReplayRevision>,
 ) -> Result<(), CvaReconcileError> {
     if seen.insert((id, revision)) {
-        revisions.push(cva.memory_revision(id, revision)?);
+        let memory = cva.memory_revision(id, revision)?;
+        let transaction_time_ns = cva.transaction_time_ns(memory.global_version);
+        revisions.push(MemoryReplayRevision {
+            memory,
+            transaction_time_ns,
+        });
     }
     Ok(())
 }
@@ -132,11 +151,17 @@ fn replay_completion(
         return Err(CvaReconcileError::MissingCompletionMemory);
     }
 
+    let receipt_transaction_time_ns = if completion.transaction_time_ns == 0 {
+        crate::Container::transaction_time_now_ns()?
+    } else {
+        completion.transaction_time_ns
+    };
     let receipt = InsomniaCompletion {
         episode_id: completion.episode_id,
         attempt: completion.attempt,
         started_at_ns: completion.started_at_ns,
         completed_at_ns: completion.completed_at_ns,
+        transaction_time_ns: receipt_transaction_time_ns,
         extractor_model: completion.extractor_model,
         extractor_version: completion.extractor_version,
         rejected_count: completion.rejected_count,

@@ -30,10 +30,23 @@ pub(super) fn migrate(
     }
     for (id, revision) in revisions {
         let memory = op(source.memory_revision(id, revision))?;
-        op(output.publish_memory(Some(id), revision.saturating_sub(1), memory_draft(memory)))?;
+        let transaction_time_ns = source.transaction_time_ns(memory.global_version);
+        output
+            .container
+            .set_next_transaction_time_override(transaction_time_ns);
+        let result =
+            output.publish_memory(Some(id), revision.saturating_sub(1), memory_draft(memory));
+        output.container.clear_next_transaction_time_override();
+        op(result)?;
     }
-    for transaction in graph {
-        op(output.set_memory_relations(&transaction, output.graph_version()))?;
+    for (transaction, transaction_time_ns) in graph {
+        let graph_version = output.graph_version();
+        output
+            .container
+            .set_next_transaction_time_override(transaction_time_ns);
+        let result = output.set_memory_relations(&transaction, graph_version);
+        output.container.clear_next_transaction_time_override();
+        op(result)?;
     }
     for (id, state) in dream_cooldowns {
         let processed_at_ns = match state.processed_at_ns {
@@ -87,7 +100,7 @@ fn copy_vectors(
 
 fn graph_transactions(
     container: &mut Container,
-) -> Result<Vec<Vec<GraphRelationChange>>, MigrationError> {
+) -> Result<Vec<(Vec<GraphRelationChange>, Option<i64>)>, MigrationError> {
     let chunks = op(container.chunks())?;
     let mut transactions = Vec::new();
     for chunk in chunks {
@@ -118,7 +131,10 @@ fn graph_transactions(
                 "graph version points at a non-graph mutation".into(),
             ));
         };
-        transactions.push(changes);
+        transactions.push((
+            changes,
+            container.transaction_time_ns(version.global_version),
+        ));
     }
     Ok(transactions)
 }

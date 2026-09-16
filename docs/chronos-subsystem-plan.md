@@ -10,6 +10,10 @@ Accepted architecture; implementation not yet started as a standalone shared sub
 
 Current temporal behavior remains implemented under `dream_temporal*`. Chronos modularizes and expands that machinery rather than creating a parallel stack.
 
+## Overview
+
+Chronos extracts the existing Dream temporal machinery into one shared deterministic-first temporal layer, then expands its coverage for Insomnia, Dream, and Perception without creating another semantic owner or temporal stack.
+
 ## Purpose
 
 Chronos is Reliquary's shared temporal-semantics subsystem. It provides deterministic-first temporal detection, normalization, parsing, resolution, comparison, and valid-time interpretation to Insomnia, Dream, and Perception. Bounded inference handles only temporal meaning unresolved after deterministic analysis.
@@ -171,6 +175,10 @@ Measure deterministic parse coverage, indication recall, fuzzy-detection false p
 - model route used by fallback inference;
 - consumer adapters for deterministic validity synthesis; and
 - whether any deterministic analysis warrants a disposable cache.
+
+## Notes
+
+Transaction/knowledge time is now implemented by the Container/global-version stream. Chronos must consume that boundary where historical belief-state cuts matter but must not duplicate or reinterpret it as valid time.
 
 ## Related docs
 

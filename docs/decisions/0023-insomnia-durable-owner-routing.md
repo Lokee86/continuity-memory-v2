@@ -72,9 +72,9 @@ The finite drain and long-lived runtime vector worker fill missing Memory vector
 
 ## Persistent format
 
-Current successful Insomnia writes use `CVAINSC3`. It extends the atomic `CVAINSC2` completion with owner-qualified external Memory references while preserving the existing embedded Project Memory transaction.
+Current successful Insomnia writes use `CVAINSC4`. It retains `CVAINSC3` owner-qualified external Memory references and the atomic embedded Project Memory transaction, and adds one Container-owned `transaction_time_ns` applying to every embedded REL global version in that completion.
 
-`CVAINSC1` and `CVAINSC2` remain decodable. They reopen with no external Memory references.
+`CVAINSC1`, `CVAINSC2`, and `CVAINSC3` remain decodable. V1/V2 reopen with no external Memory references; V2/V3 embedded global-version ranges predate explicit transaction time and therefore remain untimestamped rather than being backfilled from operational completion metadata.
 
 Reconciliation preserves `external_memory_refs` when re-emitting an Insomnia completion receipt. It does not attempt to reconcile or copy the external PHY itself; the owner-qualified reference remains a reference to that separate durable owner.
 

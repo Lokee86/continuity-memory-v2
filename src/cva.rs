@@ -116,6 +116,18 @@ impl Cva {
         self.container.owner_uuid()
     }
 
+    pub fn latest_global_version(&self) -> u64 {
+        self.container.latest_version()
+    }
+
+    pub fn transaction_time_ns(&self, version: u64) -> Option<i64> {
+        self.container.transaction_time_ns(version)
+    }
+
+    pub fn version_at_or_before(&self, transaction_time_ns: i64) -> Option<u64> {
+        self.container.version_at_or_before(transaction_time_ns)
+    }
+
     pub fn archive(&self) -> &Archive {
         &self.archive
     }

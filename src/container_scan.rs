@@ -2,6 +2,7 @@ use super::{
     CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, read_u64,
     truncated_or_io,
 };
+use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
@@ -34,6 +35,8 @@ impl Container {
             owner_uuid,
             header_len,
             next_version: 1,
+            transaction_times: BTreeMap::new(),
+            next_transaction_time_override: None,
         };
         container.scan_payloads(&mut visitor)?;
         Ok(container)

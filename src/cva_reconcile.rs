@@ -151,3 +151,15 @@ fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaReconcileErr
     }
     Ok(())
 }
+
+pub(crate) fn with_replayed_transaction_time<T, E>(
+    cva: &mut Cva,
+    transaction_time_ns: Option<i64>,
+    operation: impl FnOnce(&mut Cva) -> Result<T, E>,
+) -> Result<T, E> {
+    cva.container
+        .set_next_transaction_time_override(transaction_time_ns);
+    let result = operation(cva);
+    cva.container.clear_next_transaction_time_override();
+    result
+}

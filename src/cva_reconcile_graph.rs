@@ -1,3 +1,4 @@
+use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
 use crate::{
     Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationChange, GraphRelationKind,
@@ -16,6 +17,7 @@ struct GraphKey {
 struct GraphTailTransaction {
     changes: Vec<GraphRelationChange>,
     origin: GraphRelationOrigin,
+    transaction_time_ns: Option<i64>,
 }
 
 pub(crate) struct GraphTail {
@@ -31,6 +33,7 @@ impl GraphTail {
                 .map(|changes| GraphTailTransaction {
                     changes,
                     origin: GraphRelationOrigin::Dream,
+                    transaction_time_ns: None,
                 })
                 .collect(),
         }
@@ -80,6 +83,7 @@ pub(crate) fn read_graph_tail(
                 })
                 .collect(),
             origin,
+            transaction_time_ns: cva.transaction_time_ns(version.global_version),
         });
     }
     Ok(GraphTail { transactions })
@@ -167,10 +171,17 @@ fn replay_with_skips(
         if changes.is_empty() {
             continue;
         }
-        let published = destination.set_memory_relations_with_origin(
-            &changes,
-            transaction.origin,
-            destination.graph_version(),
+        let graph_version = destination.graph_version();
+        let published = with_replayed_transaction_time(
+            destination,
+            transaction.transaction_time_ns,
+            |destination| {
+                destination.set_memory_relations_with_origin(
+                    &changes,
+                    transaction.origin,
+                    graph_version,
+                )
+            },
         )?;
         duplicate_mutations += changes.len().saturating_sub(published.len());
         if !published.is_empty() {

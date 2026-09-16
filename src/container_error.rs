@@ -14,6 +14,7 @@ impl fmt::Display for ContainerError {
             Self::InvalidHeaderLength(length) => write!(f, "invalid CVA header length {length}"),
             Self::InvalidChunkRef(_) => write!(f, "invalid CVA object reference"),
             Self::InvalidVersionRecord => write!(f, "invalid CVA version record"),
+            Self::InvalidTransactionTime => write!(f, "invalid CVA transaction timestamp"),
             Self::VersionExhausted => write!(f, "CVA global version counter exhausted"),
             Self::ChunkTooLarge => write!(f, "CVA chunk is too large"),
             Self::InvalidIdentity => write!(f, "invalid container identity"),
