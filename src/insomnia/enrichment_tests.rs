@@ -59,6 +59,57 @@ fn enrichment_rejects_expansion_beyond_durable_mention_limit() {
 }
 
 #[test]
+fn enrichment_does_not_expand_word_mentions_inside_longer_identifiers() {
+    let mut candidate = candidate();
+    candidate.content = "Use `wgit` instead of `git`; damageResult wraps damage.".into();
+    let mut candidates = vec![candidate];
+    let endpoint = SimulatedGeneralEndpoint::new(
+        "metadata",
+        vec![json!({
+            "memories": {
+                "claim-1": {
+                    "entity_mentions": [
+                        {"field":"content","text":"git"},
+                        {"field":"content","text":"damage"}
+                    ],
+                    "lexical_terms": []
+                }
+            }
+        })],
+    );
+
+    enrich(&endpoint, &mut candidates).unwrap();
+    let routing = candidates[0].routing_metadata.as_ref().unwrap();
+    let mentions = routing
+        .entity_mentions
+        .iter()
+        .map(|mention| (mention.text.as_str(), mention.start_byte, mention.end_byte))
+        .collect::<Vec<_>>();
+    assert_eq!(mentions, vec![("git", 23, 26), ("damage", 48, 54)]);
+}
+
+#[test]
+fn enrichment_rejects_only_embedded_word_occurrences() {
+    let mut candidate = candidate();
+    candidate.content = "damageResult is populated.".into();
+    let mut candidates = vec![candidate];
+    let endpoint = SimulatedGeneralEndpoint::new(
+        "metadata",
+        vec![json!({
+            "memories": {
+                "claim-1": {
+                    "entity_mentions": [{"field":"content","text":"damage"}],
+                    "lexical_terms": []
+                }
+            }
+        })],
+    );
+
+    let error = enrich(&endpoint, &mut candidates).unwrap_err();
+    assert!(error.to_string().contains("boundary-compatible"));
+}
+
+#[test]
 fn enrichment_rejects_invented_entity_names() {
     let mut candidates = vec![candidate()];
     let endpoint = SimulatedGeneralEndpoint::new(

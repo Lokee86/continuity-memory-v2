@@ -159,10 +159,15 @@ fn append_mentions(
         MemoryTextField::Title => candidate.title.as_str(),
         MemoryTextField::Content => candidate.content.as_str(),
     };
+    let mut saw_occurrence = false;
     let mut found = false;
     for (start, _) in source.match_indices(text) {
-        found = true;
+        saw_occurrence = true;
         let end = start + text.len();
+        if !is_semantic_match_boundary(source, start, end, text) {
+            continue;
+        }
+        found = true;
         output.push(MemoryEntityMention {
             field,
             start_byte: u32::try_from(start)
@@ -171,12 +176,37 @@ fn append_mentions(
             text: text.to_owned(),
         });
     }
-    if !found {
+    if !saw_occurrence {
         return Err(invalid(
             "entity mention is not verbatim durable Memory text",
         ));
     }
+    if !found {
+        return Err(invalid(
+            "entity mention has no boundary-compatible durable Memory occurrence",
+        ));
+    }
     Ok(())
+}
+
+fn is_semantic_match_boundary(source: &str, start: usize, end: usize, text: &str) -> bool {
+    let starts_word = text.chars().next().is_some_and(is_word_char);
+    let ends_word = text.chars().next_back().is_some_and(is_word_char);
+    let left_ok = !starts_word
+        || source[..start]
+            .chars()
+            .next_back()
+            .is_none_or(|ch| !is_word_char(ch));
+    let right_ok = !ends_word
+        || source[end..]
+            .chars()
+            .next()
+            .is_none_or(|ch| !is_word_char(ch));
+    left_ok && right_ok
+}
+
+fn is_word_char(ch: char) -> bool {
+    ch.is_alphanumeric() || ch == '_'
 }
 
 fn validate_term(
