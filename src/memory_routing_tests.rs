@@ -1,5 +1,6 @@
 use crate::{
-    Cva, MemoryDraft, MemoryEntityMention, MemoryError, MemoryRoutingMetadata, MemoryTextField,
+    Cva, MemoryBodyId, MemoryDraft, MemoryEntityMention, MemoryError, MemoryId,
+    MemoryRoutingMetadata, MemoryTextField,
 };
 use std::fs;
 
@@ -22,7 +23,6 @@ fn routing_metadata_is_clock_neutral_body_bound_and_reopens() {
             end_byte: (start + "Vancouver office".len()) as u32,
             text: "Vancouver office".into(),
         }],
-        lexical_terms: vec!["Reliquary".into(), "Vancouver office".into()],
     };
 
     assert!(
@@ -48,13 +48,40 @@ fn routing_metadata_is_clock_neutral_body_bound_and_reopens() {
     );
 
     let mut conflicting = metadata.clone();
-    conflicting.lexical_terms = vec!["Reliquary".into()];
+    conflicting.entity_mentions.push(MemoryEntityMention {
+        field: MemoryTextField::Title,
+        start_byte: 0,
+        end_byte: "Reliquary".len() as u32,
+        text: "Reliquary".into(),
+    });
     assert!(matches!(
         reopened
             .memories
             .put_routing_metadata(&mut reopened.container, conflicting),
         Err(MemoryError::RoutingMetadataConflict)
     ));
+}
+
+#[test]
+fn legacy_routing_metadata_discards_model_lexical_terms_on_decode() {
+    let memory_id = MemoryId([1; 32]);
+    let body_id = MemoryBodyId([2; 32]);
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(b"CVAMRTE1");
+    bytes.extend_from_slice(&memory_id.0);
+    bytes.extend_from_slice(&body_id.0);
+    bytes.extend_from_slice(&0u32.to_le_bytes());
+    bytes.extend_from_slice(&1u32.to_le_bytes());
+    let legacy = b"legacy-term";
+    bytes.extend_from_slice(&(legacy.len() as u32).to_le_bytes());
+    bytes.extend_from_slice(legacy);
+
+    let decoded = crate::memory_routing_codec::decode(&bytes)
+        .unwrap()
+        .unwrap();
+    assert_eq!(decoded.memory_id, memory_id);
+    assert_eq!(decoded.body_id, body_id);
+    assert!(decoded.entity_mentions.is_empty());
 }
 
 fn draft() -> MemoryDraft {

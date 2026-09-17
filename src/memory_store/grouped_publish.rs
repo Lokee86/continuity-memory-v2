@@ -172,9 +172,7 @@ fn validate_prepared_routing(
     if metadata.memory_id != memory_id || metadata.body_id != body_id {
         return Err(MemoryError::InvalidField("Memory routing metadata binding"));
     }
-    if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS
-        || metadata.lexical_terms.len() > MAX_MEMORY_LEXICAL_TERMS
-    {
+    if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS {
         return Err(MemoryError::InvalidField("Memory routing metadata count"));
     }
     for mention in &metadata.entity_mentions {
@@ -195,14 +193,6 @@ fn validate_prepared_routing(
             || source.get(start..end) != Some(mention.text.as_str())
         {
             return Err(MemoryError::InvalidField("Memory entity mention span"));
-        }
-    }
-    for term in &metadata.lexical_terms {
-        if term.trim().is_empty()
-            || term.len() > MAX_MEMORY_ROUTING_TEXT_BYTES
-            || (!draft.title.contains(term) && !draft.content.contains(term))
-        {
-            return Err(MemoryError::InvalidField("Memory lexical term grounding"));
         }
     }
     Ok(())

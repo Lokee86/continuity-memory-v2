@@ -168,7 +168,6 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
                 end_byte: 8,
                 text: "Decision".into(),
             }],
-            lexical_terms: vec!["Keep".into()],
         }],
     };
     right_cva
@@ -201,7 +200,6 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
     );
     let routing = merged_memory.routing_metadata.as_ref().unwrap();
     assert_eq!(routing.entity_mentions[0].text, "Decision");
-    assert_eq!(routing.lexical_terms, vec!["Keep"]);
     let attempt = &merged.insomnia_attempts(episode.id)[0];
     assert_eq!(attempt.memory_ids, vec![id]);
     assert_eq!(attempt.external_memory_refs[0].memory_id, id);

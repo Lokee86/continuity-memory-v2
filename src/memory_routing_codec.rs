@@ -1,83 +1,119 @@
 use crate::memory_routing_model::{
-    MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_LEXICAL_TERMS, MemoryEntityMention,
-    MemoryRoutingMetadata, MemoryTextField,
+    MAX_MEMORY_ENTITY_MENTIONS, MemoryEntityMention, MemoryRoutingMetadata, MemoryTextField,
 };
 use crate::{MemoryBodyId, MemoryError, MemoryId};
 
-const ROUTING_MAGIC: [u8; 8] = *b"CVAMRTE1";
+const ROUTING_MAGIC_V1: [u8; 8] = *b"CVAMRTE1";
+const ROUTING_MAGIC_V2: [u8; 8] = *b"CVAMRTE2";
+const MAX_LEGACY_LEXICAL_TERMS: usize = 64;
 
 pub(crate) fn encode(value: &MemoryRoutingMetadata) -> Result<Vec<u8>, MemoryError> {
     let mention_count =
         u32::try_from(value.entity_mentions.len()).map_err(|_| MemoryError::FieldTooLarge)?;
-    let term_count =
-        u32::try_from(value.lexical_terms.len()).map_err(|_| MemoryError::FieldTooLarge)?;
     let mut out = Vec::with_capacity(96);
-    out.extend_from_slice(&ROUTING_MAGIC);
+    out.extend_from_slice(&ROUTING_MAGIC_V2);
     out.extend_from_slice(&value.memory_id.0);
     out.extend_from_slice(&value.body_id.0);
     out.extend_from_slice(&mention_count.to_le_bytes());
-    for mention in &value.entity_mentions {
-        out.push(mention.field.tag());
-        out.extend_from_slice(&mention.start_byte.to_le_bytes());
-        out.extend_from_slice(&mention.end_byte.to_le_bytes());
-        write_string(&mut out, &mention.text)?;
-    }
-    out.extend_from_slice(&term_count.to_le_bytes());
-    for term in &value.lexical_terms {
-        write_string(&mut out, term)?;
-    }
+    write_mentions(&mut out, &value.entity_mentions)?;
     Ok(out)
 }
 
 pub(crate) fn decode(bytes: &[u8]) -> Result<Option<MemoryRoutingMetadata>, MemoryError> {
-    if bytes.len() < 8 || bytes[..8] != ROUTING_MAGIC {
+    if bytes.len() < 8 {
         return Ok(None);
     }
+    if bytes[..8] == ROUTING_MAGIC_V2 {
+        return decode_v2(bytes).map(Some);
+    }
+    if bytes[..8] == ROUTING_MAGIC_V1 {
+        return decode_v1(bytes).map(Some);
+    }
+    Ok(None)
+}
+
+fn decode_v2(bytes: &[u8]) -> Result<MemoryRoutingMetadata, MemoryError> {
+    if bytes.len() < 76 {
+        return Err(MemoryError::CorruptRecord("short Memory routing metadata"));
+    }
+    let memory_id = MemoryId(bytes[8..40].try_into().unwrap());
+    let body_id = MemoryBodyId(bytes[40..72].try_into().unwrap());
+    let mut cursor = 72;
+    let entity_mentions = read_mentions(bytes, &mut cursor)?;
+    if cursor != bytes.len() {
+        return Err(MemoryError::CorruptRecord(
+            "Memory routing metadata trailing bytes",
+        ));
+    }
+    Ok(MemoryRoutingMetadata {
+        memory_id,
+        body_id,
+        entity_mentions,
+    })
+}
+
+fn decode_v1(bytes: &[u8]) -> Result<MemoryRoutingMetadata, MemoryError> {
     if bytes.len() < 80 {
         return Err(MemoryError::CorruptRecord("short Memory routing metadata"));
     }
     let memory_id = MemoryId(bytes[8..40].try_into().unwrap());
     let body_id = MemoryBodyId(bytes[40..72].try_into().unwrap());
     let mut cursor = 72;
-    let mention_count = read_u32(bytes, &mut cursor)? as usize;
-    if mention_count > MAX_MEMORY_ENTITY_MENTIONS {
-        return Err(MemoryError::CorruptRecord(
-            "too many Memory entity mentions",
-        ));
-    }
-    let mut entity_mentions = Vec::with_capacity(mention_count);
-    for _ in 0..mention_count {
-        let field = MemoryTextField::from_tag(read_u8(bytes, &mut cursor)?)
-            .ok_or(MemoryError::CorruptRecord("invalid Memory mention field"))?;
-        let start_byte = read_u32(bytes, &mut cursor)?;
-        let end_byte = read_u32(bytes, &mut cursor)?;
-        let text = read_string(bytes, &mut cursor)?;
-        entity_mentions.push(MemoryEntityMention {
-            field,
-            start_byte,
-            end_byte,
-            text,
-        });
-    }
+    let entity_mentions = read_mentions(bytes, &mut cursor)?;
     let term_count = read_u32(bytes, &mut cursor)? as usize;
-    if term_count > MAX_MEMORY_LEXICAL_TERMS {
+    if term_count > MAX_LEGACY_LEXICAL_TERMS {
         return Err(MemoryError::CorruptRecord("too many Memory lexical terms"));
     }
-    let mut lexical_terms = Vec::with_capacity(term_count);
     for _ in 0..term_count {
-        lexical_terms.push(read_string(bytes, &mut cursor)?);
+        let _ = read_string(bytes, &mut cursor)?;
     }
     if cursor != bytes.len() {
         return Err(MemoryError::CorruptRecord(
             "Memory routing metadata trailing bytes",
         ));
     }
-    Ok(Some(MemoryRoutingMetadata {
+    Ok(MemoryRoutingMetadata {
         memory_id,
         body_id,
         entity_mentions,
-        lexical_terms,
-    }))
+    })
+}
+
+fn write_mentions(out: &mut Vec<u8>, mentions: &[MemoryEntityMention]) -> Result<(), MemoryError> {
+    for mention in mentions {
+        out.push(mention.field.tag());
+        out.extend_from_slice(&mention.start_byte.to_le_bytes());
+        out.extend_from_slice(&mention.end_byte.to_le_bytes());
+        write_string(out, &mention.text)?;
+    }
+    Ok(())
+}
+
+fn read_mentions(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<Vec<MemoryEntityMention>, MemoryError> {
+    let mention_count = read_u32(bytes, cursor)? as usize;
+    if mention_count > MAX_MEMORY_ENTITY_MENTIONS {
+        return Err(MemoryError::CorruptRecord(
+            "too many Memory entity mentions",
+        ));
+    }
+    let mut mentions = Vec::with_capacity(mention_count);
+    for _ in 0..mention_count {
+        let field = MemoryTextField::from_tag(read_u8(bytes, cursor)?)
+            .ok_or(MemoryError::CorruptRecord("invalid Memory mention field"))?;
+        let start_byte = read_u32(bytes, cursor)?;
+        let end_byte = read_u32(bytes, cursor)?;
+        let text = read_string(bytes, cursor)?;
+        mentions.push(MemoryEntityMention {
+            field,
+            start_byte,
+            end_byte,
+            text,
+        });
+    }
+    Ok(mentions)
 }
 
 fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), MemoryError> {

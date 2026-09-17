@@ -241,9 +241,11 @@ Atomicity still matters. A mixed interaction may need separate durable propositi
 
 ## Pass-boundary direction
 
-The implemented `v3-2` extraction/routing sequence is:
+The implemented `v3-4` extraction/routing sequence is:
 
-`semantic authority/disposition -> fixed groups -> optional metadata classification -> optional ownership classification -> wording -> Entity/lexical enrichment -> owner publication`
+`semantic authority/disposition -> fixed groups -> optional metadata classification -> optional ownership classification -> wording -> Entity enrichment -> owner publication`
+
+Lexical Memory routing sits outside that model sequence: REL and PHY derive it deterministically from complete current Memory title/content through the disposable Memory lexical index.
 
 Persistence ownership is a separately testable classification/routing stage. For the current User/Project slice it runs after groups are fixed (and after metadata when configured) but before wording, and may change only the destination owner. It cannot change the durable proposition, authority/provenance, category/type/lifecycle, group membership, candidate identity, or later routing metadata. Post-wording enrichment is owner-neutral: it is bound to the final Memory body and travels with whichever owner receives that Memory.
 

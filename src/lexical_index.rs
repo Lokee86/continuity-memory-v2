@@ -1,7 +1,10 @@
 use crate::lexical_search::{LexicalHit, term_counts};
 
 mod raw;
-use crate::{Archive, ArchiveError, Container, FileSearchHit, Fragment, StoredFile};
+use crate::memory_store::MemoryStore;
+use crate::{
+    Archive, ArchiveError, Container, FileSearchHit, Fragment, MemoryError, MemoryId, StoredFile,
+};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -12,6 +15,9 @@ pub(crate) struct LexicalIndex {
     raw_postings: HashMap<String, Vec<Posting>>,
     files: Vec<StoredFile>,
     file_postings: HashMap<String, Vec<FilePosting>>,
+    memory_version: u64,
+    memories: Vec<MemoryId>,
+    memory_postings: HashMap<String, Vec<MemoryPosting>>,
 }
 
 #[derive(Clone)]
@@ -38,6 +44,18 @@ struct FilePosting {
     frequency: u8,
 }
 
+#[derive(Clone, Copy)]
+struct MemoryPosting {
+    memory_slot: usize,
+    frequency: u8,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct MemoryLexicalHit {
+    pub(crate) memory_id: MemoryId,
+    pub(crate) score: f64,
+}
+
 impl LexicalIndex {
     pub(crate) fn ensure_current(
         &mut self,
@@ -51,7 +69,7 @@ impl LexicalIndex {
             for (term, count) in counts {
                 self.postings.entry(term).or_default().push(Posting {
                     fragment_slot: slot,
-                    frequency: u8::try_from(count.min(4)).unwrap_or(4),
+                    frequency: bounded_frequency(count),
                 });
             }
             self.fragments.push(IndexedFragment {
@@ -68,11 +86,44 @@ impl LexicalIndex {
                     .or_default()
                     .push(FilePosting {
                         file_slot: slot,
-                        frequency: u8::try_from(count.min(4)).unwrap_or(4),
+                        frequency: bounded_frequency(count),
                     });
             }
             self.files.push(file.clone());
         }
+        Ok(())
+    }
+
+    pub(crate) fn ensure_memories_current(
+        &mut self,
+        memories: &MemoryStore,
+        container: &mut Container,
+    ) -> Result<(), MemoryError> {
+        let version = memories.memory_version();
+        if self.memory_version == version {
+            return Ok(());
+        }
+        self.memories.clear();
+        self.memory_postings.clear();
+        for id in memories.current_ids() {
+            let memory = memories.memory(container, id)?;
+            if memory.archived {
+                continue;
+            }
+            let counts = term_counts(&format!("{}\n\n{}", memory.title, memory.content));
+            let slot = self.memories.len();
+            for (term, count) in counts {
+                self.memory_postings
+                    .entry(term)
+                    .or_default()
+                    .push(MemoryPosting {
+                        memory_slot: slot,
+                        frequency: bounded_frequency(count),
+                    });
+            }
+            self.memories.push(id);
+        }
+        self.memory_version = version;
         Ok(())
     }
 
@@ -114,6 +165,36 @@ impl LexicalIndex {
         hits.into_iter().map(|(hit, _)| hit).collect()
     }
 
+    pub(crate) fn search_memories(&self, terms: &[String], limit: usize) -> Vec<MemoryLexicalHit> {
+        if terms.is_empty() || limit == 0 {
+            return Vec::new();
+        }
+        let mut scores: HashMap<usize, ScoreParts> = HashMap::new();
+        for term in terms {
+            let Some(postings) = self.memory_postings.get(term) else {
+                continue;
+            };
+            for posting in postings {
+                add_score(&mut scores, posting.memory_slot, posting.frequency);
+            }
+        }
+        let mut hits = scores
+            .into_iter()
+            .map(|(slot, parts)| MemoryLexicalHit {
+                memory_id: self.memories[slot],
+                score: score(parts, terms.len()),
+            })
+            .collect::<Vec<_>>();
+        hits.sort_by(|left, right| {
+            right
+                .score
+                .total_cmp(&left.score)
+                .then_with(|| left.memory_id.0.cmp(&right.memory_id.0))
+        });
+        hits.truncate(limit);
+        hits
+    }
+
     pub(crate) fn search_files(&self, terms: &[String], limit: usize) -> Vec<FileSearchHit> {
         if terms.is_empty() || limit == 0 {
             return Vec::new();
@@ -150,6 +231,10 @@ impl LexicalIndex {
 struct ScoreParts {
     matched_terms: usize,
     frequency: usize,
+}
+
+fn bounded_frequency(count: usize) -> u8 {
+    u8::try_from(count.min(4)).unwrap_or(4)
 }
 
 fn add_score(scores: &mut HashMap<usize, ScoreParts>, slot: usize, frequency: u8) {

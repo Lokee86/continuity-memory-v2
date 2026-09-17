@@ -4,6 +4,7 @@ use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::ego_store::EgoStore;
 use crate::graph_store::GraphStore;
+use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
@@ -15,6 +16,7 @@ use crate::{
 pub struct Phylactery {
     pub(crate) container: Container,
     pub(crate) memories: MemoryStore,
+    pub(crate) lexical_index: LexicalIndex,
     pub(crate) graph: GraphStore,
     pub(crate) communities: CommunityStore,
     pub(crate) duplicate_index: DuplicateIndex,

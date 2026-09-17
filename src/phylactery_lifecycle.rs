@@ -6,6 +6,7 @@ use crate::dream_duplicate_index::DuplicateIndex;
 use crate::ego_store::EgoStore;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
+use crate::lexical_index::LexicalIndex;
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_rebuild::MemoryVectorOpenState;
@@ -56,6 +57,7 @@ impl Phylactery {
 
     fn initialize(mut container: Container) -> Result<Self, PhylacteryError> {
         let memories = MemoryStore::empty();
+        let lexical_index = LexicalIndex::default();
         let mut graph = GraphStore::empty();
         let communities = CommunityStore::default();
         let dream_cooldowns = DreamCooldownStore::default();
@@ -75,6 +77,7 @@ impl Phylactery {
         Ok(Self {
             container,
             memories,
+            lexical_index,
             graph,
             communities,
             duplicate_index: DuplicateIndex::empty(),
@@ -124,6 +127,7 @@ impl Phylactery {
 
         let mut container = container;
         let memories = memory_state.finish(&mut container)?;
+        let lexical_index = LexicalIndex::default();
         ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
@@ -139,6 +143,7 @@ impl Phylactery {
         Ok(Self {
             container,
             memories,
+            lexical_index,
             graph,
             communities,
             duplicate_index: DuplicateIndex::empty(),

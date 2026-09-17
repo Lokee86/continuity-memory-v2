@@ -1,6 +1,7 @@
+use crate::lexical_index::MemoryLexicalHit;
 #[cfg(test)]
 use crate::{Archive, Container};
-use crate::{Cva, FileSearchHit, Fragment, SearchError};
+use crate::{Cva, FileSearchHit, Fragment, MemoryError, Phylactery, SearchError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct LexicalHit {
@@ -9,6 +10,17 @@ pub(crate) struct LexicalHit {
 }
 
 impl Cva {
+    pub(crate) fn memory_lexical_candidates(
+        &mut self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
+        let terms = lexical_terms(query);
+        self.lexical_index
+            .ensure_memories_current(&self.memories, &mut self.container)?;
+        Ok(self.lexical_index.search_memories(&terms, limit))
+    }
+
     pub(crate) fn lexical_candidates(
         &mut self,
         query: &str,
@@ -72,6 +84,19 @@ impl Cva {
         self.lexical_index
             .ensure_current(&self.archive, &mut self.container)?;
         Ok(self.lexical_index.search_files(&terms, limit))
+    }
+}
+
+impl Phylactery {
+    pub(crate) fn memory_lexical_candidates(
+        &mut self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
+        let terms = lexical_terms(query);
+        self.lexical_index
+            .ensure_memories_current(&self.memories, &mut self.container)?;
+        Ok(self.lexical_index.search_memories(&terms, limit))
     }
 }
 

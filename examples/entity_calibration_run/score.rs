@@ -9,11 +9,6 @@ pub fn summarize(results: &[Value], model: &str, effort: &str) -> Value {
     let mut zero_total = 0usize;
     let mut zero_correct = 0usize;
     let mut errors = 0usize;
-    let mut required_terms = 0usize;
-    let mut required_hits = 0usize;
-    let mut actual_terms = 0usize;
-    let mut acceptable_hits = 0usize;
-    let mut unreviewed_terms = 0usize;
 
     for row in results {
         let expected = mention_set(&row["expected_entity_mentions"]);
@@ -22,8 +17,7 @@ pub fn summarize(results: &[Value], model: &str, effort: &str) -> Value {
         if failed {
             errors += 1;
         }
-        let local_tp = expected.intersection(&actual).count();
-        tp += local_tp;
+        tp += expected.intersection(&actual).count();
         fp += actual.difference(&expected).count();
         fn_count += expected.difference(&actual).count();
         if !failed && expected == actual {
@@ -35,15 +29,6 @@ pub fn summarize(results: &[Value], model: &str, effort: &str) -> Value {
                 zero_correct += 1;
             }
         }
-
-        let required = string_set(&row["required_lexical_terms"]);
-        let acceptable = string_set(&row["acceptable_lexical_terms"]);
-        let produced = string_set(&row["actual_lexical_terms"]);
-        required_terms += required.len();
-        required_hits += required.intersection(&produced).count();
-        actual_terms += produced.len();
-        acceptable_hits += acceptable.intersection(&produced).count();
-        unreviewed_terms += produced.difference(&acceptable).count();
     }
 
     let precision = ratio(tp, tp + fp);
@@ -59,21 +44,17 @@ pub fn summarize(results: &[Value], model: &str, effort: &str) -> Value {
         "cases": results.len(),
         "errors": errors,
         "entities": {
-            "tp": tp, "fp": fp, "fn": fn_count,
-            "precision": precision, "recall": recall, "f1": f1,
+            "tp": tp,
+            "fp": fp,
+            "fn": fn_count,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
             "exact_cases": exact_cases,
             "exact_case_rate": ratio(exact_cases, results.len()),
             "zero_entity_cases": zero_total,
             "zero_entity_correct": zero_correct,
             "zero_entity_accuracy": ratio(zero_correct, zero_total)
-        },
-        "lexical_terms": {
-            "required": required_terms,
-            "required_hits": required_hits,
-            "required_recall": ratio(required_hits, required_terms),
-            "actual_terms": actual_terms,
-            "acceptable_hits": acceptable_hits,
-            "unreviewed_terms": unreviewed_terms
         }
     })
 }
@@ -92,16 +73,6 @@ fn mention_set(value: &Value) -> HashSet<String> {
                 item["text"].as_str().unwrap_or("")
             )
         })
-        .collect()
-}
-
-fn string_set(value: &Value) -> HashSet<String> {
-    value
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .map(str::to_owned)
         .collect()
 }
 

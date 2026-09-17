@@ -1,7 +1,6 @@
 use crate::{MemoryBodyId, MemoryId};
 
 pub const MAX_MEMORY_ENTITY_MENTIONS: usize = 64;
-pub const MAX_MEMORY_LEXICAL_TERMS: usize = 64;
 pub const MAX_MEMORY_ROUTING_TEXT_BYTES: usize = 512;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -40,5 +39,4 @@ pub struct MemoryRoutingMetadata {
     pub memory_id: MemoryId,
     pub body_id: MemoryBodyId,
     pub entity_mentions: Vec<MemoryEntityMention>,
-    pub lexical_terms: Vec<String>,
 }

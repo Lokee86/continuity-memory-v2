@@ -419,9 +419,9 @@ u64       record payload length
 ```
 Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR7`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC5` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR7` records, their body-bound routing metadata, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
 
-Clock-neutral Memory routing metadata may also be stored as a standalone attachment (used by PHY publication, migration, and semantic reconciliation):
+Clock-neutral Memory Entity-routing metadata may also be stored as a standalone attachment (used by PHY publication, migration, and semantic reconciliation). New writes use:
 ```text
-8 bytes   "CVAMRTE1"
+8 bytes   "CVAMRTE2"
 32 bytes  MemoryId
 32 bytes  MemoryBodyId
 u32       Entity-mention count (0..=64)
@@ -430,10 +430,10 @@ repeated Entity mentions:
     u32   start UTF-8 byte offset
     u32   end UTF-8 byte offset
     string exact mention text
-u32       lexical-term count (0..=64)
-repeated string exact lexical term
 ```
-Every mention/term string is limited to 512 UTF-8 bytes. `MemoryId + MemoryBodyId` must identify the current immutable Memory body. Mention offsets must be valid character boundaries and slice to the stored text exactly; lexical terms must occur verbatim in title or content. One Memory may have at most one routing attachment: identical replay is idempotent and a different attachment for the same Memory conflicts. `CVAMRTE1` consumes no global or Memory version and carries no Entity ID/type/identity decision.
+Every mention string is limited to 512 UTF-8 bytes. `MemoryId + MemoryBodyId` must identify the current immutable Memory body, and mention offsets must be valid character boundaries that slice to the stored text exactly. One Memory may have at most one routing attachment: identical replay is idempotent and a different attachment for the same Memory conflicts. `CVAMRTE2` consumes no global or Memory version and carries no Entity ID/type/identity decision.
+
+Legacy `CVAMRTE1` remains readable. It has the same Entity-mention prefix followed by `u32 lexical-term count` and repeated exact lexical strings. Those former model-generated lexical terms are consumed only for compatibility validation while decoding and are discarded; they are not republished into current routing metadata. Lexical Memory search is now fully derived from complete current Memory title/content through the disposable owner-local Memory lexical index, so no lexical strings are persisted in new routing attachments.
 
 ### Graph
 Format marker:

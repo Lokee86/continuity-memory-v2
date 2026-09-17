@@ -71,7 +71,6 @@ pub(crate) fn prepare_application(
                 memory_id: memory_id(&draft.mutation_id),
                 body_id: memory_body_id(&draft.title, &draft.content),
                 entity_mentions: routing.entity_mentions,
-                lexical_terms: routing.lexical_terms,
             });
         match candidate.ownership {
             InsomniaOwnership::Project => project_drafts.push(PreparedMemory {

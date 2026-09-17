@@ -153,26 +153,35 @@ fn result_row(
     error: Option<&str>,
     raw_output: Option<Value>,
 ) -> Value {
-    let routing = candidate.routing_metadata.as_ref();
-    let mentions = routing
+    let mentions = candidate
+        .routing_metadata
+        .as_ref()
         .map(|routing| {
             routing
                 .entity_mentions
                 .iter()
-                .map(|mention| json!({
-                    "field": match mention.field { MemoryTextField::Title => "title", MemoryTextField::Content => "content" },
-                    "start_byte": mention.start_byte, "end_byte": mention.end_byte, "text": mention.text
-                }))
+                .map(|mention| {
+                    json!({
+                        "field": match mention.field {
+                            MemoryTextField::Title => "title",
+                            MemoryTextField::Content => "content",
+                        },
+                        "start_byte": mention.start_byte,
+                        "end_byte": mention.end_byte,
+                        "text": mention.text,
+                    })
+                })
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
     json!({
-        "owner_kind": gold["owner_kind"], "memory_id": gold["memory_id"], "body_id": gold["body_id"], "tags": gold["tags"],
+        "owner_kind": gold["owner_kind"],
+        "memory_id": gold["memory_id"],
+        "body_id": gold["body_id"],
+        "tags": gold["tags"],
         "expected_entity_mentions": gold["expected_entity_mentions"],
-        "required_lexical_terms": gold["required_lexical_terms"], "acceptable_lexical_terms": gold["acceptable_lexical_terms"],
         "actual_entity_mentions": mentions,
-        "actual_lexical_terms": routing.map(|value| value.lexical_terms.clone()).unwrap_or_default(),
         "raw_output": raw_output,
-        "error": error
+        "error": error,
     })
 }

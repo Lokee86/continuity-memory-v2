@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.len() < 3 {
         return Err(
-            "usage: entity_calibration_run <gold.jsonl> <candidates.jsonl> <output-dir> [workers]"
+            "usage: entity_calibration_run <gold.jsonl> <candidates.jsonl> <output-dir> [workers] [low|medium|high] [model]"
                 .into(),
         );
     }
@@ -25,6 +25,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .and_then(|v| v.parse().ok())
         .unwrap_or(8usize)
         .clamp(1, 16);
+    let effort = args.get(4).map(String::as_str).unwrap_or("low");
+    let effort = parse_reasoning_effort(effort)?;
+    let model = args.get(5).map(String::as_str).unwrap_or("gpt-5.6-luna");
     let gold = load_jsonl(&args[0])?;
     let candidates = load_jsonl(&args[1])?
         .into_iter()
@@ -34,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })
         .collect::<HashMap<_, _>>();
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let (endpoint, model, effort) = endpoint(&repo)?;
+    let (endpoint, model) = endpoint(&repo, effort, model)?;
     let output = PathBuf::from(&args[2]);
     fs::create_dir_all(&output)?;
 
@@ -51,16 +54,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn endpoint(
     repo: &Path,
-) -> Result<(ConfiguredGeneralEndpoint, String, ModelReasoningEffort), Box<dyn Error>> {
-    let effort = match std::env::var("INSOMNIA_TEST_REASONING")
-        .unwrap_or_else(|_| "low".into())
-        .as_str()
-    {
-        "low" => ModelReasoningEffort::Low,
-        "medium" => ModelReasoningEffort::Medium,
-        "high" => ModelReasoningEffort::High,
-        other => return Err(format!("unsupported INSOMNIA_TEST_REASONING: {other}").into()),
-    };
+    effort: ModelReasoningEffort,
+    model: &str,
+) -> Result<(ConfiguredGeneralEndpoint, String), Box<dyn Error>> {
     let config = ReliquaryConfig::open(repo.join("reliquary.cfg"))?;
     let mut models = config.models.clone();
     let route = if models.insomnia_metadata.is_some() {
@@ -69,14 +65,23 @@ fn endpoint(
         return Err("Entity calibration requires the configured insomnia_metadata route".into());
     };
     if route.provider != ModelProvider::OpenAiCodex {
-        return Err("Luna calibration requires openai-codex metadata route".into());
+        return Err("Entity calibration requires openai-codex metadata route".into());
     }
-    route.model = "gpt-5.6-luna".into();
+    route.model = model.into();
     route.reasoning_effort = Some(effort);
     let switchboard = ModelSwitchboard::new(models, config.credentials.clone())?;
     let endpoint = ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&switchboard)?;
     let model = endpoint.model().to_owned();
-    Ok((endpoint, model, effort))
+    Ok((endpoint, model))
+}
+
+fn parse_reasoning_effort(value: &str) -> Result<ModelReasoningEffort, Box<dyn Error>> {
+    match value {
+        "low" => Ok(ModelReasoningEffort::Low),
+        "medium" => Ok(ModelReasoningEffort::Medium),
+        "high" => Ok(ModelReasoningEffort::High),
+        other => Err(format!("unsupported reasoning effort: {other}").into()),
+    }
 }
 
 fn load_jsonl(path: impl AsRef<Path>) -> Result<Vec<Value>, Box<dyn Error>> {

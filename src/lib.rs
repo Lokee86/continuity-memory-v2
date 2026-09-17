@@ -222,6 +222,7 @@ mod memory_retrieval_traversal;
 mod memory_retrieval_vectors;
 mod memory_routing_codec;
 mod memory_routing_model;
+mod memory_search;
 mod memory_store;
 mod memory_temporal_codec;
 mod memory_temporal_codec_kind;
@@ -471,8 +472,12 @@ pub use memory_retrieval_model::{
     MemoryRetrievalIndex, MemoryRetrievalMode, MemoryRetrievalResult,
 };
 pub use memory_routing_model::{
-    MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_LEXICAL_TERMS, MAX_MEMORY_ROUTING_TEXT_BYTES,
-    MemoryEntityMention, MemoryRoutingMetadata, MemoryTextField,
+    MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, MemoryEntityMention,
+    MemoryRoutingMetadata, MemoryTextField,
+};
+pub use memory_search::{
+    MAX_MEMORY_LEXICAL_SEARCH_QUERY_BYTES, MAX_MEMORY_LEXICAL_SEARCH_RESULTS,
+    MemoryLexicalSearchHit,
 };
 pub use memory_vector_error::MemoryVectorError;
 pub use memory_vector_model::{

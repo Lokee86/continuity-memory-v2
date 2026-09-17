@@ -3,9 +3,9 @@ use crate::memory_codec::{
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
-    Container, MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_LEXICAL_TERMS, MAX_MEMORY_ROUTING_TEXT_BYTES,
-    Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryRoutingMetadata,
-    MemorySourceRef, MemoryStats, MemoryTemporalInference, MemoryTextField, ObjectRef,
+    Container, MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, Memory, MemoryBodyId,
+    MemoryDraft, MemoryError, MemoryId, MemoryRoutingMetadata, MemorySourceRef, MemoryStats,
+    MemoryTemporalInference, MemoryTextField, ObjectRef,
 };
 use std::collections::HashMap;
 
@@ -449,9 +449,7 @@ impl MemoryStore {
         &self,
         metadata: &MemoryRoutingMetadata,
     ) -> Result<(), MemoryError> {
-        if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS
-            || metadata.lexical_terms.len() > MAX_MEMORY_LEXICAL_TERMS
-        {
+        if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS {
             return Err(MemoryError::InvalidField("Memory routing metadata count"));
         }
         if self.current_body_id(metadata.memory_id)? != metadata.body_id {
@@ -463,11 +461,6 @@ impl MemoryStore {
                 || mention.start_byte >= mention.end_byte
             {
                 return Err(MemoryError::InvalidField("Memory entity mention"));
-            }
-        }
-        for term in &metadata.lexical_terms {
-            if term.trim().is_empty() || term.len() > MAX_MEMORY_ROUTING_TEXT_BYTES {
-                return Err(MemoryError::InvalidField("Memory lexical term"));
             }
         }
         Ok(())
@@ -494,11 +487,6 @@ impl MemoryStore {
                 || source.get(start..end) != Some(mention.text.as_str())
             {
                 return Err(MemoryError::InvalidField("Memory entity mention span"));
-            }
-        }
-        for term in &metadata.lexical_terms {
-            if !title.contains(term) && !content.contains(term) {
-                return Err(MemoryError::InvalidField("Memory lexical term grounding"));
             }
         }
         Ok(())

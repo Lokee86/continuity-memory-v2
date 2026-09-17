@@ -13,11 +13,10 @@ fn enrichment_maps_verbatim_mentions_to_durable_text_spans() {
             "memories": {
                 "claim-1": {
                     "entity_mentions": [
-                        {"field":"content","text":"Sarah"},
-                        {"field":"content","text":"the Vancouver office"},
-                        {"field":"content","text":"Warlock"}
-                    ],
-                    "lexical_terms": ["Vancouver office", "Warlock"]
+                        {"field":"content","text":"Sarah","occurrence":-1},
+                        {"field":"content","text":"the Vancouver office","occurrence":-1},
+                        {"field":"content","text":"Warlock","occurrence":-1}
+                    ]
                 }
             }
         })],
@@ -25,7 +24,6 @@ fn enrichment_maps_verbatim_mentions_to_durable_text_spans() {
 
     enrich(&endpoint, &mut candidates).unwrap();
     let routing = candidates[0].routing_metadata.as_ref().unwrap();
-    assert_eq!(routing.lexical_terms, vec!["Vancouver office", "Warlock"]);
     assert_eq!(routing.entity_mentions.len(), 3);
     assert_eq!(routing.entity_mentions[0].field, MemoryTextField::Content);
     for mention in &routing.entity_mentions {
@@ -47,8 +45,9 @@ fn enrichment_rejects_expansion_beyond_durable_mention_limit() {
         vec![json!({
             "memories": {
                 "claim-1": {
-                    "entity_mentions": [{"field":"content","text":"Sarah"}],
-                    "lexical_terms": []
+                    "entity_mentions": [
+                        {"field":"content","text":"Sarah","occurrence":-1}
+                    ]
                 }
             }
         })],
@@ -69,10 +68,9 @@ fn enrichment_does_not_expand_word_mentions_inside_longer_identifiers() {
             "memories": {
                 "claim-1": {
                     "entity_mentions": [
-                        {"field":"content","text":"git"},
-                        {"field":"content","text":"damage"}
-                    ],
-                    "lexical_terms": []
+                        {"field":"content","text":"git","occurrence":-1},
+                        {"field":"content","text":"damage","occurrence":-1}
+                    ]
                 }
             }
         })],
@@ -89,6 +87,32 @@ fn enrichment_does_not_expand_word_mentions_inside_longer_identifiers() {
 }
 
 #[test]
+fn enrichment_selects_one_semantic_occurrence_when_surface_text_is_ambiguous() {
+    let mut candidate = candidate();
+    candidate.content = "local damage result shadows imported `damage` package.".into();
+    let expected_start = candidate.content.rfind("damage").unwrap() as u32;
+    let mut candidates = vec![candidate];
+    let endpoint = SimulatedGeneralEndpoint::new(
+        "metadata",
+        vec![json!({
+            "memories": {
+                "claim-1": {
+                    "entity_mentions": [
+                        {"field":"content","text":"damage","occurrence":1}
+                    ]
+                }
+            }
+        })],
+    );
+
+    enrich(&endpoint, &mut candidates).unwrap();
+    let routing = candidates[0].routing_metadata.as_ref().unwrap();
+    assert_eq!(routing.entity_mentions.len(), 1);
+    assert_eq!(routing.entity_mentions[0].text, "damage");
+    assert_eq!(routing.entity_mentions[0].start_byte, expected_start);
+}
+
+#[test]
 fn enrichment_drops_only_embedded_word_occurrences() {
     let mut candidate = candidate();
     candidate.content = "damageResult is populated.".into();
@@ -98,16 +122,23 @@ fn enrichment_drops_only_embedded_word_occurrences() {
         vec![json!({
             "memories": {
                 "claim-1": {
-                    "entity_mentions": [{"field":"content","text":"damage"}],
-                    "lexical_terms": []
+                    "entity_mentions": [
+                        {"field":"content","text":"damage","occurrence":-1}
+                    ]
                 }
             }
         })],
     );
 
     enrich(&endpoint, &mut candidates).unwrap();
-    let routing = candidates[0].routing_metadata.as_ref().unwrap();
-    assert!(routing.entity_mentions.is_empty());
+    assert!(
+        candidates[0]
+            .routing_metadata
+            .as_ref()
+            .unwrap()
+            .entity_mentions
+            .is_empty()
+    );
 }
 
 #[test]
@@ -121,8 +152,9 @@ fn enrichment_normalizes_ascii_case_only_drift_to_source_text() {
         vec![json!({
             "memories": {
                 "claim-1": {
-                    "entity_mentions": [{"field":"content","text":"the user"}],
-                    "lexical_terms": ["backout"]
+                    "entity_mentions": [
+                        {"field":"content","text":"the user","occurrence":-1}
+                    ]
                 }
             }
         })],
@@ -131,7 +163,6 @@ fn enrichment_normalizes_ascii_case_only_drift_to_source_text() {
     enrich(&endpoint, &mut candidates).unwrap();
     let routing = candidates[0].routing_metadata.as_ref().unwrap();
     assert_eq!(routing.entity_mentions[0].text, "The user");
-    assert_eq!(routing.lexical_terms, vec!["Backout"]);
 }
 
 #[test]
@@ -146,23 +177,24 @@ fn enrichment_keeps_most_specific_overlapping_mentions() {
             "memories": {
                 "claim-1": {
                     "entity_mentions": [
-                        {"field":"content","text":"Windows"},
-                        {"field":"content","text":"Git"},
-                        {"field":"content","text":"Windows Git"},
-                        {"field":"content","text":"Go"},
-                        {"field":"content","text":"Go-game-server"},
-                        {"field":"content","text":"State"},
-                        {"field":"content","text":"Game.State"}
-                    ],
-                    "lexical_terms": []
+                        {"field":"content","text":"Windows","occurrence":-1},
+                        {"field":"content","text":"Git","occurrence":-1},
+                        {"field":"content","text":"Windows Git","occurrence":-1},
+                        {"field":"content","text":"Go","occurrence":-1},
+                        {"field":"content","text":"Go-game-server","occurrence":-1},
+                        {"field":"content","text":"State","occurrence":-1},
+                        {"field":"content","text":"Game.State","occurrence":-1}
+                    ]
                 }
             }
         })],
     );
 
     enrich(&endpoint, &mut candidates).unwrap();
-    let routing = candidates[0].routing_metadata.as_ref().unwrap();
-    let mentions = routing
+    let mentions = candidates[0]
+        .routing_metadata
+        .as_ref()
+        .unwrap()
         .entity_mentions
         .iter()
         .map(|mention| mention.text.as_str())
@@ -181,6 +213,53 @@ fn enrichment_keeps_most_specific_overlapping_mentions() {
 }
 
 #[test]
+fn enrichment_filters_generic_referents_but_keeps_reusable_identity() {
+    let mut candidate = candidate();
+    candidate.content = "The server uses Rails API server at the Vancouver office; the file is game.gd, the user approved it, Codec seam is only an architectural seam, and the Leave request crossed the pause flow.".into();
+    let mut candidates = vec![candidate];
+    let endpoint = SimulatedGeneralEndpoint::new(
+        "metadata",
+        vec![json!({
+            "memories": {
+                "claim-1": {
+                    "entity_mentions": [
+                        {"field":"content","text":"The server","occurrence":-1},
+                        {"field":"content","text":"Rails API server","occurrence":-1},
+                        {"field":"content","text":"the Vancouver office","occurrence":-1},
+                        {"field":"content","text":"the file","occurrence":-1},
+                        {"field":"content","text":"game.gd","occurrence":-1},
+                        {"field":"content","text":"the user","occurrence":-1},
+                        {"field":"content","text":"Codec seam","occurrence":-1},
+                        {"field":"content","text":"architectural seam","occurrence":-1},
+                        {"field":"content","text":"Leave request","occurrence":-1},
+                        {"field":"content","text":"pause flow","occurrence":-1}
+                    ]
+                }
+            }
+        })],
+    );
+
+    enrich(&endpoint, &mut candidates).unwrap();
+    let mentions = candidates[0]
+        .routing_metadata
+        .as_ref()
+        .unwrap()
+        .entity_mentions
+        .iter()
+        .map(|mention| mention.text.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        mentions,
+        vec![
+            "Rails API server",
+            "the Vancouver office",
+            "game.gd",
+            "the user"
+        ]
+    );
+}
+
+#[test]
 fn enrichment_strips_inline_code_delimiters_from_entity_mentions() {
     let mut candidate = candidate();
     candidate.content = "Move `game.gd` into `networking/packets`.".into();
@@ -191,18 +270,19 @@ fn enrichment_strips_inline_code_delimiters_from_entity_mentions() {
             "memories": {
                 "claim-1": {
                     "entity_mentions": [
-                        {"field":"content","text":"`game.gd`"},
-                        {"field":"content","text":"`networking/packets`"}
-                    ],
-                    "lexical_terms": []
+                        {"field":"content","text":"`game.gd`","occurrence":-1},
+                        {"field":"content","text":"`networking/packets`","occurrence":-1}
+                    ]
                 }
             }
         })],
     );
 
     enrich(&endpoint, &mut candidates).unwrap();
-    let routing = candidates[0].routing_metadata.as_ref().unwrap();
-    let mentions = routing
+    let mentions = candidates[0]
+        .routing_metadata
+        .as_ref()
+        .unwrap()
         .entity_mentions
         .iter()
         .map(|mention| mention.text.as_str())
@@ -211,46 +291,30 @@ fn enrichment_strips_inline_code_delimiters_from_entity_mentions() {
 }
 
 #[test]
-fn enrichment_drops_invented_entity_names_but_keeps_valid_siblings() {
+fn enrichment_drops_invented_entity_names() {
     let mut candidates = vec![candidate()];
     let endpoint = SimulatedGeneralEndpoint::new(
         "metadata",
         vec![json!({
             "memories": {
                 "claim-1": {
-                    "entity_mentions": [{"field":"content","text":"Sarah Chen"}],
-                    "lexical_terms": ["Warlock"]
+                    "entity_mentions": [
+                        {"field":"content","text":"Sarah Chen","occurrence":-1}
+                    ]
                 }
             }
         })],
     );
 
     enrich(&endpoint, &mut candidates).unwrap();
-    let routing = candidates[0].routing_metadata.as_ref().unwrap();
-    assert!(routing.entity_mentions.is_empty());
-    assert_eq!(routing.lexical_terms, vec!["Warlock"]);
-}
-
-#[test]
-fn enrichment_drops_nonverbatim_lexical_terms_but_keeps_valid_mentions() {
-    let mut candidates = vec![candidate()];
-    let endpoint = SimulatedGeneralEndpoint::new(
-        "metadata",
-        vec![json!({
-            "memories": {
-                "claim-1": {
-                    "entity_mentions": [{"field":"content","text":"Sarah"}],
-                    "lexical_terms": ["Vancouver office", "read-only telemetry"]
-                }
-            }
-        })],
+    assert!(
+        candidates[0]
+            .routing_metadata
+            .as_ref()
+            .unwrap()
+            .entity_mentions
+            .is_empty()
     );
-
-    enrich(&endpoint, &mut candidates).unwrap();
-    let routing = candidates[0].routing_metadata.as_ref().unwrap();
-    assert_eq!(routing.entity_mentions.len(), 1);
-    assert_eq!(routing.entity_mentions[0].text, "Sarah");
-    assert_eq!(routing.lexical_terms, vec!["Vancouver office"]);
 }
 
 fn candidate() -> InsomniaCandidate {

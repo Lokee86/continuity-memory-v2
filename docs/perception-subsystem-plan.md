@@ -33,7 +33,7 @@ Perception is not another full-corpus reasoning layer. Deterministic routing, Dr
 ```text
 Archive/source
     -> Insomnia semantic extraction + final Memory wording
-    -> Insomnia Entity/lexical routing-metadata enrichment
+    -> Insomnia Entity-mention enrichment
        -> Chronos Memory-level temporal assessment/inference when indicated
     -> durable Memory publication
     -> Dream Memory-Web organization (consumes Chronos)
@@ -49,12 +49,11 @@ Observation reconsideration and ambiguity clarification are lifecycle/runtime me
 
 ## Insomnia enrichment prerequisite
 
-After final authoritative Memory wording, Insomnia runs a separate routing-metadata pass that extracts:
+After final authoritative Memory wording, Insomnia runs a separate metadata pass that extracts exact Entity mentions from title/content, persisted as field + UTF-8 byte span + verbatim text. A mention must be an **identity-bearing reusable referent**: its surface form must carry enough identity to be recognized again in another Memory without reconstructing the sentence that produced it. Bare/context-only references such as `the server`, `the file`, `the agent`, or `the repository` are excluded. Descriptive action/architecture phrases ending in `flow`, `lane`, `mechanism`, `request`, `response`, `seam`, `state`, or `status` are also screened out unless identity is carried by a code/API artifact rather than the prose phrase itself. Stable owner-local descriptive identities such as `write server`, `devtools window`, `the Vancouver office`, or `my brother` remain eligible when the modifier/relation consistently identifies the referent.
 
-- exact Entity mentions from title/content, persisted as field + UTF-8 byte span + verbatim text;
-- exact lexical terms copied from title/content for deterministic routing/context construction.
+The implemented record is `MemoryRoutingMetadata`, bound to exact `MemoryId + MemoryBodyId`. Entity mentions are capped at 64 items and each emitted text value at 512 UTF-8 bytes. Write/reopen validation requires every mention span to match the immutable Memory body exactly. The metadata is clock-neutral and remains valid across metadata/lifecycle revisions because the Memory body cannot mutate in place.
 
-The implemented record is `MemoryRoutingMetadata`, bound to exact `MemoryId + MemoryBodyId`. Each list is capped at 64 items and each emitted text value at 512 UTF-8 bytes. Write/reopen validation requires every mention span and lexical term to match the immutable Memory body exactly. The metadata is clock-neutral and remains valid across metadata/lifecycle revisions because the Memory body cannot mutate in place.
+Lexical locality is deliberately **not** model-extracted metadata. REL and PHY derive a disposable owner-local Memory lexical index directly from full current Memory title/content using the same deterministic tokenizer, inverted index, and coverage+density score as Archive lexical search. It rebuilds lazily from `memory_version`, persists no semantic state, and is the lexical routing/context-construction primitive Perception should use.
 
 It does **not** resolve/create Entities, decide identity, assign Entity IDs/types, synthesize Observations, or create semantic authority beyond the Memory itself. Perception pass 1 remains the sole owner of Entity synthesis/association/disambiguation.
 
@@ -74,7 +73,7 @@ Candidate flow:
 
 1. Embed the mention in Memory context.
 2. Search the owner-local Entity index.
-3. No plausible candidate -> create an Entity.
+3. No plausible candidate -> create an Entity only when the mention still carries identifiable reusable identity; generic/context-only mentions must not become durable Entities.
 4. Clear match -> associate the Memory/mention.
 5. Uncertain match -> compare against semantic centroids and Memory-Web context already attached to the candidate.
 6. Use bounded inference only to confirm association, reject it, or preserve ambiguity.
@@ -162,7 +161,7 @@ Neighbourhood construction may use bounded combinations of:
 - strongest graph relationships;
 - graph distance/locality;
 - shared Entities;
-- lexical locality;
+- lexical locality from the deterministic owner-local Memory lexical index;
 - semantic similarity as a backstop.
 
 The neighbourhood is a processing window only, with no Community identity or semantic authority.
@@ -231,7 +230,7 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 
 ## Ownership invariants
 
-- Insomnia owns source-grounded Memory extraction and Entity/lexical metadata extraction; it consumes Chronos during eligible Memory processing.
+- Insomnia owns source-grounded Memory extraction and Entity-mention metadata extraction; it consumes Chronos during eligible Memory processing. Lexical Memory routing is deterministic derived indexing, not Insomnia model output.
 - Dream owns Memory-to-Memory semantic relationship authority and Community organization; it consumes Chronos for temporal candidate/context reasoning.
 - Chronos owns shared temporal detection, normalization, parsing, resolution, comparison, and bounded temporal-inference mechanics; it owns no semantic objects or transaction clock.
 - Perception owns Entity, Relationship, and Observation semantic objects plus Entity/Observation ambiguity state; it consumes Chronos for Observation temporal interpretation.
@@ -248,12 +247,14 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 
 ## Implementation sequence
 
-### A — Insomnia metadata seam — implemented 2026-09-16
+### A — Entity metadata + deterministic Memory lexical index — implemented 2026-09-17
 
-- `MemoryRoutingMetadata` defines bounded exact Entity mentions and lexical terms over immutable Memory text.
-- Insomnia contract `v3-2` adds a post-wording enrichment pass; configured/runtime-host execution uses `models.insomnia_metadata` when present and otherwise effective main Insomnia.
-- REL Project results embed routing metadata atomically in `CVAINSC5`; PHY/User results persist the same clock-neutral attachment beside the routed Memory.
-- Reopen validates `MemoryId + MemoryBodyId` binding and exact source text. Migration/reconciliation replay the attachment, identical writes are idempotent, and conflicts fail closed.
+- `MemoryRoutingMetadata` defines bounded exact Entity mentions over immutable Memory text; lexical routing comes from the disposable Memory lexical index over full Memory title/content.
+- Insomnia contract `v3-4` owns the post-wording Entity enrichment pass; configured/runtime-host execution uses `models.insomnia_metadata` when present and otherwise effective main Insomnia. Extraction targets identity-bearing reusable referents rather than generic noun phrases; a narrow deterministic guard drops known bare/context-only generic surfaces plus multiword action/architecture phrases headed by `flow`, `lane`, `mechanism`, `request`, `response`, `seam`, `state`, or `status`. The model may select one occurrence when identical surface text has mixed semantics, but durable routing metadata remains exact title/content spans only.
+- REL Project results embed Entity routing metadata atomically in `CVAINSC5`; PHY/User results persist the same clock-neutral attachment beside the routed Memory.
+- New Entity routing attachments use `CVAMRTE2`; legacy `CVAMRTE1` remains readable and its obsolete model-generated lexical terms are discarded on decode.
+- REL and PHY expose disposable Memory lexical search over complete current non-archived title/content, using the same deterministic lexical machinery as Archive search and no model call.
+- Reopen validates `MemoryId + MemoryBodyId` binding and exact Entity source text. Migration/reconciliation replay the attachment, identical writes are idempotent, and conflicts fail closed.
 
 The next implementation milestone is **B — Entity owner and pass 1**.
 

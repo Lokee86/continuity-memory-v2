@@ -36,25 +36,20 @@ The normal processing order is:
 ```text
 Archive/source
     -> Insomnia Memory extraction
-    -> Insomnia metadata enrichment
+    -> Insomnia Entity-mention enrichment
     -> Dream Memory-Web organization
     -> Perception
 ```
 
 Perception does not take over Dream relationship synthesis. Dream remains responsible for organizing the Memory Web. Perception consumes that organized Web to materialize implicit semantic structure. Observation synthesis/reconsideration may consume shared Chronos temporal analysis under ADR 0035; Perception does not own a separate temporal parser or temporal-inference stack.
 
-### Insomnia metadata enrichment
+### Insomnia Entity enrichment and deterministic Memory lexical routing
 
-Insomnia gains an additional pass after authoritative Memory extraction.
+Insomnia gains an additional pass after authoritative Memory extraction. For each newly created Memory, that pass extracts only bounded exact Entity mentions from the final Memory title/content. A mention must carry enough identity in its surface form to be reusable across Memories; anonymous/context-only references such as `the server`, `the file`, `the agent`, or `the repository` are excluded, and descriptive action/architecture phrases ending in `flow`, `lane`, `mechanism`, `request`, `response`, `seam`, `state`, or `status` are deterministically screened out. Stable descriptive identities remain valid when a modifier or relation consistently distinguishes the referent within owner scope.
 
-For each newly created Memory, that pass extracts only bounded routing metadata:
+Lexical routing is deliberately separate from inference. REL and PHY derive a disposable owner-local lexical index directly from complete current Memory title/content, using the same deterministic lexical tokenizer/index/scoring machinery as Archive search. The index is candidate-generation state only: it is not persisted, is rebuilt after reopen or Memory-version changes, and requires no model call.
 
-- Entity mentions; and
-- lexical terms useful for later deterministic candidate/context construction.
-
-This pass does **not** resolve, create, merge, or disambiguate Entities and does not synthesize Observations. Those are Perception responsibilities.
-
-The exact metadata schema, model route, and persistence representation remain implementation details to be specified separately.
+The Entity enrichment pass does **not** resolve, create, merge, or disambiguate Entities and does not synthesize Observations. Those are Perception responsibilities. The deterministic Memory lexical index supplies lexical locality for later candidate/context construction without adding probabilistic routing metadata.
 
 ## Perception pass 1: Entity synthesis, association, and disambiguation
 
@@ -63,7 +58,7 @@ Perception consumes the Entity mentions extracted by Insomnia against the post-D
 For each mention, Perception may:
 
 - associate it with an existing durable Entity;
-- create a new Entity when no existing referent is plausible; or
+- create a new Entity when no existing referent is plausible and the mention still carries identifiable reusable identity; or
 - preserve an unresolved ambiguity when identity cannot safely be established.
 
 Candidate discovery should be cheap and deterministic where possible. Mention/context embeddings may retrieve candidate Entities, after which existing Entity semantic centroids and the Memories/structure already attached to the Entity provide contextual evidence. A bounded inference call is used at the uncertain seam to confirm association, reject it, or mark ambiguity.
@@ -112,7 +107,7 @@ Leiden is not required to force a split. A tightly cohesive Community may remain
 
 Reliquary must **not** arbitrarily chop an irreducible semantic Community into durable fake subcommunities merely to satisfy an inference budget.
 
-When the deepest genuine Community containing the new/changed Memory is still too large, Perception constructs an ephemeral bounded processing neighbourhood around that Memory. The neighbourhood may use deterministic graph proximity, strongest relationships, shared Entities, lexical locality, and other bounded structural signals.
+When the deepest genuine Community containing the new/changed Memory is still too large, Perception constructs an ephemeral bounded processing neighbourhood around that Memory. The neighbourhood may use deterministic graph proximity, strongest relationships, shared Entities, lexical locality from the owner-local Memory lexical index, and other bounded structural signals.
 
 That neighbourhood is a processing window only. It is not persisted as a semantic Community and does not claim semantic authority.
 
@@ -167,7 +162,7 @@ The resulting answer returns to Perception for resolution or continued ambiguity
 The semantic responsibilities remain separated:
 
 ```text
-Insomnia   = extract source-grounded Memories and routing metadata
+Insomnia   = extract source-grounded Memories and exact Entity-mention metadata
 Dream      = organize the Memory Web
 Chronos    = provide shared temporal interpretation when invoked
 Perception = materialize implicit Entities and Observations
@@ -192,7 +187,7 @@ Rejected. Dream's existing responsibility is relationship/canonical Memory-Web o
 
 ### Run Perception directly over every Memory before Dream
 
-Rejected for Observation synthesis. Observation extrapolation benefits from the graph, canonical structure, and Communities Dream has already established. Only bounded Entity/lexical metadata extraction belongs directly after Insomnia.
+Rejected for Observation synthesis. Observation extrapolation benefits from the graph, canonical structure, and Communities Dream has already established. Only bounded Entity-mention extraction belongs directly after Insomnia; lexical locality is derived deterministically from Memory text.
 
 ### Compare every new Memory against every existing Observation
 

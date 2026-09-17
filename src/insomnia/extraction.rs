@@ -14,7 +14,6 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaRoutingMetadata {
     pub entity_mentions: Vec<crate::MemoryEntityMention>,
-    pub lexical_terms: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -72,7 +72,7 @@ The finite drain and long-lived runtime vector worker fill missing Memory vector
 
 ## Persistent format
 
-Current successful Insomnia writes use `CVAINSC5`. It retains `CVAINSC4` transaction-time and owner-qualified external-Memory semantics, and additionally embeds the clock-neutral body-bound routing metadata produced for newly published Project Memories so REL Memory state and its Insomnia-derived Entity/lexical routing attachment become visible atomically.
+Current successful Insomnia writes use `CVAINSC5`. It retains `CVAINSC4` transaction-time and owner-qualified external-Memory semantics, and additionally embeds the clock-neutral body-bound routing metadata produced for newly published Project Memories so REL Memory state and its Insomnia-derived Entity-mention attachment become visible atomically. Lexical Memory routing is derived from complete Memory title/content by the disposable owner-local lexical index and is not part of the Insomnia completion payload.
 
 `CVAINSC1` through `CVAINSC4` remain decodable. V1/V2 reopen with no external Memory references; V2/V3 embedded global-version ranges predate explicit transaction time and therefore remain untimestamped rather than being backfilled from operational completion metadata. V4 carries transaction time and external references but predates embedded routing metadata.
 

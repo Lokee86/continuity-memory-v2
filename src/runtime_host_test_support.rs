@@ -84,7 +84,7 @@ impl GeneralEndpoint for UserMemoryEndpoint {
                     "content":"The user prefers Helix for editing code."
                 }}
             })),
-            "insomnia_memory_routing_metadata" => routing_metadata_response(user_payload),
+            "insomnia_memory_entity_mentions" => routing_metadata_response(user_payload),
             _ => Err(GeneralEndpointError::Failure(format!(
                 "unexpected schema {schema_name}"
             ))),
@@ -287,19 +287,11 @@ fn routing_metadata_response(user_payload: &str) -> Result<Value, GeneralEndpoin
             .ok_or(GeneralEndpointError::InvalidResponse("missing Memory key"))?;
         let content = memory["content"].as_str().unwrap_or("");
         let mentions = if content.contains("Helix") {
-            vec![json!({"field":"content", "text":"Helix"})]
+            vec![json!({"field":"content", "text":"Helix", "occurrence":-1})]
         } else {
             Vec::new()
         };
-        let terms = if content.contains("Helix") {
-            vec![Value::String("Helix".into())]
-        } else {
-            Vec::new()
-        };
-        memories.insert(
-            key.to_owned(),
-            json!({"entity_mentions": mentions, "lexical_terms": terms}),
-        );
+        memories.insert(key.to_owned(), json!({"entity_mentions": mentions}));
     }
     Ok(json!({"memories": memories}))
 }

@@ -194,7 +194,7 @@ Implement the Entity/Relationship/Observation semantic layer defined by [ADR 003
 
 The implementation sequence is:
 
-1. add a post-extraction Insomnia metadata pass for Entity mentions and lexical terms without moving Entity authority into Insomnia;
+1. add post-extraction Insomnia Entity-mention enrichment without moving Entity authority into Insomnia, and supply lexical locality from a deterministic disposable Memory index rather than model-generated terms;
 2. implement Perception pass 1 for owner-local Entity synthesis, association, durable identity, and ambiguity preservation;
 3. implement the ADR 0034 Relationship lane: sparse typed Relationship containers over owner-qualified Entity references, cross-owner references without cross-owner Dream edges, relationship-local derived state, and the active-PHY/authorized-REL visibility boundary;
 4. extend derived Communities into a multi-resolution semantic hierarchy: recursive Leiden subdivision for genuine subcommunities, a Community meta-graph for meaningful super-communities, lineage/naming/inspection semantics across persisted levels, coarse -> normal -> fine routing, and ephemeral bounded local processing neighbourhoods for oversized irreducible leaves;

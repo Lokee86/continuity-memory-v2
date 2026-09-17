@@ -1,5 +1,5 @@
 use crate::lexical_search::lexical_candidates_parts;
-use crate::{Cva, FragmentConfig};
+use crate::{Cva, FragmentConfig, MemoryDraft, MemoryId, Phylactery};
 use std::fs;
 use std::path::PathBuf;
 
@@ -29,6 +29,58 @@ fn add_fragment(cva: &mut Cva, conversation: &str, text: &str) {
         false,
     )
     .unwrap();
+}
+
+fn memory_draft(key: &str, title: &str, content: &str, archived: bool) -> MemoryDraft {
+    MemoryDraft {
+        category: "fact".into(),
+        memory_type: "project".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        title: title.into(),
+        content: content.into(),
+        scope: "test".into(),
+        lifecycle_state: "extracted".into(),
+        archived,
+        superseded_by: None,
+        parent_id: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_time_ns: None,
+        mutation_id: key.into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+    }
+}
+
+fn add_rel_memory(
+    cva: &mut Cva,
+    key: &str,
+    title: &str,
+    content: &str,
+    archived: bool,
+) -> MemoryId {
+    cva.publish_memory(None, 0, memory_draft(key, title, content, archived))
+        .unwrap()
+        .0
+        .id
+}
+
+fn add_phy_memory(
+    phy: &mut Phylactery,
+    key: &str,
+    title: &str,
+    content: &str,
+    archived: bool,
+) -> MemoryId {
+    phy.publish_memory(None, 0, memory_draft(key, title, content, archived))
+        .unwrap()
+        .0
+        .id
 }
 
 #[test]
@@ -91,4 +143,61 @@ fn lexical_index_incrementally_adds_new_fragments() {
 
     let both = cva.lexical_candidates("durable state", 10).unwrap();
     assert_eq!(both.len(), 2);
+}
+
+#[test]
+fn memory_lexical_index_refreshes_from_full_memory_text_and_excludes_archived() {
+    let mut cva = Cva::create(test_path("memory-refresh.rel")).unwrap();
+    let first = add_rel_memory(&mut cva, "m1", "Alpha system", "durable cedar state", false);
+    let archived = add_rel_memory(&mut cva, "m2", "Alpha archive", "durable cedar state", true);
+
+    let alpha = cva.search_memories("alpha", 10).unwrap();
+    assert_eq!(alpha.len(), 1);
+    assert_eq!(alpha[0].memory.id, first);
+    assert!(alpha.iter().all(|hit| hit.memory.id != archived));
+
+    let second = add_rel_memory(&mut cva, "m3", "Beta system", "durable cedar state", false);
+    let durable = cva.search_memories("durable cedar", 10).unwrap();
+    assert_eq!(durable.len(), 2);
+    assert!(durable.iter().any(|hit| hit.memory.id == first));
+    assert!(durable.iter().any(|hit| hit.memory.id == second));
+}
+
+#[test]
+fn memory_lexical_index_is_disposable_for_rel_and_phy() {
+    let rel_path = test_path("memory-reopen.rel");
+    let mut rel = Cva::create(&rel_path).unwrap();
+    add_rel_memory(
+        &mut rel,
+        "rel-memory",
+        "Reliquary",
+        "reopenable memory lexical state",
+        false,
+    );
+    rel.sync().unwrap();
+    let rel_size = fs::metadata(&rel_path).unwrap().len();
+    assert_eq!(rel.search_memories("reopenable", 10).unwrap().len(), 1);
+    rel.sync().unwrap();
+    assert_eq!(fs::metadata(&rel_path).unwrap().len(), rel_size);
+    drop(rel);
+    let mut rel = Cva::open(&rel_path).unwrap();
+    assert_eq!(rel.search_memories("reopenable", 10).unwrap().len(), 1);
+
+    let phy_path = test_path("memory-reopen.phy");
+    let mut phy = Phylactery::create(&phy_path).unwrap();
+    add_phy_memory(
+        &mut phy,
+        "phy-memory",
+        "Preference",
+        "reopenable private lexical state",
+        false,
+    );
+    phy.sync().unwrap();
+    let phy_size = fs::metadata(&phy_path).unwrap().len();
+    assert_eq!(phy.search_memories("reopenable", 10).unwrap().len(), 1);
+    phy.sync().unwrap();
+    assert_eq!(fs::metadata(&phy_path).unwrap().len(), phy_size);
+    drop(phy);
+    let mut phy = Phylactery::open(&phy_path).unwrap();
+    assert_eq!(phy.search_memories("reopenable", 10).unwrap().len(), 1);
 }
