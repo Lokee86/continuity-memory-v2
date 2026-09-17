@@ -44,6 +44,7 @@ src/lib.rs                          public exports
 examples/archive_roundtrip.rs        prepared Archive corpus smoke
 examples/vector_generation_smoke.rs  two-profile vector + retrieval smoke
 examples/archive_open_profile.rs     allocator/open-time benchmark
+examples/entity_calibration_harvest.rs deterministic frozen-corpus Entity calibration harvester
 
 docs/                                current docs, plans, limits, decisions
 ```
@@ -88,6 +89,14 @@ cargo run --release --example archive_open_profile -- <archive.cva> [runs]
 ```
 
 The benchmark is standalone and reports median/p90 `Cva::open` time plus allocator-tracked retained and peak additional bytes.
+
+Entity calibration harvest:
+
+```text
+cargo run --release --example entity_calibration_harvest -- <project.rel> <user.phy> <output-dir>
+```
+
+The harvester performs no inference and never mutates the source owners. It snapshots every current frozen REL/PHY Memory into a deterministic candidate inventory, binding each case to exact `MemoryId + MemoryBodyId`, and writes a fixed 256-case shadow sample ranked by SHA-256 over the v1 seed, owner ID, Memory ID, and body ID. The shadow selector reserves up to 32 cases per owner before filling the remainder globally by rank so PHY coverage cannot disappear through population imbalance. Human-reviewed gold and append-only regression labels remain corpus-repository data rather than implementation-repository fixtures.
 
 Synthetic Insomnia mechanical stress:
 
