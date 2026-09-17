@@ -423,6 +423,8 @@ pub use graph_model::{
     GraphDirection, GraphNeighbor, GraphRelation, GraphRelationChange, GraphRelationKind,
     GraphRelationOrigin, GraphStats, MemoryGraphPath,
 };
+#[cfg(feature = "entity-calibration")]
+pub use insomnia::enrich_entity_calibration;
 pub use insomnia::{
     DEFAULT_INSOMNIA_BACKPRESSURE_DELAY_NS, DEFAULT_INSOMNIA_LEASE_NS,
     DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,

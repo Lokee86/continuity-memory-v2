@@ -6,6 +6,12 @@ publish = false
 
 [features]
 community-benchmarks = []
+entity-calibration = []
+
+[[example]]
+name = "entity_calibration_run"
+path = "examples/entity_calibration_run/main.rs"
+required-features = ["entity-calibration"]
 
 [dependencies]
 arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "9ebccd6e7d089b98a8992c5451ba57f903f295fb" }

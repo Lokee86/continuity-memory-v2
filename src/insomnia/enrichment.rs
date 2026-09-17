@@ -6,7 +6,7 @@ use crate::{
 use serde_json::{Map, Value, json};
 
 pub(super) const ENRICHMENT_SYSTEM_PROMPT: &str = r#"You are the routing-metadata enrichment pass for Reliquary Insomnia. You receive final durable Memory title/content text. The Memory proposition, wording, ownership, provenance, and lifecycle are already authoritative and MUST NOT be changed.
-For each supplied Memory, extract only bounded routing metadata. entity_mentions: exact text spans that denote potentially durable concrete referents such as people, organizations, places, projects, products, repositories, teams, sites, files, software systems, or stable descriptive referents such as "the Vancouver office" or "my brother" when they identify a particular thing. Do not resolve identity, invent canonical names, assign types/IDs, merge aliases, or replace source wording. Exclude pronouns, generic classes, abstract concepts, and incidental adjectives.
+For each supplied Memory, extract only bounded routing metadata. entity_mentions are exact source-language spans that name potentially durable referents: people, organizations, places, projects, products, repositories, teams, sites, files, software systems, named protocols/standards, code/API artifacts, and stable descriptive referents such as "the Vancouver office", "my brother", or "the user" when it clearly denotes the current owner. Do NOT emit every salient noun. Use the smallest surface phrase that still distinguishes the intended referent. Prefer "Windows Git" over overlapping "Windows" + "Git" at that occurrence; emit a separate standalone "Git" elsewhere. For Markdown inline code such as `game.gd`, return "game.gd" without delimiters. Exclude pronouns, transient runtime roles, generic classes, abstract concepts, properties/states, and task/process labels such as "Prompt 94", "Phase 11A", "player state", or "hitboxes". Never canonicalize, paraphrase, change case, pluralize/singularize, or invent text. Do not resolve identity, assign types/IDs, or merge aliases.
 lexical_terms: salient exact words or short phrases copied from the final title/content that would help deterministically retrieve related Memories. Prefer distinctive domain/project/entity terms. Exclude stopwords, generic conversational language, paraphrases, and synonyms not literally present.
 Every emitted entity mention MUST specify whether its exact text came from title or content. Every emitted string MUST be copied verbatim from that field. Return exactly one result for every supplied Memory key, including empty arrays when nothing qualifies."#;
 pub(super) fn enrich(
@@ -119,15 +119,18 @@ fn apply(
             ))
         });
         entity_mentions.dedup();
+        retain_most_specific_mentions(&mut entity_mentions);
         if entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS {
             return Err(invalid(
                 "expanded Entity mentions exceed bounded item limit",
             ));
         }
-        let mut lexical_terms = terms
-            .iter()
-            .map(|term| validate_term(candidate, term))
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut lexical_terms = Vec::new();
+        for term in terms {
+            if let Some(term) = validate_term(candidate, term)? {
+                lexical_terms.push(term);
+            }
+        }
         lexical_terms.sort();
         lexical_terms.dedup();
         candidate.routing_metadata = Some(InsomniaRoutingMetadata {
@@ -153,40 +156,90 @@ fn append_mentions(
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("entity mention text is missing"))?;
     if text.is_empty() || text != text.trim() || text.len() > MAX_MEMORY_ROUTING_TEXT_BYTES {
-        return Err(invalid("entity mention text is invalid"));
+        return Ok(());
     }
     let source = match field {
         MemoryTextField::Title => candidate.title.as_str(),
         MemoryTextField::Content => candidate.content.as_str(),
     };
-    let mut saw_occurrence = false;
-    let mut found = false;
-    for (start, _) in source.match_indices(text) {
-        saw_occurrence = true;
+    let text = normalize_inline_code_mention(source, text);
+    let starts = occurrence_starts(source, text);
+    if starts.is_empty() {
+        return Ok(());
+    }
+    for start in starts {
         let end = start + text.len();
-        if !is_semantic_match_boundary(source, start, end, text) {
+        let surface = &source[start..end];
+        if !is_semantic_match_boundary(source, start, end, surface) {
             continue;
         }
-        found = true;
         output.push(MemoryEntityMention {
             field,
             start_byte: u32::try_from(start)
                 .map_err(|_| invalid("entity mention span overflow"))?,
             end_byte: u32::try_from(end).map_err(|_| invalid("entity mention span overflow"))?,
-            text: text.to_owned(),
+            text: surface.to_owned(),
         });
     }
-    if !saw_occurrence {
-        return Err(invalid(
-            "entity mention is not verbatim durable Memory text",
-        ));
-    }
-    if !found {
-        return Err(invalid(
-            "entity mention has no boundary-compatible durable Memory occurrence",
-        ));
-    }
     Ok(())
+}
+
+fn occurrence_starts(source: &str, text: &str) -> Vec<usize> {
+    let exact = source
+        .match_indices(text)
+        .map(|(start, _)| start)
+        .collect::<Vec<_>>();
+    if !exact.is_empty() || !text.is_ascii() {
+        return exact;
+    }
+    source
+        .as_bytes()
+        .windows(text.len())
+        .enumerate()
+        .filter_map(|(start, window)| {
+            let end = start + text.len();
+            (source.is_char_boundary(start)
+                && source.is_char_boundary(end)
+                && window.eq_ignore_ascii_case(text.as_bytes()))
+            .then_some(start)
+        })
+        .collect()
+}
+
+fn retain_most_specific_mentions(mentions: &mut Vec<MemoryEntityMention>) {
+    let keep = mentions
+        .iter()
+        .enumerate()
+        .map(|(index, mention)| {
+            !mentions.iter().enumerate().any(|(other_index, other)| {
+                index != other_index
+                    && mention.field == other.field
+                    && other.start_byte <= mention.start_byte
+                    && other.end_byte >= mention.end_byte
+                    && (other.start_byte < mention.start_byte || other.end_byte > mention.end_byte)
+            })
+        })
+        .collect::<Vec<_>>();
+    let mut index = 0usize;
+    mentions.retain(|_| {
+        let retain = keep[index];
+        index += 1;
+        retain
+    });
+}
+
+fn normalize_inline_code_mention<'a>(source: &str, text: &'a str) -> &'a str {
+    if text.len() >= 3 && text.starts_with('`') && text.ends_with('`') {
+        let inner = &text[1..text.len() - 1];
+        if !inner.is_empty()
+            && !inner.starts_with('`')
+            && !inner.ends_with('`')
+            && !occurrence_starts(source, inner).is_empty()
+        {
+            return inner;
+        }
+    }
+    text
 }
 
 fn is_semantic_match_boundary(source: &str, start: usize, end: usize, text: &str) -> bool {
@@ -212,17 +265,22 @@ fn is_word_char(ch: char) -> bool {
 fn validate_term(
     candidate: &InsomniaCandidate,
     value: &Value,
-) -> Result<String, InsomniaExtractionError> {
+) -> Result<Option<String>, InsomniaExtractionError> {
     let term = value
         .as_str()
         .ok_or_else(|| invalid("lexical term must be a string"))?;
     if term.is_empty() || term != term.trim() || term.len() > MAX_MEMORY_ROUTING_TEXT_BYTES {
-        return Err(invalid("lexical term is invalid"));
+        return Ok(None);
     }
-    if !candidate.title.contains(term) && !candidate.content.contains(term) {
-        return Err(invalid("lexical term is not verbatim durable Memory text"));
+    if candidate.title.contains(term) || candidate.content.contains(term) {
+        return Ok(Some(term.to_owned()));
     }
-    Ok(term.to_owned())
+    for source in [&candidate.title, &candidate.content] {
+        if let Some(start) = occurrence_starts(source, term).into_iter().next() {
+            return Ok(Some(source[start..start + term.len()].to_owned()));
+        }
+    }
+    Ok(None)
 }
 
 fn invalid(message: impl Into<String>) -> InsomniaExtractionError {

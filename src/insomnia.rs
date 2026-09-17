@@ -57,6 +57,14 @@ pub use worker::{
     InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_WORKERS,
 };
 
+#[cfg(feature = "entity-calibration")]
+pub fn enrich_entity_calibration(
+    endpoint: &dyn crate::GeneralEndpoint,
+    candidates: &mut [InsomniaCandidate],
+) -> Result<(), InsomniaExtractionError> {
+    enrichment::enrich(endpoint, candidates)
+}
+
 #[cfg(test)]
 mod candidate_policy_tests;
 #[cfg(test)]
