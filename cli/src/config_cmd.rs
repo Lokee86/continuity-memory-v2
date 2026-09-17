@@ -79,6 +79,12 @@ fn credential(path: &Path, command: CredentialCommand) -> Result<()> {
             config.save()?;
             println!("saved ChatGPT OAuth credential: {}", id.as_str());
         }
+        CredentialCommand::RefreshCodex { id } => {
+            let id = credential_id(id)?;
+            OpenAiCodexDeviceAuth::new()?.refresh_credential(&mut config.credentials, &id)?;
+            config.save()?;
+            println!("refreshed ChatGPT OAuth credential: {}", id.as_str());
+        }
         CredentialCommand::Remove { id } => {
             let id = credential_id(id)?;
             if config.credentials.remove(&id).is_none() {

@@ -8,6 +8,8 @@ use std::fmt;
 use std::thread;
 use std::time::{Duration, Instant};
 
+mod refresh;
+
 pub const OPENAI_CODEX_AUTH_ISSUER: &str = "https://auth.openai.com";
 pub const OPENAI_CODEX_OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 pub const OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS: u64 = 15 * 60;

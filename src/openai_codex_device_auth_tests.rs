@@ -98,6 +98,67 @@ fn device_code_flow_requests_polls_exchanges_and_stores_chatgpt_oauth() {
     assert!(requests[2].body.contains("code_verifier=verifier-1"));
 }
 
+#[test]
+fn refresh_exchanges_stored_refresh_token_and_preserves_identity_binding() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let issuer = format!("http://{}", listener.local_addr().unwrap());
+    let requests = Arc::new(Mutex::new(Vec::<RequestCapture>::new()));
+    let server_requests = Arc::clone(&requests);
+    let server = thread::spawn(move || {
+        serve_once(
+            &listener,
+            &server_requests,
+            json!({
+                "access_token": "access-2",
+                "refresh_token": "refresh-2"
+            }),
+        );
+    });
+
+    let auth = test_device_auth(&issuer, "test-client", Duration::from_secs(5)).unwrap();
+    let mut credentials = CredentialsConfig::default();
+    let id = CredentialId::new("codex").unwrap();
+    credentials
+        .insert_chatgpt_oauth(
+            id.clone(),
+            "id-token-1",
+            "expired-access",
+            "refresh-1",
+            Some("acct-test".into()),
+        )
+        .unwrap();
+
+    auth.refresh_credential(&mut credentials, &id).unwrap();
+    server.join().unwrap();
+
+    let Credential::ChatGptOAuth {
+        id_token,
+        access_token,
+        refresh_token,
+        account_id,
+    } = credentials.get(&id).unwrap()
+    else {
+        panic!("expected ChatGPT OAuth credential");
+    };
+    assert_eq!(id_token.expose(), "id-token-1");
+    assert_eq!(access_token.expose(), "access-2");
+    assert_eq!(refresh_token.expose(), "refresh-2");
+    assert_eq!(account_id.as_deref(), Some("acct-test"));
+
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].path, "/oauth/token");
+    let body: Value = serde_json::from_str(&requests[0].body).unwrap();
+    assert_eq!(
+        body,
+        json!({
+            "client_id": "test-client",
+            "grant_type": "refresh_token",
+            "refresh_token": "refresh-1"
+        })
+    );
+}
+
 fn serve_once(listener: &TcpListener, requests: &Arc<Mutex<Vec<RequestCapture>>>, response: Value) {
     let (mut stream, _) = listener.accept().unwrap();
     let request = read_request(&mut stream);

@@ -6,6 +6,8 @@ mod args_tests;
 mod boundary_tests;
 mod config_args;
 mod config_cmd;
+#[cfg(test)]
+mod credential_args_tests;
 mod dev_cmd;
 mod import_cmd;
 mod import_input;

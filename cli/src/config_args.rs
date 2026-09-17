@@ -28,6 +28,9 @@ pub enum CredentialCommand {
     LoginCodex {
         id: String,
     },
+    RefreshCodex {
+        id: String,
+    },
     Remove {
         id: String,
     },
