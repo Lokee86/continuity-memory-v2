@@ -1,4 +1,7 @@
-use crate::{EpisodeId, FileId, FragmentId, GraphRelationKind, MemoryId};
+use crate::{
+    EpisodeId, FileId, FragmentId, GraphRelationKind, MemoryId, SemanticGraphRelationKind,
+    SemanticNodeRef,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CvaReconcileConflict {
@@ -50,6 +53,13 @@ pub enum CvaReconcileConflict {
         left_states: Vec<bool>,
         right_states: Vec<bool>,
     },
+    SemanticGraphRelation {
+        source: SemanticNodeRef,
+        target: SemanticNodeRef,
+        relation_kind: SemanticGraphRelationKind,
+        left_states: Vec<bool>,
+        right_states: Vec<bool>,
+    },
 }
 
 impl CvaReconcileConflict {
@@ -65,6 +75,7 @@ impl CvaReconcileConflict {
             Self::MemorySemanticMutation { .. } => "memory_semantic_mutation",
             Self::InsomniaCompletion { .. } => "insomnia_completion",
             Self::GraphRelation { .. } => "graph_relation",
+            Self::SemanticGraphRelation { .. } => "semantic_graph_relation",
         }
     }
 }

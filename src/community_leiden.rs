@@ -7,8 +7,8 @@ pub(crate) fn structural_edges(
 ) -> Result<BTreeSet<(usize, usize)>, CommunityError> {
     let mut edges = BTreeSet::new();
     for relation in graph.active_relations() {
-        let source = graph.node_id(relation.source)?.0 as usize;
-        let target = graph.node_id(relation.target)?.0 as usize;
+        let source = graph.memory_projection_node_id(relation.source)?.0 as usize;
+        let target = graph.memory_projection_node_id(relation.target)?.0 as usize;
         edges.insert(if source < target {
             (source, target)
         } else {

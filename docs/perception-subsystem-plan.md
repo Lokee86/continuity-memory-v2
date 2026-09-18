@@ -261,10 +261,10 @@ The next implementation milestone is **B — Entity owner and pass 1**. ADR 0036
 ### B — Entity owner and pass 1
 
 - **Implemented:** durable Entity IDs, revisions/persistence, normalized one-to-many aliases, mutable semantic metadata, REL/PHY reopen, migration/reconciliation replay, and resolution-reference validation.
-- **Next:** generalize Graph relation endpoints/persistence from the current Memory-only mutation format to validated typed semantic-node endpoints.
-- Represent Memory↔Entity topology through the shared Graph rather than a parallel Entity adjacency store.
-- Add Entity vector/centroid indexing.
-- Implement create/associate/disambiguate behavior.
+- **Implemented:** typed Graph relation endpoints/persistence over the existing Arcana kernel, with full semantic traversal plus an isolated Memory-only Dream/Community projection.
+- **Implemented:** directional `Memory -> Entity` `EntityAssociation` topology, REL/PHY reopen, migration, divergent reconciliation, reverse lookup, and projection-watermark isolation.
+- **Next:** add bounded Entity candidate retrieval beyond exact alias lookup, including semantic centroid/context lanes where measurement justifies them.
+- **Next:** wire the calibrated resolver to real Entity creation/association and run the zero-Entity bootstrap experiment.
 - Persist unresolved Entity ambiguity.
 
 ### B2 — Relationship owner and synthesis lane

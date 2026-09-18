@@ -150,7 +150,7 @@ fn validate_index(
     config: MemoryRetrievalConfig,
 ) -> Result<(), MemoryRetrievalError> {
     if index.memory_version != current_memory_version
-        || index.graph_version != graph.graph_version()
+        || index.memory_graph_version != graph.memory_graph_version()
         || index.community_generation != current_community_generation
         || index.vector_bindings != current_vector_bindings
         || (config.mode == MemoryRetrievalMode::CommunityRouted

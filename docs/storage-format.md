@@ -475,44 +475,49 @@ Format marker:
 8 bytes   "CVAGFMT1"
 u32       schema = 1
 ```
-Legacy/current Memory node mapping:
+
+Legacy Memory node mapping remains readable:
 ```text
 8 bytes   "CVAGNODE"
 32 bytes  MemoryId
 u32       dense NodeId
 ```
-Typed non-Memory node mapping introduced by ADR 0036:
+
+Typed non-Memory node mapping:
 ```text
 8 bytes   "CVAGNOD2"
 u8        SemanticNodeKind: 1=Memory, 2=Entity, 3=Observation
 32 bytes  owner-local semantic node ID
 u32       dense NodeId
 ```
-Memory nodes continue to use `CVAGNODE` for byte-level compatibility; decode promotes them to `SemanticNodeRef::Memory`. `CVAGNOD2` establishes the typed catalogue format needed by Entity/Observation nodes, but current durable relationship mutation records remain Memory-to-Memory until Milestone B generalizes relation persistence. Node mappings are structural index records and consume no semantic version. Dense IDs are assigned monotonically from zero when a semantic node first participates in Graph topology; stable semantic identity remains the typed owner-local reference.
 
-Single relationship mutation:
+Memory nodes continue to use `CVAGNODE` for byte-level compatibility and decode as `SemanticNodeRef::Memory`. Dense Arcana IDs are internal topology indexes; stable semantic identity remains the typed owner-local reference.
+
+Legacy Memory-only relationship mutation remains readable and is still emitted for Memory-only transactions:
 ```text
 8 bytes   "CVAGMUT1"
 32 bytes  source MemoryId
 32 bytes  target MemoryId
-u16       relationship kind
+u16       Memory relationship kind
 u8        active: 0=retracted, 1=active
+u8        origin: 1=Dream, 2=User
 ```
 
-Atomic relationship batch:
+Typed semantic relationship mutation:
 ```text
-8 bytes   "CVAGBAT1"
-u32       relationship change count
-repeated changes:
-    32 bytes  source MemoryId
-    32 bytes  target MemoryId
-    u16       relationship kind
-    u8        active: 0=retracted, 1=active
+8 bytes   "CVAGMUT2"
+u8+32     source SemanticNodeRef
+u8+32     target SemanticNodeRef
+u16       semantic relationship kind
+u8        active: 0=retracted, 1=active
+u8        origin: 1=Dream, 2=User, 3=Perception
 ```
 
-Relationship kind codes are `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`. One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before a new transaction is written.
+Legacy Memory-only atomic batches use `CVAGBAT1`; typed/mixed atomic batches use `CVAGBAT2` and repeat the corresponding typed endpoint/kind/active/origin fields. Memory relationship kind codes remain `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`. Semantic kind `100=entity-association` is directional `Memory -> Entity` and is Perception-owned. Observation relation families are not yet accepted because no durable Observation owner exists.
 
-Relationship version metadata:
+One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before publication. Endpoint validation is relation-specific: Memory relation families require two same-owner Memories; `entity-association` requires an existing same-owner Memory source and Entity target.
+
+Relationship version metadata is unchanged:
 ```text
 8 bytes   "CVAGVER1"
 u64       global version
@@ -520,7 +525,12 @@ u64       graph version
 u64       mutation payload chunk offset
 u64       mutation payload length
 ```
-Graph versions begin at `1` and are dense. `CVAGVER1` may reference either one `CVAGMUT1` or one non-empty `CVAGBAT1`; the complete referenced payload is one atomic Graph transaction and consumes one CVA-global version plus one Graph-local version regardless of change count. A relationship payload without valid version metadata is inert. The current state of one oriented `(source, target, kind)` identity is its latest versioned `active` value; retraction appends `active=0` rather than deleting history. Both Memory endpoints must exist on reopen. Pre-Graph CVAs with no Graph records open as Graph version `0`; the format marker is appended lazily before their first Graph mutation.
+
+`graph_version` begins at `1`, is dense across **all** semantic Graph transactions, and is the optimistic concurrency clock for Graph publication. One non-empty transaction consumes one file-global semantic version plus one Graph-local version regardless of change count. A mutation payload without matching version metadata is inert. Retraction appends `active=0` rather than deleting history.
+
+Graph also derives a non-persisted `memory_graph_version`: the latest full `graph_version` containing a Memory-to-Memory relation mutation, or `0` when no Memory relation has ever been published. Dream/Leiden/Memory-retrieval derived state keys to this Memory projection watermark, while Graph writes continue to compare against the full `graph_version`. Entity-only mutations therefore remain visible in the semantic Graph without invalidating unchanged Memory-only topology.
+
+The Arcana kernel materializes two derived in-memory views from the same accepted relation authority: the full typed semantic topology and a Memory-only topology used by existing Dream traversal and Communities. Pre-Graph CVAs with no Graph records reopen at version `0`.
 
 ### Dream maintenance records
 
@@ -579,9 +589,9 @@ repeated communities:
     N×32      ordered MemoryIds
 ```
 
-Community generations begin at `1` and are contiguous across Community snapshot chunks, but this generation is derived-state bookkeeping only: it consumes no `CVAVERS1` ticket and is not a semantic timeline. The latest snapshot is current only when its derived Graph version equals current `graph_version`.
+Community generations begin at `1` and are contiguous across Community snapshot chunks, but this generation is derived-state bookkeeping only: it consumes no `CVAVERS1` ticket and is not a semantic timeline. The latest snapshot is current only when its derived Graph version equals current `memory_graph_version`.
 
-A current snapshot partitions every current Graph node exactly once. Communities are stored in ascending `CommunityId` order and members in ascending `MemoryId` byte order. `CommunityId` is SHA-256 over `"reliquary-community-v1\0"`, the 16-byte durable owner UUID, member count as little-endian `u64`, and ordered member IDs. This v1 identity is exact-membership identity and does not imply continuity after membership changes.
+A current snapshot partitions every current Memory-projection node exactly once; Entity and Observation nodes are excluded from the Dream/Leiden projection unless a later decision explicitly changes that contract. Communities are stored in ascending `CommunityId` order and members in ascending `MemoryId` byte order. `CommunityId` is SHA-256 over `"reliquary-community-v1\0"`, the 16-byte durable owner UUID, member count as little-endian `u64`, and ordered member IDs. This v1 identity is exact-membership identity and does not imply continuity after membership changes.
 
 Algorithm version `1` is the legacy monolithic Leiden baseline. It projects active oriented Graph relationships onto unordered structural pairs, collapses multiple relationship identities between the same unordered Memory pair to one edge with weight `1.0`, and clusters the complete owner projection with Leiden modularity at resolution `1.0` and seed `0x4c454944454e0001`. Version `1` snapshots remain readable derived state.
 
@@ -767,36 +777,6 @@ The embedded global-version count must equal the newly published local Memory-re
 
 `CVAINSC5` is the physical and logical visibility boundary for the REL side of an Insomnia success. Its `transaction_time_ns` is sampled by the Container immediately before publication and applies to every embedded global version in that atomic completion. New local content-addressed Memory bodies, their Memory records, their body-bound routing metadata, their global-version allocation, owner-qualified external Memory references, and the compact successful Episode receipt all live inside this one outer REL chunk. No standalone local Memory-body, Memory-record, Memory-version, routing-metadata, or `CVAVERS2` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing local bodies may be referenced without being re-embedded. Embedded routing metadata is validated only after its referenced Memory record/body has been reconstructed, but becomes visible from the same outer completion transaction.
 
-An external Memory reference is `string owner_id + 32-byte MemoryId`. The current routed implementation uses it for User-owned PHY Memories. Those Memories are published and synced in the PHY before the REL completion is appended, and are not REL semantic/version state. If the process fails after PHY publication but before the REL receipt, retry reuses the deterministic Memory mutation ID and accepts the existing PHY Memory only when its routed semantics match.
+An external Memory reference is `string owner_id + 32-byte MemoryId`. The current routed implementation uses it for User-owned PHY Memories. Those Memories are published and synced in the PHY be
 
-If a `CVAINSC5` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer REL chunk, leaving no orphan local REL body, record, routing attachment, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. Any already-synced external PHY Memory/routing attachment remains durable and is reused by that retry. A valid completed transaction reconstructs all new local Memories, their embedded routing metadata, plus the successful receipt and its external references together.
-
-`CVAINSC4` remains decodable with the same transaction timestamp, owner-qualified external Memory references, and atomic local Memory transaction as current V5, but it predates embedded routing metadata and therefore reopens with none from that completion. `CVAINSC3` retains external Memory references but predates explicit transaction time, so its embedded versions reopen with unknown transaction timestamps. `CVAINSC2` has the same embedded local Memory transaction but no external-reference section and likewise has no transaction-time mapping. `CVAINSC1` also remains decodable; in that older format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk. V1/V2 completions reopen with an empty external-reference list. Current processing writes only `CVAINSC5`.
-
-The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC5` REL transaction, with any routed external owner publication already durable.
-
-Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
-
-### Strings
-```text
-u32 byte_length
-N bytes UTF-8
-```
-## Historical semantics
-Archive, Memories, Graph, and Vector Generations have independent local watermarks. Community `generation` is derived snapshot bookkeeping, not another semantic watermark. Global ordering may interleave their semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
-## Diagnostics and failure behavior
-`Cva::open` / `Reliquary::open` requires Reliquary type/scope identity (or the legacy 16-byte Project form) and exactly one current format marker for Archive, Memories, Insomnia operational state, Packed Vectors, Memory Vectors, Archive Vectors, Compatibility Profiles, and Vector Generations. Current 40-byte typed files also carry the durable owner UUID; earlier 16-byte and 24-byte forms remain readable for explicit migration but have no owner ID. Graph is a narrow compatibility exception: a CVA created before Graph existed may omit `CVAGFMT1` when it contains no Graph records; that CVA opens with empty Graph state and receives the marker lazily before its first Graph mutation. Other earlier development-format incompatibilities are rejected rather than migrated.
-
-`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Graph, optional Community snapshots/semantic names, Packed Vectors, Memory Vectors, and Compatibility Profiles. It validates Memory/Graph global-version uniqueness, Graph endpoints, Community/name membership references, vector/profile references, absence of REL-local Memory provenance, and structural validity of any external `MemorySourceRef`. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
-Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the CVA header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
-## Defaults or precedence
-Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
-## Related docs
-- [Architecture](architecture.md)
-- [Rust API](api.md)
-- [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
-- [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
-- [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
-- [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
-## Notes
-These are development formats. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. File-tree semantics, file-content extraction/indexing, migration, packing/compression, authentication/encryption, quantization metadata, persistent lexical indexing, ANN acceleration, and retention/vacuum remain future work.
+[TRUNCATED at 50000 chars]

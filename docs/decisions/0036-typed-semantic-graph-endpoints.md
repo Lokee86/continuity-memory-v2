@@ -2,11 +2,11 @@
 
 Parent index: [Architectural decisions](INDEX.md)
 
-Amends [ADR 0024](0024-owner-local-dream-processing.md), [ADR 0033](0033-perception-entities-observations-and-ambiguity.md), and the Graph question retained in [Derived semantic nodes exploration](../derived-semantic-nodes-exploration.md).
+Amends [ADR 0024](0024-owner-local-dream-processing.md), [ADR 0025](0025-owner-local-derived-communities.md), [ADR 0026](0026-community-routed-memory-retrieval.md), [ADR 0033](0033-perception-entities-observations-and-ambiguity.md), and the Graph question retained in [Derived semantic nodes exploration](../derived-semantic-nodes-exploration.md).
 
 ## Status
 
-Accepted — 2026-09-17. Typed node identity/catalogue foundation and durable Entity owner implemented; typed non-Memory relation persistence remains Milestone B work.
+Accepted — 2026-09-17. Typed node identity/catalogue, durable Entity owner, and persisted Memory-to-Entity `EntityAssociation` relations are implemented; resolver/bootstrap integration remains Milestone B work.
 
 ## Context
 
@@ -93,8 +93,8 @@ Relation-record generalization is a separate implementation step and must preser
 2. Generalize the Arcana dense-node catalogue from `MemoryId` to typed semantic-node identity.
 3. Preserve legacy Memory node mapping compatibility.
 4. Define the minimum durable Entity record and Entity owner.
-5. Define and validate the first Memory-to-Entity relation family.
-6. Generalize relation persistence/reconciliation to typed endpoints.
+5. **Implemented:** define and validate the first Memory-to-Entity `EntityAssociation` relation family.
+6. **Implemented:** generalize relation persistence, traversal projections, migration, and reconciliation to typed endpoints.
 7. Wire calibrated Entity resolution into Entity creation/association.
 8. Run the zero-Entity bootstrap experiment before adding unresolved lifecycle machinery.
 

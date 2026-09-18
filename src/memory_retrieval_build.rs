@@ -57,7 +57,7 @@ pub(crate) fn build_memory_retrieval_index(
     }
 
     let current_snapshot = snapshot.filter(|snapshot| {
-        snapshot.derived_graph_version == graph.graph_version()
+        snapshot.derived_graph_version == graph.memory_graph_version()
             && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
     });
     let memberships = current_snapshot.map(membership_map).unwrap_or_default();
@@ -68,7 +68,7 @@ pub(crate) fn build_memory_retrieval_index(
     Ok(MemoryRetrievalIndex {
         compatibility_profile_id: profile_id,
         memory_version: memories.memory_version(),
-        graph_version: graph.graph_version(),
+        memory_graph_version: graph.memory_graph_version(),
         community_generation: snapshot.map(|snapshot| snapshot.generation),
         vector_bindings: memory_vectors.binding_count(profile_id),
         subcentroids_per_community,

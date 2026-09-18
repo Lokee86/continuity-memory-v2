@@ -51,7 +51,7 @@ where
     if authority_filtered {
         ensure_duplicate_index(container, memories, graph, duplicate_index, source_time)?;
     } else {
-        next_index.set_graph_version(graph.graph_version());
+        next_index.set_memory_graph_version(graph.memory_graph_version());
         *duplicate_index = next_index;
     }
     Ok(DreamPublicationOutcome::Published(published))
@@ -67,8 +67,8 @@ fn ensure_duplicate_index<R>(
 where
     R: Fn(&Memory) -> Option<i64>,
 {
-    let graph_version = graph.graph_version();
-    if duplicate_index.graph_version() == Some(graph_version) {
+    let graph_version = graph.memory_graph_version();
+    if duplicate_index.memory_graph_version() == Some(graph_version) {
         return Ok(());
     }
     let relations = graph.active_relations();

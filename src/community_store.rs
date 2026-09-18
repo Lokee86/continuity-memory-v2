@@ -74,7 +74,7 @@ impl CommunityStore {
         let snapshot = self
             .latest()
             .filter(|snapshot| {
-                snapshot.derived_graph_version == graph.graph_version()
+                snapshot.derived_graph_version == graph.memory_graph_version()
                     && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
             })
             .ok_or(CommunityError::InvalidSemanticName(
@@ -217,7 +217,7 @@ fn validate_snapshot(
     if !snapshot.quality.is_finite() {
         return Err(CommunityError::InvalidSnapshot("invalid quality"));
     }
-    if snapshot.derived_graph_version > graph.graph_version() {
+    if snapshot.derived_graph_version > graph.memory_graph_version() {
         return Err(CommunityError::InvalidSnapshot("future graph version"));
     }
 
@@ -248,8 +248,8 @@ fn validate_snapshot(
         }
     }
 
-    if snapshot.derived_graph_version == graph.graph_version()
-        && seen_members.len() != graph.stats().nodes
+    if snapshot.derived_graph_version == graph.memory_graph_version()
+        && seen_members.len() != graph.memory_node_count()
     {
         return Err(CommunityError::InvalidSnapshot(
             "current snapshot does not cover graph nodes",

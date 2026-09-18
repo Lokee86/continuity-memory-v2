@@ -189,7 +189,7 @@ mod tests {
         let index = MemoryRetrievalIndex {
             compatibility_profile_id: CompatibilityProfileId([1; 32]),
             memory_version: 0,
-            graph_version: 0,
+            memory_graph_version: 0,
             community_generation: Some(1),
             vector_bindings: vectors.len(),
             subcentroids_per_community: 4,

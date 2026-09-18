@@ -1,18 +1,19 @@
 use crate::graph_store::GraphStore;
 use crate::{
     GraphDirection, GraphError, GraphNeighbor, GraphRelationKind, MemoryGraphPath, MemoryId,
+    SemanticGraphNeighbor, SemanticGraphRelationKind, SemanticNodeRef,
 };
 use arcana::storage::Neighbor;
 use arcana::traversal::{TraversalError, shortest_path};
 use arcana::{EdgeKind, NodeId};
 
 impl GraphStore {
-    pub(crate) fn neighbors(
+    pub(crate) fn semantic_neighbors(
         &self,
-        memory_id: MemoryId,
+        node: SemanticNodeRef,
         direction: GraphDirection,
-    ) -> Result<Vec<GraphNeighbor>, GraphError> {
-        let node_id = self.node_id(memory_id)?;
+    ) -> Result<Vec<SemanticGraphNeighbor>, GraphError> {
+        let node_id = self.semantic_node_id(node)?;
         let neighbors = match direction {
             GraphDirection::Outgoing => self.topology().forward_neighbors(node_id),
             GraphDirection::Incoming => self.topology().reverse_neighbors(node_id),
@@ -21,8 +22,32 @@ impl GraphStore {
         neighbors
             .iter()
             .map(|neighbor| {
+                let kind = SemanticGraphRelationKind::from_code(neighbor.kind.0)
+                    .ok_or(GraphError::UnknownRelationKind(neighbor.kind.0))?;
+                Ok(SemanticGraphNeighbor {
+                    node: self.semantic_node(neighbor.node)?,
+                    kind,
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn neighbors(
+        &self,
+        memory_id: MemoryId,
+        direction: GraphDirection,
+    ) -> Result<Vec<GraphNeighbor>, GraphError> {
+        let node_id = self.memory_projection_node_id(memory_id)?;
+        let neighbors = match direction {
+            GraphDirection::Outgoing => self.memory_topology().forward_neighbors(node_id),
+            GraphDirection::Incoming => self.memory_topology().reverse_neighbors(node_id),
+        }
+        .map_err(|error| GraphError::Topology(error.to_string()))?;
+        neighbors
+            .iter()
+            .map(|neighbor| {
                 Ok(GraphNeighbor {
-                    memory_id: self.memory_id(neighbor.node)?,
+                    memory_id: self.memory_projection_memory_id(neighbor.node)?,
                     kind: relation_kind(neighbor.kind)?,
                 })
             })
@@ -35,10 +60,10 @@ impl GraphStore {
         target: MemoryId,
         max_depth: usize,
     ) -> Result<Option<MemoryGraphPath>, GraphError> {
-        let source_node = self.node_id(source)?;
-        let target_node = self.node_id(target)?;
+        let source_node = self.memory_projection_node_id(source)?;
+        let target_node = self.memory_projection_node_id(target)?;
         let path = shortest_path(
-            self.topology().node_count(),
+            self.memory_topology().node_count(),
             source_node,
             target_node,
             max_depth,
@@ -49,7 +74,7 @@ impl GraphStore {
             let memories = path
                 .nodes
                 .into_iter()
-                .map(|node| self.memory_id(node))
+                .map(|node| self.memory_projection_memory_id(node))
                 .collect::<Result<Vec<_>, _>>()?;
             let relations = path
                 .kinds
@@ -70,7 +95,7 @@ fn topology_neighbors(
     node: NodeId,
 ) -> Result<Vec<Neighbor>, arcana::storage::QueryError> {
     store
-        .topology()
+        .memory_topology()
         .forward_neighbors(node)
         .map(|values| values.to_vec())
 }

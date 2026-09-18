@@ -10,7 +10,7 @@ impl Cva {
     }
 
     pub fn community_stats(&self) -> CommunityStats {
-        self.communities.stats(self.graph.graph_version())
+        self.communities.stats(self.graph.memory_graph_version())
     }
 
     pub fn community_semantic_name(
@@ -54,7 +54,7 @@ impl Cva {
 
     pub fn refresh_communities_leiden(&mut self) -> Result<CommunitySnapshot, CommunityError> {
         if let Some(snapshot) = self.communities.latest()
-            && snapshot.derived_graph_version == self.graph.graph_version()
+            && snapshot.derived_graph_version == self.graph.memory_graph_version()
             && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
         {
             return Ok(snapshot.clone());

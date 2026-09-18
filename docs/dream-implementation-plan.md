@@ -107,7 +107,7 @@ semantic duplicate history
 
 The temporal key must use authoritative source chronology, with a deterministic tie-breaker where timestamps collide.
 
-Milestone E implements this lookup as a **derived, graph-versioned B-tree index**. Each duplicate component is ordered by `(authoritative source timestamp, MemoryId)`; `MemoryId` is only a deterministic tie-breaker for equal source timestamps. The index is not durable authority and is rebuilt lazily from active `duplicate_of` Graph edges after reopen or whenever its cached Graph version is stale. `Memory.created_at` is never used. A more specialized index may later replace the B-tree if measurements justify it without changing chain semantics.
+Milestone E implements this lookup as a **derived, Memory-Graph-projection-versioned B-tree index**. Under ADR 0036, Entity/Observation-only semantic Graph transactions do not invalidate this Memory-only duplicate index. Each duplicate component is ordered by `(authoritative source timestamp, MemoryId)`; `MemoryId` is only a deterministic tie-breaker for equal source timestamps. The index is not durable authority and is rebuilt lazily from active `duplicate_of` Graph edges after reopen or whenever its cached Graph version is stale. `Memory.created_at` is never used. A more specialized index may later replace the B-tree if measurements justify it without changing chain semantics.
 
 The previous implementation became complicated because it combined durable concurrency, source-owned replacement, out-of-order discovery, and chain repair. Those operational concerns must not be mistaken for complexity inherent in the duplicate model itself.
 

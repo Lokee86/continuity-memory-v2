@@ -1,21 +1,21 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
 use crate::{
-    Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationChange, GraphRelationKind,
-    GraphRelationOrigin, MemoryId,
+    Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationOrigin, SemanticGraphRelationChange,
+    SemanticGraphRelationKind, SemanticNodeRef,
 };
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct GraphKey {
-    source: MemoryId,
-    target: MemoryId,
-    kind: GraphRelationKind,
+    source: SemanticNodeRef,
+    target: SemanticNodeRef,
+    kind: SemanticGraphRelationKind,
 }
 
 #[derive(Clone, Debug)]
 struct GraphTailTransaction {
-    changes: Vec<GraphRelationChange>,
+    changes: Vec<SemanticGraphRelationChange>,
     origin: GraphRelationOrigin,
     transaction_time_ns: Option<i64>,
 }
@@ -26,12 +26,12 @@ pub(crate) struct GraphTail {
 
 #[cfg(test)]
 impl GraphTail {
-    pub(crate) fn for_test(transactions: Vec<Vec<GraphRelationChange>>) -> Self {
+    pub(crate) fn for_test(transactions: Vec<Vec<crate::GraphRelationChange>>) -> Self {
         Self {
             transactions: transactions
                 .into_iter()
                 .map(|changes| GraphTailTransaction {
-                    changes,
+                    changes: changes.into_iter().map(memory_change).collect(),
                     origin: GraphRelationOrigin::Dream,
                     transaction_time_ns: None,
                 })
@@ -75,7 +75,7 @@ pub(crate) fn read_graph_tail(
         transactions.push(GraphTailTransaction {
             changes: mutations
                 .into_iter()
-                .map(|mutation| GraphRelationChange {
+                .map(|mutation| SemanticGraphRelationChange {
                     source: mutation.source,
                     target: mutation.target,
                     kind: mutation.kind,
@@ -130,15 +130,11 @@ fn replay_skips(
             .take_while(|(left, right)| left == right)
             .count();
         if common != left_states.len().min(right_states.len()) {
-            return Err(CvaReconcileError::Conflict(
-                CvaReconcileConflict::GraphRelation {
-                    source: key.source,
-                    target: key.target,
-                    relation_kind: key.kind,
-                    left_states: left_states.iter().map(|(active, _)| *active).collect(),
-                    right_states: right_states.iter().map(|(active, _)| *active).collect(),
-                },
-            ));
+            return Err(CvaReconcileError::Conflict(conflict_for(
+                key,
+                left_states,
+                &right_states,
+            )));
         }
         if common > 0 {
             skips.insert(key, common);
@@ -176,7 +172,7 @@ fn replay_with_skips(
             destination,
             transaction.transaction_time_ns,
             |destination| {
-                destination.set_memory_relations_with_origin(
+                destination.set_semantic_relations_with_origin(
                     &changes,
                     transaction.origin,
                     graph_version,
@@ -209,10 +205,45 @@ fn sequences(tail: &GraphTail) -> HashMap<GraphKey, Vec<(bool, GraphRelationOrig
     sequences
 }
 
-fn key(change: GraphRelationChange) -> GraphKey {
+fn key(change: SemanticGraphRelationChange) -> GraphKey {
     GraphKey {
         source: change.source,
         target: change.target,
         kind: change.kind,
+    }
+}
+
+#[cfg(test)]
+fn memory_change(change: crate::GraphRelationChange) -> SemanticGraphRelationChange {
+    SemanticGraphRelationChange {
+        source: SemanticNodeRef::memory(change.source),
+        target: SemanticNodeRef::memory(change.target),
+        kind: SemanticGraphRelationKind::Memory(change.kind),
+        active: change.active,
+    }
+}
+
+fn conflict_for(
+    key: GraphKey,
+    left: &[(bool, GraphRelationOrigin)],
+    right: &[(bool, GraphRelationOrigin)],
+) -> CvaReconcileConflict {
+    if let (Some(source), Some(target), SemanticGraphRelationKind::Memory(relation_kind)) =
+        (key.source.as_memory(), key.target.as_memory(), key.kind)
+    {
+        return CvaReconcileConflict::GraphRelation {
+            source,
+            target,
+            relation_kind,
+            left_states: left.iter().map(|(active, _)| *active).collect(),
+            right_states: right.iter().map(|(active, _)| *active).collect(),
+        };
+    }
+    CvaReconcileConflict::SemanticGraphRelation {
+        source: key.source,
+        target: key.target,
+        relation_kind: key.kind,
+        left_states: left.iter().map(|(active, _)| *active).collect(),
+        right_states: right.iter().map(|(active, _)| *active).collect(),
     }
 }

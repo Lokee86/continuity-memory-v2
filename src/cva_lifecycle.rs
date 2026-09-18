@@ -263,7 +263,7 @@ impl Cva {
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         validate_file_memory_targets(&archive, &memories)?;
-        let graph = graph_state.finish(&memories)?;
+        let graph = graph_state.finish(&memories, &entities)?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;

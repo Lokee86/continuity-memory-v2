@@ -23,7 +23,7 @@ struct DuplicateComponent {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DuplicateIndex {
-    graph_version: Option<u64>,
+    memory_graph_version: Option<u64>,
     components: Vec<Option<DuplicateComponent>>,
     member_component: HashMap<MemoryId, usize>,
 }
@@ -33,16 +33,16 @@ impl DuplicateIndex {
         Self::default()
     }
 
-    pub(crate) fn graph_version(&self) -> Option<u64> {
-        self.graph_version
+    pub(crate) fn memory_graph_version(&self) -> Option<u64> {
+        self.memory_graph_version
     }
 
-    pub(crate) fn set_graph_version(&mut self, graph_version: u64) {
-        self.graph_version = Some(graph_version);
+    pub(crate) fn set_memory_graph_version(&mut self, memory_graph_version: u64) {
+        self.memory_graph_version = Some(memory_graph_version);
     }
 
     pub(crate) fn rebuild(
-        graph_version: u64,
+        memory_graph_version: u64,
         relations: &[GraphRelation],
         keys: &HashMap<MemoryId, DuplicateTemporalKey>,
     ) -> Self {
@@ -62,7 +62,7 @@ impl DuplicateIndex {
         }
 
         let mut index = Self {
-            graph_version: Some(graph_version),
+            memory_graph_version: Some(memory_graph_version),
             ..Self::default()
         };
         let mut visited = HashSet::new();

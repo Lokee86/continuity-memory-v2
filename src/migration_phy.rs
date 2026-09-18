@@ -1,6 +1,9 @@
 use super::{MigrationError, op, require_same};
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
-use crate::{Container, EntityDraft, GraphRelationChange, Memory, MemoryDraft, Phylactery};
+use crate::{
+    Container, EntityDraft, GraphRelationOrigin, Memory, MemoryDraft, Phylactery,
+    SemanticGraphRelationChange,
+};
 use std::path::Path;
 
 pub(super) fn migrate(
@@ -80,12 +83,12 @@ pub(super) fn migrate(
     for resolution in entity_resolutions {
         op(output.import_entity_resolution(resolution))?;
     }
-    for (transaction, transaction_time_ns) in graph {
+    for (transaction, origin, transaction_time_ns) in graph {
         let graph_version = output.graph_version();
         output
             .container
             .set_next_transaction_time_override(transaction_time_ns);
-        let result = output.set_memory_relations(&transaction, graph_version);
+        let result = output.set_semantic_relations_with_origin(&transaction, origin, graph_version);
         output.container.clear_next_transaction_time_override();
         op(result)?;
     }
@@ -141,7 +144,14 @@ fn copy_vectors(
 
 fn graph_transactions(
     container: &mut Container,
-) -> Result<Vec<(Vec<GraphRelationChange>, Option<i64>)>, MigrationError> {
+) -> Result<
+    Vec<(
+        Vec<SemanticGraphRelationChange>,
+        GraphRelationOrigin,
+        Option<i64>,
+    )>,
+    MigrationError,
+> {
     let chunks = op(container.chunks())?;
     let mut transactions = Vec::new();
     for chunk in chunks {
@@ -150,30 +160,36 @@ fn graph_transactions(
             continue;
         };
         let mutation_payload = op(container.read(version.mutation))?;
-        let changes = if let Some(batch) = op(decode_batch(&mutation_payload))? {
+        let mutations = if let Some(batch) = op(decode_batch(&mutation_payload))? {
             batch
-                .into_iter()
-                .map(|mutation| GraphRelationChange {
-                    source: mutation.source,
-                    target: mutation.target,
-                    kind: mutation.kind,
-                    active: mutation.active,
-                })
-                .collect()
         } else if let Some(mutation) = op(decode_mutation(&mutation_payload))? {
-            vec![GraphRelationChange {
-                source: mutation.source,
-                target: mutation.target,
-                kind: mutation.kind,
-                active: mutation.active,
-            }]
+            vec![mutation]
         } else {
             return Err(MigrationError::Operation(
                 "graph version points at a non-graph mutation".into(),
             ));
         };
+        let origin = mutations
+            .first()
+            .map(|mutation| mutation.origin)
+            .ok_or_else(|| MigrationError::Operation("empty graph transaction".into()))?;
+        if mutations.iter().any(|mutation| mutation.origin != origin) {
+            return Err(MigrationError::Operation(
+                "graph transaction mixes relation origins".into(),
+            ));
+        }
+        let changes = mutations
+            .into_iter()
+            .map(|mutation| SemanticGraphRelationChange {
+                source: mutation.source,
+                target: mutation.target,
+                kind: mutation.kind,
+                active: mutation.active,
+            })
+            .collect();
         transactions.push((
             changes,
+            origin,
             container.transaction_time_ns(version.global_version),
         ));
     }

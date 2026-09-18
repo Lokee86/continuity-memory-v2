@@ -1,12 +1,15 @@
-use crate::{MemoryId, SemanticNodeRef};
+use crate::{EntityId, MemoryId, SemanticNodeRef};
 use std::fmt;
 
 #[derive(Debug)]
 pub enum GraphError {
     Container(crate::ContainerError),
     MissingMemory(MemoryId),
+    MissingEntity(EntityId),
     MissingNode(MemoryId),
     UnsupportedSemanticNode(SemanticNodeRef),
+    InvalidRelationShape,
+    InvalidRelationOrigin,
     SelfRelation,
     RevisionConflict { expected: u64, actual: u64 },
     NodeIdExhausted,
@@ -26,15 +29,18 @@ impl fmt::Display for GraphError {
         match self {
             Self::Container(error) => write!(f, "{error}"),
             Self::MissingMemory(id) => write!(f, "graph references missing memory {:02x?}", id.0),
+            Self::MissingEntity(id) => write!(f, "graph references missing entity {:02x?}", id.0),
             Self::MissingNode(id) => write!(f, "graph has no node for memory {:02x?}", id.0),
             Self::UnsupportedSemanticNode(node) => write!(
                 f,
                 "graph semantic node kind {:?} is not yet backed by a semantic owner",
                 node.kind
             ),
-            Self::SelfRelation => {
-                f.write_str("graph relationships cannot target the source memory")
+            Self::InvalidRelationShape => f.write_str("graph relation endpoint kinds are invalid"),
+            Self::InvalidRelationOrigin => {
+                f.write_str("graph relation origin is invalid for this relation kind")
             }
+            Self::SelfRelation => f.write_str("graph relationships cannot target their source"),
             Self::RevisionConflict { expected, actual } => write!(
                 f,
                 "graph version conflict: expected {expected}, current version is {actual}"

@@ -2,6 +2,7 @@ use crate::runtime_host_test_support::{one_worker, test_path};
 use crate::{
     Cva, EpisodeId, EpisodePolicy, GraphRelationKind, GraphRelationOrigin, InteractionRuntime,
     Memory, MemoryDraft, MemorySourceRef, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    SemanticGraphRelationKind, SemanticNodeRef,
 };
 
 #[test]
@@ -26,7 +27,7 @@ fn knowledge_replacement_preserves_lifecycle_edges_and_retires_original() {
     let replacement = host
         .replace_reliquary_knowledge_memory(original.id, "Edited".into(), "Edited body".into(), 10)
         .unwrap();
-    let (memories, relations, _, _) = host.read_reliquary_knowledge().unwrap();
+    let (memories, _, relations, _, _) = host.read_reliquary_knowledge().unwrap();
     let old = memory(&memories, original.id);
     let new = memory(&memories, replacement.id);
 
@@ -35,15 +36,15 @@ fn knowledge_replacement_preserves_lifecycle_edges_and_retires_original() {
     assert!(old.archived);
     assert_eq!(old.superseded_by, Some(replacement.id));
     assert!(relations.iter().any(|relation| {
-        relation.source == replacement.id
-            && relation.target == peer.id
-            && relation.kind == GraphRelationKind::Topical
+        relation.source == SemanticNodeRef::memory(replacement.id)
+            && relation.target == SemanticNodeRef::memory(peer.id)
+            && relation.kind == SemanticGraphRelationKind::Memory(GraphRelationKind::Topical)
             && relation.origin == GraphRelationOrigin::Dream
     }));
     assert!(relations.iter().any(|relation| {
-        relation.source == replacement.id
-            && relation.target == original.id
-            && relation.kind == GraphRelationKind::Supersedes
+        relation.source == SemanticNodeRef::memory(replacement.id)
+            && relation.target == SemanticNodeRef::memory(original.id)
+            && relation.kind == SemanticGraphRelationKind::Memory(GraphRelationKind::Supersedes)
             && relation.origin == GraphRelationOrigin::User
     }));
 }
@@ -79,7 +80,7 @@ fn knowledge_manual_creation_and_relation_mutation_are_user_owned() {
         Some(GraphRelationKind::Topical),
     )
     .unwrap();
-    let (_, relations, _, _) = host.read_reliquary_knowledge().unwrap();
+    let (_, _, relations, _, _) = host.read_reliquary_knowledge().unwrap();
     assert_eq!(relations.len(), 1);
     assert_eq!(relations[0].origin, GraphRelationOrigin::User);
 
@@ -90,9 +91,12 @@ fn knowledge_manual_creation_and_relation_mutation_are_user_owned() {
         Some(GraphRelationKind::References),
     )
     .unwrap();
-    let (_, relations, _, _) = host.read_reliquary_knowledge().unwrap();
+    let (_, _, relations, _, _) = host.read_reliquary_knowledge().unwrap();
     assert_eq!(relations.len(), 1);
-    assert_eq!(relations[0].kind, GraphRelationKind::References);
+    assert_eq!(
+        relations[0].kind,
+        SemanticGraphRelationKind::Memory(GraphRelationKind::References)
+    );
     assert_eq!(relations[0].origin, GraphRelationOrigin::User);
 
     host.mutate_reliquary_knowledge_relation(
@@ -102,7 +106,7 @@ fn knowledge_manual_creation_and_relation_mutation_are_user_owned() {
         None,
     )
     .unwrap();
-    assert!(host.read_reliquary_knowledge().unwrap().1.is_empty());
+    assert!(host.read_reliquary_knowledge().unwrap().2.is_empty());
 }
 
 #[test]
@@ -142,7 +146,7 @@ fn phylactery_replacement_preserves_external_source_reference() {
             10,
         )
         .unwrap();
-    let (memories, _, _, _) = host.read_phylactery_knowledge().unwrap().unwrap();
+    let (memories, _, _, _, _) = host.read_phylactery_knowledge().unwrap().unwrap();
     assert_eq!(
         memory(&memories, replacement.id).source_ref,
         Some(source_ref)

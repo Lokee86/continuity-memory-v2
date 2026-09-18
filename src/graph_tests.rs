@@ -1,7 +1,7 @@
 use crate::{
-    Cva, EntityId, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
+    Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
     GraphRelationChange, GraphRelationKind, GraphRelationOrigin, MemoryDraft, MemoryId,
-    SemanticNodeKind, SemanticNodeRef,
+    SemanticNodeRef,
 };
 use std::{fs, path::PathBuf};
 
@@ -76,41 +76,6 @@ fn memory(cva: &mut Cva, episode: &crate::Episode, id: &str) -> MemoryId {
     .unwrap()
     .0
     .id
-}
-
-#[test]
-fn semantic_node_identity_distinguishes_node_kinds() {
-    let raw = [7_u8; 32];
-    let memory = SemanticNodeRef::memory(MemoryId(raw));
-    let entity = SemanticNodeRef::entity(EntityId(raw));
-
-    assert_ne!(memory, entity);
-    assert_eq!(memory.kind, SemanticNodeKind::Memory);
-    assert_eq!(entity.kind, SemanticNodeKind::Entity);
-    assert_eq!(memory.as_memory(), Some(MemoryId(raw)));
-    assert_eq!(entity.as_entity(), Some(EntityId(raw)));
-}
-
-#[test]
-fn graph_node_codec_reads_legacy_memory_and_typed_entity_nodes() {
-    use crate::graph_codec::{GraphNodePayload, decode_node, encode_node};
-    use arcana::NodeId;
-
-    let memory = GraphNodePayload {
-        semantic_node: SemanticNodeRef::memory(MemoryId([1; 32])),
-        node_id: NodeId(3),
-    };
-    let memory_bytes = encode_node(memory);
-    assert_eq!(&memory_bytes[..8], b"CVAGNODE");
-    assert_eq!(decode_node(&memory_bytes).unwrap(), Some(memory));
-
-    let entity = GraphNodePayload {
-        semantic_node: SemanticNodeRef::entity(EntityId([2; 32])),
-        node_id: NodeId(4),
-    };
-    let entity_bytes = encode_node(entity);
-    assert_eq!(&entity_bytes[..8], b"CVAGNOD2");
-    assert_eq!(decode_node(&entity_bytes).unwrap(), Some(entity));
 }
 
 #[test]
@@ -219,21 +184,6 @@ fn relation_origin_can_be_user_authored_and_survives_reopen() {
 }
 
 #[test]
-fn legacy_relation_payload_defaults_origin_to_dream() {
-    let mut bytes = [0_u8; 75];
-    bytes[..8].copy_from_slice(b"CVAGMUT1");
-    bytes[8..40].copy_from_slice(&[1; 32]);
-    bytes[40..72].copy_from_slice(&[2; 32]);
-    bytes[72..74].copy_from_slice(&GraphRelationKind::Factual.code().to_le_bytes());
-    bytes[74] = 1;
-
-    let decoded = crate::graph_codec::decode_mutation(&bytes)
-        .unwrap()
-        .unwrap();
-    assert_eq!(decoded.origin, GraphRelationOrigin::Dream);
-}
-
-#[test]
 fn graph_enforces_version_and_endpoint_rules() {
     let file = path("rules.cva");
     let mut cva = Cva::create(&file).unwrap();
@@ -317,8 +267,9 @@ fn relation_batch_rejects_duplicate_relationship_identity() {
 #[test]
 fn pre_graph_cva_state_opens_as_empty_graph() {
     let memories = crate::memory_store::MemoryStore::empty();
+    let entities = crate::entity_store::EntityStore::empty();
     let graph = crate::graph_rebuild::GraphOpenState::new()
-        .finish(&memories)
+        .finish(&memories, &entities)
         .unwrap();
     assert_eq!(graph.graph_version(), 0);
     assert_eq!(graph.stats().nodes, 0);

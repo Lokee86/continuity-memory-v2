@@ -455,7 +455,8 @@ pub use graph_error::GraphError;
 pub(crate) use graph_model::GraphNodeRecord;
 pub use graph_model::{
     GraphDirection, GraphNeighbor, GraphRelation, GraphRelationChange, GraphRelationKind,
-    GraphRelationOrigin, GraphStats, MemoryGraphPath,
+    GraphRelationOrigin, GraphStats, MemoryGraphPath, SemanticGraphNeighbor, SemanticGraphRelation,
+    SemanticGraphRelationChange, SemanticGraphRelationKind,
 };
 #[cfg(feature = "entity-calibration")]
 pub use insomnia::enrich_entity_calibration;
@@ -714,6 +715,8 @@ mod file_tests;
 #[cfg(test)]
 mod fragment_tests;
 #[cfg(test)]
+mod graph_codec_tests;
+#[cfg(test)]
 mod graph_tests;
 #[cfg(test)]
 mod history_tests;
@@ -783,6 +786,12 @@ mod runtime_host_vector_tests;
 mod search_policy_tests;
 #[cfg(test)]
 mod search_tests;
+#[cfg(test)]
+mod semantic_graph_reconcile_tests;
+#[cfg(test)]
+mod semantic_graph_runtime_host_tests;
+#[cfg(test)]
+mod semantic_graph_tests;
 #[cfg(test)]
 mod semantic_search_tests;
 #[cfg(test)]

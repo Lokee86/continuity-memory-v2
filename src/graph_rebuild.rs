@@ -1,17 +1,18 @@
+use crate::entity_store::EntityStore;
 use crate::graph_codec::{
     GraphMutationPayload, GraphNodePayload, decode_batch, decode_format, decode_mutation,
     decode_node, decode_version,
 };
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
-use crate::{GraphError, GraphNodeRecord, GraphRelation, ObjectRef};
+use crate::{GraphError, GraphNodeRecord, ObjectRef, SemanticGraphRelation};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct GraphOpenState {
     nodes: Vec<GraphNodePayload>,
     pending: HashMap<ObjectRef, Vec<GraphMutationPayload>>,
     versioned: HashSet<ObjectRef>,
-    transactions: Vec<Vec<GraphRelation>>,
+    transactions: Vec<Vec<SemanticGraphRelation>>,
     next_graph_version: u64,
     format_seen: bool,
 }
@@ -59,7 +60,11 @@ impl GraphOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(self, memories: &MemoryStore) -> Result<GraphStore, GraphError> {
+    pub(crate) fn finish(
+        self,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+    ) -> Result<GraphStore, GraphError> {
         if !self.format_seen {
             if self.nodes.is_empty()
                 && self.pending.is_empty()
@@ -81,7 +86,7 @@ impl GraphOpenState {
         for transaction in self.transactions {
             store.insert_transaction_rebuilt(&transaction)?;
         }
-        store.finish_rebuild(memories)?;
+        store.finish_rebuild(memories, entities)?;
         Ok(store)
     }
 
@@ -103,12 +108,12 @@ impl GraphOpenState {
         {
             return Err(GraphError::InvalidGraphVersion);
         }
-        let mutations = if let Some(mutations) = self.pending.remove(&version.mutation) {
-            self.versioned.insert(version.mutation);
-            mutations
-        } else {
-            return Err(GraphError::InvalidGraphVersion);
-        };
+        let mutations = self
+            .pending
+            .remove(&version.mutation)
+            .ok_or(GraphError::InvalidGraphVersion)?;
+        self.versioned.insert(version.mutation);
+
         let mut keys = HashSet::with_capacity(mutations.len());
         let mut transaction = Vec::with_capacity(mutations.len());
         for mutation in mutations {
@@ -118,7 +123,7 @@ impl GraphOpenState {
             if !keys.insert((mutation.source, mutation.target, mutation.kind)) {
                 return Err(GraphError::DuplicateRelationChange);
             }
-            transaction.push(GraphRelation {
+            transaction.push(SemanticGraphRelation {
                 source: mutation.source,
                 target: mutation.target,
                 kind: mutation.kind,

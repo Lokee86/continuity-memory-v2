@@ -42,7 +42,7 @@ pub(crate) fn scan_merge_snapshot(
         &structural,
         owner_uuid,
         generation,
-        graph.graph_version(),
+        graph.memory_graph_version(),
         default_config(),
     )
 }

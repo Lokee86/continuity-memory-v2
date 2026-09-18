@@ -1,6 +1,6 @@
 use crate::memory_model::memory_body_id;
 use crate::{
-    CHRONOS_INFERENCE_CONTRACT_VERSION, Cva, EchoEvent, EchoEventKind, FragmentConfig,
+    CHRONOS_INFERENCE_CONTRACT_VERSION, Cva, EchoEvent, EchoEventKind, EntityDraft, FragmentConfig,
     GraphRelationKind, MemoryDraft, MemoryTemporalInference, MigrationError, Phylactery,
     ReliquaryScopeKind, SimulatedEmbeddingEndpoint, TemporalIndicationKind, TemporalInference,
     TemporalInferenceResolution, VectorNormalization, migrate_file,
@@ -180,6 +180,23 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
         .unwrap();
     phy.set_memory_relation(a.id, b.id, GraphRelationKind::Topical, true, 0)
         .unwrap();
+    let (entity, _) = phy
+        .publish_entity(
+            None,
+            0,
+            EntityDraft {
+                canonical_name: "Helix".into(),
+                aliases: vec![],
+                kind: "project".into(),
+                summary: "User project referent.".into(),
+                mutation_id: "user:helix-entity".into(),
+                created_at_ns: 1,
+                updated_at_ns: 1,
+            },
+        )
+        .unwrap();
+    phy.set_entity_association(a.id, entity.id, true, 1)
+        .unwrap();
     phy.mark_dream_processed(a.id, 2, 123).unwrap();
     phy.mark_dream_pair_evaluated(a.id, b.id).unwrap();
     let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 23);
@@ -188,11 +205,9 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
         .unwrap();
     phy.sync().unwrap();
     drop(phy);
-
     let result = migrate_file(&source, &output).unwrap();
     assert!(!result.derived_from_legacy_workspace_id);
     assert!(result.owner_id.starts_with("phy-"));
-
     let mut migrated = Phylactery::open(&output).unwrap();
     let migrated_a = migrated.memory(a.id).unwrap();
     assert_eq!(migrated_a.content, "prefers Helix; review biweekly");
@@ -206,7 +221,13 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
         1
     );
     assert_eq!(migrated.memory_stats().memories, 2);
-    assert_eq!(migrated.graph_stats().active_relations, 1);
+    assert_eq!(migrated.graph_stats().active_relations, 2);
+    assert_eq!(migrated.graph_stats().memory_active_relations, 1);
+    assert_eq!(migrated.entity(entity.id).unwrap().canonical_name, "Helix");
+    assert_eq!(
+        migrated.entity_associations_for_memory(a.id),
+        vec![entity.id]
+    );
     assert_eq!(migrated.compatibility_profile_stats().profiles, 1);
     assert_eq!(migrated.memory_vector_stats().bindings, 2);
     assert_eq!(

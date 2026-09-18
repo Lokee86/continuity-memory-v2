@@ -1,12 +1,14 @@
 use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
 use crate::{
-    CommunityId, CommunitySemanticName, CommunitySnapshot, GraphRelation, Memory, MemoryDraft,
+    CommunityId, CommunitySemanticName, CommunitySnapshot, Entity, Memory, MemoryDraft,
+    SemanticGraphRelation,
 };
 use uuid::Uuid;
 
 pub type RuntimeKnowledgeState = (
     Vec<Memory>,
-    Vec<GraphRelation>,
+    Vec<Entity>,
+    Vec<SemanticGraphRelation>,
     Option<CommunitySnapshot>,
     Vec<CommunitySemanticName>,
 );
@@ -29,7 +31,8 @@ impl ReliquaryRuntimeHost {
             .collect::<Result<Vec<_>, _>>()?;
         Ok((
             memories,
-            runtime.cva.graph_relations(),
+            runtime.cva.entities(),
+            runtime.cva.semantic_graph_relations(),
             runtime.cva.community_snapshot(),
             runtime.cva.community_semantic_names(),
         ))
@@ -52,7 +55,8 @@ impl ReliquaryRuntimeHost {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Some((
             memories,
-            phylactery.graph_relations(),
+            phylactery.entities(),
+            phylactery.semantic_graph_relations(),
             phylactery.community_snapshot(),
             phylactery.community_semantic_names(),
         )))

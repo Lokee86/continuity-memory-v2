@@ -18,7 +18,7 @@ Lexicon already uses a related deterministic scaling pattern: bounded parallel s
 
 Reliquary persists owner-local **derived community snapshots** over the current Graph.
 
-- A snapshot records a monotonic derived `generation` plus the exact `derived_graph_version` from which it was computed. Community generation consumes no `CVAVERS1` semantic ticket.
+- A snapshot records a monotonic derived `generation` plus the exact `derived_graph_version` from which it was computed. Under ADR 0036 this field is the owner-local **Memory Graph projection watermark** (`memory_graph_version`), not every semantic Graph mutation. Community generation consumes no `CVAVERS1` semantic ticket.
 - A snapshot is current only when both its `derived_graph_version` and its community algorithm version match current state.
 - Active oriented Graph relationships project to unordered structural Memory pairs. Multiple active semantic relationships between the same unordered pair collapse to one unweighted structural edge. This projection is clustering input only.
 - Algorithm version `1` is the readable legacy monolithic Leiden baseline.

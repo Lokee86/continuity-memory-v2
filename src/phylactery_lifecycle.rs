@@ -146,7 +146,7 @@ impl Phylactery {
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
-        let graph = graph_state.finish(&memories)?;
+        let graph = graph_state.finish(&memories, &entities)?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
         validate_global_versions(&memories, &entities, &graph)?;
         let packed_vectors = packed_state.finish()?;

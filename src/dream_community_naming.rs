@@ -51,7 +51,7 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
         if limit == 0 {
             return Err(DreamCommunityNamingError::InvalidConfig("limit"));
         }
-        let snapshot = current_snapshot(cva.community_snapshot(), cva.graph_version())?;
+        let snapshot = current_snapshot(cva.community_snapshot(), cva.memory_graph_version())?;
         let index = cva.build_memory_retrieval_index(
             compatibility_profile_id,
             DEFAULT_MEMORY_RETRIEVAL_SUBCENTROIDS,
@@ -102,8 +102,10 @@ impl<E: GeneralEndpoint> DreamCommunityNamer<E> {
         if limit == 0 {
             return Err(DreamCommunityNamingError::InvalidConfig("limit"));
         }
-        let snapshot =
-            current_snapshot(phylactery.community_snapshot(), phylactery.graph_version())?;
+        let snapshot = current_snapshot(
+            phylactery.community_snapshot(),
+            phylactery.memory_graph_version(),
+        )?;
         let index = phylactery.build_memory_retrieval_index(
             compatibility_profile_id,
             DEFAULT_MEMORY_RETRIEVAL_SUBCENTROIDS,

@@ -18,7 +18,7 @@ The routing mechanism must remain derived retrieval machinery. It must not creat
 
 Reliquary implements owner-local **Community-routed Memory retrieval** for both REL and PHY.
 
-- `MemoryRetrievalIndex` is transient derived state. It is built from one Compatibility Profile's current non-archived Memory vectors plus the latest Community snapshot when that snapshot matches the current Graph and Community algorithm.
+- `MemoryRetrievalIndex` is transient derived state. It is built from one Compatibility Profile's current non-archived Memory vectors plus the latest Community snapshot when that snapshot matches the current **Memory Graph projection** and Community algorithm.
 - The default routing profile derives four deterministic sub-centroids for each Community. Sub-centroids are routing vectors only; they are not persisted and are not semantic objects.
 - The default query routes to the top four Communities by the best matching sub-centroid for each Community.
 - Vectorized Memories with no Community membership are always admitted as a residual lane. Community routing therefore cannot make a Graph-isolated Memory unreachable.
@@ -26,7 +26,7 @@ Reliquary implements owner-local **Community-routed Memory retrieval** for both 
 - Graph traversal is undirected over active same-owner relationships for retrieval scheduling. Graph depth remains the primary order. Among candidates at equal depth, paths with fewer Community-boundary crossings are preferred; deterministic discovery order breaks remaining ties.
 - Community locality never outranks Graph depth. The rejected boundary-first traversal policy is not part of production retrieval.
 - `MemoryRetrievalMode::GlobalExact` remains an explicit whole-owner Memory-vector reference path. A Community-routed query automatically uses the same global path when no current routing profile exists.
-- A reusable index records its Compatibility Profile, Memory version, Graph version, Community generation, profile-local Memory-vector binding count, vector dimensions, and sub-centroid configuration. Querying a stale cached index fails with `MemoryRetrievalError::StaleIndex`; callers rebuild rather than silently using obsolete routing state. The binding count is a derived in-memory `MemoryVectorStore` index rebuilt on reopen, so newly added vectors invalidate cached retrieval without adding a semantic clock.
+- A reusable index records its Compatibility Profile, Memory version, `memory_graph_version`, Community generation, profile-local Memory-vector binding count, vector dimensions, and sub-centroid configuration. Querying a stale cached index fails with `MemoryRetrievalError::StaleIndex`; callers rebuild rather than silently using obsolete routing state. Entity/Observation-only semantic Graph mutations do not stale this Memory-only index. The binding count is a derived in-memory `MemoryVectorStore` index rebuilt on reopen, so newly added vectors invalidate cached retrieval without adding a semantic clock.
 - The one-shot `retrieve_memories` convenience method builds an index and executes one query. High-query-rate runtime/Ego code should cache `MemoryRetrievalIndex` and use `retrieve_memories_with_index` until staleness requires rebuilding.
 - Query embedding remains outside this primitive. The supplied query vector must already belong to the index's Compatibility Profile space.
 - REL and PHY retrieval are strictly owner-local. Cross-owner composition is a higher-level Ego/retrieval responsibility and does not create REL↔PHY Dream candidates or Graph edges.
@@ -37,7 +37,7 @@ The benchmark compatibility wrapper delegates to the production sub-centroid imp
 
 The normal Memory retrieval path can avoid scoring most owner-local Memory vectors once the Memory Web contains multiple useful Communities, while retaining an explicit global reference path for comparison and rollback.
 
-Derived routing state can be cached without adding persistence, semantic clocks, reconciliation rules, or Community semantic authority. Memory, Graph, Community, or selected-profile Memory-vector population changes invalidate the cache deterministically through owner watermarks plus a derived profile-local binding count.
+Derived routing state can be cached without adding persistence, semantic clocks, reconciliation rules, or Community semantic authority. Memory, Memory-Graph projection, Community, or selected-profile Memory-vector population changes invalidate the cache deterministically through owner watermarks plus a derived profile-local binding count.
 
 The convenience API may rebuild routing state on every call and is therefore not the intended high-throughput integration path. Ego/runtime should own cache lifetime because it already owns repeated context queries and cross-owner composition.
 
@@ -63,7 +63,7 @@ Rejected by five-fold validation. K=2 reduced vector work further but produced u
 
 ### Silently use stale routing indexes
 
-Rejected. Community membership and routing vectors are derived from exact Memory/Graph state. Reusing an index after those watermarks change can route against obsolete organization. The API fails closed with `StaleIndex` instead.
+Rejected. Community membership and routing vectors are derived from exact Memory/Memory-Graph-projection state. Reusing an index after those watermarks change can route against obsolete organization. The API fails closed with `StaleIndex` instead.
 
 ## Verification
 

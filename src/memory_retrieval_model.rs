@@ -41,7 +41,7 @@ impl Default for MemoryRetrievalConfig {
 pub struct MemoryRetrievalIndex {
     pub compatibility_profile_id: CompatibilityProfileId,
     pub memory_version: u64,
-    pub graph_version: u64,
+    pub memory_graph_version: u64,
     pub community_generation: Option<u64>,
     pub vector_bindings: usize,
     pub subcentroids_per_community: usize,
