@@ -56,36 +56,21 @@ impl GraphStore {
     }
 
     pub(crate) fn entity_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
-        let mut entities: Vec<_> = self
-            .states
-            .values()
-            .filter(|relation| {
-                relation.active
-                    && relation.kind == SemanticGraphRelationKind::EntityAssociation
-                    && relation.source == SemanticNodeRef::memory(memory_id)
-            })
-            .filter_map(|relation| relation.target.as_entity())
-            .collect();
-        entities.sort();
-        entities.dedup();
-        entities
+        self.entities_by_memory
+            .get(&memory_id)
+            .map(|ids| ids.iter().copied().collect())
+            .unwrap_or_default()
     }
 
     pub(crate) fn memories_for_entity(&self, entity_id: EntityId) -> Vec<MemoryId> {
-        let target = SemanticNodeRef::entity(entity_id);
-        let mut memories: Vec<_> = self
-            .states
-            .values()
-            .filter(|relation| {
-                relation.active
-                    && relation.kind == SemanticGraphRelationKind::EntityAssociation
-                    && relation.target == target
-            })
-            .filter_map(|relation| relation.source.as_memory())
+        let mut ids: Vec<_> = self
+            .memories_by_entity
+            .get(&entity_id)
+            .into_iter()
+            .flat_map(|ids| ids.iter().copied())
             .collect();
-        memories.sort_by_key(|id| id.0);
-        memories.dedup();
-        memories
+        ids.sort_by_key(|id| id.0);
+        ids
     }
 
     pub(crate) fn relation_state(
@@ -174,6 +159,7 @@ impl GraphStore {
     }
 
     pub(super) fn rebuild_topologies(&mut self) -> Result<(), GraphError> {
+        self.rebuild_entity_association_indexes()?;
         self.rebuild_memory_projection()?;
 
         let mut edges = Vec::new();
@@ -190,6 +176,32 @@ impl GraphStore {
             edges,
         })
         .map_err(|error| GraphError::Topology(error.to_string()))?;
+        Ok(())
+    }
+
+    fn rebuild_entity_association_indexes(&mut self) -> Result<(), GraphError> {
+        self.entities_by_memory.clear();
+        self.memories_by_entity.clear();
+        for relation in self.states.values().filter(|relation| {
+            relation.active && relation.kind == SemanticGraphRelationKind::EntityAssociation
+        }) {
+            let memory_id = relation
+                .source
+                .as_memory()
+                .ok_or(GraphError::InvalidRelationShape)?;
+            let entity_id = relation
+                .target
+                .as_entity()
+                .ok_or(GraphError::InvalidRelationShape)?;
+            self.entities_by_memory
+                .entry(memory_id)
+                .or_default()
+                .insert(entity_id);
+            self.memories_by_entity
+                .entry(entity_id)
+                .or_default()
+                .insert(memory_id);
+        }
         Ok(())
     }
 

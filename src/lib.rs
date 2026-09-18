@@ -170,6 +170,12 @@ mod ego_error;
 mod ego_model;
 mod ego_store;
 mod embedding_endpoint;
+mod entity_candidate_model;
+#[cfg(test)]
+mod entity_candidate_test_support;
+#[cfg(test)]
+mod entity_candidate_tests;
+mod entity_candidates;
 mod entity_codec;
 mod entity_error;
 mod entity_model;
@@ -428,6 +434,13 @@ pub use ego_model::{
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
+};
+pub use entity_candidate_model::{
+    DEFAULT_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, DEFAULT_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
+    DEFAULT_ENTITY_CANDIDATE_SUPPORT_MEMORIES, EntityCandidate, EntityCandidateConfig,
+    EntityCandidateError, EntityCandidateSet, MAX_ENTITY_CANDIDATE_CONTEXT_TERMS,
+    MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
+    MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES, MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
 };
 pub use entity_error::EntityError;
 pub use entity_model::{

@@ -1,4 +1,4 @@
-use super::{EntityStore, resolve};
+use super::{EntityStore, normalize_surface, resolve};
 use crate::entity_model::EntityRecord;
 use crate::{Entity, EntityError, EntityId, EntityStats};
 
@@ -26,20 +26,14 @@ impl EntityStore {
 
     pub(crate) fn candidates_for_surface(&self, surface: &str, limit: usize) -> Vec<Entity> {
         let needle = normalize_surface(surface);
-        let mut values: Vec<_> = self
-            .current()
+        self.by_surface
+            .get(&needle)
             .into_iter()
-            .filter(|entity| {
-                normalize_surface(&entity.canonical_name) == needle
-                    || entity
-                        .aliases
-                        .iter()
-                        .any(|alias| normalize_surface(alias) == needle)
-            })
-            .collect();
-        values.sort_by_key(|value| value.id);
-        values.truncate(limit);
-        values
+            .flat_map(|ids| ids.iter())
+            .take(limit)
+            .filter_map(|id| self.current.get(id))
+            .map(|index| resolve(&self.records[*index]))
+            .collect()
     }
 
     pub(crate) fn records(&self) -> &[EntityRecord] {
@@ -57,8 +51,4 @@ impl EntityStore {
             entity_version: self.entity_version(),
         }
     }
-}
-
-fn normalize_surface(value: &str) -> String {
-    value.trim().to_lowercase()
 }

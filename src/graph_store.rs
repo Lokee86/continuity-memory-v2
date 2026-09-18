@@ -7,7 +7,7 @@ use crate::{
 };
 use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[path = "graph_store_read.rs"]
 mod read;
@@ -33,6 +33,8 @@ pub(crate) struct GraphStore {
     memory_topology: InMemoryGraph,
     memory_nodes: Vec<MemoryId>,
     memory_node_by_id: HashMap<MemoryId, NodeId>,
+    entities_by_memory: HashMap<MemoryId, BTreeSet<crate::EntityId>>,
+    memories_by_entity: HashMap<crate::EntityId, HashSet<MemoryId>>,
     next_graph_version: u64,
     memory_graph_version: u64,
     format_initialized: bool,
@@ -50,6 +52,8 @@ impl GraphStore {
             memory_topology: empty_topology(),
             memory_nodes: Vec::new(),
             memory_node_by_id: HashMap::new(),
+            entities_by_memory: HashMap::new(),
+            memories_by_entity: HashMap::new(),
             next_graph_version: 1,
             memory_graph_version: 0,
             format_initialized: false,

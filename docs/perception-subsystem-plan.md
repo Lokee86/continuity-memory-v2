@@ -263,7 +263,8 @@ The next implementation milestone is **B — Entity owner and pass 1**. ADR 0036
 - **Implemented:** durable Entity IDs, revisions/persistence, normalized one-to-many aliases, mutable semantic metadata, REL/PHY reopen, migration/reconciliation replay, and resolution-reference validation.
 - **Implemented:** typed Graph relation endpoints/persistence over the existing Arcana kernel, with full semantic traversal plus an isolated Memory-only Dream/Community projection.
 - **Implemented:** directional `Memory -> Entity` `EntityAssociation` topology, REL/PHY reopen, migration, divergent reconciliation, reverse lookup, and projection-watermark isolation.
-- **Next:** add bounded Entity candidate retrieval beyond exact alias lookup, including semantic centroid/context lanes where measurement justifies them.
+- **Implemented:** bounded deterministic Entity candidate retrieval for one exact Memory mention: indexed exact canonical-name/alias lookup, owner-local lexical-Memory context, first-hop Dream-neighbour context, bounded evidence Memory IDs, deterministic ranking, REL/PHY parity, and reopen-safe derived indexes. These signals generate candidates only and do not assert identity.
+- **Deferred pending measurement:** Entity vector/centroid routing. No all-Entity semantic scan or per-query Entity re-embedding is used as a substitute.
 - **Next:** wire the calibrated resolver to real Entity creation/association and run the zero-Entity bootstrap experiment.
 - Persist unresolved Entity ambiguity.
 

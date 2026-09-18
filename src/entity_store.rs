@@ -7,13 +7,14 @@ use crate::entity_codec::{EntityVersion, encode_format, encode_record, encode_ve
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityId};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use validation::{normalize_draft, validate_record};
 
 pub(crate) struct EntityStore {
     records: Vec<EntityRecord>,
     current: HashMap<EntityId, usize>,
     by_mutation: HashMap<String, usize>,
+    by_surface: HashMap<String, BTreeSet<EntityId>>,
     next_entity_version: u64,
 }
 
@@ -23,6 +24,7 @@ impl EntityStore {
             records: Vec::new(),
             current: HashMap::new(),
             by_mutation: HashMap::new(),
+            by_surface: HashMap::new(),
             next_entity_version: 1,
         }
     }
@@ -119,9 +121,22 @@ impl EntityStore {
         }
         validate_record(&record)?;
 
+        if let Some(index) = self.current.get(&record.id).copied() {
+            let prior = &self.records[index];
+            for surface in entity_surfaces(&prior.canonical_name, &prior.aliases) {
+                remove_surface(&mut self.by_surface, &surface, record.id);
+            }
+        }
+
         let index = self.records.len();
         self.by_mutation.insert(record.mutation_id.clone(), index);
         self.current.insert(record.id, index);
+        for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
+            self.by_surface
+                .entry(surface)
+                .or_default()
+                .insert(record.id);
+        }
         self.records.push(record);
         self.next_entity_version = self
             .next_entity_version
@@ -152,6 +167,30 @@ fn resolve(record: &EntityRecord) -> Entity {
         updated_at_ns: record.updated_at_ns,
         global_version: record.global_version,
         entity_version: record.entity_version,
+    }
+}
+
+fn normalize_surface(value: &str) -> String {
+    value.trim().to_lowercase()
+}
+
+fn entity_surfaces(canonical_name: &str, aliases: &[String]) -> BTreeSet<String> {
+    std::iter::once(canonical_name)
+        .chain(aliases.iter().map(String::as_str))
+        .map(normalize_surface)
+        .collect()
+}
+
+fn remove_surface(
+    index: &mut HashMap<String, BTreeSet<EntityId>>,
+    surface: &str,
+    entity_id: EntityId,
+) {
+    if let Some(ids) = index.get_mut(surface) {
+        ids.remove(&entity_id);
+        if ids.is_empty() {
+            index.remove(surface);
+        }
     }
 }
 
