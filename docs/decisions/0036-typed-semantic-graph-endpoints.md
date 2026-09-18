@@ -6,7 +6,7 @@ Amends [ADR 0024](0024-owner-local-dream-processing.md), [ADR 0033](0033-percept
 
 ## Status
 
-Accepted — 2026-09-17. Typed node identity/catalogue foundation implemented; non-Memory relation families remain Milestone B work.
+Accepted — 2026-09-17. Typed node identity/catalogue foundation and durable Entity owner implemented; typed non-Memory relation persistence remains Milestone B work.
 
 ## Context
 

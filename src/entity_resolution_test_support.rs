@@ -1,6 +1,6 @@
 use crate::{
-    Cva, MemoryDraft, MemoryEntityMention, MemoryEntityMentionKey, MemoryId, MemoryRoutingMetadata,
-    MemoryTextField, Phylactery,
+    Cva, EntityDraft, EntityId, MemoryDraft, MemoryEntityMention, MemoryEntityMentionKey, MemoryId,
+    MemoryRoutingMetadata, MemoryTextField, Phylactery,
 };
 use std::path::PathBuf;
 
@@ -15,6 +15,7 @@ pub(crate) fn rel_with_three_mentions() -> (Cva, MemoryId, Vec<MemoryEntityMenti
         memory.id,
         body_id,
     );
+    seed_rel_entities(&mut owner, memory.id);
     (owner, memory.id, keys, path)
 }
 
@@ -30,6 +31,7 @@ pub(crate) fn phy_with_three_mentions()
         memory.id,
         body_id,
     );
+    seed_phy_entities(&mut owner, memory.id);
     (owner, memory.id, keys, path)
 }
 
@@ -52,6 +54,34 @@ pub(crate) fn supersede_rel_memory(owner: &mut Cva, id: MemoryId) {
     owner
         .publish_memory(Some(id), memory.revision, updated)
         .unwrap();
+}
+
+fn seed_rel_entities(owner: &mut Cva, _memory_id: MemoryId) {
+    for value in 0_u8..=9 {
+        owner
+            .publish_entity(Some(EntityId([value; 32])), 0, entity_draft(value))
+            .unwrap();
+    }
+}
+
+fn seed_phy_entities(owner: &mut Phylactery, _memory_id: MemoryId) {
+    for value in 0_u8..=9 {
+        owner
+            .publish_entity(Some(EntityId([value; 32])), 0, entity_draft(value))
+            .unwrap();
+    }
+}
+
+fn entity_draft(value: u8) -> EntityDraft {
+    EntityDraft {
+        canonical_name: format!("Entity {value}"),
+        aliases: vec![format!("entity-{value}")],
+        kind: "test".into(),
+        summary: format!("Entity resolution test referent {value}."),
+        mutation_id: format!("entity-resolution-seed-{value}"),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+    }
 }
 
 fn install_mentions(

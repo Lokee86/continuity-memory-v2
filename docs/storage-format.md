@@ -435,6 +435,40 @@ Every mention string is limited to 512 UTF-8 bytes. `MemoryId + MemoryBodyId` mu
 
 Legacy `CVAMRTE1` remains readable. It has the same Entity-mention prefix followed by `u32 lexical-term count` and repeated exact lexical strings. Those former model-generated lexical terms are consumed only for compatibility validation while decoding and are discarded; they are not republished into current routing metadata. Lexical Memory search is now fully derived from complete current Memory title/content through the disposable owner-local Memory lexical index, so no lexical strings are persisted in new routing attachments.
 
+### Entities
+
+Entity owner format marker:
+```text
+8 bytes   "CVAENTF1"
+```
+
+Entity revision payload:
+```text
+8 bytes   "CVAENTR1"
+32 bytes  EntityId
+u64       Entity revision
+i64       created_at_ns
+i64       updated_at_ns
+string    canonical_name
+u16       alias count
+repeated:
+    string alias
+string    kind
+string    semantic summary
+string    mutation_id
+```
+
+Entity publication metadata:
+```text
+8 bytes   "CVAENTV1"
+u64       global version
+u64       Entity version
+u64       record chunk offset
+u64       record payload length
+```
+
+Entity versions begin at `1` and are dense. One Entity revision consumes one owner-global semantic version and one Entity-local version. A record without matching version metadata is inert. Automatically assigned `EntityId` is SHA-256 over the domain separator `"reliquary-entity-id\0"` plus mutation-ID length and bytes. Canonical name, aliases, kind, and summary may change across revisions without changing Entity identity; `created_at_ns` is invariant for an existing Entity. Aliases are normalized, sorted, unique, and bounded. Entity records intentionally contain no supporting Memory IDs or graph adjacency; Memory↔Entity association belongs to Graph. Legacy REL/PHY files without this owner reopen with an empty EntityStore.
+
 ### Graph
 Format marker:
 ```text

@@ -4,7 +4,9 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::ego_store::EgoStore;
+use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
+use crate::entity_store::EntityStore;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
 use crate::lexical_index::LexicalIndex;
@@ -67,10 +69,12 @@ impl Phylactery {
         let memory_vectors = MemoryVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
         let ego = EgoStore::phylactery();
+        let entities = EntityStore::empty();
         let entity_resolutions = EntityResolutionStore::default();
 
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
+        entities.initialize(&mut container)?;
         packed_vectors.initialize(&mut container)?;
         memory_vectors.initialize(&mut container)?;
         compatibility_profiles.initialize(&mut container)?;
@@ -89,6 +93,7 @@ impl Phylactery {
             memory_vectors,
             compatibility_profiles,
             ego,
+            entities,
             entity_resolutions,
         })
     }
@@ -103,12 +108,14 @@ impl Phylactery {
         let mut dream_cooldowns = DreamCooldownStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut ego = EgoStore::phylactery();
+        let mut entity_state = EntityOpenState::new();
         let mut entity_resolutions = EntityResolutionStore::default();
 
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             reject_rel_only_payload(payload)?;
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
+            entity_state.ingest(chunk, payload, latest_global)?;
             community_state.ingest(payload)?;
             packed_state.ingest(chunk, payload)?;
             memory_vector_state.ingest(chunk, payload)?;
@@ -132,15 +139,16 @@ impl Phylactery {
 
         let mut container = container;
         let memories = memory_state.finish(&mut container)?;
+        let entities = entity_state.finish()?;
         let lexical_index = LexicalIndex::default();
         ego.validate_memory_version(memories.memory_version())?;
-        entity_resolutions.validate(&memories)?;
+        entity_resolutions.validate(&memories, &entities)?;
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         let graph = graph_state.finish(&memories)?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
-        validate_global_versions(&memories, &graph)?;
+        validate_global_versions(&memories, &entities, &graph)?;
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
         let memory_vectors =
@@ -159,6 +167,7 @@ impl Phylactery {
             memory_vectors,
             compatibility_profiles,
             ego,
+            entities,
             entity_resolutions,
         })
     }
@@ -221,12 +230,19 @@ fn validate_phylactery_provenance(memories: &MemoryStore) -> Result<(), Phylacte
 
 fn validate_global_versions(
     memories: &MemoryStore,
+    entities: &EntityStore,
     graph: &GraphStore,
 ) -> Result<(), PhylacteryError> {
     let mut versions: Vec<_> = memories
         .records()
         .iter()
         .map(|record| record.global_version)
+        .chain(
+            entities
+                .records()
+                .iter()
+                .map(|record| record.global_version),
+        )
         .chain(graph.transaction_global_versions().iter().copied())
         .collect();
     versions.sort_unstable();

@@ -47,7 +47,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 33. **Vector Generations own vector semantic publication.** A generation binds one profile to one Archive-Vector set and source Archive watermark; the latest generation per profile is current.
 34. **Vector version is a local watermark only.** It is dense within VectorGenerationStore and is not ancestry or a cross-database dependency identity.
 35. **Archive and vector clocks are independent.** Their mutations interleave only through CVA-global ordering.
-36. **A CVA-global version has at most one semantic claimant.** Reopen rejects a global ticket claimed by more than one mutable semantic owner, including Archive, Memories, Graph, and Vector Generations.
+36. **A CVA-global version has at most one semantic claimant.** Reopen rejects a global ticket claimed by more than one mutable semantic owner, including Archive, Memories, Entities, Graph, and Vector Generations.
 37. **Generation coverage must be truthful.** A generation source watermark cannot predate any mapped fragment, exceed current Archive state, or regress for that profile.
 38. **Incomplete generation publication is inert.** A generation payload without valid generation-version metadata cannot become current semantic state.
 39. **Compatibility is behavioral and tolerant.** Endpoint compatibility is decided by the profile contract plus corresponding probe-vector cosine thresholds; provider/model labels and exact probe-byte equality cannot decide compatibility.

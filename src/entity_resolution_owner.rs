@@ -44,6 +44,7 @@ macro_rules! impl_owner {
                 self.entity_resolutions.put_resolved(
                     &mut self.container,
                     &self.memories,
+                    &self.entities,
                     key,
                     expected_revision,
                     entity_id,
@@ -83,6 +84,7 @@ macro_rules! impl_owner {
                 self.entity_resolutions.put_unresolved(
                     &mut self.container,
                     &self.memories,
+                    &self.entities,
                     key,
                     expected_revision,
                     candidate_entity_ids,
@@ -109,8 +111,12 @@ macro_rules! impl_owner {
                 &mut self,
                 value: MemoryEntityResolution,
             ) -> Result<(), MemoryError> {
-                self.entity_resolutions
-                    .import_current(&mut self.container, &self.memories, value)
+                self.entity_resolutions.import_current(
+                    &mut self.container,
+                    &self.memories,
+                    &self.entities,
+                    value,
+                )
             }
         }
     };

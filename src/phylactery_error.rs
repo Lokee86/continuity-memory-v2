@@ -1,6 +1,6 @@
 use crate::{
-    CommunityError, CompatibilityProfileError, ContainerError, EgoError, GraphError, MemoryError,
-    MemoryVectorError, PackedVectorError,
+    CommunityError, CompatibilityProfileError, ContainerError, EgoError, EntityError, GraphError,
+    MemoryError, MemoryVectorError, PackedVectorError,
 };
 use std::fmt;
 
@@ -8,6 +8,7 @@ use std::fmt;
 pub enum PhylacteryError {
     Container(ContainerError),
     Memories(MemoryError),
+    Entities(EntityError),
     Graph(GraphError),
     Communities(CommunityError),
     PackedVectors(PackedVectorError),
@@ -23,6 +24,7 @@ impl fmt::Display for PhylacteryError {
         match self {
             Self::Container(error) => write!(f, "{error}"),
             Self::Memories(error) => write!(f, "{error}"),
+            Self::Entities(error) => write!(f, "{error}"),
             Self::Graph(error) => write!(f, "{error}"),
             Self::Communities(error) => write!(f, "{error}"),
             Self::PackedVectors(error) => write!(f, "{error}"),
@@ -56,6 +58,7 @@ macro_rules! from_error {
 
 from_error!(ContainerError, Container);
 from_error!(MemoryError, Memories);
+from_error!(EntityError, Entities);
 from_error!(GraphError, Graph);
 from_error!(CommunityError, Communities);
 from_error!(PackedVectorError, PackedVectors);

@@ -8,6 +8,7 @@ use crate::dream_duplicate_index::DuplicateIndex;
 use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
 use crate::entity_resolution_store::EntityResolutionStore;
+use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
 use crate::insomnia::store::InsomniaStore;
 use crate::interaction_stream_store::InteractionStreamStore;
@@ -46,6 +47,7 @@ pub struct Cva {
     pub(crate) interaction_streams: InteractionStreamStore,
     pub(crate) echo: EchoStore,
     pub(crate) ego: EgoStore,
+    pub(crate) entities: EntityStore,
     pub(crate) entity_resolutions: EntityResolutionStore,
     pub(crate) project_history: ProjectHistoryStore,
     pub(crate) project_files: ProjectFileStore,

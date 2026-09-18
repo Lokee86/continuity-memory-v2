@@ -115,6 +115,7 @@ mod cva_reconcile;
 mod cva_reconcile_archive;
 mod cva_reconcile_conflict;
 mod cva_reconcile_conflict_map;
+mod cva_reconcile_entity;
 mod cva_reconcile_error;
 mod cva_reconcile_graph;
 mod cva_reconcile_interaction;
@@ -169,7 +170,11 @@ mod ego_error;
 mod ego_model;
 mod ego_store;
 mod embedding_endpoint;
+mod entity_codec;
+mod entity_error;
 mod entity_model;
+mod entity_owner;
+mod entity_rebuild;
 mod entity_resolution_codec;
 #[cfg(test)]
 mod entity_resolution_lifecycle_tests;
@@ -184,6 +189,7 @@ mod entity_resolution_store;
 mod entity_resolution_test_support;
 #[cfg(test)]
 mod entity_resolution_tests;
+mod entity_store;
 mod episode_builder;
 mod episode_codec;
 mod episode_index;
@@ -423,7 +429,11 @@ pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
 };
-pub use entity_model::EntityId;
+pub use entity_error::EntityError;
+pub use entity_model::{
+    Entity, EntityDraft, EntityId, EntityStats, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES,
+    MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+};
 pub use entity_resolution_model::{
     DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
@@ -693,6 +703,8 @@ mod dream_verifier_tests;
 mod echo_tests;
 #[cfg(test)]
 mod ego_tests;
+#[cfg(test)]
+mod entity_tests;
 #[cfg(test)]
 mod episode_tests;
 #[cfg(test)]

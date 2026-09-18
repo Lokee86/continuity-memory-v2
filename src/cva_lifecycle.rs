@@ -12,7 +12,9 @@ use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
+use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
+use crate::entity_store::EntityStore;
 use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
@@ -152,6 +154,7 @@ impl Cva {
         let conversation_compactions = ConversationCompactionStore::empty();
         let echo = EchoStore::default();
         let ego = EgoStore::reliquary();
+        let entities = EntityStore::empty();
         let entity_resolutions = EntityResolutionStore::default();
         let project_history = ProjectHistoryStore::default();
         let project_files = ProjectFileStore::default();
@@ -159,6 +162,7 @@ impl Cva {
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
+        entities.initialize(&mut container)?;
         insomnia.initialize(&mut container)?;
         packed_vectors.initialize(&mut container)?;
         memory_vectors.initialize(&mut container)?;
@@ -186,6 +190,7 @@ impl Cva {
             conversation_compactions,
             echo,
             ego,
+            entities,
             entity_resolutions,
             project_history,
             project_files,
@@ -208,6 +213,7 @@ impl Cva {
         let mut compaction_state = ConversationCompactionOpenState::default();
         let mut echo = EchoStore::default();
         let mut ego = EgoStore::reliquary();
+        let mut entity_state = EntityOpenState::new();
         let mut entity_resolutions = EntityResolutionStore::default();
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
@@ -218,6 +224,7 @@ impl Cva {
             archive_state.ingest(chunk, payload, latest_global)?;
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
+            entity_state.ingest(chunk, payload, latest_global)?;
             community_state.ingest(payload)?;
             insomnia_state.ingest(chunk, payload)?;
             packed_state.ingest(chunk, payload)?;
@@ -249,8 +256,9 @@ impl Cva {
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
         let memories = memory_state.finish(&mut container)?;
+        let entities = entity_state.finish()?;
         ego.validate_memory_version(memories.memory_version())?;
-        entity_resolutions.validate(&memories)?;
+        entity_resolutions.validate(&memories, &entities)?;
         memories.validate_provenance(&archive)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
@@ -272,7 +280,13 @@ impl Cva {
             &archive_vectors,
             &compatibility_profiles,
         )?;
-        validate_semantic_global_versions(&archive, &memories, &graph, &vector_generations)?;
+        validate_semantic_global_versions(
+            &archive,
+            &memories,
+            &entities,
+            &graph,
+            &vector_generations,
+        )?;
         let conversation_compactions = compaction_state.finish(&mut container)?;
         Ok(Self {
             container,
@@ -294,6 +308,7 @@ impl Cva {
             conversation_compactions,
             echo,
             ego,
+            entities,
             entity_resolutions,
             project_history,
             project_files,

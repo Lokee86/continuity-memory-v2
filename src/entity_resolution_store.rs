@@ -4,6 +4,7 @@ mod lifecycle;
 mod write;
 
 use crate::entity_resolution_codec::{decode_resolution, encode_resolution, encode_tombstone};
+use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
     Container, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,
@@ -57,10 +58,15 @@ impl EntityResolutionStore {
         Ok(())
     }
 
-    pub(crate) fn validate(&self, memories: &MemoryStore) -> Result<(), MemoryError> {
+    pub(crate) fn validate(
+        &self,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+    ) -> Result<(), MemoryError> {
         for value in self.current.values() {
             memories.validate_entity_mention_key(value.key)?;
             validate_status(&value.status)?;
+            validate_entity_refs(&value.status, entities)?;
         }
         Ok(())
     }
@@ -161,10 +167,12 @@ impl EntityResolutionStore {
         &mut self,
         container: &mut Container,
         memories: &MemoryStore,
+        entities: &EntityStore,
         mut value: MemoryEntityResolution,
     ) -> Result<(), MemoryError> {
         memories.validate_entity_mention_key(value.key)?;
         validate_status(&value.status)?;
+        validate_entity_refs(&value.status, entities)?;
         if let Some(existing) = self.current.get(&value.key) {
             return if existing.status == value.status {
                 Ok(())
@@ -190,6 +198,31 @@ impl EntityResolutionStore {
         } else {
             self.maintenance.insert(key);
         }
+    }
+}
+
+fn validate_entity_refs(
+    status: &MemoryEntityResolutionStatus,
+    entities: &EntityStore,
+) -> Result<(), MemoryError> {
+    let valid = match status {
+        MemoryEntityResolutionStatus::Resolved { entity_id, .. } => entities.contains(*entity_id),
+        MemoryEntityResolutionStatus::Pending(value) => value
+            .candidate_entity_ids
+            .iter()
+            .all(|id| entities.contains(*id)),
+        MemoryEntityResolutionStatus::Dormant(value) => value
+            .candidate_entity_ids
+            .iter()
+            .all(|id| entities.contains(*id)),
+        MemoryEntityResolutionStatus::Rejected { .. } => true,
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(MemoryError::InvalidField(
+            "Entity resolution Entity reference",
+        ))
     }
 }
 

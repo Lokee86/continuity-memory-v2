@@ -2,6 +2,7 @@ use super::{MigrationError, op, require_same};
 use crate::cva_reconcile_archive::{
     read_archive_tail, replay_archive_tail, replay_file_memory_links,
 };
+use crate::cva_reconcile_entity::{read_entity_tail, replay_entity_tail};
 use crate::cva_reconcile_graph::{read_graph_tail, replay_graph_tail};
 use crate::cva_reconcile_interaction::replay_interaction_streams;
 use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
@@ -17,6 +18,7 @@ pub(super) fn migrate(
     let mut source = op(Cva::open(source_path))?;
     let archive = op(read_archive_tail(&mut source, 0))?;
     let memories = op(read_memory_tail(&mut source, 0))?;
+    let entities = op(read_entity_tail(&mut source, 0))?;
     let graph = op(read_graph_tail(&mut source, 0))?;
     let streams = source.interaction_stream_records();
     let profiles = source.compatibility_profiles();
@@ -74,6 +76,7 @@ pub(super) fn migrate(
     }
     op(replay_archive_tail(&mut output, &archive))?;
     op(replay_memory_tail(&mut output, memories))?;
+    op(replay_entity_tail(&mut output, entities))?;
     for resolution in entity_resolutions {
         op(output.import_entity_resolution(resolution))?;
     }

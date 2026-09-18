@@ -17,6 +17,8 @@ Reliquary (internal compatibility type: Cva)
 │   └── immutable Episodes
 ├── Memories
 │   └── memory_version: u64 + immutable revisions
+├── EntityStore
+│   └── entity_version: u64 + durable canonical referent revisions
 ├── Graph
 │   ├── graph_version: u64 + append-only relationship mutations
 │   ├── persistent typed SemanticNodeRef ↔ dense NodeId catalogue
@@ -48,8 +50,10 @@ Phylactery (.phy)
 │   └── global_version: u64
 ├── Memories
 │   └── memory_version: u64 + immutable revisions
+├── EntityStore
+│   └── entity_version: u64 + durable canonical referent revisions
 ├── Graph
-│   └── graph_version: u64 + Memory-to-Memory relationships
+│   └── graph_version: u64 + semantic topology; published relations currently Memory-to-Memory
 ├── CommunityStore
 │   └── owner-local derived Leiden snapshots keyed to graph_version
 ├── PackedVectorStore
@@ -132,6 +136,11 @@ Reliquary Memory publication validates Archive/Episode provenance at write and r
 
 Phylactery reuses the Memory store/codec but applies a different ownership rule: all REL-local Episode/node/conversation provenance fields remain absent, so PHY never embeds another owner's source records. Routed User Memories instead retain optional `MemorySourceRef` metadata containing only the originating REL owner ID and source identities. `source_time_ns` is resolved while authoritative source evidence is available and persists separately as semantic chronology. A PHY remains independently valid when the referenced REL is unavailable; the provenance reference may simply be unresolved until that owner is mounted.
 
+### Entities
+EntityStore is the Perception-owned durable canonical-referent owner shared by REL and PHY. An Entity has a stable owner-local `EntityId`, optimistic revision, dense `entity_version`, canonical name, normalized aliases, kind, semantic summary, mutation identity, and creation/update bookkeeping. Entity metadata may evolve without changing Entity identity. A new Entity may omit its ID, in which case the ID is deterministically derived from the creation mutation ID; later revisions retain the same ID and original creation timestamp.
+
+EntityStore deliberately does **not** persist supporting Memory IDs or Memory↔Entity adjacency. Those associations belong to the shared semantic Graph under ADR 0036. The currently implemented deterministic candidate seam is exact normalized canonical-name/alias lookup returning a bounded one-to-many Entity set; equality generates candidates only and does not assert identity. Resolution-state records may reference only Entity IDs that already exist in the same owner. Each Entity revision consumes one file-global semantic version plus one dense Entity-local version. Legacy REL/PHY files with no Entity records reopen with an empty Entity owner.
+
 ### Graph
 Graph owns durable semantic relationship topology. Its dense Arcana catalogue is now keyed by owner-local typed `SemanticNodeRef { kind, id }`, where the initial node kinds are Memory, Entity, and Observation. Existing Memory node mappings remain readable as implicit Memory-kind nodes. Dense `arcana::NodeId` values are internal topology indexes and never replace semantic identity. Current published relation mutation records and public mutation APIs remain Memory-to-Memory while Milestone B defines the first Entity relation family. Those Dream relationships retain the existing `topical`, `factual`, `causal`, `recurrent`, `references`, `duplicate-of`, `supersedes`, and `structural-parent` semantics. One non-empty single-edge or multi-edge transaction advances dense `graph_version` once and consumes one file-global ordering ticket. Retraction records the same oriented relationship identity with `active=false` rather than deleting history.
 
@@ -174,7 +183,7 @@ Insomnia extraction may perform one bounded read-only Archive evidence round whe
 
 ### Phylactery lifecycle
 
-`Phylactery::create` writes typed `FileKind::Phylactery` identity with no Reliquary scope and initializes Memories, Graph, Packed Vectors, Memory Vectors, Compatibility Profiles, and an empty PHY Ego owner; owner-local Community snapshots are derived and appear only after explicit community refresh. `Phylactery::open` performs one container scan, rebuilds those owners in dependency order, ingests and validates optional Ego records, validates that REL-local provenance is absent and any external `MemorySourceRef` is structurally valid, validates Memory/Graph global-version uniqueness, and rejects REL or legacy CVA identity. No Archive object is constructed merely to satisfy Memory validation or to resolve an external source reference.
+`Phylactery::create` writes typed `FileKind::Phylactery` identity with no Reliquary scope and initializes Memories, EntityStore, Graph, Packed Vectors, Memory Vectors, Compatibility Profiles, and an empty PHY Ego owner; owner-local Community snapshots are derived and appear only after explicit community refresh. `Phylactery::open` performs one container scan, rebuilds those owners in dependency order, ingests and validates optional Ego records, validates that REL-local provenance is absent and any external `MemorySourceRef` is structurally valid, validates Memory/Graph global-version uniqueness, and rejects REL or legacy CVA identity. No Archive object is constructed merely to satisfy Memory validation or to resolve an external source reference.
 
 Phylactery still owns no Insomnia queue/Episode state of its own. Instead, an active REL's Insomnia may route fixed user-owned results into an explicitly attached PHY. User publication converts validated REL-local provenance into an identifier-only `MemorySourceRef`, strips the REL-local Episode/node/conversation fields from the PHY draft, syncs the PHY first, then commits the REL completion receipt with an owner-qualified external `MemoryRef`; deterministic mutation IDs make a crash between those two writes idempotently recoverable. Dream now runs independently inside PHY using the same owner-local Memory/Graph/vector mechanics as REL and persisted `source_time_ns` for chronology. No REL↔PHY candidate federation or persisted cross-file Graph edge is introduced; see [ADR 0024](decisions/0024-owner-local-dream-processing.md).
 

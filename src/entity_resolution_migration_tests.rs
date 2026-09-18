@@ -1,5 +1,5 @@
 use crate::{
-    Cva, EntityId, EntityResolutionReason, MemoryDraft, MemoryEntityMention,
+    Cva, EntityDraft, EntityId, EntityResolutionReason, MemoryDraft, MemoryEntityMention,
     MemoryEntityMentionKey, MemoryEntityResolutionStatus, MemoryRoutingMetadata, MemoryTextField,
     Phylactery, ReliquaryScopeKind, migrate_file,
 };
@@ -11,6 +11,7 @@ fn rel_migration_preserves_entity_resolution_state() {
     let mut rel = Cva::create_legacy_typed(&source, ReliquaryScopeKind::Project).unwrap();
     let ids = publish_rel(&mut rel);
     let key = seed_memory(&mut rel.memories, &mut rel.container, ids);
+    seed_rel_entity(&mut rel, EntityId([1; 32]), ids.0);
     rel.put_entity_unresolved(
         key,
         0,
@@ -40,6 +41,7 @@ fn phy_migration_preserves_entity_resolution_state() {
     let (memory, _) = phy.publish_memory(None, 0, draft()).unwrap();
     let body_id = phy.memory_body_id(memory.id).unwrap();
     let key = seed_memory_parts(&mut phy.memories, &mut phy.container, memory.id, body_id);
+    seed_phy_entity(&mut phy, EntityId([9; 32]), memory.id);
     phy.put_entity_resolved(
         key,
         0,
@@ -59,6 +61,28 @@ fn phy_migration_preserves_entity_resolution_state() {
         panic!("expected resolved");
     };
     assert_eq!(entity_id, EntityId([9; 32]));
+}
+
+fn seed_rel_entity(rel: &mut Cva, id: EntityId, _memory_id: crate::MemoryId) {
+    rel.publish_entity(Some(id), 0, entity_draft(id.0[0]))
+        .unwrap();
+}
+
+fn seed_phy_entity(phy: &mut Phylactery, id: EntityId, _memory_id: crate::MemoryId) {
+    phy.publish_entity(Some(id), 0, entity_draft(id.0[0]))
+        .unwrap();
+}
+
+fn entity_draft(value: u8) -> EntityDraft {
+    EntityDraft {
+        canonical_name: format!("Migration Entity {value}"),
+        aliases: vec![],
+        kind: "test".into(),
+        summary: "Migration Entity support.".into(),
+        mutation_id: format!("entity-resolution-migration-entity-{value}"),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+    }
 }
 
 fn publish_rel(rel: &mut Cva) -> (crate::MemoryId, crate::MemoryBodyId) {

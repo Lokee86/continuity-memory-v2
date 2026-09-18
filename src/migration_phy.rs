@@ -1,6 +1,6 @@
 use super::{MigrationError, op, require_same};
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
-use crate::{Container, GraphRelationChange, Memory, MemoryDraft, Phylactery};
+use crate::{Container, EntityDraft, GraphRelationChange, Memory, MemoryDraft, Phylactery};
 use std::path::Path;
 
 pub(super) fn migrate(
@@ -16,6 +16,7 @@ pub(super) fn migrate(
         .map(|record| (record.id, record.revision))
         .collect();
     let graph = graph_transactions(&mut source.container)?;
+    let entities = source.entities.records().to_vec();
     let profiles = source.compatibility_profiles.profiles();
     let packed_infos = source.packed_vectors.infos();
     let memory_vector_infos = source.memory_vectors.infos();
@@ -56,6 +57,25 @@ pub(super) fn migrate(
                 .memories
                 .put_routing_metadata(&mut output.container, metadata))?;
         }
+    }
+    for entity in entities {
+        let transaction_time_ns = source.transaction_time_ns(entity.global_version);
+        let draft = EntityDraft {
+            canonical_name: entity.canonical_name,
+            aliases: entity.aliases,
+            kind: entity.kind,
+            summary: entity.summary,
+            mutation_id: entity.mutation_id,
+            created_at_ns: entity.created_at_ns,
+            updated_at_ns: entity.updated_at_ns,
+        };
+        output
+            .container
+            .set_next_transaction_time_override(transaction_time_ns);
+        let result =
+            output.publish_entity(Some(entity.id), entity.revision.saturating_sub(1), draft);
+        output.container.clear_next_transaction_time_override();
+        op(result)?;
     }
     for resolution in entity_resolutions {
         op(output.import_entity_resolution(resolution))?;

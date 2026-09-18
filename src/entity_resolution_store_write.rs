@@ -1,4 +1,5 @@
 use super::EntityResolutionStore;
+use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
     Container, EntityId, EntityResolutionPending, EntityResolutionReason,
@@ -11,6 +12,7 @@ impl EntityResolutionStore {
         &mut self,
         container: &mut Container,
         memories: &MemoryStore,
+        entities: &EntityStore,
         key: MemoryEntityMentionKey,
         expected_revision: u32,
         entity_id: EntityId,
@@ -18,6 +20,11 @@ impl EntityResolutionStore {
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
         self.validate_write(memories, key, expected_revision)?;
+        if !entities.contains(entity_id) {
+            return Err(MemoryError::InvalidField(
+                "Entity resolution Entity reference",
+            ));
+        }
         if let Some(current) = self.current.get(&key) {
             if current.status == (MemoryEntityResolutionStatus::Resolved { entity_id, reason }) {
                 return Ok(false);
@@ -61,6 +68,7 @@ impl EntityResolutionStore {
         &mut self,
         container: &mut Container,
         memories: &MemoryStore,
+        entities: &EntityStore,
         key: MemoryEntityMentionKey,
         expected_revision: u32,
         mut candidate_entity_ids: Vec<EntityId>,
@@ -71,6 +79,14 @@ impl EntityResolutionStore {
     ) -> Result<bool, MemoryError> {
         self.validate_write(memories, key, expected_revision)?;
         normalize_candidates(&mut candidate_entity_ids)?;
+        if candidate_entity_ids
+            .iter()
+            .any(|id| !entities.contains(*id))
+        {
+            return Err(MemoryError::InvalidField(
+                "Entity resolution Entity reference",
+            ));
+        }
         let (first_seen_at_ns, attempt_count) = match self.current.get(&key) {
             None => (now_ns, 1),
             Some(current) => match &current.status {
