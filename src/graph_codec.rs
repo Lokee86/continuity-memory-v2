@@ -1,16 +1,20 @@
-use crate::{GraphError, GraphRelationKind, GraphRelationOrigin, MemoryId, ObjectRef};
+use crate::{
+    GraphError, GraphRelationKind, GraphRelationOrigin, MemoryId, ObjectRef, SemanticNodeKind,
+    SemanticNodeRef,
+};
 use arcana::NodeId;
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAGFMT1";
 const FORMAT_SCHEMA: u32 = 1;
-const NODE_MAGIC: &[u8; 8] = b"CVAGNODE";
+const NODE_V1_MAGIC: &[u8; 8] = b"CVAGNODE";
+const NODE_V2_MAGIC: &[u8; 8] = b"CVAGNOD2";
 const MUTATION_MAGIC: &[u8; 8] = b"CVAGMUT1";
 const BATCH_MAGIC: &[u8; 8] = b"CVAGBAT1";
 const VERSION_MAGIC: &[u8; 8] = b"CVAGVER1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct GraphNodePayload {
-    pub memory_id: MemoryId,
+    pub semantic_node: SemanticNodeRef,
     pub node_id: NodeId,
 }
 
@@ -47,24 +51,49 @@ pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, GraphError> {
     Ok(true)
 }
 
-pub(crate) fn encode_node(node: GraphNodePayload) -> [u8; 44] {
-    let mut out = [0_u8; 44];
-    out[..8].copy_from_slice(NODE_MAGIC);
-    out[8..40].copy_from_slice(&node.memory_id.0);
-    out[40..44].copy_from_slice(&node.node_id.0.to_le_bytes());
+pub(crate) fn encode_node(node: GraphNodePayload) -> Vec<u8> {
+    if let Some(memory_id) = node.semantic_node.as_memory() {
+        let mut out = vec![0_u8; 44];
+        out[..8].copy_from_slice(NODE_V1_MAGIC);
+        out[8..40].copy_from_slice(&memory_id.0);
+        out[40..44].copy_from_slice(&node.node_id.0.to_le_bytes());
+        return out;
+    }
+
+    let mut out = vec![0_u8; 45];
+    out[..8].copy_from_slice(NODE_V2_MAGIC);
+    out[8] = node.semantic_node.kind.code();
+    out[9..41].copy_from_slice(&node.semantic_node.id);
+    out[41..45].copy_from_slice(&node.node_id.0.to_le_bytes());
     out
 }
 
 pub(crate) fn decode_node(bytes: &[u8]) -> Result<Option<GraphNodePayload>, GraphError> {
-    if !bytes.starts_with(NODE_MAGIC) {
+    if bytes.starts_with(NODE_V1_MAGIC) {
+        if bytes.len() != 44 {
+            return Err(GraphError::CorruptRecord("node mapping"));
+        }
+        return Ok(Some(GraphNodePayload {
+            semantic_node: SemanticNodeRef::memory(MemoryId(
+                bytes[8..40].try_into().expect("memory id width"),
+            )),
+            node_id: NodeId(read_u32(bytes, 40)?),
+        }));
+    }
+    if !bytes.starts_with(NODE_V2_MAGIC) {
         return Ok(None);
     }
-    if bytes.len() != 44 {
-        return Err(GraphError::CorruptRecord("node mapping"));
+    if bytes.len() != 45 {
+        return Err(GraphError::CorruptRecord("semantic node mapping"));
     }
+    let kind = SemanticNodeKind::from_code(bytes[8])
+        .ok_or(GraphError::CorruptRecord("semantic node kind"))?;
     Ok(Some(GraphNodePayload {
-        memory_id: MemoryId(bytes[8..40].try_into().expect("memory id width")),
-        node_id: NodeId(read_u32(bytes, 40)?),
+        semantic_node: SemanticNodeRef {
+            kind,
+            id: bytes[9..41].try_into().expect("semantic node id width"),
+        },
+        node_id: NodeId(read_u32(bytes, 41)?),
     }))
 }
 

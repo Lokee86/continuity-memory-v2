@@ -441,13 +441,20 @@ Format marker:
 8 bytes   "CVAGFMT1"
 u32       schema = 1
 ```
-Dense node mapping:
+Legacy/current Memory node mapping:
 ```text
 8 bytes   "CVAGNODE"
 32 bytes  MemoryId
 u32       dense NodeId
 ```
-Node mappings are structural index records and consume no semantic version. They are assigned monotonically from zero when a Memory first participates in Graph topology. Stable public identity remains `MemoryId`.
+Typed non-Memory node mapping introduced by ADR 0036:
+```text
+8 bytes   "CVAGNOD2"
+u8        SemanticNodeKind: 1=Memory, 2=Entity, 3=Observation
+32 bytes  owner-local semantic node ID
+u32       dense NodeId
+```
+Memory nodes continue to use `CVAGNODE` for byte-level compatibility; decode promotes them to `SemanticNodeRef::Memory`. `CVAGNOD2` establishes the typed catalogue format needed by Entity/Observation nodes, but current durable relationship mutation records remain Memory-to-Memory until Milestone B generalizes relation persistence. Node mappings are structural index records and consume no semantic version. Dense IDs are assigned monotonically from zero when a semantic node first participates in Graph topology; stable semantic identity remains the typed owner-local reference.
 
 Single relationship mutation:
 ```text

@@ -5,7 +5,7 @@ use crate::graph_codec::{
 use crate::memory_store::MemoryStore;
 use crate::{
     Container, GraphError, GraphNodeRecord, GraphRelation, GraphRelationChange, GraphRelationKind,
-    GraphRelationOrigin, MemoryId,
+    GraphRelationOrigin, MemoryId, SemanticNodeRef,
 };
 use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
@@ -23,7 +23,7 @@ struct RelationKey {
 
 pub(crate) struct GraphStore {
     nodes: Vec<GraphNodeRecord>,
-    node_by_memory: HashMap<MemoryId, NodeId>,
+    node_by_semantic: HashMap<SemanticNodeRef, NodeId>,
     states: HashMap<RelationKey, GraphRelation>,
     mutations: Vec<GraphRelation>,
     transaction_global_versions: Vec<u64>,
@@ -36,7 +36,7 @@ impl GraphStore {
     pub(crate) fn empty() -> Self {
         Self {
             nodes: Vec::new(),
-            node_by_memory: HashMap::new(),
+            node_by_semantic: HashMap::new(),
             states: HashMap::new(),
             mutations: Vec::new(),
             transaction_global_versions: Vec::new(),
@@ -211,10 +211,13 @@ impl GraphStore {
 
     pub(crate) fn insert_node_rebuilt(&mut self, node: GraphNodeRecord) -> Result<(), GraphError> {
         let expected = u32::try_from(self.nodes.len()).map_err(|_| GraphError::NodeIdExhausted)?;
-        if node.node_id != NodeId(expected) || self.node_by_memory.contains_key(&node.memory_id) {
+        if node.node_id != NodeId(expected)
+            || self.node_by_semantic.contains_key(&node.semantic_node)
+        {
             return Err(GraphError::InvalidNodeMapping);
         }
-        self.node_by_memory.insert(node.memory_id, node.node_id);
+        self.node_by_semantic
+            .insert(node.semantic_node, node.node_id);
         self.nodes.push(node);
         Ok(())
     }
@@ -240,14 +243,21 @@ impl GraphStore {
 
     pub(crate) fn finish_rebuild(&mut self, memories: &MemoryStore) -> Result<(), GraphError> {
         for node in &self.nodes {
-            if !memories.contains_memory(node.memory_id) {
-                return Err(GraphError::MissingMemory(node.memory_id));
+            let Some(memory_id) = node.semantic_node.as_memory() else {
+                return Err(GraphError::UnsupportedSemanticNode(node.semantic_node));
+            };
+            if !memories.contains_memory(memory_id) {
+                return Err(GraphError::MissingMemory(memory_id));
             }
         }
         for relation in &self.mutations {
             self.validate_endpoints(memories, relation.source, relation.target)?;
-            if !self.node_by_memory.contains_key(&relation.source)
-                || !self.node_by_memory.contains_key(&relation.target)
+            if !self
+                .node_by_semantic
+                .contains_key(&SemanticNodeRef::memory(relation.source))
+                || !self
+                    .node_by_semantic
+                    .contains_key(&SemanticNodeRef::memory(relation.target))
             {
                 return Err(GraphError::InvalidNodeMapping);
             }
@@ -285,14 +295,28 @@ impl GraphStore {
         container: &mut Container,
         memory_id: MemoryId,
     ) -> Result<NodeId, GraphError> {
-        if let Some(node_id) = self.node_by_memory.get(&memory_id).copied() {
+        self.ensure_semantic_node(container, SemanticNodeRef::memory(memory_id))
+    }
+
+    fn ensure_semantic_node(
+        &mut self,
+        container: &mut Container,
+        semantic_node: SemanticNodeRef,
+    ) -> Result<NodeId, GraphError> {
+        if let Some(node_id) = self.node_by_semantic.get(&semantic_node).copied() {
             return Ok(node_id);
         }
         let raw = u32::try_from(self.nodes.len()).map_err(|_| GraphError::NodeIdExhausted)?;
         let node_id = NodeId(raw);
-        container.append(&encode_node(GraphNodePayload { memory_id, node_id }))?;
-        self.node_by_memory.insert(memory_id, node_id);
-        self.nodes.push(GraphNodeRecord { memory_id, node_id });
+        container.append(&encode_node(GraphNodePayload {
+            semantic_node,
+            node_id,
+        }))?;
+        self.node_by_semantic.insert(semantic_node, node_id);
+        self.nodes.push(GraphNodeRecord {
+            semantic_node,
+            node_id,
+        });
         Ok(node_id)
     }
 

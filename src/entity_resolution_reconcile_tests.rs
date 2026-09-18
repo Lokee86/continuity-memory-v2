@@ -6,7 +6,7 @@ use std::fs;
 
 #[test]
 fn linear_reconcile_preserves_entity_resolution_state() {
-    let (mut base, _, keys, base_path) = rel_with_three_mentions();
+    let (base, _, keys, base_path) = rel_with_three_mentions();
     base.sync().unwrap();
     drop(base);
 
@@ -36,7 +36,7 @@ fn linear_reconcile_preserves_entity_resolution_state() {
 
 #[test]
 fn divergent_resolution_state_is_not_guessed() {
-    let (mut base, _, keys, base_path) = rel_with_three_mentions();
+    let (base, _, keys, base_path) = rel_with_three_mentions();
     base.sync().unwrap();
     drop(base);
 

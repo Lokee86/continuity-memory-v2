@@ -1,5 +1,5 @@
 use super::GraphStore;
-use crate::{GraphError, GraphRelation, GraphStats, MemoryId};
+use crate::{GraphError, GraphRelation, GraphStats, MemoryId, SemanticNodeRef};
 use arcana::storage::InMemoryGraph;
 use arcana::{Edge, GraphDataset, NodeId};
 
@@ -52,20 +52,46 @@ impl GraphStore {
     }
 
     pub(crate) fn node_memory_ids(&self) -> Vec<MemoryId> {
-        self.nodes.iter().map(|node| node.memory_id).collect()
+        self.nodes
+            .iter()
+            .filter_map(|node| node.semantic_node.as_memory())
+            .collect()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn semantic_nodes(&self) -> Vec<SemanticNodeRef> {
+        self.nodes.iter().map(|node| node.semantic_node).collect()
     }
 
     pub(crate) fn node_id(&self, memory_id: MemoryId) -> Result<NodeId, GraphError> {
-        self.node_by_memory
-            .get(&memory_id)
+        self.semantic_node_id(SemanticNodeRef::memory(memory_id))
+            .map_err(|error| match error {
+                GraphError::UnsupportedSemanticNode(_) => GraphError::MissingNode(memory_id),
+                other => other,
+            })
+    }
+
+    pub(crate) fn semantic_node_id(
+        &self,
+        semantic_node: SemanticNodeRef,
+    ) -> Result<NodeId, GraphError> {
+        self.node_by_semantic
+            .get(&semantic_node)
             .copied()
-            .ok_or(GraphError::MissingNode(memory_id))
+            .ok_or(GraphError::UnsupportedSemanticNode(semantic_node))
     }
 
     pub(crate) fn memory_id(&self, node_id: NodeId) -> Result<MemoryId, GraphError> {
+        let semantic_node = self.semantic_node(node_id)?;
+        semantic_node
+            .as_memory()
+            .ok_or(GraphError::UnsupportedSemanticNode(semantic_node))
+    }
+
+    pub(crate) fn semantic_node(&self, node_id: NodeId) -> Result<SemanticNodeRef, GraphError> {
         self.nodes
             .get(node_id.0 as usize)
-            .map(|node| node.memory_id)
+            .map(|node| node.semantic_node)
             .ok_or_else(|| GraphError::Topology(format!("unknown dense node {}", node_id.0)))
     }
 

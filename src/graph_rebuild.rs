@@ -74,7 +74,7 @@ impl GraphOpenState {
         store.mark_format_initialized();
         for node in self.nodes {
             store.insert_node_rebuilt(GraphNodeRecord {
-                memory_id: node.memory_id,
+                semantic_node: node.semantic_node,
                 node_id: node.node_id,
             })?;
         }

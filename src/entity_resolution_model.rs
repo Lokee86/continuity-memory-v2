@@ -1,11 +1,8 @@
-use crate::{MemoryEntityMention, MemoryId, MemoryTextField};
+use crate::{EntityId, MemoryEntityMention, MemoryId, MemoryTextField};
 
 pub const MAX_ENTITY_RESOLUTION_CANDIDATES: usize = 8;
 pub const DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 pub const DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS: i64 = 180 * 24 * 60 * 60 * 1_000_000_000;
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct EntityId(pub [u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct MemoryEntityMentionKey {

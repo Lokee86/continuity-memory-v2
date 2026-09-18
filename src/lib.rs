@@ -169,6 +169,7 @@ mod ego_error;
 mod ego_model;
 mod ego_store;
 mod embedding_endpoint;
+mod entity_model;
 mod entity_resolution_codec;
 #[cfg(test)]
 mod entity_resolution_lifecycle_tests;
@@ -288,6 +289,7 @@ mod search;
 mod search_error;
 mod search_model;
 mod search_rank;
+mod semantic_node_model;
 mod semantic_search;
 mod semantic_search_error;
 mod semantic_search_model;
@@ -421,8 +423,9 @@ pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
 };
+pub use entity_model::EntityId;
 pub use entity_resolution_model::{
-    DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS, EntityId,
+    DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
     EntityResolutionReason, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus,
@@ -543,6 +546,7 @@ pub use search_model::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
     DEFAULT_SEMANTIC_WEIGHT, RetrievalConfig, SearchCandidate,
 };
+pub use semantic_node_model::{SemanticNodeKind, SemanticNodeRef};
 pub use semantic_search_error::SemanticSearchError;
 pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};
 pub use turn_ingest_model::{IncomingAttachment, IncomingTurn, IngestedTurn};

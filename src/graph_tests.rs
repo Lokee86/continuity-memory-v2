@@ -1,6 +1,7 @@
 use crate::{
-    Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
+    Cva, EntityId, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection, GraphError,
     GraphRelationChange, GraphRelationKind, GraphRelationOrigin, MemoryDraft, MemoryId,
+    SemanticNodeKind, SemanticNodeRef,
 };
 use std::{fs, path::PathBuf};
 
@@ -78,6 +79,41 @@ fn memory(cva: &mut Cva, episode: &crate::Episode, id: &str) -> MemoryId {
 }
 
 #[test]
+fn semantic_node_identity_distinguishes_node_kinds() {
+    let raw = [7_u8; 32];
+    let memory = SemanticNodeRef::memory(MemoryId(raw));
+    let entity = SemanticNodeRef::entity(EntityId(raw));
+
+    assert_ne!(memory, entity);
+    assert_eq!(memory.kind, SemanticNodeKind::Memory);
+    assert_eq!(entity.kind, SemanticNodeKind::Entity);
+    assert_eq!(memory.as_memory(), Some(MemoryId(raw)));
+    assert_eq!(entity.as_entity(), Some(EntityId(raw)));
+}
+
+#[test]
+fn graph_node_codec_reads_legacy_memory_and_typed_entity_nodes() {
+    use crate::graph_codec::{GraphNodePayload, decode_node, encode_node};
+    use arcana::NodeId;
+
+    let memory = GraphNodePayload {
+        semantic_node: SemanticNodeRef::memory(MemoryId([1; 32])),
+        node_id: NodeId(3),
+    };
+    let memory_bytes = encode_node(memory);
+    assert_eq!(&memory_bytes[..8], b"CVAGNODE");
+    assert_eq!(decode_node(&memory_bytes).unwrap(), Some(memory));
+
+    let entity = GraphNodePayload {
+        semantic_node: SemanticNodeRef::entity(EntityId([2; 32])),
+        node_id: NodeId(4),
+    };
+    let entity_bytes = encode_node(entity);
+    assert_eq!(&entity_bytes[..8], b"CVAGNOD2");
+    assert_eq!(decode_node(&entity_bytes).unwrap(), Some(entity));
+}
+
+#[test]
 fn graph_is_oriented_traversable_retractable_and_reopenable() {
     let file = path("graph.cva");
     let mut cva = Cva::create(&file).unwrap();
@@ -98,6 +134,14 @@ fn graph_is_oriented_traversable_retractable_and_reopenable() {
             .is_none()
     );
     assert_eq!(cva.graph_version(), 2);
+    assert_eq!(
+        cva.graph.semantic_nodes(),
+        vec![
+            SemanticNodeRef::memory(a),
+            SemanticNodeRef::memory(b),
+            SemanticNodeRef::memory(c)
+        ]
+    );
     assert!(
         cva.graph_relations()
             .iter()

@@ -256,11 +256,13 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 - REL and PHY expose disposable Memory lexical search over complete current non-archived title/content, using the same deterministic lexical machinery as Archive search and no model call.
 - Reopen validates `MemoryId + MemoryBodyId` binding and exact Entity source text. Migration/reconciliation replay the attachment, identical writes are idempotent, and conflicts fail closed.
 
-The next implementation milestone is **B — Entity owner and pass 1**.
+The next implementation milestone is **B — Entity owner and pass 1**. ADR 0036 establishes the shared typed semantic-Graph direction: Arcana remains the graph kernel, the Graph catalogue now addresses typed semantic nodes, and Milestone B will add the first Entity-backed relation family without moving Entity payload/lifecycle authority into Graph.
 
 ### B — Entity owner and pass 1
 
-- Define Entity IDs, persistence, aliases, mutable metadata, and Memory associations.
+- Define Entity IDs, persistence, aliases, mutable metadata, and Entity-specific lifecycle state.
+- Generalize Graph relation endpoints/persistence from the current Memory-only mutation format to validated typed semantic-node endpoints.
+- Represent Memory↔Entity topology through the shared Graph rather than a parallel Entity adjacency store.
 - Add Entity vector/centroid indexing.
 - Implement create/associate/disambiguate behavior.
 - Persist unresolved Entity ambiguity.

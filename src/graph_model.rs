@@ -1,4 +1,4 @@
-use crate::MemoryId;
+use crate::{MemoryId, SemanticNodeRef};
 use arcana::{EdgeKind, NodeId};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -116,6 +116,6 @@ pub struct GraphStats {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct GraphNodeRecord {
-    pub memory_id: MemoryId,
+    pub semantic_node: SemanticNodeRef,
     pub node_id: NodeId,
 }

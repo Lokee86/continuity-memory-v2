@@ -1,4 +1,4 @@
-use crate::MemoryId;
+use crate::{MemoryId, SemanticNodeRef};
 use std::fmt;
 
 #[derive(Debug)]
@@ -6,6 +6,7 @@ pub enum GraphError {
     Container(crate::ContainerError),
     MissingMemory(MemoryId),
     MissingNode(MemoryId),
+    UnsupportedSemanticNode(SemanticNodeRef),
     SelfRelation,
     RevisionConflict { expected: u64, actual: u64 },
     NodeIdExhausted,
@@ -26,6 +27,11 @@ impl fmt::Display for GraphError {
             Self::Container(error) => write!(f, "{error}"),
             Self::MissingMemory(id) => write!(f, "graph references missing memory {:02x?}", id.0),
             Self::MissingNode(id) => write!(f, "graph has no node for memory {:02x?}", id.0),
+            Self::UnsupportedSemanticNode(node) => write!(
+                f,
+                "graph semantic node kind {:?} is not yet backed by a semantic owner",
+                node.kind
+            ),
             Self::SelfRelation => {
                 f.write_str("graph relationships cannot target the source memory")
             }
