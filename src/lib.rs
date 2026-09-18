@@ -169,6 +169,20 @@ mod ego_error;
 mod ego_model;
 mod ego_store;
 mod embedding_endpoint;
+mod entity_resolution_codec;
+#[cfg(test)]
+mod entity_resolution_lifecycle_tests;
+#[cfg(test)]
+mod entity_resolution_migration_tests;
+mod entity_resolution_model;
+mod entity_resolution_owner;
+#[cfg(test)]
+mod entity_resolution_reconcile_tests;
+mod entity_resolution_store;
+#[cfg(test)]
+mod entity_resolution_test_support;
+#[cfg(test)]
+mod entity_resolution_tests;
 mod episode_builder;
 mod episode_codec;
 mod episode_index;
@@ -406,6 +420,12 @@ pub use ego_model::{
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
+};
+pub use entity_resolution_model::{
+    DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS, EntityId,
+    EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
+    EntityResolutionReason, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
+    MemoryEntityResolution, MemoryEntityResolutionStatus,
 };
 pub use episode_model::{
     DEFAULT_EPISODE_MAX_INPUT_BYTES, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,

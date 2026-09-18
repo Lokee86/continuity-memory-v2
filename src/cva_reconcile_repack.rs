@@ -55,6 +55,13 @@ pub(crate) fn reconcile_diverged(
     let dream_cooldown_change_required = dream_cooldowns != left_dream_cooldowns;
     let left_dream_pairs = left.dream_pair_records();
     let dream_pairs = merge_dream_pairs(left_dream_pairs.clone(), right.dream_pair_records());
+    let left_entity_resolutions = left.entity_resolution_records();
+    let right_entity_resolutions = right.entity_resolution_records();
+    if left_entity_resolutions != right_entity_resolutions {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "divergent Entity resolution state",
+        ));
+    }
     let dream_pair_change_required = dream_pairs != left_dream_pairs;
     let latest_project_revision =
         compatible_project_revision(&left_project_history, &right_project_history).ok_or(
@@ -81,6 +88,9 @@ pub(crate) fn reconcile_diverged(
         replay_interaction_streams(&mut output, interaction_streams)?;
         replay_archive_tail(&mut output, &left_archive)?;
         replay_memory_tail(&mut output, left_memory)?;
+        for resolution in left_entity_resolutions.clone() {
+            output.import_entity_resolution(resolution)?;
+        }
         replay_graph_tail(&mut output, &left_graph)?;
         replay_file_memory_links(&mut output, &left_archive.file_memory_links)?;
         replay_echo(&mut output, left_echo)?;

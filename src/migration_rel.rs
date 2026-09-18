@@ -28,6 +28,7 @@ pub(super) fn migrate(
     let echo = source.echo_records();
     let dream_cooldowns = source.dream_cooldown_records();
     let dream_pairs = source.dream_pair_records();
+    let entity_resolutions = source.entity_resolution_records();
     let metadata = source.rel_metadata();
 
     let mut output = op(Cva::create_rel_with_uuid(
@@ -73,6 +74,9 @@ pub(super) fn migrate(
     }
     op(replay_archive_tail(&mut output, &archive))?;
     op(replay_memory_tail(&mut output, memories))?;
+    for resolution in entity_resolutions {
+        op(output.import_entity_resolution(resolution))?;
+    }
     op(replay_graph_tail(&mut output, &graph))?;
     for (id, state) in dream_cooldowns {
         let processed_at_ns = match state.processed_at_ns {

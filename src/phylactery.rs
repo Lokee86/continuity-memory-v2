@@ -3,6 +3,7 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::ego_store::EgoStore;
+use crate::entity_resolution_store::EntityResolutionStore;
 use crate::graph_store::GraphStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
@@ -26,6 +27,7 @@ pub struct Phylactery {
     pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
     pub(crate) ego: EgoStore,
+    pub(crate) entity_resolutions: EntityResolutionStore,
 }
 
 impl Phylactery {

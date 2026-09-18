@@ -4,6 +4,7 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::ego_store::EgoStore;
+use crate::entity_resolution_store::EntityResolutionStore;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
 use crate::lexical_index::LexicalIndex;
@@ -66,6 +67,7 @@ impl Phylactery {
         let memory_vectors = MemoryVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
         let ego = EgoStore::phylactery();
+        let entity_resolutions = EntityResolutionStore::default();
 
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -87,6 +89,7 @@ impl Phylactery {
             memory_vectors,
             compatibility_profiles,
             ego,
+            entity_resolutions,
         })
     }
 
@@ -100,6 +103,7 @@ impl Phylactery {
         let mut dream_cooldowns = DreamCooldownStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut ego = EgoStore::phylactery();
+        let mut entity_resolutions = EntityResolutionStore::default();
 
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             reject_rel_only_payload(payload)?;
@@ -112,6 +116,7 @@ impl Phylactery {
             dream_cooldowns.ingest(payload)?;
             dream_pairs.ingest(payload)?;
             ego.ingest(payload)?;
+            entity_resolutions.ingest(payload)?;
             Ok::<(), PhylacteryError>(())
         })?;
         if container.identity()
@@ -129,6 +134,7 @@ impl Phylactery {
         let memories = memory_state.finish(&mut container)?;
         let lexical_index = LexicalIndex::default();
         ego.validate_memory_version(memories.memory_version())?;
+        entity_resolutions.validate(&memories)?;
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
@@ -153,6 +159,7 @@ impl Phylactery {
             memory_vectors,
             compatibility_profiles,
             ego,
+            entity_resolutions,
         })
     }
 }

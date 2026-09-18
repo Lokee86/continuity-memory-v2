@@ -21,6 +21,7 @@ pub(super) fn migrate(
     let memory_vector_infos = source.memory_vectors.infos();
     let dream_cooldowns = source.dream_cooldown_records();
     let dream_pairs = source.dream_pair_records();
+    let entity_resolutions = source.entity_resolution_records();
 
     let mut output = op(Phylactery::create_with_uuid(output_path, owner_uuid))?;
     for profile in profiles {
@@ -55,6 +56,9 @@ pub(super) fn migrate(
                 .memories
                 .put_routing_metadata(&mut output.container, metadata))?;
         }
+    }
+    for resolution in entity_resolutions {
+        op(output.import_entity_resolution(resolution))?;
     }
     for (transaction, transaction_time_ns) in graph {
         let graph_version = output.graph_version();

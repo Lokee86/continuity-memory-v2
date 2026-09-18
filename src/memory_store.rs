@@ -4,8 +4,8 @@ use crate::memory_codec::{
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
     Container, MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, Memory, MemoryBodyId,
-    MemoryDraft, MemoryError, MemoryId, MemoryRoutingMetadata, MemorySourceRef, MemoryStats,
-    MemoryTemporalInference, MemoryTextField, ObjectRef,
+    MemoryDraft, MemoryEntityMentionKey, MemoryError, MemoryId, MemoryRoutingMetadata,
+    MemorySourceRef, MemoryStats, MemoryTemporalInference, MemoryTextField, ObjectRef,
 };
 use std::collections::HashMap;
 
@@ -249,6 +249,35 @@ impl MemoryStore {
 
     pub(crate) fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {
         self.routing_metadata.get(&id)
+    }
+
+    pub(crate) fn validate_entity_mention_key(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Result<(), MemoryError> {
+        let metadata = self
+            .routing_metadata
+            .get(&key.memory_id)
+            .ok_or(MemoryError::InvalidField("Entity resolution mention"))?;
+        if metadata.entity_mentions.iter().any(|mention| {
+            mention.field == key.field
+                && mention.start_byte == key.start_byte
+                && mention.end_byte == key.end_byte
+        }) {
+            Ok(())
+        } else {
+            Err(MemoryError::InvalidField("Entity resolution mention"))
+        }
+    }
+
+    pub(crate) fn resolution_source_inactive(&self, id: MemoryId) -> bool {
+        self.current
+            .get(&id)
+            .map(|index| {
+                let record = &self.records[*index];
+                record.archived || record.superseded_by.is_some()
+            })
+            .unwrap_or(true)
     }
 
     pub(crate) fn put_routing_metadata(
