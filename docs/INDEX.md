@@ -24,8 +24,8 @@
 - [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
 - [Chronos subsystem plan](chronos-subsystem-plan.md) — shared temporal architecture and implementation status: deterministic core/coverage, corpus-calibrated indication detection, unresolved-only verified inference, and Insomnia Memory persistence are implemented; Perception integration and measured coverage expansion remain.
-- [Perception subsystem plan](perception-subsystem-plan.md) — accepted future architecture and staged implementation plan for Entity/Relationship/Observation synthesis, relationship privacy/composition, routing receptors, reconsideration, and ambiguity clarification.
-- [Entity mention resolution state](entity-resolution-state.md) — current per-mention resolution persistence/lifecycle contract and its bootstrap limitations.
+- [Perception subsystem plan](perception-subsystem-plan.md) — accepted architecture and staged implementation record; Entity pass 1 and its post-Dream runtime scheduling are implemented, while Relationship/Observation synthesis, routing receptors, and ambiguity clarification remain staged work.
+- [Entity mention resolution state](entity-resolution-state.md) — current per-mention resolution persistence/lifecycle, evidence-driven wake/retry, and runtime scheduling contract.
 - [Derived semantic nodes exploration](derived-semantic-nodes-exploration.md) — exploratory Entity/Observation graph-node model, semantic authority, user authorship, derivation provenance, and Hindsight/Honcho boundary.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.

@@ -289,6 +289,12 @@ impl Cva {
         self.dream_cooldowns.records()
     }
 
+    pub(crate) fn dream_was_processed(&self, id: MemoryId) -> bool {
+        self.dream_cooldowns
+            .state(id)
+            .is_some_and(|state| state.processed_at_ns.is_some())
+    }
+
     pub(crate) fn mark_dream_pair_evaluated(
         &mut self,
         left: MemoryId,
@@ -337,6 +343,12 @@ impl Phylactery {
                 processed_at_ns: Some(processed_at_ns),
             },
         )
+    }
+
+    pub(crate) fn dream_was_processed(&self, id: MemoryId) -> bool {
+        self.dream_cooldowns
+            .state(id)
+            .is_some_and(|state| state.processed_at_ns.is_some())
     }
 
     pub(crate) fn mark_dream_pair_evaluated(

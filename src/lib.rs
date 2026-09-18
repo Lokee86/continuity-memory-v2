@@ -185,6 +185,8 @@ mod entity_model;
 mod entity_owner;
 mod entity_rebuild;
 mod entity_resolution_codec;
+mod entity_resolution_commit;
+mod entity_resolution_evaluate;
 mod entity_resolution_evidence;
 #[cfg(test)]
 mod entity_resolution_lifecycle_tests;
@@ -192,6 +194,8 @@ mod entity_resolution_lifecycle_tests;
 mod entity_resolution_migration_tests;
 mod entity_resolution_model;
 mod entity_resolution_owner;
+mod entity_resolution_prepare;
+mod entity_resolution_prepared;
 mod entity_resolution_processor;
 mod entity_resolution_processor_support;
 #[cfg(test)]
@@ -473,6 +477,9 @@ pub use entity_resolution_model::{
     EntityResolutionReason, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus,
 };
+pub(crate) use entity_resolution_prepared::{
+    EntityResolutionEvaluation, EntityResolutionPreparation, EntityResolutionPrepared,
+};
 pub use entity_resolver::{
     EntityResolver, MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES, MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES,
 };
@@ -752,6 +759,8 @@ mod echo_tests;
 #[cfg(test)]
 mod ego_tests;
 #[cfg(test)]
+mod entity_resolution_wake_tests;
+#[cfg(test)]
 mod entity_tests;
 #[cfg(test)]
 mod episode_tests;
@@ -821,6 +830,10 @@ mod reliquary_tests;
 mod runtime_host_backpressure_tests;
 #[cfg(test)]
 mod runtime_host_knowledge_tests;
+#[cfg(test)]
+mod runtime_host_perception_test_support;
+#[cfg(test)]
+mod runtime_host_perception_tests;
 #[cfg(test)]
 mod runtime_host_route_tests;
 #[cfg(test)]

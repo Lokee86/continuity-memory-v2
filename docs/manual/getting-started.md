@@ -74,7 +74,7 @@ Library callers should explicitly call `sync()` at the durability boundaries own
 
 ## What not to expect yet
 
-The CLI does not currently provide a full interactive chat surface, a single-turn live-ingestion command, or the final Warlock Knowledge UI. Entity mention extraction exists, and durable Entity/Graph primitives exist, but the calibrated Entity resolver is not yet wired into the complete zero-Entity bootstrap loop.
+The CLI does not currently provide a full interactive chat surface, a single-turn live-ingestion command, the final Warlock Knowledge UI, or a standalone Perception drain command. In the long-lived runtime host, however, post-Dream Entity pass 1 is automatic for both the active REL and attached PHY: extracted mentions are scheduled through Admission/V4 and persisted as Entity/Graph/resolution state.
 
 ## Related docs
 

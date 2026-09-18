@@ -8,7 +8,7 @@ Shared temporal dependency: [ADR 0035 — Chronos](decisions/0035-chronos-shared
 
 ## Status
 
-Accepted architecture; implementation is in progress. Insomnia Entity-mention enrichment and Perception Milestone B's Entity owner, typed Graph association, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic persistence, and per-mention resolution state are implemented. The full 41-case frozen zero-Entity bootstrap now converges from no preconstructed Entities and survives reopen. Automatic Perception scheduling after Dream is not yet wired, and Relationship/Observation passes remain planned.
+Accepted architecture; implementation is in progress. Insomnia Entity-mention enrichment and Perception Milestone B's Entity owner, typed Graph association, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic persistence, per-mention resolution state, and long-lived post-Dream runtime scheduling are implemented. The full 41-case frozen zero-Entity bootstrap converges from no preconstructed Entities and survives reopen. Relationship/Observation passes remain planned.
 
 This document owns the implementation shape for Perception. ADR 0033 owns the architectural decision and rationale. Current shipped/proven behavior is also reflected in the architecture, API, manual, and limitation docs.
 
@@ -258,7 +258,7 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 - REL and PHY expose disposable Memory lexical search over complete current non-archived title/content, using the same deterministic lexical machinery as Archive search and no model call.
 - Reopen validates `MemoryId + MemoryBodyId` binding and exact Entity source text. Migration/reconciliation replay the attachment, identical writes are idempotent, and conflicts fail closed.
 
-Milestone **B — Entity owner and pass 1** is now implemented as an explicit owner API and validated zero-Entity bootstrap path. ADR 0036 establishes the shared typed semantic-Graph direction: Arcana remains the graph kernel, the Graph catalogue addresses typed semantic nodes, and `EntityAssociation` adds the first Entity-backed relation family without moving Entity payload/lifecycle authority into Graph. The remaining Milestone B runtime work is automatic scheduling of the processor over newly Dream-organized Memories.
+Milestone **B — Entity owner and pass 1** is now implemented as an explicit owner API, validated zero-Entity bootstrap path, and automatic long-lived runtime lane after Dream. ADR 0036 establishes the shared typed semantic-Graph direction: Arcana remains the graph kernel, the Graph catalogue addresses typed semantic nodes, and `EntityAssociation` adds the first Entity-backed relation family without moving Entity payload/lifecycle authority into Graph.
 
 ### B — Entity owner and pass 1
 
@@ -271,7 +271,7 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 - **Implemented:** deterministic `resolve_entity_mention(...)` processor persistence across Entity creation/reuse/split, `Memory -> Entity` association, resolved/unresolved/rejected mention state, partial-write recovery through source associations, REL/PHY parity, and reopen.
 - **Proven:** the frozen 41-query organic bootstrap starts from zero durable Entities and reaches 24 first-occurrence creates, 13 repeat resolves, one distinct same-surface split, one unresolved, two rejects, and 25 durable Entities after reopen without weakening gold assertions.
 - **Deferred pending measurement:** Entity vector/centroid routing. No all-Entity semantic scan or per-query Entity re-embedding is used as a substitute.
-- **Next runtime step:** schedule `resolve_entity_mention(...)` automatically over eligible newly Dream-organized Memories. The owner API is production-capable; automatic Perception scheduling is not yet wired.
+- **Implemented:** long-lived runtime scheduling after Dream for REL and attached PHY. Dream completion enqueues mentions on the processed source and bounded affected candidate Memories; same-surface and candidate-Entity evidence events wake relevant unresolved mentions through derived reverse indexes. Startup performs one recovery scan of active Dream-processed Memories, terminal states are not rerun, unchanged candidate/context fingerprints suppress inference, model calls occur outside owner locks, and stale prepared snapshots are rejected before persistence.
 
 ### B2 — Relationship owner and synthesis lane
 

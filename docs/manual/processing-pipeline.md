@@ -34,7 +34,7 @@ Memories + Entity mentions
   → durable Entities + Memory→Entity Graph associations
 ```
 
-Dream's current production lane is implemented. Perception's Entity pass-1 owner API is also implemented end to end: exact extracted mentions flow through bounded candidate construction, zero-candidate Admission or non-empty-candidate V4 identity resolution, and deterministic Entity/Graph/resolution-state persistence. The frozen zero-Entity corpus proves that one-shot path. What is **not yet wired** is the automatic Perception scheduler that chooses eligible post-Dream mentions and invokes the processor.
+Dream's current production lane is implemented. Perception Entity pass 1 is also implemented end to end in the long-lived runtime host: exact extracted mentions flow through bounded candidate construction, zero-candidate Admission or non-empty-candidate V4 identity resolution, and deterministic Entity/Graph/resolution-state persistence after Dream. The frozen zero-Entity corpus proves the owner path, while runtime tests cover automatic REL/PHY scheduling and lock-free model inference.
 
 ## 1. Ingest source state
 
@@ -95,7 +95,7 @@ extracted mention
 
 The 41-query frozen bootstrap has now proven the organic zero-Entity path without preconstructed Entity records: 24 first-occurrence creates, 13 repeat resolves, one distinct same-surface split, one unresolved, two rejects, and 25 durable Entities after reopen.
 
-This still does **not** make Entity resolution an automatic runtime capability. A Perception scheduler must invoke the one-shot processor over eligible newly Dream-organized Memories; that scheduling layer is not yet wired.
+The runtime host now makes Entity resolution an automatic post-Dream capability. New/affected Dream Memories enqueue exact mention keys; unresolved mentions are also re-enqueued by bounded same-surface or candidate-Entity evidence events. The worker always rebuilds candidates/evidence before inference, skips unchanged candidate/context fingerprints, performs model inference outside REL/PHY locks, and commits only if the prepared Memory/Entity/Graph/resolution snapshot is still current.
 
 ## 6. Derived state refresh
 

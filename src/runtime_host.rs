@@ -29,6 +29,14 @@ mod knowledge_relation;
 mod memory_provenance;
 #[path = "runtime_host_memory_search.rs"]
 pub mod memory_search;
+#[path = "runtime_host_perception.rs"]
+mod perception;
+#[path = "runtime_host_perception_api.rs"]
+mod perception_api;
+#[path = "runtime_host_perception_owner.rs"]
+mod perception_owner;
+#[path = "runtime_host_perception_queue.rs"]
+mod perception_queue;
 #[path = "runtime_host_status.rs"]
 pub mod status;
 #[path = "runtime_host_vectors.rs"]
@@ -121,6 +129,10 @@ impl ReliquaryRuntimeRoutes {
         self.dream.clone().or_else(|| self.general.clone())
     }
 
+    pub(crate) fn perception(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.insomnia_metadata().or_else(|| self.dream())
+    }
+
     pub fn embedding(&self) -> Option<Arc<dyn EmbeddingEndpoint + Send + Sync>> {
         self.embedding.clone()
     }
@@ -132,6 +144,7 @@ pub(super) struct Shared {
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
     pub(super) memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
+    pub(super) perception_queue: Arc<Mutex<perception_queue::PerceptionQueue>>,
     pub(super) insomnia_enabled: Arc<AtomicBool>,
     pub(super) insomnia_backpressure_until_ns: Arc<AtomicI64>,
     pub(super) config: InsomniaWorkerConfig,
@@ -144,6 +157,7 @@ pub struct ReliquaryRuntimeHost {
     routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     phylactery: Arc<Mutex<Option<Phylactery>>>,
     memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
+    perception_queue: Arc<Mutex<perception_queue::PerceptionQueue>>,
     insomnia_enabled: Arc<AtomicBool>,
     insomnia_backpressure_until_ns: Arc<AtomicI64>,
     episode_policy: EpisodePolicy,
@@ -205,6 +219,7 @@ impl ReliquaryRuntimeHost {
         let routes = Arc::new(RwLock::new(routes));
         let phylactery = Arc::new(Mutex::new(phylactery));
         let memory_profiles = Arc::new(Mutex::new(RuntimeMemoryProfiles::default()));
+        let perception_queue = Arc::new(Mutex::new(perception_queue::PerceptionQueue::default()));
         let insomnia_enabled = Arc::new(AtomicBool::new(insomnia_enabled));
         let insomnia_backpressure_until_ns = Arc::new(AtomicI64::new(0));
         let shared = Arc::new(Shared {
@@ -213,12 +228,13 @@ impl ReliquaryRuntimeHost {
             routes: Arc::clone(&routes),
             phylactery: Arc::clone(&phylactery),
             memory_profiles: Arc::clone(&memory_profiles),
+            perception_queue: Arc::clone(&perception_queue),
             insomnia_enabled: Arc::clone(&insomnia_enabled),
             insomnia_backpressure_until_ns: Arc::clone(&insomnia_backpressure_until_ns),
             config: config.clone(),
             episode_policy,
         });
-        let mut workers = Vec::with_capacity(config.workers.saturating_add(2));
+        let mut workers = Vec::with_capacity(config.workers.saturating_add(3));
         for index in 0..config.workers {
             let shared = Arc::clone(&shared);
             workers.push(thread::spawn(move || insomnia::worker_loop(shared, index)));
@@ -231,12 +247,17 @@ impl ReliquaryRuntimeHost {
             let shared = Arc::clone(&shared);
             workers.push(thread::spawn(move || dream::worker_loop(shared)));
         }
+        {
+            let shared = Arc::clone(&shared);
+            workers.push(thread::spawn(move || perception::worker_loop(shared)));
+        }
         Self {
             runtime: Some(runtime),
             signal,
             routes,
             phylactery,
             memory_profiles,
+            perception_queue,
             insomnia_enabled,
             insomnia_backpressure_until_ns,
             episode_policy,
@@ -311,7 +332,7 @@ impl ReliquaryRuntimeHost {
 
     pub fn attach_phylactery(
         &self,
-        phylactery: Phylactery,
+        mut phylactery: Phylactery,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let mut slot = self
             .phylactery
@@ -322,8 +343,17 @@ impl ReliquaryRuntimeHost {
                 "Reliquary runtime already has a Phylactery attached".into(),
             ));
         }
+        let perception_keys = perception_owner::startup_keys_user(&mut phylactery)?;
         *slot = Some(phylactery);
         drop(slot);
+        {
+            let mut queue = self
+                .perception_queue
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            queue.clear(perception_queue::PerceptionOwner::User);
+            queue.push_all(perception_queue::PerceptionOwner::User, perception_keys);
+        }
         self.wake()
     }
 
@@ -337,6 +367,10 @@ impl ReliquaryRuntimeHost {
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .user = None;
+        self.perception_queue
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .clear(perception_queue::PerceptionOwner::User);
         self.wake()?;
         Ok(phylactery)
     }

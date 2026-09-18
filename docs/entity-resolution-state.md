@@ -10,7 +10,7 @@ Describe the implemented per-mention Entity-resolution state owner, deterministi
 
 Entity resolution is tracked per extracted Memory mention. A Memory may therefore contain any mixture of resolved, unresolved, and rejected Entity mentions.
 
-The persistence/retry machinery is now used by `resolve_entity_mention(...)`, which composes bounded candidate retrieval with zero-candidate Admission or non-empty-candidate V4 identity resolution and then deterministically persists Entity creation/reuse, `Memory -> Entity` association, and mention state. The frozen 41-query zero-Entity bootstrap converges to its complete expected state and survives reopen. This proves the one-shot owner API; it does **not** mean automatic Perception scheduling is wired into the runtime.
+The persistence/retry machinery is used by `resolve_entity_mention(...)`, which composes bounded candidate retrieval with zero-candidate Admission or non-empty-candidate V4 identity resolution and then deterministically persists Entity creation/reuse, `Memory -> Entity` association, and mention state. The frozen 41-query zero-Entity bootstrap converges to its complete expected state and survives reopen. The long-lived runtime host now schedules this Entity pass automatically after Dream for both REL and attached PHY.
 
 ## Ownership boundary
 
@@ -29,7 +29,7 @@ Unresolved mentions are **not Entities** and do not receive an `EntityId`.
 
 `create_new` is not a durable resolution state. After an Entity is actually created, the mention is persisted as `Resolved(new_entity_id)`.
 
-A repeated unresolved result with unchanged candidate/context fingerprints is idempotent. It does not append another record or increase the attempt count.
+A repeated unresolved result with unchanged candidate/context fingerprints is idempotent. The runtime may receive a wake event, but it rebuilds the candidate/evidence state first and makes no model call, appends no record, and does not increase the attempt count when both hashes are unchanged. The persisted field names remain `candidate_set_fingerprint` and `context_fingerprint`; semantically they are hashes of candidate identity/state and the bounded resolution evidence supplied to Admission/V4.
 
 ## Retention
 
@@ -47,9 +47,9 @@ The REL/PHY container is append-only, so old state records remain historical byt
 
 ## Retry contract
 
-`resolve_entity_mention(...)` calls the retry policy before model resolution. An absent resolution record is eligible. Pending or dormant state is eligible only when the candidate-set fingerprint or relevant-context fingerprint changed. Resolved and rejected mentions are not eligible. Admission context participates in the relevant-context fingerprint, so changed same-surface evidence can make a previously unresolved zero-candidate mention eligible again.
+`resolve_entity_mention(...)` calls the retry policy before model resolution. An absent resolution record is eligible. Pending or dormant state is eligible only when the candidate-set fingerprint or relevant-context fingerprint changed. Resolved and rejected mentions are not eligible. Admission context participates in the relevant-context fingerprint, so changed same-surface evidence can make a previously unresolved zero-candidate mention eligible again. Candidate-attached Memory evidence likewise participates, so a new association/evidence Memory on a previously considered candidate can make that mention eligible.
 
-The resolution-state owner itself does not schedule retries or invoke a model; it stores and deterministically governs lifecycle. The Entity processor invokes Admission/V4 when eligible. A future Perception runtime scheduler still owns *when* eligible mentions are submitted to that processor.
+The resolution-state owner itself does not invoke a model; it stores and deterministically governs lifecycle. The Perception runtime scheduler owns *when* mention keys are reconsidered. Its wake sources are bounded deterministic events: post-Dream source/affected Memories, same-surface mention evidence, and changes to evidence associated with previously considered candidate Entities. The scheduler then prepares a fresh snapshot, invokes Admission/V4 only when the retry hashes changed, and commits only if the durable owner identity and Memory/Entity/Graph/resolution versions still match.
 
 ## Related docs
 
@@ -60,4 +60,4 @@ The resolution-state owner itself does not schedule retries or invoke a model; i
 
 ## Notes
 
-The zero-Entity bootstrap loop is implemented and corpus-proven, but automatic runtime scheduling remains incomplete. Pending/Dormant timing is therefore storage/processor policy rather than a product-level scheduling promise.
+The zero-Entity bootstrap loop and automatic runtime scheduling are implemented. Pending→Dormant and Dormant→tombstone timing remains lifecycle housekeeping only; wall time does not itself trigger another model attempt. Reconsideration is evidence/event driven.

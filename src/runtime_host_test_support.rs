@@ -85,6 +85,12 @@ impl GeneralEndpoint for UserMemoryEndpoint {
                 }}
             })),
             "insomnia_memory_entity_mentions" => routing_metadata_response(user_payload),
+            "entity_admission_v1" => Ok(json!({
+                "decision": "create_new",
+                "reason": "first_seen_identity",
+                "entity_kind": "tool",
+                "entity_summary": "Helix, the user's preferred code editor."
+            })),
             _ => Err(GeneralEndpointError::Failure(format!(
                 "unexpected schema {schema_name}"
             ))),
@@ -235,17 +241,6 @@ pub(super) fn wait_phylactery_vectors(host: &ReliquaryRuntimeHost, target: usize
                 .is_some_and(|stats| stats.bindings >= target)
         },
         "Phylactery vectorization",
-    );
-}
-
-pub(super) fn wait_phylactery_revisions(host: &ReliquaryRuntimeHost, target: usize) {
-    wait_until(
-        || {
-            host.phylactery_memory_stats()
-                .unwrap()
-                .is_some_and(|stats| stats.revisions >= target)
-        },
-        "Phylactery Dream lifecycle",
     );
 }
 

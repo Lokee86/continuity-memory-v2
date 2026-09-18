@@ -7,13 +7,14 @@ use crate::{
     MemoryDraft, MemoryEntityMentionKey, MemoryError, MemoryId, MemoryRoutingMetadata,
     MemorySourceRef, MemoryStats, MemoryTemporalInference, MemoryTextField, ObjectRef,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 mod grouped_publish;
 
 pub(crate) struct MemoryStore {
     bodies: HashMap<MemoryBodyId, ObjectRef>,
     routing_metadata: HashMap<MemoryId, MemoryRoutingMetadata>,
+    entity_mentions_by_surface: HashMap<String, HashSet<MemoryEntityMentionKey>>,
     records: Vec<MemoryRecord>,
     current: HashMap<MemoryId, usize>,
     by_mutation: HashMap<String, usize>,
@@ -25,6 +26,7 @@ impl MemoryStore {
         Self {
             bodies: HashMap::new(),
             routing_metadata: HashMap::new(),
+            entity_mentions_by_surface: HashMap::new(),
             records: Vec::new(),
             current: HashMap::new(),
             by_mutation: HashMap::new(),
@@ -251,6 +253,29 @@ impl MemoryStore {
         self.routing_metadata.get(&id)
     }
 
+    pub(crate) fn entity_mention_keys_for_surface(
+        &self,
+        surface: &str,
+    ) -> Vec<MemoryEntityMentionKey> {
+        let normalized = normalize_entity_surface(surface);
+        let mut keys: Vec<_> = self
+            .entity_mentions_by_surface
+            .get(&normalized)
+            .into_iter()
+            .flatten()
+            .copied()
+            .collect();
+        keys.sort_by_key(|key| {
+            (
+                key.memory_id.0,
+                key.field.tag(),
+                key.start_byte,
+                key.end_byte,
+            )
+        });
+        keys
+    }
+
     pub(crate) fn validate_entity_mention_key(
         &self,
         key: MemoryEntityMentionKey,
@@ -295,6 +320,7 @@ impl MemoryStore {
             };
         }
         container.append(&crate::memory_routing_codec::encode(&metadata)?)?;
+        self.index_routing_metadata(&metadata);
         self.routing_metadata.insert(metadata.memory_id, metadata);
         Ok(true)
     }
@@ -308,9 +334,20 @@ impl MemoryStore {
             Some(existing) if existing == &metadata => Ok(()),
             Some(_) => Err(MemoryError::RoutingMetadataConflict),
             None => {
+                self.index_routing_metadata(&metadata);
                 self.routing_metadata.insert(metadata.memory_id, metadata);
                 Ok(())
             }
+        }
+    }
+
+    fn index_routing_metadata(&mut self, metadata: &MemoryRoutingMetadata) {
+        for mention in &metadata.entity_mentions {
+            let key = MemoryEntityMentionKey::new(metadata.memory_id, mention);
+            self.entity_mentions_by_surface
+                .entry(normalize_entity_surface(&mention.text))
+                .or_default()
+                .insert(key);
         }
     }
 
@@ -580,6 +617,10 @@ impl MemoryStore {
             memory_version: record.memory_version,
         })
     }
+}
+
+fn normalize_entity_surface(value: &str) -> String {
+    value.trim().to_lowercase()
 }
 
 fn decode_memory_body(bytes: &[u8]) -> Result<(String, String), MemoryError> {

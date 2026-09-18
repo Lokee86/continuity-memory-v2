@@ -19,6 +19,7 @@ fn runtime_routes_keep_inference_capabilities_separate() {
     assert_eq!(routes.insomnia_metadata().unwrap().model(), "metadata");
     assert_eq!(routes.insomnia_ownership().unwrap().model(), "metadata");
     assert_eq!(routes.dream().unwrap().model(), "dream");
+    assert_eq!(routes.perception().unwrap().model(), "metadata");
 }
 
 #[test]
@@ -28,5 +29,6 @@ fn runtime_routes_apply_fallbacks_inside_reliquary() {
     assert_eq!(routes.insomnia().unwrap().model(), "general");
     assert_eq!(routes.insomnia_ownership().unwrap().model(), "general");
     assert_eq!(routes.dream().unwrap().model(), "general");
+    assert_eq!(routes.perception().unwrap().model(), "general");
     assert!(routes.insomnia_metadata().is_none());
 }

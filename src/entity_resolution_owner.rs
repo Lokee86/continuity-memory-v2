@@ -1,11 +1,70 @@
 use crate::{
     Cva, EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,
-    MemoryEntityResolution, MemoryError, MemoryId, Phylactery,
+    MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId, Phylactery,
 };
 
 macro_rules! impl_owner {
     ($owner:ty) => {
         impl $owner {
+            pub(crate) fn entity_mention_keys_for_memory(
+                &self,
+                memory_id: MemoryId,
+            ) -> Vec<MemoryEntityMentionKey> {
+                self.memory_routing_metadata(memory_id)
+                    .map(|metadata| {
+                        metadata
+                            .entity_mentions
+                            .iter()
+                            .map(|mention| MemoryEntityMentionKey::new(memory_id, mention))
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            }
+
+            pub(crate) fn pending_entity_mentions_for_candidate(
+                &self,
+                entity_id: EntityId,
+            ) -> Vec<MemoryEntityMentionKey> {
+                self.entity_resolutions.pending_for_entity(entity_id)
+            }
+
+            pub(crate) fn pending_entity_mentions_for_surface(
+                &self,
+                surface: &str,
+            ) -> Vec<MemoryEntityMentionKey> {
+                self.memories
+                    .entity_mention_keys_for_surface(surface)
+                    .into_iter()
+                    .filter(|key| {
+                        self.entity_resolution(*key).is_some_and(|value| {
+                            matches!(
+                                value.status,
+                                MemoryEntityResolutionStatus::Pending(_)
+                                    | MemoryEntityResolutionStatus::Dormant(_)
+                            )
+                        })
+                    })
+                    .collect()
+            }
+
+            pub(crate) fn schedulable_entity_mentions_for_memory(
+                &self,
+                memory_id: MemoryId,
+            ) -> Vec<MemoryEntityMentionKey> {
+                self.entity_mention_keys_for_memory(memory_id)
+                    .into_iter()
+                    .filter(|key| {
+                        self.entity_resolution(*key).is_none_or(|value| {
+                            matches!(
+                                value.status,
+                                MemoryEntityResolutionStatus::Pending(_)
+                                    | MemoryEntityResolutionStatus::Dormant(_)
+                            )
+                        })
+                    })
+                    .collect()
+            }
+
             pub fn entity_resolution(
                 &self,
                 key: MemoryEntityMentionKey,

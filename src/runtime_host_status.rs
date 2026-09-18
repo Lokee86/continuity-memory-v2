@@ -13,6 +13,8 @@ pub struct RuntimeBackgroundStatus {
     pub phylactery_vector_pending: usize,
     pub reliquary_dream_pending: usize,
     pub phylactery_dream_pending: usize,
+    pub reliquary_perception_pending: usize,
+    pub phylactery_perception_pending: usize,
 }
 
 impl RuntimeBackgroundStatus {
@@ -25,6 +27,8 @@ impl RuntimeBackgroundStatus {
             && self.phylactery_vector_pending == 0
             && self.reliquary_dream_pending == 0
             && self.phylactery_dream_pending == 0
+            && self.reliquary_perception_pending == 0
+            && self.phylactery_perception_pending == 0
     }
 }
 
@@ -84,6 +88,12 @@ impl ReliquaryRuntimeHost {
             }
         };
 
+        let (reliquary_perception_pending, phylactery_perception_pending) = self
+            .perception_queue
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .counts();
+
         Ok(RuntimeBackgroundStatus {
             insomnia,
             reliquary_memories,
@@ -94,6 +104,8 @@ impl ReliquaryRuntimeHost {
             phylactery_vector_pending,
             reliquary_dream_pending,
             phylactery_dream_pending,
+            reliquary_perception_pending,
+            phylactery_perception_pending,
         })
     }
 }

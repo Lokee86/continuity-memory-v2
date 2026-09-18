@@ -1,7 +1,9 @@
+use crate::runtime_host_perception_test_support::{
+    wait_phylactery_entities, wait_phylactery_revisions,
+};
 use crate::runtime_host_test_support::{
     BlockingEndpoint, OmitEndpoint, UserMemoryEndpoint, one_worker, queue_memory_episode,
-    test_path, wait_complete, wait_phylactery_memory, wait_phylactery_revisions,
-    wait_phylactery_vectors,
+    test_path, wait_complete, wait_phylactery_memory, wait_phylactery_vectors,
 };
 use crate::{
     Cva, EchoEvent, EchoEventKind, EpisodeBoundary, EpisodeConfig, EpisodePolicy, InteractionRole,
@@ -181,6 +183,7 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
     wait_phylactery_memory(&host, 1);
     wait_phylactery_vectors(&host, 1);
     wait_phylactery_revisions(&host, 2);
+    wait_phylactery_entities(&host, 1);
     assert_eq!(host.memory_stats().unwrap().memories, 0);
     assert_eq!(
         host.phylactery_owner_id().unwrap().as_deref(),
@@ -202,4 +205,10 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
     assert_eq!(memory.source_episode_id, None);
     assert!(memory.source_time_ns.is_some());
     assert_eq!(memory.lifecycle_state, "canonical");
+    let metadata = phylactery.memory_routing_metadata(memory.id).unwrap();
+    let key = crate::MemoryEntityMentionKey::new(memory.id, &metadata.entity_mentions[0]);
+    assert!(matches!(
+        phylactery.entity_resolution(key).unwrap().status,
+        crate::MemoryEntityResolutionStatus::Resolved { .. }
+    ));
 }

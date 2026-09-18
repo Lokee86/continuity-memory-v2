@@ -1,3 +1,4 @@
+use super::perception_queue::PerceptionOwner;
 use super::{ReliquaryRuntimeHostError, Shared, operation};
 use crate::dream_cooldown::unix_now_ns;
 use crate::{
@@ -130,6 +131,12 @@ pub(super) fn commit_project(
         .mark_dream_processed(source_id, snapshot.dream_epoch, unix_now_ns())
         .map_err(operation)?;
     runtime.cva.sync().map_err(operation)?;
+    let keys = perception_keys_for_project(&runtime.cva, snapshot);
+    shared
+        .perception_queue
+        .lock()
+        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+        .push_all(PerceptionOwner::Project, keys);
     Ok(true)
 }
 
@@ -167,7 +174,47 @@ pub(super) fn commit_user(
     phy.mark_dream_processed(source_id, snapshot.dream_epoch, unix_now_ns())
         .map_err(operation)?;
     phy.sync().map_err(operation)?;
+    let keys = perception_keys_for_user(phy, snapshot);
+    shared
+        .perception_queue
+        .lock()
+        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+        .push_all(PerceptionOwner::User, keys);
     Ok(true)
+}
+
+fn perception_memory_ids(snapshot: &DreamSnapshot) -> Vec<MemoryId> {
+    let mut ids = vec![snapshot.candidates.source.memory.id];
+    ids.extend(
+        snapshot
+            .candidates
+            .candidates
+            .iter()
+            .map(|candidate| candidate.context.memory.id),
+    );
+    ids.sort_by_key(|id| id.0);
+    ids.dedup();
+    ids
+}
+
+fn perception_keys_for_project(
+    cva: &crate::Cva,
+    snapshot: &DreamSnapshot,
+) -> Vec<crate::MemoryEntityMentionKey> {
+    perception_memory_ids(snapshot)
+        .into_iter()
+        .flat_map(|id| cva.schedulable_entity_mentions_for_memory(id))
+        .collect()
+}
+
+fn perception_keys_for_user(
+    phy: &crate::Phylactery,
+    snapshot: &DreamSnapshot,
+) -> Vec<crate::MemoryEntityMentionKey> {
+    perception_memory_ids(snapshot)
+        .into_iter()
+        .flat_map(|id| phy.schedulable_entity_mentions_for_memory(id))
+        .collect()
 }
 
 fn project_snapshot_is_current(

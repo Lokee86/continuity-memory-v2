@@ -1,14 +1,18 @@
+#[path = "entity_resolution_store_index.rs"]
+mod index;
 #[path = "entity_resolution_store_lifecycle.rs"]
 mod lifecycle;
 #[path = "entity_resolution_store_write.rs"]
 mod write;
 
+use index::{deindex_pending, index_pending};
+
 use crate::entity_resolution_codec::{decode_resolution, encode_resolution, encode_tombstone};
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
-    Container, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,
-    MemoryEntityResolutionStatus, MemoryError, MemoryId,
+    Container, EntityId, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
+    MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -17,6 +21,7 @@ pub(crate) struct EntityResolutionStore {
     current: HashMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     revisions: HashMap<MemoryEntityMentionKey, u32>,
     maintenance: HashSet<MemoryEntityMentionKey>,
+    pending_by_entity: HashMap<EntityId, HashSet<MemoryEntityMentionKey>>,
 }
 
 impl EntityResolutionStore {
@@ -45,12 +50,18 @@ impl EntityResolutionStore {
                     status,
                 };
                 validate_status(&value.status)?;
+                if let Some(previous) = self.current.get(&value.key) {
+                    deindex_pending(&mut self.pending_by_entity, value.key, &previous.status);
+                }
                 self.revisions.insert(value.key, value.revision);
                 self.track_maintenance(value.key, &value.status);
+                index_pending(&mut self.pending_by_entity, value.key, &value.status);
                 self.current.insert(value.key, value);
             }
             None => {
-                self.current.remove(&decoded.key);
+                if let Some(previous) = self.current.remove(&decoded.key) {
+                    deindex_pending(&mut self.pending_by_entity, decoded.key, &previous.status);
+                }
                 self.revisions.remove(&decoded.key);
                 self.maintenance.remove(&decoded.key);
             }
@@ -137,8 +148,12 @@ impl EntityResolutionStore {
             status,
         };
         container.append(&encode_resolution(&value)?)?;
+        if let Some(previous) = self.current.get(&key) {
+            deindex_pending(&mut self.pending_by_entity, key, &previous.status);
+        }
         self.revisions.insert(key, revision);
         self.track_maintenance(key, &value.status);
+        index_pending(&mut self.pending_by_entity, key, &value.status);
         self.current.insert(key, value);
         Ok(true)
     }
@@ -156,7 +171,9 @@ impl EntityResolutionStore {
             .revision
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
+        let previous_status = current.status.clone();
         container.append(&encode_tombstone(key, revision, now_ns)?)?;
+        deindex_pending(&mut self.pending_by_entity, key, &previous_status);
         self.current.remove(&key);
         self.revisions.remove(&key);
         self.maintenance.remove(&key);
@@ -184,6 +201,7 @@ impl EntityResolutionStore {
         container.append(&encode_resolution(&value)?)?;
         self.revisions.insert(value.key, 1);
         self.track_maintenance(value.key, &value.status);
+        index_pending(&mut self.pending_by_entity, value.key, &value.status);
         self.current.insert(value.key, value);
         Ok(())
     }
