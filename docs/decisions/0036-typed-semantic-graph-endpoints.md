@@ -95,8 +95,8 @@ Relation-record generalization is a separate implementation step and must preser
 4. Define the minimum durable Entity record and Entity owner.
 5. **Implemented:** define and validate the first Memory-to-Entity `EntityAssociation` relation family.
 6. **Implemented:** generalize relation persistence, traversal projections, migration, and reconciliation to typed endpoints.
-7. Wire calibrated Entity resolution into Entity creation/association.
-8. Run the zero-Entity bootstrap experiment before adding unresolved lifecycle machinery.
+7. **Implemented:** wire zero-candidate Admission and calibrated V4 identity resolution into deterministic Entity creation/reuse/split plus `EntityAssociation` publication.
+8. **Implemented:** run the frozen zero-Entity bootstrap experiment and verify complete expected convergence/reopen while preserving unresolved lifecycle machinery.
 
 ## Verification
 

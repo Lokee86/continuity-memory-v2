@@ -1,4 +1,7 @@
-use reliquary_memory::{ConfiguredGeneralEndpoint, GeneralEndpoint};
+use reliquary_memory::{
+    ConfiguredGeneralEndpoint, ENTITY_RESOLVER_SYSTEM_PROMPT, GeneralEndpoint,
+    entity_resolver_schema,
+};
 use serde_json::{Value, json};
 use std::{
     collections::{HashMap, HashSet},
@@ -162,16 +165,6 @@ fn run_order(
     mention: &Value,
     order: &[Value],
 ) -> Result<Value, String> {
-    let schema = json!({
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["decision", "reason", "target_candidate_index"],
-        "properties": {
-            "decision": {"type":"string","enum":["resolve_existing","create_new","unresolved","reject"]},
-            "reason": {"type":"string","enum":REASONS},
-            "target_candidate_index": {"type":"integer"}
-        }
-    });
     let payload = json!({
         "title": query["title"],
         "content": query["content"],
@@ -186,14 +179,12 @@ fn run_order(
             "evidence": entity["evidence"],
         })).collect::<Vec<_>>(),
     });
-    let prompt = "Resolve only the supplied Entity mention. Lexical or alias equality generates candidates; it NEVER proves identity. Compare the current Memory against each existing durable Entity's kind, summary, and evidence. A false merge is worse than leaving the mention unresolved: require positive contextual evidence before resolve_existing. Entity-kind or role conflicts are strong negative evidence: if the current context identifies a project, person, place, file, service, device, database, or other concrete kind, do not resolve it to a candidate whose kind/summary describes a different kind merely because the surface text matches. Verify that both identity category and surrounding facts are compatible. If context explicitly establishes a distinct durable identity not represented by the candidates, choose create_new. If evidence is insufficient, choose unresolved. Reject only when the mention is not a durable Entity candidate. Do not add, rewrite, merge, or alter the mention span.";
-
     let raw = endpoint
         .complete_json(
-            prompt,
+            ENTITY_RESOLVER_SYSTEM_PROMPT,
             &payload.to_string(),
             "entity_store_resolution_experiment_v1",
-            &schema,
+            &entity_resolver_schema(),
         )
         .map_err(|error| error.to_string())?;
 

@@ -8,9 +8,9 @@ Shared temporal dependency: [ADR 0035 — Chronos](decisions/0035-chronos-shared
 
 ## Status
 
-Accepted architecture; implementation not yet started.
+Accepted architecture; implementation is in progress. Insomnia Entity-mention enrichment and Perception Milestone B's Entity owner, typed Graph association, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic persistence, and per-mention resolution state are implemented. The full 41-case frozen zero-Entity bootstrap now converges from no preconstructed Entities and survives reopen. Automatic Perception scheduling after Dream is not yet wired, and Relationship/Observation passes remain planned.
 
-This document owns the implementation shape for Perception. ADR 0033 owns the architectural decision and rationale. Shipped behavior must move to current-state docs when implemented.
+This document owns the implementation shape for Perception. ADR 0033 owns the architectural decision and rationale. Current shipped/proven behavior is also reflected in the architecture, API, manual, and limitation docs.
 
 ## Overview
 
@@ -69,14 +69,16 @@ Deterministic Chronos products remain derived and need not be persisted. Any non
 
 Perception consumes Insomnia-extracted Entity mentions against the post-Dream Memory Web.
 
-Candidate flow:
+Current Entity flow:
 
-1. Embed the mention in Memory context.
-2. Search the owner-local Entity index.
-3. No plausible candidate -> create an Entity only when the mention still carries identifiable reusable identity; generic/context-only mentions must not become durable Entities.
-4. Clear match -> associate the Memory/mention.
-5. Uncertain match -> compare against semantic centroids and Memory-Web context already attached to the candidate.
-6. Use bounded inference only to confirm association, reject it, or preserve ambiguity.
+1. Start from one exact Insomnia-extracted mention keyed by Memory ID, field, and UTF-8 byte range.
+2. Build a bounded owner-local candidate set from exact canonical-name/alias matches, any existing source-Memory association, Entities attached to lexically local Memories, and Entities attached to first-hop Dream Memory neighbours. These signals generate candidates; they never prove identity.
+3. With **zero candidates**, run **Entity Admission v2**. Admission receives bounded same-surface owner-local Memory context, uses a narrow deterministic guard for known bare-generic surfaces, and decides whether the current mention should `create_new`, remain `unresolved`, or be `reject`ed. On creation it also materializes stable Entity kind/summary metadata. Context may inform metadata only when clearly compatible with the same referent; same-surface evidence that could describe a second identity must not be merged.
+4. With **one or more candidates**, run the calibrated **V4 identity resolver** against the current Memory plus each candidate's Entity metadata and bounded evidence, prioritizing Memories already associated with that Entity before discovery evidence. V4 decides `resolve_existing`, `create_new` for a distinct identity, `unresolved`, or `reject`.
+5. Deterministically persist a successful result as Entity state where needed, a `Memory -> Entity` `EntityAssociation`, and terminal per-mention resolution state. V4 `create_new` uses a separate metadata-only materialization call so the calibrated V4 contract remains unchanged.
+6. Persist unresolved/rejected state under the existing lifecycle policy. Candidate/context fingerprints make unresolved reconsideration evidence-driven rather than repeated unchanged inference.
+
+No Entity vector/centroid lane is required by the current implementation. That remains a measurement-driven future routing option.
 
 Entities are durable referents. Sarah remains the same Entity through employer, role, location, relevance, and conversational changes.
 
@@ -256,17 +258,20 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 - REL and PHY expose disposable Memory lexical search over complete current non-archived title/content, using the same deterministic lexical machinery as Archive search and no model call.
 - Reopen validates `MemoryId + MemoryBodyId` binding and exact Entity source text. Migration/reconciliation replay the attachment, identical writes are idempotent, and conflicts fail closed.
 
-The next implementation milestone is **B — Entity owner and pass 1**. ADR 0036 establishes the shared typed semantic-Graph direction: Arcana remains the graph kernel, the Graph catalogue now addresses typed semantic nodes, and Milestone B will add the first Entity-backed relation family without moving Entity payload/lifecycle authority into Graph.
+Milestone **B — Entity owner and pass 1** is now implemented as an explicit owner API and validated zero-Entity bootstrap path. ADR 0036 establishes the shared typed semantic-Graph direction: Arcana remains the graph kernel, the Graph catalogue addresses typed semantic nodes, and `EntityAssociation` adds the first Entity-backed relation family without moving Entity payload/lifecycle authority into Graph. The remaining Milestone B runtime work is automatic scheduling of the processor over newly Dream-organized Memories.
 
 ### B — Entity owner and pass 1
 
 - **Implemented:** durable Entity IDs, revisions/persistence, normalized one-to-many aliases, mutable semantic metadata, REL/PHY reopen, migration/reconciliation replay, and resolution-reference validation.
 - **Implemented:** typed Graph relation endpoints/persistence over the existing Arcana kernel, with full semantic traversal plus an isolated Memory-only Dream/Community projection.
 - **Implemented:** directional `Memory -> Entity` `EntityAssociation` topology, REL/PHY reopen, migration, divergent reconciliation, reverse lookup, and projection-watermark isolation.
-- **Implemented:** bounded deterministic Entity candidate retrieval for one exact Memory mention: indexed exact canonical-name/alias lookup, owner-local lexical-Memory context, first-hop Dream-neighbour context, bounded evidence Memory IDs, deterministic ranking, REL/PHY parity, and reopen-safe derived indexes. These signals generate candidates only and do not assert identity.
+- **Implemented:** bounded deterministic Entity candidate retrieval for one exact Memory mention: indexed exact canonical-name/alias lookup, source-Memory association recovery, owner-local lexical-Memory context, first-hop Dream-neighbour context, bounded evidence Memory IDs, deterministic ranking, REL/PHY parity, and reopen-safe derived indexes. These signals generate candidates only and do not assert identity.
+- **Implemented:** zero-candidate **Entity Admission v2** with bounded same-surface context, narrow bare-generic rejection, and stable source-grounded initial Entity metadata. Admission and identity resolution remain separate judgments.
+- **Implemented:** calibrated **V4 identity resolution** for non-empty candidate sets using the same prompt/payload/schema as the frozen calibration harness, with Entity-attached Memories hydrated before incidental discovery evidence.
+- **Implemented:** deterministic `resolve_entity_mention(...)` processor persistence across Entity creation/reuse/split, `Memory -> Entity` association, resolved/unresolved/rejected mention state, partial-write recovery through source associations, REL/PHY parity, and reopen.
+- **Proven:** the frozen 41-query organic bootstrap starts from zero durable Entities and reaches 24 first-occurrence creates, 13 repeat resolves, one distinct same-surface split, one unresolved, two rejects, and 25 durable Entities after reopen without weakening gold assertions.
 - **Deferred pending measurement:** Entity vector/centroid routing. No all-Entity semantic scan or per-query Entity re-embedding is used as a substitute.
-- **Next:** wire the calibrated resolver to real Entity creation/association and run the zero-Entity bootstrap experiment.
-- Persist unresolved Entity ambiguity.
+- **Next runtime step:** schedule `resolve_entity_mention(...)` automatically over eligible newly Dream-organized Memories. The owner API is production-capable; automatic Perception scheduling is not yet wired.
 
 ### B2 — Relationship owner and synthesis lane
 

@@ -34,7 +34,7 @@ Memories + Entity mentions
   → durable Entities + Memory→Entity Graph associations
 ```
 
-Dream's current production lane is implemented. Perception's durable Entity/Graph primitives are implemented, but the automatic connection from extracted mentions through candidate retrieval/V4 into Entity creation/association is **not yet wired end to end**. The final automated scheduling of Entity resolution relative to Dream is therefore not stated as settled here.
+Dream's current production lane is implemented. Perception's Entity pass-1 owner API is also implemented end to end: exact extracted mentions flow through bounded candidate construction, zero-candidate Admission or non-empty-candidate V4 identity resolution, and deterministic Entity/Graph/resolution-state persistence. The frozen zero-Entity corpus proves that one-shot path. What is **not yet wired** is the automatic Perception scheduler that chooses eligible post-Dream mentions and invokes the processor.
 
 ## 1. Ingest source state
 
@@ -73,28 +73,29 @@ Dream currently sees the Memory-only Graph projection. Entity-only Graph mutatio
 The following primitives are current:
 
 - durable Entity objects in REL/PHY.
-- exact one-to-many canonical-name/alias candidate lookup.
+- exact one-to-many canonical-name/alias candidate lookup plus source-association recovery.
 - bounded per-mention candidate retrieval combining exact surface, lexical Memory context, and first-hop Dream-neighbour evidence.
-- per-mention resolution-state machinery retained from earlier work.
-- typed `Memory -> Entity` Graph association.
+- bounded same-surface Admission context for zero-candidate mentions.
+- **Entity Admission v2** for first-seen durable-referent judgment and initial stable metadata.
+- calibrated **V4 identity resolution** for one or more existing Entity candidates.
+- `resolve_entity_mention(...)` orchestration across model judgment, Entity creation/reuse/split, typed `Memory -> Entity` Graph association, and per-mention resolution state.
 - full semantic Graph traversal and Knowledge read visibility.
 
-The calibrated V4 resolver is proven when given a Memory, one extracted mention, and candidate Entity records. Candidate retrieval now produces that bounded input shape, but the runtime does not yet automatically execute V4 and persist its create/associate result.
-
-The following production loop is still **not yet wired/proven**:
+The calibrated V4 contract remains unchanged from the frozen preconstructed-Entity calibration. It is **not** used for first-seen admission. The production split is:
 
 ```text
-zero Entities
-  → extracted mention
+extracted mention
   → bounded candidate retrieval
-  → V4
-  → create/associate
-  → index created Entity
-  → later mention retrieves it
-  → converges on same Entity
+      ├─ zero candidates → Admission v2
+      │                    create / unresolved / reject
+      └─ candidates     → V4 identity resolution
+                           resolve / split-create / unresolved / reject
+  → deterministic Entity + Graph + mention-state persistence
 ```
 
-Until that loop is completed, do not describe Entity resolution as an automatic production capability.
+The 41-query frozen bootstrap has now proven the organic zero-Entity path without preconstructed Entity records: 24 first-occurrence creates, 13 repeat resolves, one distinct same-surface split, one unresolved, two rejects, and 25 durable Entities after reopen.
+
+This still does **not** make Entity resolution an automatic runtime capability. A Perception scheduler must invoke the one-shot processor over eligible newly Dream-organized Memories; that scheduling layer is not yet wired.
 
 ## 6. Derived state refresh
 

@@ -69,7 +69,7 @@ Dream reasons over Memory relationships and publishes verified Memory-to-Memory 
 
 ### Perception
 
-Perception owns Entities and future Observations. Durable Entity storage and Memory-to-Entity Graph associations are implemented. The calibrated V4 resolver exists as a decision component, but the complete production bootstrap loop is not yet wired.
+Perception owns Entities and future Observations. Durable Entity storage, Memory-to-Entity Graph associations, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, and deterministic per-mention processor persistence are implemented. The organic zero-Entity bootstrap is corpus-proven; automatic runtime scheduling of that processor is not yet wired.
 
 ### Durable vs derived
 

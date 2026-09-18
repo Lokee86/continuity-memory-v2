@@ -170,7 +170,10 @@ mod ego_error;
 mod ego_model;
 mod ego_store;
 mod embedding_endpoint;
+mod entity_admission;
 mod entity_candidate_model;
+mod entity_candidate_rank;
+mod entity_candidate_routing;
 #[cfg(test)]
 mod entity_candidate_test_support;
 #[cfg(test)]
@@ -182,12 +185,19 @@ mod entity_model;
 mod entity_owner;
 mod entity_rebuild;
 mod entity_resolution_codec;
+mod entity_resolution_evidence;
 #[cfg(test)]
 mod entity_resolution_lifecycle_tests;
 #[cfg(test)]
 mod entity_resolution_migration_tests;
 mod entity_resolution_model;
 mod entity_resolution_owner;
+mod entity_resolution_processor;
+mod entity_resolution_processor_support;
+#[cfg(test)]
+mod entity_resolution_processor_test_support;
+#[cfg(test)]
+mod entity_resolution_processor_tests;
 #[cfg(test)]
 mod entity_resolution_reconcile_tests;
 mod entity_resolution_store;
@@ -195,7 +205,15 @@ mod entity_resolution_store;
 mod entity_resolution_test_support;
 #[cfg(test)]
 mod entity_resolution_tests;
+mod entity_resolver;
+mod entity_resolver_error;
+mod entity_resolver_model;
+mod entity_resolver_schema;
 mod entity_store;
+#[cfg(all(test, feature = "entity-calibration"))]
+mod entity_zero_bootstrap_calibration_support;
+#[cfg(all(test, feature = "entity-calibration"))]
+mod entity_zero_bootstrap_calibration_tests;
 mod episode_builder;
 mod episode_codec;
 mod episode_index;
@@ -435,12 +453,14 @@ pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
     VectorNormalization,
 };
+pub use entity_admission::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;
 pub use entity_candidate_model::{
     DEFAULT_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, DEFAULT_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
     DEFAULT_ENTITY_CANDIDATE_SUPPORT_MEMORIES, EntityCandidate, EntityCandidateConfig,
-    EntityCandidateError, EntityCandidateSet, MAX_ENTITY_CANDIDATE_CONTEXT_TERMS,
-    MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
-    MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES, MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
+    EntityCandidateError, EntityCandidateSet, MAX_ENTITY_ADMISSION_SURFACE_MEMORIES,
+    MAX_ENTITY_CANDIDATE_CONTEXT_TERMS, MAX_ENTITY_CANDIDATE_GRAPH_NEIGHBORS,
+    MAX_ENTITY_CANDIDATE_LEXICAL_MEMORIES, MAX_ENTITY_CANDIDATE_SUPPORT_MEMORIES,
+    MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
 };
 pub use entity_error::EntityError;
 pub use entity_model::{
@@ -452,6 +472,20 @@ pub use entity_resolution_model::{
     EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
     EntityResolutionReason, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus,
+};
+pub use entity_resolver::{
+    EntityResolver, MAX_ENTITY_RESOLVER_EVIDENCE_MEMORIES, MAX_ENTITY_RESOLVER_EVIDENCE_TEXT_BYTES,
+};
+pub use entity_resolver_error::EntityResolverError;
+pub use entity_resolver_model::{
+    EntityAdmissionDecision, EntityAdmissionOutput, EntityMaterialization,
+    EntityResolutionDecision, EntityResolutionOutcome, EntityResolverOutput,
+};
+pub use entity_resolver_schema::{
+    ENTITY_ADMISSION_CONTRACT_VERSION, ENTITY_ADMISSION_SYSTEM_PROMPT,
+    ENTITY_MATERIALIZATION_CONTRACT_VERSION, ENTITY_MATERIALIZATION_SYSTEM_PROMPT,
+    ENTITY_RESOLVER_CONTRACT_VERSION, ENTITY_RESOLVER_SYSTEM_PROMPT, entity_admission_schema,
+    entity_materialization_schema, entity_resolver_schema,
 };
 pub use episode_model::{
     DEFAULT_EPISODE_MAX_INPUT_BYTES, Episode, EpisodeBoundary, EpisodeBuildResult, EpisodeConfig,

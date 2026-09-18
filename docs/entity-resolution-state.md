@@ -4,13 +4,13 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-Describe the implemented per-mention Entity-resolution state owner and its current deterministic lifecycle rules. This is **not** the end-to-end Entity bootstrap workflow.
+Describe the implemented per-mention Entity-resolution state owner, deterministic lifecycle rules, and how the production-capable Entity processor uses that state.
 
 ## Overview
 
 Entity resolution is tracked per extracted Memory mention. A Memory may therefore contain any mixture of resolved, unresolved, and rejected Entity mentions.
 
-The persistence/retry machinery documented here exists, but the calibrated resolver is not yet wired through the complete zero-Entity candidate-retrieval/create/associate/convergence loop. Treat the retry/retention policy as current compatibility behavior rather than proof that automatic Entity resolution is production-complete.
+The persistence/retry machinery is now used by `resolve_entity_mention(...)`, which composes bounded candidate retrieval with zero-candidate Admission or non-empty-candidate V4 identity resolution and then deterministically persists Entity creation/reuse, `Memory -> Entity` association, and mention state. The frozen 41-query zero-Entity bootstrap converges to its complete expected state and survives reopen. This proves the one-shot owner API; it does **not** mean automatic Perception scheduling is wired into the runtime.
 
 ## Ownership boundary
 
@@ -47,11 +47,9 @@ The REL/PHY container is append-only, so old state records remain historical byt
 
 ## Retry contract
 
-Perception should call `entity_resolution_retry_needed` before model resolution.
+`resolve_entity_mention(...)` calls the retry policy before model resolution. An absent resolution record is eligible. Pending or dormant state is eligible only when the candidate-set fingerprint or relevant-context fingerprint changed. Resolved and rejected mentions are not eligible. Admission context participates in the relevant-context fingerprint, so changed same-surface evidence can make a previously unresolved zero-candidate mention eligible again.
 
-An absent resolution record is eligible. Pending or dormant state is eligible only when the candidate-set fingerprint or relevant-context fingerprint changed. Resolved and rejected mentions are not eligible.
-
-This layer does not schedule retries or invoke a model. It only stores and deterministically governs the lifecycle.
+The resolution-state owner itself does not schedule retries or invoke a model; it stores and deterministically governs lifecycle. The Entity processor invokes Admission/V4 when eligible. A future Perception runtime scheduler still owns *when* eligible mentions are submitted to that processor.
 
 ## Related docs
 
@@ -62,4 +60,4 @@ This layer does not schedule retries or invoke a model. It only stores and deter
 
 ## Notes
 
-The automatic V4 resolver/bootstrap loop remains incomplete. Do not expose Pending/Dormant timing as a product promise until the zero-Entity corpus experiment has measured how unresolved mentions actually evolve.
+The zero-Entity bootstrap loop is implemented and corpus-proven, but automatic runtime scheduling remains incomplete. Pending/Dormant timing is therefore storage/processor policy rather than a product-level scheduling promise.
