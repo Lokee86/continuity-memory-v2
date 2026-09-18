@@ -53,9 +53,9 @@ Do not create a placeholder “unresolved Entity.”
 
 ## Entity mention has no candidate
 
-Current automatic bootstrap is not yet wired end to end.
+`entity_candidates_for_mention` is current and may legitimately return an empty bounded set after checking exact surface, lexical Memory context, and first-hop Dream-neighbour evidence.
 
-If you are exercising the primitives manually, an empty candidate set does not itself prove that a new Entity should be created; the calibrated resolver is intended to make that judgment from the Memory/mention/candidate context.
+The automatic V4 bootstrap is still not wired end to end. An empty candidate set therefore does not itself prove that a new Entity should be created; the calibrated resolver is intended to make that judgment from the Memory/mention/candidate context.
 
 ## Community appears stale
 

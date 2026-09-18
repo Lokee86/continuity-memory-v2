@@ -74,11 +74,12 @@ The following primitives are current:
 
 - durable Entity objects in REL/PHY.
 - exact one-to-many canonical-name/alias candidate lookup.
+- bounded per-mention candidate retrieval combining exact surface, lexical Memory context, and first-hop Dream-neighbour evidence.
 - per-mention resolution-state machinery retained from earlier work.
 - typed `Memory -> Entity` Graph association.
 - full semantic Graph traversal and Knowledge read visibility.
 
-The calibrated V4 resolver is proven when given a Memory, one extracted mention, and candidate Entity records.
+The calibrated V4 resolver is proven when given a Memory, one extracted mention, and candidate Entity records. Candidate retrieval now produces that bounded input shape, but the runtime does not yet automatically execute V4 and persist its create/associate result.
 
 The following production loop is still **not yet wired/proven**:
 
