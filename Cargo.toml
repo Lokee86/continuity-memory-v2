@@ -18,6 +18,26 @@ name = "entity_calibration_distribution"
 path = "examples/entity_calibration_distribution/main.rs"
 required-features = ["entity-calibration"]
 
+[[example]]
+name = "entity_validation_experiment"
+path = "examples/entity_validation_experiment/main.rs"
+required-features = ["entity-calibration"]
+
+[[example]]
+name = "entity_resolution_experiment"
+path = "examples/entity_resolution_experiment/main.rs"
+required-features = ["entity-calibration"]
+
+[[example]]
+name = "entity_disambiguation_experiment"
+path = "examples/entity_disambiguation_experiment/main.rs"
+required-features = ["entity-calibration"]
+
+[[example]]
+name = "entity_store_resolution_experiment"
+path = "examples/entity_store_resolution_experiment/main.rs"
+required-features = ["entity-calibration"]
+
 [dependencies]
 arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "9ebccd6e7d089b98a8992c5451ba57f903f295fb" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
