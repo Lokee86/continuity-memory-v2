@@ -777,6 +777,50 @@ The embedded global-version count must equal the newly published local Memory-re
 
 `CVAINSC5` is the physical and logical visibility boundary for the REL side of an Insomnia success. Its `transaction_time_ns` is sampled by the Container immediately before publication and applies to every embedded global version in that atomic completion. New local content-addressed Memory bodies, their Memory records, their body-bound routing metadata, their global-version allocation, owner-qualified external Memory references, and the compact successful Episode receipt all live inside this one outer REL chunk. No standalone local Memory-body, Memory-record, Memory-version, routing-metadata, or `CVAVERS2` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing local bodies may be referenced without being re-embedded. Embedded routing metadata is validated only after its referenced Memory record/body has been reconstructed, but becomes visible from the same outer completion transaction.
 
-An external Memory reference is `string owner_id + 32-byte MemoryId`. The current routed implementation uses it for User-owned PHY Memories. Those Memories are published and synced in the PHY be
+An external Memory reference is `string owner_id + 32-byte MemoryId`. The current routed implementation uses it for User-owned PHY Memories. Those Memories are published and synced in the PHY before the REL completion is appended, and are not REL semantic/version state. If the process fails after PHY publication but before the REL receipt, retry reuses the deterministic Memory mutation ID and accepts the existing PHY Memory only when its routed semantics match.
 
-[TRUNCATED at 50000 chars]
+If a `CVAINSC5` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer REL chunk, leaving no orphan local REL body, record, routing attachment, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. Any already-synced external PHY Memory/routing attachment remains durable and is reused by that retry. A valid completed transaction reconstructs all new local Memories, their embedded routing metadata, plus the successful receipt and its external references together.
+
+`CVAINSC4` remains decodable with the same transaction timestamp, owner-qualified external Memory references, and atomic local Memory transaction as current V5, but it predates embedded routing metadata and therefore reopens with none from that completion. `CVAINSC3` retains external Memory references but predates explicit transaction time, so its embedded versions reopen with unknown transaction timestamps. `CVAINSC2` has the same embedded local Memory transaction but no external-reference section and likewise has no transaction-time mapping. `CVAINSC1` also remains decodable; in that older format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk. V1/V2 completions reopen with an empty external-reference list. Current processing writes only `CVAINSC5`.
+
+The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC5` REL transaction, with any routed external owner publication already durable.
+
+Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
+
+### Strings
+```text
+u32 byte_length
+N bytes UTF-8
+```
+
+## Historical semantics
+
+Archive, Memories, Entities, Graph, and Vector Generations have independent local watermarks. Community `generation` and `memory_graph_version` are derived-state bookkeeping, not independent semantic-owner clocks. Global ordering may interleave semantic mutations; integer adjacency is never semantic ancestry. Packed matrices, Memory-Vector bindings, Archive-Vector bindings, and compatibility profiles are immutable backing objects. Memory Vectors have no local clock because their identity is immutable semantic Memory content plus compatibility profile. A published Vector Generation is the semantic association that activates one profile/population.
+
+## Diagnostics and failure behavior
+
+`Cva::open` / `Reliquary::open` requires Reliquary type/scope identity (or the legacy 16-byte Project form) and validates the format markers and records owned by each persisted subsystem. Current 40-byte typed files also carry the durable owner UUID; earlier 16-byte and 24-byte forms remain readable for explicit migration but have no owner ID. Graph and Entity are compatibility exceptions for older files created before those owners existed: absence of their records opens as empty owner state, and new durable writes initialize the required current records. Other unsupported development-format incompatibilities fail closed.
+
+`Phylactery::open` requires exact typed Phylactery identity (`file_kind=2`, scope byte `0`) and rebuilds Memories, Entities, typed Graph state, optional Community snapshots/semantic names, Packed Vectors, Memory Vectors, Compatibility Profiles, Ego state, and Entity-resolution state where present. It validates semantic global-version uniqueness, Graph endpoints, Entity-resolution references, Community/name membership references, vector/profile references, absence of REL-local Memory provenance, and structural validity of any external `MemorySourceRef`. REL, legacy CVA, and invalid file-kind/scope combinations fail closed.
+
+Container validates framing/global tickets. A truncated **final** length-prefixed chunk is treated as an interrupted append: reopen truncates the file to that chunk's starting offset and resumes from the last complete chunk boundary. Truncation of the REL/PHY header still fails closed. Concrete stores validate their own complete records. Cross-store references are validated after reconstruction in dependency order. Composition-level validation rejects a global version claimed by multiple semantic mutations.
+
+## Defaults or precedence
+
+Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
+
+## Related docs
+
+- [Architecture](architecture.md)
+- [Rust API](api.md)
+- [Architectural invariants](invariants.md)
+- [Operator and integration manual](manual/INDEX.md)
+- [ADR 0006](decisions/0006-archive-vector-row-bindings.md)
+- [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md)
+- [ADR 0012](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)
+- [ADR 0013](decisions/0013-immutable-memory-vector-bindings.md)
+- [ADR 0036](decisions/0036-typed-semantic-graph-endpoints.md)
+
+## Notes
+
+These remain development formats and may evolve before a stable external-format commitment. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. Broader persistent lexical indexing, ANN acceleration, generalized retention/vacuum, and whole-file historical restore remain future work.

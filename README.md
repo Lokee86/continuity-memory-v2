@@ -64,6 +64,7 @@ The core crate and repo-local CLI are verified separately. Start with [Developme
 
 Start with:
 
+- [Operator and integration manual](docs/manual/INDEX.md) — how to use Reliquary.
 - [Documentation index](docs/INDEX.md)
 - [Architecture](docs/architecture.md)
 - [Storage format](docs/storage-format.md)

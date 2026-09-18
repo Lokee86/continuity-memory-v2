@@ -13,6 +13,7 @@ The repository uses the `library-engine` profile with the `stateful` capability.
 ## Canonical ownership
 
 - `README.md` is the repository entry point and current status summary.
+- [Operator and integration manual](manual/INDEX.md) is task-oriented workflow guidance. It derives current facts from canonical reference owners and must not become a competing architecture/API/storage authority.
 - [Architecture](architecture.md) owns implemented responsibilities, state, lifecycle, boundaries, and code map.
 - [Architectural invariants](invariants.md) owns governing constraints.
 - [Storage format](storage-format.md) owns exact durable encoding and compatibility behavior.
