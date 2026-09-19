@@ -59,4 +59,4 @@ The first checks repository structure. The changed-from form additionally enforc
 
 ## Notes
 
-Pitlord policy has not yet been added to this new repository. That gap is tracked in [current limitations](current-limitations.md).
+Repository-local architecture enforcement lives under `tools/pitlord/` and composes the shared architecture-core policy from the sibling `engineering-standards` repository. `python scripts/check_architecture.py --refresh` rebuilds Lexicon/Arcana evidence and then validates the current Pitlord policy; the documentation checker remains a separate structural/change-impact gate.

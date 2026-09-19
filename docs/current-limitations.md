@@ -106,7 +106,7 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 - Memory authority is independent from embeddings. Memory semantic title/content is immutable across revisions, so metadata-only revisions do not cause embedding regeneration; only a new compatibility profile creates another vector for an existing body.
 
 ## Enforcement limits
-Repository-local Pitlord policy has not yet been added.
+Repository-local Pitlord enforcement now assigns every authored Rust source file under `src/` to exactly one architectural owner and blocks reintroduction of the deleted generic `WorkspaceMetadata` / `workspace_type` authority outside the explicit legacy migration decoder. The policy deliberately does not yet claim a fully acyclic cross-owner dependency graph: the current flat `src/` layout requires exact-file ownership selectors, so coarse directional/cycle rules are deferred until physical module/crate boundaries provide stable Arcana regions. The generated `.lexicon/` and `.arcana/` state is disposable analysis evidence and remains ignored rather than becoming repository authority.
 
 ## Related docs
 - [Roadmap](roadmap.md)

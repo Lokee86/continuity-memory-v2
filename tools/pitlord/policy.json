@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "includes": [
+    "../../../engineering-standards/policies/pitlord/architecture-core.json",
+    "semantic.json"
+  ],
+  "rules": [
+    {
+      "id": "legacy-workspace-metadata-forbidden",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/**/*.rs"
+      ],
+      "literal": "WorkspaceMetadata",
+      "message": "Reliquary must not recreate deleted generic workspace metadata authority.",
+      "exclude_paths": [
+        "src/migration.rs"
+      ]
+    },
+    {
+      "id": "legacy-workspace-type-forbidden",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/**/*.rs"
+      ],
+      "literal": "workspace_type",
+      "message": "Reliquary must not recreate generic persisted workspace type authority.",
+      "exclude_paths": [
+        "src/migration.rs"
+      ]
+    }
+  ]
+}

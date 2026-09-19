@@ -50,7 +50,7 @@ Concrete database implementations precede any shared abstraction. Similar mechan
 
 - Current module boundaries separate `Container` from Archive domain codecs and validation.
 - [Architectural invariants](../invariants.md) record the ownership rules.
-- Repository-local Pitlord policy remains future enforcement work.
+- Repository-local Pitlord policy now enforces one architectural owner per authored `src/` Rust file and blocks the deleted generic workspace metadata/type authority outside the legacy migration decoder. Cross-owner dependency-direction rules remain evidence-driven rather than aspirational.
 
 ## Risks and debt
 

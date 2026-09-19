@@ -356,6 +356,14 @@ G104 / A701   Archive mutation
 - credential objects are encrypted independently and never become CVA semantic state;
 - model routes reference credentials by stable ID; executable switchboards reject missing or wrong-kind credentials;
 - model-switchboard routing/authentication is machine-local integration policy and cannot establish vector compatibility.
+## Architecture enforcement
+
+Repository-local Pitlord policy maps every authored Rust file under `src/` to exactly one current architectural owner: physical container, Archive/source history, Memory authority, retrieval/vector state, semantic graph, Perception, Chronos, Ego, runtime/inference, config/security, or the public composition facade. These are responsibility boundaries inside the current single core crate, not claims that eleven crates already exist.
+
+The ownership gate is intentionally stricter than the current physical layout: a new or moved Rust source file is unowned until `tools/pitlord/semantic.json` assigns it. Static policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration decoder. Cross-owner dependency-direction and cycle rules are added only when refreshed Arcana evidence demonstrates a stable seam that the implementation already satisfies. The current flat `src/` layout therefore uses exact-file ownership selectors now; coarse dependency rules wait for physical module/crate boundaries instead of encoding aspirational structure as passing policy.
+
+`python scripts/check_architecture.py --refresh` rebuilds disposable Lexicon/Arcana graph evidence and evaluates the policy. The push/PR architecture workflow runs the same refreshed check.
+
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |

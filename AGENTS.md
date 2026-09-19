@@ -57,6 +57,12 @@ python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
 ```
 
+For architectural/source-ownership changes also refresh and enforce the repository policy:
+
+```text
+python scripts/check_architecture.py --refresh
+```
+
 When the graph-corpus smoke path is affected, run the `archive_roundtrip` example against a prepared graph JSONL fixture.
 
 ## Completion report

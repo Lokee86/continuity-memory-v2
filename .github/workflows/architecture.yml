@@ -1,0 +1,50 @@
+name: Architecture
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pitlord:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: reliquary
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/engineering-standards
+          path: engineering-standards
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/lexicon-arcana
+          path: analysis
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/pitlord
+          path: pitlord
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: pitlord/go.mod
+          cache: true
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build architecture tools
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/reliquary-tools"
+          (cd pitlord && go build -trimpath -o "${RUNNER_TEMP}/reliquary-tools/pitlord" ./cmd/pitlord)
+          (cd analysis/lexicon && go build -trimpath -o "${RUNNER_TEMP}/reliquary-tools/lexicon" ./cmd/lexicon)
+          cargo build --release --locked --manifest-path analysis/lexicon/adapters/rust/Cargo.toml
+          cp analysis/lexicon/adapters/rust/target/release/lexicon-rust-adapter analysis/lexicon/adapters/rust/lexicon-rust
+          cargo build --release --locked --manifest-path analysis/arcana/Cargo.toml
+
+      - name: Enforce architecture
+        shell: bash
+        working-directory: reliquary
+        env:
+          PITLORD: ${{ runner.temp }}/reliquary-tools/pitlord
+          LEXICON: ${{ runner.temp }}/reliquary-tools/lexicon
+          ARCANA: ${{ github.workspace }}/analysis/arcana/target/release/arcana
+          LEXICON_ARCANA_ROOT: ${{ github.workspace }}/analysis
+        run: python scripts/check_architecture.py --refresh

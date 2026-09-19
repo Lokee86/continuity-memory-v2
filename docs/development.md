@@ -47,6 +47,9 @@ examples/archive_open_profile.rs     allocator/open-time benchmark
 examples/entity_calibration_harvest.rs deterministic frozen-corpus Entity calibration harvester
 
 docs/                                current docs, plans, limits, decisions
+tools/pitlord/                       repository architecture ownership/policy
+scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord enforcement
+.github/workflows/architecture.yml   push/PR architecture gate
 ```
 
 Do not copy large portions of previous Reliquary implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
@@ -62,6 +65,7 @@ cargo check --manifest-path cli/Cargo.toml --locked
 cargo test --manifest-path cli/Cargo.toml --locked
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+python scripts/check_architecture.py --refresh
 ```
 
 The ordinary `cargo test` suite contains only correctness/regression tests and should report zero ignored tests. Fourteen Community performance, routing-quality, and operating-point experiments live behind the opt-in `community-benchmarks` Cargo feature instead of registering as ignored unit tests. Use `cargo test --release --features community-benchmarks` when intentionally rerunning that benchmark/validation set. Feature-gated Community benchmarks must not become the only coverage for a correctness contract.
