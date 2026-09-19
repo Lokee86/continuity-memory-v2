@@ -65,4 +65,4 @@ Rejected for the current design. Complete historical Community snapshots already
 
 ## Verification
 
-`src/community_lineage.rs` protects clear continuation, tied-split ambiguity, user-name inheritance across material drift, and cumulative Dream-name invalidation against the original baseline. Existing Dream naming persistence/reopen tests protect the `CVACNAM1` record path and user-over-Dream precedence.
+`src/semantic_graph/community_lineage.rs` protects clear continuation, tied-split ambiguity, user-name inheritance across material drift, and cumulative Dream-name invalidation against the original baseline. Existing Dream naming persistence/reopen tests protect the `CVACNAM1` record path and user-over-Dream precedence.

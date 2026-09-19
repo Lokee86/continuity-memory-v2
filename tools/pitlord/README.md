@@ -16,7 +16,7 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 - `config-security`: machine-local configuration and credential/key state;
 - `facade`: public Reliquary/Cva/Phylactery composition, migration, and reconciliation.
 
-The ownership rule is deliberately strict: adding or moving a Rust source file requires assigning its owner in the same change. This makes the current flat `src/` layout auditable before any physical crate/module split.
+The source tree is physically grouped by the same owners under `src/`. Pitlord owns those directories as coarse regions, with `src/lib.rs` explicitly facade-owned at the crate root. This remains one Rust crate: the directory layout exposes responsibility and makes ownership/dependency analysis cheap without implying a crate split.
 
 The root policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration compatibility boundary. It intentionally does not encode aspirational dependency direction yet. Dependency/cycle rules should be added only after Arcana evidence shows a boundary is both real and currently satisfied; current cross-owner knots are audit evidence for later extraction work, not reasons to baseline violations into policy.
 

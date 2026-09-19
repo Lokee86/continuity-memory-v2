@@ -4,7 +4,7 @@ use serde_json::Value;
 
 #[test]
 fn insomnia_gold_set_is_well_formed_and_balanced() {
-    let root: Value = serde_json::from_str(include_str!("../../corpus/insomnia-gold-v2.json"))
+    let root: Value = serde_json::from_str(include_str!("../../../corpus/insomnia-gold-v2.json"))
         .expect("gold JSON must parse");
     assert_eq!(root["version"], "insomnia-gold-v2");
 

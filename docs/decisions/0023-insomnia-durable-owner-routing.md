@@ -92,15 +92,15 @@ Reconciliation preserves `external_memory_refs` when re-emitting an Insomnia com
 
 Current implementation is concentrated in:
 
-- `src/insomnia/ownership.rs`
-- `src/insomnia/extraction.rs`
-- `src/insomnia/processor.rs`
-- `src/insomnia/processor/application.rs`
-- `src/insomnia/completion.rs`
-- `src/insomnia/worker*.rs`
-- `src/memory_model.rs`
-- `src/runtime_host*.rs`
-- `src/runtime_vector_step.rs`
-- `src/configured_runtime*.rs`
+- `src/runtime_inference/insomnia/ownership.rs`
+- `src/runtime_inference/insomnia/extraction.rs`
+- `src/runtime_inference/insomnia/processor.rs`
+- `src/runtime_inference/insomnia/processor/application.rs`
+- `src/runtime_inference/insomnia/completion.rs`
+- `src/runtime_inference/insomnia/worker*.rs`
+- `src/memory/memory_model.rs`
+- `src/runtime_inference/runtime_host*.rs`
+- `src/runtime_inference/runtime_vector_step.rs`
+- `src/runtime_inference/configured_runtime*.rs`
 
 `cli/src/insomnia_cmd.rs` is an interface adapter only; it does not own endpoint selection or Insomnia workflow composition.

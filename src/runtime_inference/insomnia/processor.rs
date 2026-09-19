@@ -4,8 +4,11 @@ use crate::{
 };
 use std::fmt;
 
+#[path = "processor/application.rs"]
 mod application;
+#[path = "processor/prepared.rs"]
 mod prepared;
+#[path = "processor/source_validation.rs"]
 mod source_validation;
 
 pub(crate) use application::{commit_application, prepare_application, publish_user_application};

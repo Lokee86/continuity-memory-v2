@@ -204,10 +204,10 @@ Constraints remain:
 The five-fold end-to-end validation and context-quality measurements live in:
 
 ```text
-src/community_end_to_end_grid_bench.rs
+src/semantic_graph/community_end_to_end_grid_bench.rs
 ```
 
-Supporting benchmark routing/traversal machinery remains under `src/community_*bench*.rs`. `src/community_subcentroid_routing.rs` is now only a benchmark compatibility shim that delegates sub-centroid construction/routing to the production `memory_retrieval` implementation, so rerunning the frozen benchmark exercises the same routing algorithm shipped by the owner-local retrieval primitive. The benchmark files themselves still do not own production behavior.
+Supporting benchmark routing/traversal machinery remains under `src/semantic_graph/community_*bench*.rs`. `src/semantic_graph/community_subcentroid_routing.rs` is now only a benchmark compatibility shim that delegates sub-centroid construction/routing to the production `memory_retrieval` implementation, so rerunning the frozen benchmark exercises the same routing algorithm shipped by the owner-local retrieval primitive. The benchmark files themselves still do not own production behavior.
 
 ## Related docs
 

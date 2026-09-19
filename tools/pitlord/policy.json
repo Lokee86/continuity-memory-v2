@@ -14,7 +14,7 @@
       "literal": "WorkspaceMetadata",
       "message": "Reliquary must not recreate deleted generic workspace metadata authority.",
       "exclude_paths": [
-        "src/migration.rs"
+        "src/facade/migration.rs"
       ]
     },
     {
@@ -26,7 +26,7 @@
       "literal": "workspace_type",
       "message": "Reliquary must not recreate generic persisted workspace type authority.",
       "exclude_paths": [
-        "src/migration.rs"
+        "src/facade/migration.rs"
       ]
     }
   ]

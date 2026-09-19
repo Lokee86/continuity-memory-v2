@@ -6,8 +6,11 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
+#[path = "store/rebuild.rs"]
 mod rebuild;
+#[path = "store/scheduler.rs"]
 mod scheduler;
+#[path = "store/transitions.rs"]
 mod transitions;
 
 use scheduler::Scheduler;

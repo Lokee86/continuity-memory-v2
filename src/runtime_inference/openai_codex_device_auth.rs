@@ -8,6 +8,7 @@ use std::fmt;
 use std::thread;
 use std::time::{Duration, Instant};
 
+#[path = "openai_codex_device_auth/refresh.rs"]
 mod refresh;
 
 pub const OPENAI_CODEX_AUTH_ISSUER: &str = "https://auth.openai.com";

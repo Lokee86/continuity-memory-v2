@@ -67,7 +67,7 @@ Rejected. Community membership and routing vectors are derived from exact Memory
 
 ## Verification
 
-`src/memory_retrieval_tests.rs` protects REL fallback and routed behaviour, the unclustered residual lane, explicit global mode, PHY owner-local routing, stale-index rejection, and equal-depth-only Community traversal preference.
+`src/retrieval/memory_retrieval_tests.rs` protects REL fallback and routed behaviour, the unclustered residual lane, explicit global mode, PHY owner-local routing, stale-index rejection, and equal-depth-only Community traversal preference.
 
 The ignored five-fold end-to-end benchmark and context-quality benchmark exercise the same production sub-centroid implementation through the benchmark compatibility adapter. Frozen large-corpus results are recorded in [Community routing validation — 2026-08-29](../community-routing-validation-2026-08-29.md).
 

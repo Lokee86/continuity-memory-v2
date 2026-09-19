@@ -5,6 +5,7 @@ use crate::{
 };
 use std::fmt;
 
+#[path = "worker/runtime.rs"]
 mod runtime;
 
 pub const DEFAULT_INSOMNIA_WORKERS: usize = 48;

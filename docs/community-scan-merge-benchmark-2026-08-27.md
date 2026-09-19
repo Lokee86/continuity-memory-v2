@@ -12,7 +12,7 @@ The benchmark tests scaling, reduction depth, sensitivity to shard layout, and p
 
 ## Method
 
-The benchmark is the ignored release test `community_scan_merge_bench::synthetic_scan_merge_benchmark` in `src/community_scan_merge_bench.rs`.
+The benchmark is the ignored release test `community_scan_merge_bench::synthetic_scan_merge_benchmark` in `src/semantic_graph/community_scan_merge_bench.rs`.
 
 Synthetic Graph characteristics:
 

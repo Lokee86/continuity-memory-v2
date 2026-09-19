@@ -16,31 +16,18 @@ Development uses deterministic local tests plus optional live provider execution
 Cargo.toml / Cargo.lock              core library package + locked dependencies
 cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfile
 cli/src/*.rs                         interface parsing/prompting/rendering/dispatch over public API
-src/configured_runtime*.rs           configured finite Insomnia/vector runtime composition
-src/config*.rs                      local config framing/object codecs/validation/atomic replacement
-src/credential*.rs                 encrypted credentials + authenticated crypto/codecs
-src/model_switchboard*.rs           provider capabilities + model/embedding/ownership route policy
-src/model_auth.rs                   credential validation + request auth attachment
-src/master_key*.rs                  generated master key + temporary JSON key store
-src/cva*.rs                         composition/public CVA lifecycle
-src/container*.rs                   physical CVA substrate/global ordering
-src/archive*.rs / fragment*.rs      Archive semantics/history/fragments
-src/conversation_search*.rs         transient exact-live-branch lexical retrieval
-src/turn_ingest*.rs / file*.rs      native source-turn attachments + embedded files
-src/interaction_*.rs                normalized live session/stream runtime seam
-src/episode*.rs                     deterministic Archive Episodes
-src/memory*.rs                      authoritative Memory bodies/revisions
-src/insomnia.rs / insomnia/**       extraction, evidence, scheduling, finite worker
-src/memory_vector*.rs               immutable Memory body/profile row bindings
-src/packed_vector*.rs               immutable packed matrices
-src/archive_vector*.rs              immutable row -> FragmentId bindings
-src/embedding_endpoint.rs           endpoint contract + deterministic simulation
-src/compatibility_profile*.rs       tolerant compatibility contracts/probes/reopen
-src/vector_generation*.rs           generation publication/history/reopen
-src/semantic_search*.rs             exact current-generation semantic retrieval
-src/lexical_index.rs               disposable derived Archive lexical index
-src/lexical_search.rs / search*.rs  original lexical scoring + hybrid retrieval policy
-src/lib.rs                          public exports
+src/container/                     physical REL/PHY container mechanics + global ordering
+src/archive/                       Archive/source history, Episodes, files, Echo, repository correlation
+src/memory/                        authoritative Memory records/revisions/provenance
+src/retrieval/                     lexical/semantic retrieval, vectors, profiles, generations
+src/semantic_graph/                Graph, Communities, typed semantic-node traversal
+src/perception/                    durable Entity state + candidate/admission/resolution workflows
+src/chronos/                       shared temporal semantics
+src/ego/                           Identity/Personality/Anchor/synthesis persistence
+src/runtime_inference/             Insomnia, Dream, providers, RuntimeHost, interaction orchestration
+src/config_security/               local config, credentials, encryption, master-key persistence
+src/facade/                        public Cva/Reliquary/Phylactery composition, migration, reconciliation
+src/lib.rs                         crate-root module declarations + public exports
 examples/archive_roundtrip.rs        prepared Archive corpus smoke
 examples/vector_generation_smoke.rs  two-profile vector + retrieval smoke
 examples/archive_open_profile.rs     allocator/open-time benchmark

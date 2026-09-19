@@ -5,125 +5,78 @@
       "id": "container",
       "description": "Physical REL/PHY container mechanics and file-global ordering",
       "paths": [
-        "src/container.rs", "src/container_error.rs", "src/container_scan.rs", "src/container_tests.rs", "src/container_version.rs", "src/transaction_time_tests.rs"
+        "src/container"
       ]
     },
     {
       "id": "archive",
       "description": "Source history, conversations, fragments, episodes, attachments, Echo, and repository correlations",
       "paths": [
-        "src/archive.rs", "src/archive_codec.rs", "src/archive_conversation.rs", "src/archive_conversation_metadata.rs", "src/archive_error.rs", "src/archive_history.rs", "src/archive_history_codec.rs", "src/archive_history_model.rs", "src/archive_inventory_tests.rs", "src/archive_lookup.rs",
-        "src/archive_model.rs", "src/archive_object_index.rs", "src/archive_rebuild.rs", "src/archive_record_index.rs", "src/archive_search.rs", "src/archive_search_tests.rs", "src/archive_store.rs", "src/archive_tests.rs", "src/conversation_compaction_allocator.rs", "src/conversation_compaction_codec.rs",
-        "src/conversation_compaction_model.rs", "src/conversation_compaction_store.rs", "src/conversation_compaction_tests.rs", "src/conversation_metadata_codec.rs", "src/conversation_metadata_index.rs", "src/conversation_metadata_model.rs", "src/conversation_tests.rs", "src/echo_codec.rs", "src/echo_model.rs", "src/echo_store.rs",
-        "src/echo_tests.rs", "src/episode_builder.rs", "src/episode_codec.rs", "src/episode_index.rs", "src/episode_model.rs", "src/episode_policy.rs", "src/episode_store.rs", "src/episode_tests.rs", "src/file_index.rs", "src/file_memory_link_codec.rs",
-        "src/file_memory_link_index.rs", "src/file_memory_link_model.rs", "src/file_memory_link_store.rs", "src/file_memory_link_tests.rs", "src/file_model.rs", "src/file_store.rs", "src/file_tests.rs", "src/fragment_model.rs", "src/fragment_store.rs", "src/fragment_tests.rs",
-        "src/fragmenter.rs", "src/history_tests.rs", "src/interaction_stream.rs", "src/interaction_stream_codec.rs", "src/interaction_stream_persistence.rs", "src/interaction_stream_record.rs", "src/interaction_stream_store.rs", "src/project_file_attachment_tests.rs", "src/project_file_binding_codec.rs", "src/project_file_binding_store.rs",
-        "src/project_history_codec.rs", "src/project_history_model.rs", "src/project_history_reconcile_tests.rs", "src/project_history_store.rs", "src/project_history_tests.rs", "src/source_attachment_index.rs", "src/turn_ingest_codec.rs", "src/turn_ingest_model.rs", "src/turn_ingest_store.rs", "src/turn_ingest_tests.rs"
+        "src/archive"
       ]
     },
     {
       "id": "memory",
       "description": "Authoritative Memory records, revisions, provenance metadata, and Memory-local state",
       "paths": [
-        "src/memory_codec.rs", "src/memory_codec_scalar.rs", "src/memory_codec_tests.rs", "src/memory_error.rs", "src/memory_model.rs", "src/memory_provenance_model.rs", "src/memory_rebuild.rs", "src/memory_routing_codec.rs", "src/memory_routing_model.rs", "src/memory_routing_tests.rs",
-        "src/memory_store.rs", "src/memory_store/grouped_publish.rs", "src/memory_temporal_codec.rs", "src/memory_temporal_codec_kind.rs", "src/memory_temporal_inference_tests.rs", "src/memory_tests.rs"
+        "src/memory"
       ]
     },
     {
       "id": "retrieval",
       "description": "Lexical/semantic retrieval, vector bindings, packed vectors, compatibility profiles, and generations",
       "paths": [
-        "src/archive_vector_codec.rs", "src/archive_vector_error.rs", "src/archive_vector_model.rs", "src/archive_vector_rebuild.rs", "src/archive_vector_store.rs", "src/archive_vector_tests.rs", "src/compatibility_profile_codec.rs", "src/compatibility_profile_error.rs", "src/compatibility_profile_model.rs", "src/compatibility_profile_probe.rs",
-        "src/compatibility_profile_rebuild.rs", "src/compatibility_profile_store.rs", "src/compatibility_profile_tests.rs", "src/compatibility_vector.rs", "src/conversation_search.rs", "src/conversation_search_model.rs", "src/conversation_search_tests.rs", "src/lexical_index.rs", "src/lexical_index/raw.rs", "src/lexical_index_tests.rs",
-        "src/lexical_search.rs", "src/memory_retrieval.rs", "src/memory_retrieval_build.rs", "src/memory_retrieval_error.rs", "src/memory_retrieval_index.rs", "src/memory_retrieval_model.rs", "src/memory_retrieval_stale_tests.rs", "src/memory_retrieval_tests.rs", "src/memory_retrieval_traversal.rs", "src/memory_retrieval_vectors.rs",
-        "src/memory_search.rs", "src/memory_vector_codec.rs", "src/memory_vector_error.rs", "src/memory_vector_model.rs", "src/memory_vector_rebuild.rs", "src/memory_vector_store.rs", "src/memory_vector_tests.rs", "src/packed_vector_codec.rs", "src/packed_vector_error.rs", "src/packed_vector_model.rs",
-        "src/packed_vector_rebuild.rs", "src/packed_vector_store.rs", "src/packed_vector_tests.rs", "src/search.rs", "src/search_error.rs", "src/search_model.rs", "src/search_policy_tests.rs", "src/search_rank.rs", "src/search_tests.rs", "src/semantic_search.rs",
-        "src/semantic_search_error.rs", "src/semantic_search_model.rs", "src/semantic_search_tests.rs", "src/vector_generation_codec.rs", "src/vector_generation_error.rs", "src/vector_generation_model.rs", "src/vector_generation_rebuild.rs", "src/vector_generation_store.rs", "src/vector_generation_tests.rs", "src/vector_generation_validation.rs",
-        "src/vector_generation_validation_tests.rs"
+        "src/retrieval"
       ]
     },
     {
       "id": "semantic-graph",
       "description": "Typed semantic graph authority, Communities, and graph traversal",
       "paths": [
-        "src/community_codec.rs", "src/community_end_to_end_bench.rs", "src/community_end_to_end_grid_bench.rs", "src/community_end_to_end_quality_bench.rs", "src/community_error.rs", "src/community_leiden.rs", "src/community_lexical_escape_bench.rs", "src/community_lineage.rs", "src/community_lineage_tests.rs", "src/community_model.rs",
-        "src/community_retrieval_bench.rs", "src/community_routing.rs", "src/community_routing_bench.rs", "src/community_routing_bench_fixture.rs", "src/community_routing_bench_support.rs", "src/community_routing_cached_bench.rs", "src/community_routing_holdout_bench.rs", "src/community_routing_scale_bench.rs", "src/community_routing_score_bench.rs", "src/community_routing_tests.rs",
-        "src/community_scan_merge.rs", "src/community_scan_merge_bench.rs", "src/community_scan_merge_plan.rs", "src/community_scan_merge_reduce.rs", "src/community_scan_merge_tests.rs", "src/community_scan_merge_workers.rs", "src/community_store.rs", "src/community_subcentroid_routing.rs", "src/community_test_support.rs", "src/community_tests.rs",
-        "src/community_traversal_bench.rs", "src/community_traversal_bench_fixture.rs", "src/community_traversal_bench_support.rs", "src/graph_codec.rs", "src/graph_codec_mutation.rs", "src/graph_codec_tests.rs", "src/graph_error.rs", "src/graph_model.rs", "src/graph_query.rs", "src/graph_rebuild.rs",
-        "src/graph_store.rs", "src/graph_store_read.rs", "src/graph_store_validation.rs", "src/graph_store_write.rs", "src/graph_tests.rs", "src/semantic_graph_reconcile_tests.rs", "src/semantic_graph_runtime_host_tests.rs", "src/semantic_graph_tests.rs", "src/semantic_node_model.rs"
+        "src/semantic_graph"
       ]
     },
     {
       "id": "perception",
       "description": "Durable Entity state, admission, candidate routing, resolution state, and resolver processing",
       "paths": [
-        "src/entity_admission.rs", "src/entity_candidate_model.rs", "src/entity_candidate_rank.rs", "src/entity_candidate_routing.rs", "src/entity_candidate_test_support.rs", "src/entity_candidate_tests.rs", "src/entity_candidates.rs", "src/entity_codec.rs", "src/entity_error.rs", "src/entity_model.rs",
-        "src/entity_owner.rs", "src/entity_rebuild.rs", "src/entity_resolution_codec.rs", "src/entity_resolution_commit.rs", "src/entity_resolution_evaluate.rs", "src/entity_resolution_evidence.rs", "src/entity_resolution_lifecycle_tests.rs", "src/entity_resolution_migration_tests.rs", "src/entity_resolution_model.rs", "src/entity_resolution_owner.rs",
-        "src/entity_resolution_prepare.rs", "src/entity_resolution_prepared.rs", "src/entity_resolution_processor.rs", "src/entity_resolution_processor_support.rs", "src/entity_resolution_processor_test_support.rs", "src/entity_resolution_processor_tests.rs", "src/entity_resolution_reconcile_tests.rs", "src/entity_resolution_store.rs", "src/entity_resolution_store_index.rs", "src/entity_resolution_store_lifecycle.rs",
-        "src/entity_resolution_store_write.rs", "src/entity_resolution_test_support.rs", "src/entity_resolution_tests.rs", "src/entity_resolution_wake_tests.rs", "src/entity_resolver.rs", "src/entity_resolver_error.rs", "src/entity_resolver_model.rs", "src/entity_resolver_schema.rs", "src/entity_store.rs", "src/entity_store_read.rs",
-        "src/entity_store_validation.rs", "src/entity_tests.rs", "src/entity_zero_bootstrap_calibration_support.rs", "src/entity_zero_bootstrap_calibration_tests.rs"
+        "src/perception"
       ]
     },
     {
       "id": "chronos",
       "description": "Shared deterministic/inference-assisted temporal semantics",
       "paths": [
-        "src/chronos.rs", "src/chronos_absolute.rs", "src/chronos_absolute_calendar.rs", "src/chronos_boundary.rs", "src/chronos_boundary_endpoint.rs", "src/chronos_boundary_tests.rs", "src/chronos_calendar.rs", "src/chronos_calendar_language_tests.rs", "src/chronos_detection.rs", "src/chronos_detection_context.rs",
-        "src/chronos_detection_explicit.rs", "src/chronos_detection_model.rs", "src/chronos_detection_tests.rs", "src/chronos_duration.rs", "src/chronos_duration_recurrence_tests.rs", "src/chronos_duration_uncertainty_tests.rs", "src/chronos_edit_distance.rs", "src/chronos_event_relative.rs", "src/chronos_event_relative_tests.rs", "src/chronos_fuzzy.rs",
-        "src/chronos_inference.rs", "src/chronos_inference_apply.rs", "src/chronos_inference_error.rs", "src/chronos_inference_model.rs", "src/chronos_inference_tests.rs", "src/chronos_inference_verify.rs", "src/chronos_loose_calendar.rs", "src/chronos_loose_explicit.rs", "src/chronos_loose_relative.rs", "src/chronos_match.rs",
-        "src/chronos_model.rs", "src/chronos_normalize.rs", "src/chronos_number.rs", "src/chronos_parser.rs", "src/chronos_recurrence.rs", "src/chronos_recurrence_interval.rs", "src/chronos_relative.rs", "src/chronos_relative_offset.rs", "src/chronos_relative_tests.rs", "src/chronos_resolution.rs",
-        "src/chronos_resolution_model.rs", "src/chronos_resolution_tests.rs", "src/chronos_season.rs", "src/chronos_tests.rs", "src/chronos_time_of_day.rs", "src/chronos_time_of_day_tests.rs", "src/chronos_vocabulary.rs"
+        "src/chronos"
       ]
     },
     {
       "id": "ego",
       "description": "Owner-local Identity, Personality, Anchor, and synthesis persistence",
       "paths": [
-        "src/ego_anchor_tests.rs", "src/ego_codec.rs", "src/ego_codec_scalar.rs", "src/ego_error.rs", "src/ego_identity_tests.rs", "src/ego_model.rs", "src/ego_persona_tests.rs", "src/ego_store.rs", "src/ego_store_anchors.rs", "src/ego_store_documents.rs",
-        "src/ego_store_identities.rs", "src/ego_store_read.rs", "src/ego_store_validation.rs", "src/ego_tests.rs"
+        "src/ego"
       ]
     },
     {
       "id": "runtime-inference",
       "description": "Insomnia, Dream, provider endpoints, long-lived runtime host, and background inference composition",
       "paths": [
-        "src/configured_general.rs", "src/configured_runtime.rs", "src/configured_runtime_insomnia.rs", "src/configured_runtime_vectors.rs", "src/dream_candidate_error.rs", "src/dream_candidate_model.rs", "src/dream_candidate_ranking.rs", "src/dream_candidate_test_support.rs", "src/dream_candidate_tests.rs", "src/dream_candidates.rs",
-        "src/dream_canonical.rs", "src/dream_canonical_test_support.rs", "src/dream_canonical_tests.rs", "src/dream_classifier.rs", "src/dream_classifier_error.rs", "src/dream_classifier_model.rs", "src/dream_classifier_schema.rs", "src/dream_classifier_tests.rs", "src/dream_community_naming.rs", "src/dream_community_naming_context.rs",
-        "src/dream_community_naming_error.rs", "src/dream_community_naming_schema.rs", "src/dream_community_naming_tests.rs", "src/dream_cooldown.rs", "src/dream_cooldown_tests.rs", "src/dream_duplicate_index.rs", "src/dream_duplicate_tests.rs", "src/dream_lifecycle.rs", "src/dream_lifecycle_error.rs", "src/dream_lifecycle_model.rs",
-        "src/dream_lifecycle_tests.rs", "src/dream_owner_candidates.rs", "src/dream_owner_duplicate.rs", "src/dream_owner_publisher.rs", "src/dream_owner_vectors.rs", "src/dream_pair_context.rs", "src/dream_processor.rs", "src/dream_processor_error.rs", "src/dream_processor_frontier.rs", "src/dream_processor_model.rs",
-        "src/dream_processor_tests.rs", "src/dream_publisher.rs", "src/dream_publisher_error.rs", "src/dream_publisher_model.rs", "src/dream_publisher_tests.rs", "src/dream_source_time.rs", "src/dream_temporal.rs", "src/dream_temporal_tests.rs", "src/dream_verifier.rs", "src/dream_verifier_error.rs",
-        "src/dream_verifier_model.rs", "src/dream_verifier_schema.rs", "src/dream_verifier_tests.rs", "src/embedding_endpoint.rs", "src/general_endpoint.rs", "src/insomnia.rs", "src/insomnia/backpressure.rs", "src/insomnia/candidate.rs", "src/insomnia/candidate_policy.rs", "src/insomnia/candidate_policy_tests.rs",
-        "src/insomnia/candidate_receipt_policy.rs", "src/insomnia/candidate_receipt_policy_tests.rs", "src/insomnia/candidate_shape.rs", "src/insomnia/candidate_source.rs", "src/insomnia/candidate_text.rs", "src/insomnia/codec.rs", "src/insomnia/completion.rs", "src/insomnia/completion_tests.rs", "src/insomnia/contract.rs", "src/insomnia/cva.rs",
-        "src/insomnia/enrichment.rs", "src/insomnia/enrichment_tests.rs", "src/insomnia/error.rs", "src/insomnia/evidence.rs", "src/insomnia/evidence_flow_tests.rs", "src/insomnia/evidence_tests.rs", "src/insomnia/extraction.rs", "src/insomnia/extraction_tests.rs", "src/insomnia/gold_tests.rs", "src/insomnia/grounding_tests.rs",
-        "src/insomnia/ledger.rs", "src/insomnia/metadata.rs", "src/insomnia/model.rs", "src/insomnia/ownership.rs", "src/insomnia/ownership_tests.rs", "src/insomnia/processor.rs", "src/insomnia/processor/application.rs", "src/insomnia/processor/prepared.rs", "src/insomnia/processor/source_validation.rs", "src/insomnia/progress.rs",
-        "src/insomnia/queue_recovery_tests.rs", "src/insomnia/queue_tests.rs", "src/insomnia/rebuild.rs", "src/insomnia/runtime_step.rs", "src/insomnia/scheduler_tests.rs", "src/insomnia/store.rs", "src/insomnia/store/rebuild.rs", "src/insomnia/store/scheduler.rs", "src/insomnia/store/transitions.rs", "src/insomnia/synthesis.rs",
-        "src/insomnia/temporal.rs", "src/insomnia/temporal_tests.rs", "src/insomnia/test_support.rs", "src/insomnia/worker.rs", "src/insomnia/worker/runtime.rs", "src/insomnia/worker/runtime/outcome.rs", "src/insomnia/worker/runtime/progress.rs", "src/insomnia/worker_backpressure_tests.rs", "src/insomnia/worker_tests.rs", "src/insomnia/worker_vector_tests.rs",
-        "src/interaction_background.rs", "src/interaction_background_tests.rs", "src/interaction_error.rs", "src/interaction_model.rs", "src/interaction_runtime.rs", "src/interaction_runtime_tests.rs", "src/interaction_session.rs", "src/interaction_session_tests.rs", "src/model_auth.rs", "src/model_switchboard.rs",
-        "src/model_switchboard_codec.rs", "src/model_switchboard_tests.rs", "src/openai_codex_device_auth.rs", "src/openai_codex_device_auth/refresh.rs", "src/openai_codex_device_auth_tests.rs", "src/openai_codex_general.rs", "src/openai_codex_general_tests.rs", "src/openai_ready_embedding.rs", "src/openai_ready_embedding_response.rs", "src/openai_ready_embedding_tests.rs",
-        "src/openai_ready_general.rs", "src/openai_ready_general_tests.rs", "src/runtime_host.rs", "src/runtime_host_archive_search.rs", "src/runtime_host_backpressure_tests.rs", "src/runtime_host_dream.rs", "src/runtime_host_dream_owner.rs", "src/runtime_host_files.rs", "src/runtime_host_insomnia.rs", "src/runtime_host_interaction.rs",
-        "src/runtime_host_knowledge.rs", "src/runtime_host_knowledge_memory.rs", "src/runtime_host_knowledge_relation.rs", "src/runtime_host_knowledge_tests.rs", "src/runtime_host_memory_provenance.rs", "src/runtime_host_memory_search.rs", "src/runtime_host_perception.rs", "src/runtime_host_perception_api.rs", "src/runtime_host_perception_owner.rs", "src/runtime_host_perception_queue.rs",
-        "src/runtime_host_perception_test_support.rs", "src/runtime_host_perception_tests.rs", "src/runtime_host_route_tests.rs", "src/runtime_host_status.rs", "src/runtime_host_test_support.rs", "src/runtime_host_tests.rs", "src/runtime_host_vector_tests.rs", "src/runtime_host_vectors.rs", "src/runtime_vector_step.rs"
+        "src/runtime_inference"
       ]
     },
     {
       "id": "config-security",
       "description": "Machine-local configuration, credentials, encryption, and master-key persistence",
       "paths": [
-        "src/config.rs", "src/config_codec.rs", "src/config_credentials.rs", "src/config_error.rs", "src/config_io.rs", "src/config_object.rs", "src/config_tests.rs", "src/credential.rs", "src/credential_codec.rs", "src/credential_crypto.rs",
-        "src/credential_tests.rs", "src/master_key.rs", "src/master_key_entropy.rs", "src/master_key_tests.rs"
+        "src/config_security"
       ]
     },
     {
       "id": "facade",
       "description": "Public Cva/Reliquary/Phylactery composition, migration, reconciliation, and cross-owner façade methods",
       "paths": [
-        "src/cva.rs", "src/cva_archive_vectors.rs", "src/cva_communities.rs", "src/cva_compatibility_profiles.rs", "src/cva_conversation.rs", "src/cva_ego.rs", "src/cva_error.rs", "src/cva_file_memory.rs", "src/cva_global_validation.rs", "src/cva_graph.rs",
-        "src/cva_lifecycle.rs", "src/cva_memory_publish.rs", "src/cva_memory_retrieval.rs", "src/cva_memory_vectors.rs", "src/cva_packed_vectors.rs", "src/cva_reconcile.rs", "src/cva_reconcile_archive.rs", "src/cva_reconcile_conflict.rs", "src/cva_reconcile_conflict_map.rs", "src/cva_reconcile_conflict_tests.rs",
-        "src/cva_reconcile_derived_tests.rs", "src/cva_reconcile_entity.rs", "src/cva_reconcile_error.rs", "src/cva_reconcile_graph.rs", "src/cva_reconcile_graph_policy_tests.rs", "src/cva_reconcile_graph_test_support.rs", "src/cva_reconcile_graph_tests.rs", "src/cva_reconcile_grouped_tests.rs", "src/cva_reconcile_guard_tests.rs", "src/cva_reconcile_interaction.rs",
-        "src/cva_reconcile_link_tests.rs", "src/cva_reconcile_memory.rs", "src/cva_reconcile_memory_tests.rs", "src/cva_reconcile_merge_tests.rs", "src/cva_reconcile_promote.rs", "src/cva_reconcile_promotion_tests.rs", "src/cva_reconcile_repack.rs", "src/cva_reconcile_tests.rs", "src/cva_repack.rs", "src/cva_turn_ingest.rs",
-        "src/cva_vector_generations.rs", "src/cva_vector_recovery.rs", "src/lib.rs", "src/migration.rs", "src/migration_phy.rs", "src/migration_rel.rs", "src/migration_tests.rs", "src/phylactery.rs", "src/phylactery_communities.rs", "src/phylactery_compatibility_profiles.rs",
-        "src/phylactery_dream_candidates.rs", "src/phylactery_dream_canonical.rs", "src/phylactery_dream_lifecycle.rs", "src/phylactery_dream_publisher.rs", "src/phylactery_dream_tests.rs", "src/phylactery_ego.rs", "src/phylactery_error.rs", "src/phylactery_graph.rs", "src/phylactery_lifecycle.rs", "src/phylactery_memory_retrieval.rs",
-        "src/phylactery_memory_source.rs", "src/phylactery_memory_vectors.rs", "src/phylactery_packed_vectors.rs", "src/phylactery_tests.rs", "src/rel_metadata_codec.rs", "src/rel_metadata_model.rs", "src/rel_metadata_store.rs", "src/reliquary_tests.rs"
+        "src/facade",
+        "src/lib.rs"
       ]
     }
   ],

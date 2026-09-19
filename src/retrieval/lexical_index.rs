@@ -1,5 +1,6 @@
 use crate::lexical_search::{LexicalHit, term_counts};
 
+#[path = "lexical_index/raw.rs"]
 mod raw;
 use crate::memory_store::MemoryStore;
 use crate::{

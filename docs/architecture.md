@@ -360,38 +360,38 @@ G104 / A701   Archive mutation
 
 Repository-local Pitlord policy maps every authored Rust file under `src/` to exactly one current architectural owner: physical container, Archive/source history, Memory authority, retrieval/vector state, semantic graph, Perception, Chronos, Ego, runtime/inference, config/security, or the public composition facade. These are responsibility boundaries inside the current single core crate, not claims that eleven crates already exist.
 
-The ownership gate is intentionally stricter than the current physical layout: a new or moved Rust source file is unowned until `tools/pitlord/semantic.json` assigns it. Static policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration decoder. Cross-owner dependency-direction and cycle rules are added only when refreshed Arcana evidence demonstrates a stable seam that the implementation already satisfies. The current flat `src/` layout therefore uses exact-file ownership selectors now; coarse dependency rules wait for physical module/crate boundaries instead of encoding aspirational structure as passing policy.
+The physical source tree now mirrors those owners under `src/container/`, `src/archive/`, `src/memory/`, `src/retrieval/`, `src/semantic_graph/`, `src/perception/`, `src/chronos/`, `src/ego/`, `src/runtime_inference/`, `src/config_security/`, and `src/facade/`; `src/lib.rs` remains facade-owned at the crate root. This is an organizational layout inside one Rust crate, not a crate split, and the existing crate-level module names remain stable through explicit root `#[path]` declarations. Pitlord therefore owns each directory as a coarse region rather than enumerating hundreds of files. Static policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration decoder. Cross-owner dependency-direction and cycle rules are added only when refreshed Arcana evidence demonstrates a stable seam that the implementation already satisfies.
 
 `python scripts/check_architecture.py --refresh` rebuilds disposable Lexicon/Arcana graph evidence and evaluates the policy. The push/PR architecture workflow runs the same refreshed check.
 
 ## Code map
 | Responsibility | Primary code |
 | --- | --- |
-| local configuration | `src/config*.rs` |
+| local configuration | `src/config_security/config*.rs` |
 | detachable operator CLI | `cli/src/*.rs` |
-| encrypted credentials | `src/credential*.rs`, `src/config_credentials.rs` |
-| model switchboard/provider capabilities/auth binding | `src/model_switchboard*.rs`, `src/model_auth.rs` |
-| master key / temporary key store | `src/master_key*.rs` |
-| CVA composition/lifecycle | `src/cva.rs`, `src/cva_lifecycle.rs`, `src/cva_*` |
-| durable REL/PHY owner identity | `src/container.rs`, `src/cva_lifecycle.rs`, `src/phylactery_lifecycle.rs` |
-| Project repository revision correlation | `src/project_history_*.rs`, `src/cva.rs`, `src/cva_reconcile*.rs` |
-| repository-backed Project file bindings | `src/project_file_binding_*.rs`, `src/cva.rs`, `src/cva_turn_ingest.rs`, `src/runtime_host_files.rs` |
-| physical Container/global clock | `src/container*.rs` |
-| Archive/history/fragments/Episodes | `src/archive*.rs`, `src/fragment*.rs`, `src/episode*.rs` |
-| native turn/file ingestion | `src/turn_ingest_*.rs`, `src/source_attachment_index.rs`, `src/file*.rs`, `src/cva_turn_ingest.rs`, `src/cva_file_memory.rs` |
-| normalized interaction/runtime seam | `src/interaction_model.rs`, `src/interaction_error.rs`, `src/interaction_runtime.rs`, `src/interaction_session.rs`, `src/interaction_stream.rs` |
-| Echo execution evidence | `src/echo_*.rs` |
-| Memories | `src/memory*.rs` |
-| Insomnia extraction/processing/operational scheduling | `src/insomnia.rs`, `src/insomnia/**/*.rs` |
-| packed matrices | `src/packed_vector_*.rs` |
-| Memory body/profile row bindings | `src/memory_vector_*.rs`, `src/cva_memory_vectors.rs` |
-| Archive row bindings | `src/archive_vector_*.rs` |
-| embedding execution/compatibility | `src/embedding_endpoint.rs`, `src/openai_ready_embedding*.rs`, `src/compatibility_profile_*.rs` |
-| generation publication/history | `src/vector_generation_*.rs` |
-| exact live-branch lexical retrieval | `src/conversation_search*.rs`, `src/fragmenter.rs` |
-| exact Archive semantic retrieval | `src/semantic_search*.rs` |
-| lexical + Archive hybrid retrieval | `src/lexical_search.rs`, `src/search*.rs` |
-| owner-local Memory-Web retrieval / Community routing / traversal | `src/memory_retrieval*.rs`, `src/cva_memory_retrieval.rs`, `src/phylactery_memory_retrieval.rs` |
+| encrypted credentials | `src/config_security/credential*.rs`, `src/config_security/config_credentials.rs` |
+| model switchboard/provider capabilities/auth binding | `src/runtime_inference/model_switchboard*.rs`, `src/runtime_inference/model_auth.rs` |
+| master key / temporary key store | `src/config_security/master_key*.rs` |
+| CVA composition/lifecycle | `src/facade/cva.rs`, `src/facade/cva_lifecycle.rs`, `src/facade/cva_*` |
+| durable REL/PHY owner identity | `src/container/container.rs`, `src/facade/cva_lifecycle.rs`, `src/facade/phylactery_lifecycle.rs` |
+| Project repository revision correlation | `src/archive/project_history_*.rs`, `src/facade/cva.rs`, `src/facade/cva_reconcile*.rs` |
+| repository-backed Project file bindings | `src/archive/project_file_binding_*.rs`, `src/facade/cva.rs`, `src/facade/cva_turn_ingest.rs`, `src/runtime_inference/runtime_host_files.rs` |
+| physical Container/global clock | `src/container/container*.rs` |
+| Archive/history/fragments/Episodes | `src/archive/archive*.rs`, `src/archive/fragment*.rs`, `src/episode*.rs` |
+| native turn/file ingestion | `src/archive/turn_ingest_*.rs`, `src/archive/source_attachment_index.rs`, `src/archive/file*.rs`, `src/facade/cva_turn_ingest.rs`, `src/facade/cva_file_memory.rs` |
+| normalized interaction/runtime seam | `src/runtime_inference/interaction_model.rs`, `src/runtime_inference/interaction_error.rs`, `src/runtime_inference/interaction_runtime.rs`, `src/runtime_inference/interaction_session.rs`, `src/archive/interaction_stream.rs` |
+| Echo execution evidence | `src/archive/echo_*.rs` |
+| Memories | `src/memory/memory*.rs` |
+| Insomnia extraction/processing/operational scheduling | `src/runtime_inference/insomnia.rs`, `src/runtime_inference/insomnia/**/*.rs` |
+| packed matrices | `src/retrieval/packed_vector_*.rs` |
+| Memory body/profile row bindings | `src/retrieval/memory_vector_*.rs`, `src/facade/cva_memory_vectors.rs` |
+| Archive row bindings | `src/retrieval/archive_vector_*.rs` |
+| embedding execution/compatibility | `src/runtime_inference/embedding_endpoint.rs`, `src/runtime_inference/openai_ready_embedding*.rs`, `src/retrieval/compatibility_profile_*.rs` |
+| generation publication/history | `src/retrieval/vector_generation_*.rs` |
+| exact live-branch lexical retrieval | `src/retrieval/conversation_search*.rs`, `src/archive/fragmenter.rs` |
+| exact Archive semantic retrieval | `src/retrieval/semantic_search*.rs` |
+| lexical + Archive hybrid retrieval | `src/retrieval/lexical_search.rs`, `src/retrieval/search*.rs` |
+| owner-local Memory-Web retrieval / Community routing / traversal | `src/retrieval/memory_retrieval*.rs`, `src/facade/cva_memory_retrieval.rs`, `src/facade/phylactery_memory_retrieval.rs` |
 | corpus vector/retrieval smoke | `examples/vector_generation_smoke.rs` |
 ## Tests
 

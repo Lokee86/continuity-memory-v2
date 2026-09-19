@@ -9,6 +9,7 @@ use crate::{
 };
 use std::collections::{HashMap, HashSet};
 
+#[path = "memory_store/grouped_publish.rs"]
 mod grouped_publish;
 
 pub(crate) struct MemoryStore {

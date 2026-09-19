@@ -70,12 +70,12 @@ Legacy 16-byte CVA headers and earlier 24-byte typed REL/PHY headers remain read
 
 Current implementation lives in:
 
-- `src/container.rs`
-- `src/container_scan.rs`
-- `src/cva_lifecycle.rs`
-- `src/phylactery_lifecycle.rs`
-- `src/cva_reconcile.rs`
-- `src/cva_reconcile_repack.rs`
-- `src/migration.rs` + private `src/migration_rel.rs` / `src/migration_phy.rs`
+- `src/container/container.rs`
+- `src/container/container_scan.rs`
+- `src/facade/cva_lifecycle.rs`
+- `src/facade/phylactery_lifecycle.rs`
+- `src/facade/cva_reconcile.rs`
+- `src/facade/cva_reconcile_repack.rs`
+- `src/facade/migration.rs` + private `src/facade/migration_rel.rs` / `src/facade/migration_phy.rs`
 
 The former `workspace_metadata*.rs` and `cva_workspace.rs` subsystem is removed.
