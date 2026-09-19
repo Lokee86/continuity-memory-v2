@@ -201,3 +201,27 @@ fn memory_lexical_index_is_disposable_for_rel_and_phy() {
     let mut phy = Phylactery::open(&phy_path).unwrap();
     assert_eq!(phy.search_memories("reopenable", 10).unwrap().len(), 1);
 }
+#[test]
+fn memory_lexical_index_updates_slots_incrementally_across_archive_state_changes() {
+    let mut cva = Cva::create(test_path("memory-incremental.rel")).unwrap();
+    let first = add_rel_memory(&mut cva, "m1", "Alpha system", "durable cedar state", false);
+    add_rel_memory(&mut cva, "m2", "Beta system", "durable cedar state", false);
+
+    assert_eq!(cva.search_memories("durable", 10).unwrap().len(), 2);
+    assert_eq!(cva.lexical_index.memory_indexed_slots(), 2);
+    assert_eq!(cva.lexical_index.indexed_memory_version(), 2);
+
+    let archived = memory_draft("m1-archive", "Alpha system", "durable cedar state", true);
+    cva.publish_memory(Some(first), 1, archived).unwrap();
+    assert!(cva.search_memories("alpha", 10).unwrap().is_empty());
+    assert_eq!(cva.lexical_index.memory_indexed_slots(), 2);
+    assert_eq!(cva.lexical_index.indexed_memory_version(), 3);
+
+    let restored = memory_draft("m1-restore", "Alpha system", "durable cedar state", false);
+    cva.publish_memory(Some(first), 2, restored).unwrap();
+    let alpha = cva.search_memories("alpha", 10).unwrap();
+    assert_eq!(alpha.len(), 1);
+    assert_eq!(alpha[0].memory.id, first);
+    assert_eq!(cva.lexical_index.memory_indexed_slots(), 2);
+    assert_eq!(cva.lexical_index.indexed_memory_version(), 4);
+}
