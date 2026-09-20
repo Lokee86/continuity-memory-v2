@@ -5,7 +5,7 @@ use super::{
     stopped, wait_for_work_timeout,
 };
 use crate::{
-    EntityResolutionPreparation, EntityResolver, EntityResolverError, GeneralEndpoint,
+    EntityResolutionEngine, EntityResolutionPreparation, EntityResolverError, GeneralEndpoint,
     GeneralEndpointError, MemoryEntityMentionKey,
 };
 use serde_json::Value;
@@ -41,11 +41,16 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
         if stopped(&shared.signal)? {
             return Ok(());
         }
-        let endpoint = shared
-            .routes
-            .read()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .perception();
+        let (endpoint, decision_endpoint) = {
+            let routes = shared
+                .routes
+                .read()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            (
+                routes.entity_resolution(),
+                routes.entity_resolution_decision(),
+            )
+        };
         let Some(endpoint) = endpoint else {
             seen_epoch = wait_for_work_timeout(&shared.signal, seen_epoch, IDLE_POLL)?;
             continue;
@@ -76,8 +81,9 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             EntityResolutionPreparation::Ready(prepared) => prepared,
         };
 
-        let resolver = EntityResolver::new(SharedEndpoint(endpoint));
-        let evaluation = match resolver.evaluate_prepared(&prepared) {
+        let engine = EntityResolutionEngine::new(SharedEndpoint(endpoint))
+            .with_decision_endpoint(decision_endpoint);
+        let evaluation = match engine.evaluate_prepared(&prepared) {
             Ok(value) => value,
             Err(EntityResolverError::Endpoint(_)) => {
                 finish(&shared, owner)?;

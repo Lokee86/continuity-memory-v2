@@ -159,6 +159,8 @@ mod config_error;
 mod config_io;
 #[path = "config_security/config_object.rs"]
 mod config_object;
+#[path = "runtime_inference/configured_decision.rs"]
+mod configured_decision;
 #[path = "runtime_inference/configured_general.rs"]
 mod configured_general;
 #[path = "runtime_inference/configured_runtime.rs"]
@@ -253,6 +255,8 @@ mod cva_turn_ingest;
 mod cva_vector_generations;
 #[path = "facade/cva_vector_recovery.rs"]
 mod cva_vector_recovery;
+#[path = "runtime_inference/decision_endpoint.rs"]
+mod decision_endpoint;
 #[path = "runtime_inference/dream_candidate_error.rs"]
 mod dream_candidate_error;
 #[path = "runtime_inference/dream_candidate_model.rs"]
@@ -367,10 +371,28 @@ mod entity_model;
 mod entity_owner;
 #[path = "perception/entity_rebuild.rs"]
 mod entity_rebuild;
+#[path = "perception/entity_resolution_batch.rs"]
+mod entity_resolution_batch;
+#[cfg(test)]
+#[path = "perception/entity_resolution_batch_equivalence_tests.rs"]
+mod entity_resolution_batch_equivalence_tests;
+#[cfg(test)]
+#[path = "perception/entity_resolution_batch_failure_tests.rs"]
+mod entity_resolution_batch_failure_tests;
+#[cfg(test)]
+#[path = "perception/entity_resolution_batch_retry_tests.rs"]
+mod entity_resolution_batch_retry_tests;
+#[cfg(test)]
+#[path = "perception/entity_resolution_batch_tests.rs"]
+mod entity_resolution_batch_tests;
 #[path = "perception/entity_resolution_codec.rs"]
 mod entity_resolution_codec;
 #[path = "perception/entity_resolution_commit.rs"]
 mod entity_resolution_commit;
+#[path = "perception/entity_resolution_decision.rs"]
+mod entity_resolution_decision;
+#[path = "perception/entity_resolution_engine.rs"]
+mod entity_resolution_engine;
 #[path = "perception/entity_resolution_evaluate.rs"]
 mod entity_resolution_evaluate;
 #[path = "perception/entity_resolution_evidence.rs"]
@@ -416,6 +438,9 @@ mod entity_resolver;
 mod entity_resolver_error;
 #[path = "perception/entity_resolver_model.rs"]
 mod entity_resolver_model;
+#[cfg(test)]
+#[path = "perception/entity_resolver_reason_tests.rs"]
+mod entity_resolver_reason_tests;
 #[path = "perception/entity_resolver_schema.rs"]
 mod entity_resolver_schema;
 #[path = "perception/entity_store.rs"]
@@ -692,6 +717,7 @@ pub use compatibility_profile_model::{
 };
 pub use config::ReliquaryConfig;
 pub use config_error::ConfigError;
+pub use configured_decision::ConfiguredDecisionEndpoint;
 pub use configured_general::ConfiguredGeneralEndpoint;
 pub use configured_runtime::{
     ArchiveVectorBuildReport, ConfiguredInsomniaOptions, ConfiguredInsomniaReport,
@@ -738,6 +764,7 @@ pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
 pub use cva_repack::ProjectAttachmentRepackResult;
 pub use cva_vector_recovery::DerivedVectorRecovery;
+pub use decision_endpoint::{DecisionEndpoint, DecisionEndpointError, SimulatedDecisionEndpoint};
 pub use dream_candidate_error::DreamCandidateError;
 pub use dream_candidate_model::{
     DEFAULT_DREAM_CANDIDATE_LIMIT, DEFAULT_DREAM_LEXICAL_LIMIT, DEFAULT_DREAM_PRIOR_SEMANTIC_QUOTA,
@@ -798,6 +825,8 @@ pub use entity_model::{
     Entity, EntityDraft, EntityId, EntityStats, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES,
     MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
+pub use entity_resolution_batch::EntityResolutionBatchOutcome;
+pub use entity_resolution_engine::EntityResolutionEngine;
 pub use entity_resolution_model::{
     DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, EntityResolutionPending,
@@ -902,8 +931,8 @@ pub use memory_vector_model::{
 pub use migration::{MigrationError, MigrationResult, migrate_file};
 pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
-    EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
-    ModelReasoningEffort, ModelSwitchboard, ModelSwitchboardConfig,
+    DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
+    ModelCapability, ModelProvider, ModelReasoningEffort, ModelSwitchboard, ModelSwitchboardConfig,
 };
 pub use openai_codex_device_auth::{
     OPENAI_CODEX_AUTH_ISSUER, OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS, OPENAI_CODEX_OAUTH_CLIENT_ID,

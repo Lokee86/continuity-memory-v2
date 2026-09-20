@@ -136,9 +136,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
     where
         M: GeneralEndpoint + 'static,
     {
-        let endpoint: Arc<dyn GeneralEndpoint> = Arc::new(endpoint);
-        self.metadata_endpoint = Some(Arc::clone(&endpoint));
-        self.enrichment_endpoint = Some(endpoint);
+        self.metadata_endpoint = Some(Arc::new(endpoint));
         self
     }
 

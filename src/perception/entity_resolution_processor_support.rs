@@ -27,6 +27,8 @@ pub(super) fn candidate_fingerprint(set: &EntityCandidateSet) -> [u8; 32] {
         hash.update(candidate.entity.id.0);
         hash.update(candidate.entity.revision.to_le_bytes());
         hash.update([u8::from(candidate.exact_surface)]);
+        hash.update([u8::from(candidate.normalized_surface)]);
+        hash.update([u8::from(candidate.alias_surface)]);
         hash.update([u8::from(candidate.source_association)]);
         hash.update(candidate.lexical_memory_hits.to_le_bytes());
         hash.update(candidate.graph_neighbor_hits.to_le_bytes());

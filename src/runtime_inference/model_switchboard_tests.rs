@@ -1,7 +1,8 @@
 use crate::{
-    ConfiguredGeneralEndpoint, CredentialId, CredentialsConfig, EmbeddingModelEndpoint,
-    GeneralEndpoint, GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider,
-    ModelSwitchboard, ModelSwitchboardConfig, ReliquaryConfig, VectorNormalization,
+    ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint, CredentialId, CredentialsConfig,
+    DecisionEndpoint, DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralEndpoint,
+    GeneralModelEndpoint, ModelAuthKind, ModelCapability, ModelProvider, ModelSwitchboard,
+    ModelSwitchboardConfig, ReliquaryConfig, VectorNormalization,
 };
 use std::collections::BTreeMap;
 use std::fs;
@@ -30,10 +31,14 @@ fn provider_auth_and_capabilities_are_explicit() {
     );
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::General));
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Insomnia));
+    assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::EntityExtraction));
+    assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::EntityResolution));
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Chronos));
     assert!(ModelProvider::OpenAiCodex.supports(ModelCapability::Dream));
     assert!(!ModelProvider::OpenAiCodex.supports(ModelCapability::Embedding));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Insomnia));
+    assert!(ModelProvider::OpenAiReady.supports(ModelCapability::EntityExtraction));
+    assert!(ModelProvider::OpenAiReady.supports(ModelCapability::EntityResolution));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Chronos));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Dream));
     assert!(ModelProvider::OpenAiReady.supports(ModelCapability::Embedding));
@@ -69,6 +74,33 @@ fn routes_and_credentials_round_trip_and_attach_auth_headers() {
         .apply_to(&mut metadata);
     assert_eq!(metadata["Authorization"], "Bearer ready-key");
     assert!(!metadata.contains_key("ChatGPT-Account-ID"));
+
+    let mut entity_extraction = BTreeMap::new();
+    switchboard
+        .entity_extraction_auth()
+        .unwrap()
+        .apply_to(&mut entity_extraction);
+    assert_eq!(entity_extraction["Authorization"], "Bearer ready-key");
+    assert!(!entity_extraction.contains_key("ChatGPT-Account-ID"));
+
+    let mut entity_resolution_decision = BTreeMap::new();
+    switchboard
+        .entity_resolution_decision_auth()
+        .unwrap()
+        .apply_to(&mut entity_resolution_decision);
+    assert_eq!(
+        entity_resolution_decision["Authorization"],
+        "Bearer ready-key"
+    );
+    assert!(!entity_resolution_decision.contains_key("ChatGPT-Account-ID"));
+
+    let mut entity_resolution = BTreeMap::new();
+    switchboard
+        .entity_resolution_auth()
+        .unwrap()
+        .apply_to(&mut entity_resolution);
+    assert_eq!(entity_resolution["Authorization"], "Bearer ready-key");
+    assert!(!entity_resolution.contains_key("ChatGPT-Account-ID"));
 
     let mut chronos = BTreeMap::new();
     switchboard.chronos_auth().unwrap().apply_to(&mut chronos);
@@ -111,6 +143,9 @@ fn invalid_provider_routes_are_rejected() {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
+        entity_extraction: None,
+        entity_resolution_decision: None,
+        entity_resolution: None,
         chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
@@ -134,6 +169,9 @@ fn invalid_provider_routes_are_rejected() {
         }),
         insomnia: None,
         insomnia_metadata: None,
+        entity_extraction: None,
+        entity_resolution_decision: None,
+        entity_resolution: None,
         chronos: None,
         dream: None,
         embedding: None,
@@ -177,6 +215,33 @@ fn insomnia_ownership_prefers_metadata_then_main() {
     without_metadata.insomnia_metadata = None;
     let switchboard = ModelSwitchboard::new(without_metadata, configured_credentials()).unwrap();
     assert_eq!(switchboard.insomnia_ownership(), switchboard.insomnia());
+}
+
+#[test]
+fn entity_routes_are_explicit_and_do_not_fall_back() {
+    let mut models = configured_models();
+    models.entity_extraction = None;
+    models.entity_resolution_decision = None;
+    models.entity_resolution = None;
+    let switchboard = ModelSwitchboard::new(models, configured_credentials()).unwrap();
+    assert!(switchboard.entity_extraction().is_none());
+    assert!(switchboard.entity_resolution_decision().is_none());
+    assert!(switchboard.entity_resolution().is_none());
+}
+
+#[test]
+fn configured_entity_endpoints_use_dedicated_routes() {
+    let switchboard = ModelSwitchboard::new(configured_models(), configured_credentials()).unwrap();
+    let extraction =
+        ConfiguredGeneralEndpoint::from_entity_extraction_switchboard(&switchboard).unwrap();
+    let decision =
+        ConfiguredDecisionEndpoint::from_entity_resolution_decision_switchboard(&switchboard)
+            .unwrap();
+    let resolution =
+        ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(&switchboard).unwrap();
+    assert_eq!(extraction.model(), "entity-extraction-model");
+    assert_eq!(decision.model(), "typesafe/jev-1.13");
+    assert_eq!(resolution.model(), "entity-resolution-model");
 }
 
 #[test]
@@ -264,6 +329,25 @@ fn configured_models() -> ModelSwitchboardConfig {
             url: Some("https://example.test/v1/chat/completions".into()),
             credential_id: id("ready"),
             reasoning_effort: None,
+        }),
+        entity_extraction: Some(GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: "entity-extraction-model".into(),
+            url: Some("https://example.test/v1/chat/completions".into()),
+            credential_id: id("ready"),
+            reasoning_effort: Some(crate::ModelReasoningEffort::Low),
+        }),
+        entity_resolution_decision: Some(DecisionModelEndpoint {
+            model: "typesafe/jev-1.13".into(),
+            url: "https://openrouter.ai/api/alpha/decisions".into(),
+            credential_id: id("ready"),
+        }),
+        entity_resolution: Some(GeneralModelEndpoint {
+            provider: ModelProvider::OpenAiReady,
+            model: "entity-resolution-model".into(),
+            url: Some("https://example.test/v1/chat/completions".into()),
+            credential_id: id("ready"),
+            reasoning_effort: Some(crate::ModelReasoningEffort::Low),
         }),
         chronos: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,

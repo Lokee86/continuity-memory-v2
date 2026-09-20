@@ -26,11 +26,8 @@ macro_rules! impl_owner {
                 let candidates = self.entity_candidates_for_mention(key, config)?;
                 let memory = self.memory(key.memory_id)?;
                 let evidence = hydrate_evidence(self, &candidates, key.memory_id)?;
-                let admission_context = if candidates.candidates.is_empty() {
-                    hydrate_admission_context(self, &candidates, key.memory_id)?
-                } else {
-                    Vec::new()
-                };
+                let admission_context =
+                    hydrate_admission_context(self, &candidates, key.memory_id)?;
                 let candidate_fingerprint = candidate_fingerprint(&candidates);
                 let context_fingerprint =
                     context_fingerprint(&memory, &candidates, &evidence, &admission_context);

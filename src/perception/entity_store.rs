@@ -15,6 +15,8 @@ pub(crate) struct EntityStore {
     current: HashMap<EntityId, usize>,
     by_mutation: HashMap<String, usize>,
     by_surface: HashMap<String, BTreeSet<EntityId>>,
+    by_normalized_surface: HashMap<String, BTreeSet<EntityId>>,
+    by_alias_surface: HashMap<String, BTreeSet<EntityId>>,
     next_entity_version: u64,
 }
 
@@ -25,6 +27,8 @@ impl EntityStore {
             current: HashMap::new(),
             by_mutation: HashMap::new(),
             by_surface: HashMap::new(),
+            by_normalized_surface: HashMap::new(),
+            by_alias_surface: HashMap::new(),
             next_entity_version: 1,
         }
     }
@@ -126,6 +130,12 @@ impl EntityStore {
             for surface in entity_surfaces(&prior.canonical_name, &prior.aliases) {
                 remove_surface(&mut self.by_surface, &surface, record.id);
             }
+            for surface in normalized_entity_surfaces(&prior.canonical_name, &prior.aliases) {
+                remove_surface(&mut self.by_normalized_surface, &surface, record.id);
+            }
+            for surface in alias_entity_surfaces(&prior.canonical_name, &prior.aliases) {
+                remove_surface(&mut self.by_alias_surface, &surface, record.id);
+            }
         }
 
         let index = self.records.len();
@@ -133,6 +143,18 @@ impl EntityStore {
         self.current.insert(record.id, index);
         for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
             self.by_surface
+                .entry(surface)
+                .or_default()
+                .insert(record.id);
+        }
+        for surface in normalized_entity_surfaces(&record.canonical_name, &record.aliases) {
+            self.by_normalized_surface
+                .entry(surface)
+                .or_default()
+                .insert(record.id);
+        }
+        for surface in alias_entity_surfaces(&record.canonical_name, &record.aliases) {
+            self.by_alias_surface
                 .entry(surface)
                 .or_default()
                 .insert(record.id);
@@ -174,11 +196,104 @@ fn normalize_surface(value: &str) -> String {
     value.trim().to_lowercase()
 }
 
+fn normalized_surface(value: &str) -> String {
+    value
+        .chars()
+        .flat_map(char::to_lowercase)
+        .filter(|value| value.is_alphanumeric())
+        .collect()
+}
+
 fn entity_surfaces(canonical_name: &str, aliases: &[String]) -> BTreeSet<String> {
     std::iter::once(canonical_name)
         .chain(aliases.iter().map(String::as_str))
         .map(normalize_surface)
         .collect()
+}
+
+fn normalized_entity_surfaces(canonical_name: &str, aliases: &[String]) -> BTreeSet<String> {
+    std::iter::once(canonical_name)
+        .chain(aliases.iter().map(String::as_str))
+        .map(normalized_surface)
+        .filter(|surface| !surface.is_empty())
+        .collect()
+}
+
+fn alias_entity_surfaces(canonical_name: &str, aliases: &[String]) -> BTreeSet<String> {
+    std::iter::once(canonical_name)
+        .chain(aliases.iter().map(String::as_str))
+        .flat_map(alias_surface_keys)
+        .collect()
+}
+
+fn alias_surface_keys(value: &str) -> BTreeSet<String> {
+    let mut keys = BTreeSet::new();
+    if let Some(repository) = repository_alias_key(value) {
+        keys.insert(format!("repository:{repository}"));
+    }
+    if let Some(acronym) = acronym_alias_key(value) {
+        keys.insert(format!("acronym:{acronym}"));
+    }
+    keys
+}
+
+fn repository_alias_key(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    let lower = trimmed.to_ascii_lowercase();
+    let repo = if lower.starts_with("http://") || lower.starts_with("https://") {
+        let without_scheme = trimmed.split_once("://")?.1;
+        let mut segments = without_scheme
+            .split('/')
+            .filter(|segment| !segment.is_empty());
+        let _host = segments.next()?;
+        segments.last()?.trim_end_matches(".git").to_owned()
+    } else if lower.ends_with(" repository") {
+        trimmed[..trimmed.len() - " repository".len()]
+            .trim()
+            .trim_start_matches('@')
+            .to_owned()
+    } else if lower.ends_with(" repo") {
+        trimmed[..trimmed.len() - " repo".len()]
+            .trim()
+            .trim_start_matches('@')
+            .to_owned()
+    } else {
+        return None;
+    };
+    let key = normalized_surface(&repo);
+    (!key.is_empty()).then_some(key)
+}
+
+fn acronym_alias_key(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() || trimmed.chars().any(char::is_whitespace) {
+        return None;
+    }
+
+    let plural_base = trimmed.strip_suffix('s').unwrap_or(trimmed);
+    if plural_base.len() >= 2
+        && plural_base
+            .chars()
+            .all(|value| value.is_ascii_uppercase() || value.is_ascii_digit())
+    {
+        return Some(plural_base.to_ascii_lowercase());
+    }
+
+    let prefix: String = trimmed
+        .chars()
+        .take_while(|value| value.is_ascii_uppercase() || value.is_ascii_digit())
+        .collect();
+    if (2..=4).contains(&prefix.len())
+        && prefix.len() < trimmed.len()
+        && trimmed[prefix.len()..]
+            .chars()
+            .next()
+            .is_some_and(|value| value.is_ascii_lowercase())
+    {
+        return Some(prefix.to_ascii_lowercase());
+    }
+
+    None
 }
 
 fn remove_surface(

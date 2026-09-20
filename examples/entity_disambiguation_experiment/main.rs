@@ -1,8 +1,7 @@
 mod runner;
 mod score;
 use reliquary_memory::{
-    ConfiguredGeneralEndpoint, ModelProvider, ModelReasoningEffort, ModelSwitchboard,
-    ReliquaryConfig,
+    ConfiguredGeneralEndpoint, ModelReasoningEffort, ModelSwitchboard, ReliquaryConfig,
 };
 use serde_json::Value;
 use std::{
@@ -36,16 +35,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = ReliquaryConfig::open(Path::new(&a[3]))?;
     let mut models = config.models.clone();
     let route = models
-        .insomnia_metadata
+        .entity_resolution
         .as_mut()
-        .ok_or("config requires insomnia_metadata route")?;
-    if route.provider != ModelProvider::OpenAiCodex {
-        return Err("experiment requires openai-codex metadata route".into());
-    }
+        .ok_or("config requires entity_resolution route")?;
     route.model = model.into();
     route.reasoning_effort = Some(effort);
     let switchboard = ModelSwitchboard::new(models, config.credentials.clone())?;
-    let endpoint = ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&switchboard)?;
+    let endpoint = ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(&switchboard)?;
     let out = PathBuf::from(&a[2]);
     fs::create_dir_all(&out)?;
     let rows = runner::run(endpoint, prior, corpus, workers)?;

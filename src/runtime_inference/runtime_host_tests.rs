@@ -171,6 +171,10 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
                 VectorNormalization::L2,
                 7,
             ))),
+        )
+        .with_entity_routes(
+            Some(Arc::new(UserMemoryEndpoint)),
+            Some(Arc::new(UserMemoryEndpoint)),
         ),
         one_worker(),
         EpisodePolicy {

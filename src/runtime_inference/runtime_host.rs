@@ -1,5 +1,5 @@
 use crate::{
-    CompatibilityProfileId, EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint,
+    CompatibilityProfileId, DecisionEndpoint, EmbeddingEndpoint, EpisodePolicy, GeneralEndpoint,
     InsomniaWorkerConfig, InteractionRuntime, Phylactery,
 };
 use std::sync::atomic::{AtomicBool, AtomicI64};
@@ -81,6 +81,9 @@ pub struct ReliquaryRuntimeRoutes {
     general: Option<Arc<dyn GeneralEndpoint>>,
     insomnia: Option<Arc<dyn GeneralEndpoint>>,
     insomnia_metadata: Option<Arc<dyn GeneralEndpoint>>,
+    entity_extraction: Option<Arc<dyn GeneralEndpoint>>,
+    entity_resolution_decision: Option<Arc<dyn DecisionEndpoint>>,
+    entity_resolution: Option<Arc<dyn GeneralEndpoint>>,
     chronos: Option<Arc<dyn GeneralEndpoint>>,
     dream: Option<Arc<dyn GeneralEndpoint>>,
     embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>,
@@ -98,6 +101,9 @@ impl ReliquaryRuntimeRoutes {
             general,
             insomnia,
             insomnia_metadata,
+            entity_extraction: None,
+            entity_resolution_decision: None,
+            entity_resolution: None,
             chronos: None,
             dream,
             embedding,
@@ -116,6 +122,36 @@ impl ReliquaryRuntimeRoutes {
         self.insomnia_metadata().or_else(|| self.insomnia())
     }
 
+    pub fn with_entity_routes(
+        mut self,
+        extraction: Option<Arc<dyn GeneralEndpoint>>,
+        resolution: Option<Arc<dyn GeneralEndpoint>>,
+    ) -> Self {
+        self.entity_extraction = extraction;
+        self.entity_resolution = resolution;
+        self
+    }
+
+    pub(crate) fn entity_extraction(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.entity_extraction.clone()
+    }
+
+    pub fn with_entity_resolution_decision(
+        mut self,
+        endpoint: Option<Arc<dyn DecisionEndpoint>>,
+    ) -> Self {
+        self.entity_resolution_decision = endpoint;
+        self
+    }
+
+    pub(crate) fn entity_resolution_decision(&self) -> Option<Arc<dyn DecisionEndpoint>> {
+        self.entity_resolution_decision.clone()
+    }
+
+    pub(crate) fn entity_resolution(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.entity_resolution.clone()
+    }
+
     pub fn with_chronos(mut self, endpoint: Option<Arc<dyn GeneralEndpoint>>) -> Self {
         self.chronos = endpoint;
         self
@@ -127,10 +163,6 @@ impl ReliquaryRuntimeRoutes {
 
     pub(crate) fn dream(&self) -> Option<Arc<dyn GeneralEndpoint>> {
         self.dream.clone().or_else(|| self.general.clone())
-    }
-
-    pub(crate) fn perception(&self) -> Option<Arc<dyn GeneralEndpoint>> {
-        self.insomnia_metadata().or_else(|| self.dream())
     }
 
     pub fn embedding(&self) -> Option<Arc<dyn EmbeddingEndpoint + Send + Sync>> {

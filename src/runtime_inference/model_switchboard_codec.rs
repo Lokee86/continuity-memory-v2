@@ -1,15 +1,19 @@
 use crate::{
-    ConfigError, CredentialId, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelProvider,
-    ModelReasoningEffort, VectorNormalization,
+    ConfigError, CredentialId, DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint,
+    ModelProvider, ModelReasoningEffort, VectorNormalization,
 };
 
 pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
 pub(crate) const INSOMNIA_MODEL_KEY: &str = "models.insomnia";
 pub(crate) const INSOMNIA_METADATA_MODEL_KEY: &str = "models.insomnia_metadata";
+pub(crate) const ENTITY_EXTRACTION_MODEL_KEY: &str = "models.entity_extraction";
+pub(crate) const ENTITY_RESOLUTION_DECISION_MODEL_KEY: &str = "models.entity_resolution_decision";
+pub(crate) const ENTITY_RESOLUTION_MODEL_KEY: &str = "models.entity_resolution";
 pub(crate) const CHRONOS_MODEL_KEY: &str = "models.chronos";
 pub(crate) const DREAM_MODEL_KEY: &str = "models.dream";
 pub(crate) const EMBEDDING_MODEL_KEY: &str = "models.embedding";
 pub(crate) const GENERAL_MODEL_SCHEMA_V3: u16 = 3;
+pub(crate) const DECISION_MODEL_SCHEMA_V1: u16 = 1;
 pub(crate) const EMBEDDING_MODEL_SCHEMA_V2: u16 = 2;
 
 pub(crate) fn encode_general(endpoint: &GeneralModelEndpoint) -> Result<Vec<u8>, ConfigError> {
@@ -74,6 +78,29 @@ fn decode_general_body(
         url: (!url.is_empty()).then_some(url),
         credential_id,
         reasoning_effort,
+    })
+}
+
+pub(crate) fn encode_decision(endpoint: &DecisionModelEndpoint) -> Result<Vec<u8>, ConfigError> {
+    let mut bytes = Vec::new();
+    encode_string(&mut bytes, &endpoint.model)?;
+    encode_string(&mut bytes, &endpoint.url)?;
+    encode_string(&mut bytes, endpoint.credential_id.as_str())?;
+    Ok(bytes)
+}
+
+pub(crate) fn decode_decision(bytes: &[u8]) -> Result<DecisionModelEndpoint, ConfigError> {
+    let mut cursor = 0;
+    let model = decode_string(bytes, &mut cursor)?;
+    let url = decode_string(bytes, &mut cursor)?;
+    let credential_id = CredentialId::new(decode_string(bytes, &mut cursor)?)?;
+    if cursor != bytes.len() {
+        return Err(ConfigError::InvalidModelSwitchboard);
+    }
+    Ok(DecisionModelEndpoint {
+        model,
+        url,
+        credential_id,
     })
 }
 

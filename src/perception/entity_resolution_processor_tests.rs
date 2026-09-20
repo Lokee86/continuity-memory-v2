@@ -212,6 +212,7 @@ fn phylactery_uses_same_zero_entity_create_path() {
         vec![json!({
             "decision": "create_new",
             "reason": "first_seen_identity",
+            "promotion_policy": "immediate",
             "entity_kind": "tool",
             "entity_summary": "The Zephyr local editor."
         })],
@@ -229,4 +230,311 @@ fn phylactery_uses_same_zero_entity_create_path() {
         phy.entity_resolution(key).unwrap().status,
         MemoryEntityResolutionStatus::Resolved { entity_id: id, .. } if id == entity_id
     ));
+}
+
+#[test]
+fn transient_historical_occurrences_are_rejected_before_model_inference() {
+    let mut rel = Cva::create_project(temp_path("transient-occurrence.rel")).unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "commit-memory",
+        "Rollback",
+        "Rollback to commit 6ed8e7a is final.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "commit 6ed8e7a");
+
+    let bogus = rel
+        .publish_entity(
+            None,
+            0,
+            entity_draft("commit 6ed8e7a", &[], "bad-commit-entity", 1),
+        )
+        .unwrap()
+        .0
+        .id;
+
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "must-not-be-called",
+        Vec::new(),
+    ));
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 50)
+        .unwrap();
+
+    assert_eq!(result.decision, EntityResolutionDecision::Reject);
+    assert_eq!(result.reason, EntityResolutionReason::TransientValue);
+    assert_eq!(result.entity_id, None);
+    assert!(rel.entity_associations_for_memory(memory).is_empty());
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Rejected {
+            reason: EntityResolutionReason::TransientValue
+        }
+    ));
+    assert_eq!(rel.entity(bogus).unwrap().canonical_name, "commit 6ed8e7a");
+}
+
+#[test]
+fn confirmed_surface_variant_is_learned_as_entity_alias() {
+    let mut rel = Cva::create_project(temp_path("learned-alias.rel")).unwrap();
+    let entity_id = rel
+        .publish_entity(
+            None,
+            0,
+            entity_draft("PlayerHuePresenter", &[], "presenter-entity", 1),
+        )
+        .unwrap()
+        .0
+        .id;
+    let memory = publish_rel_memory(
+        &mut rel,
+        "presenter-use",
+        "Presenter",
+        "Player Hue Presenter owns player hue presentation.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "Player Hue Presenter");
+
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "resolver-test",
+        vec![json!({
+            "decision": "resolve_existing",
+            "reason": "context_match",
+            "target_candidate_index": 0
+        })],
+    ));
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 60)
+        .unwrap();
+
+    assert_eq!(result.entity_id, Some(entity_id));
+    let entity = rel.entity(entity_id).unwrap();
+    assert_eq!(entity.revision, 2);
+    assert!(
+        entity
+            .aliases
+            .iter()
+            .any(|alias| alias == "Player Hue Presenter")
+    );
+    assert_eq!(
+        rel.entity_candidates_for_surface("Player Hue Presenter", 8)
+            .into_iter()
+            .map(|entity| entity.id)
+            .collect::<Vec<_>>(),
+        vec![entity_id]
+    );
+}
+
+#[test]
+fn fine_grained_entity_waits_for_recurrence_then_promotes_and_backfills() {
+    let mut rel = Cva::create_project(temp_path("recurrence-promotion.rel")).unwrap();
+    let first_memory = publish_rel_memory(
+        &mut rel,
+        "first-symbol",
+        "Random helper",
+        "randomRange chooses a spawn offset.",
+    );
+    let first_key = install_rel_mention(&mut rel, first_memory, "randomRange");
+
+    let endpoint = SimulatedGeneralEndpoint::new(
+        "recurrence-test",
+        vec![
+            json!({
+                "decision": "create_new",
+                "reason": "first_seen_identity",
+                "promotion_policy": "immediate",
+                "entity_kind": "code_symbol",
+                "entity_summary": "The randomRange helper function."
+            }),
+            json!({
+                "decision": "create_new",
+                "reason": "first_seen_identity",
+                "promotion_policy": "requires_recurrence",
+                "entity_kind": "code_symbol",
+                "entity_summary": "The randomRange helper function used for spawn offsets."
+            }),
+            json!({
+                "decision": "resolve_existing",
+                "reason": "context_match",
+                "target_candidate_index": 0
+            }),
+        ],
+    );
+    let resolver = EntityResolver::new(endpoint);
+    let config = EntityCandidateConfig::default();
+
+    let first = rel
+        .resolve_entity_mention(&resolver, first_key, config, 70)
+        .unwrap();
+    assert_eq!(first.decision, EntityResolutionDecision::Unresolved);
+    assert_eq!(first.reason, EntityResolutionReason::RecurrenceRequired);
+    assert_eq!(rel.entities().len(), 0);
+    assert!(matches!(
+        rel.entity_resolution(first_key).unwrap().status,
+        MemoryEntityResolutionStatus::Pending(ref value)
+            if value.reason == EntityResolutionReason::RecurrenceRequired
+    ));
+
+    let second_memory = publish_rel_memory(
+        &mut rel,
+        "second-symbol",
+        "Random helper reuse",
+        "randomRange is also used when selecting asteroid spawn offsets.",
+    );
+    let second_key = install_rel_mention(&mut rel, second_memory, "randomRange");
+    let second = rel
+        .resolve_entity_mention(&resolver, second_key, config, 71)
+        .unwrap();
+    assert!(second.entity_created);
+    let entity_id = second.entity_id.unwrap();
+    assert_eq!(rel.entities().len(), 1);
+    assert_eq!(
+        rel.entity_associations_for_memory(second_memory),
+        vec![entity_id]
+    );
+
+    let backfill = rel
+        .resolve_entity_mention(&resolver, first_key, config, 72)
+        .unwrap();
+    assert_eq!(
+        backfill.decision,
+        EntityResolutionDecision::ResolveExisting(entity_id)
+    );
+    assert_eq!(
+        rel.entity_associations_for_memory(first_memory),
+        vec![entity_id]
+    );
+}
+
+#[test]
+fn candidate_path_create_new_still_enforces_hard_recurrence() {
+    let mut rel = Cva::create_project(temp_path("candidate-recurrence-gate.rel")).unwrap();
+    let existing = rel
+        .publish_entity(
+            None,
+            0,
+            entity_draft("BackgroundMusic", &[], "existing music node", 1),
+        )
+        .unwrap()
+        .0
+        .id;
+    let memory = publish_rel_memory(
+        &mut rel,
+        "candidate-symbol",
+        "Music binding",
+        "background_music_player is a separate code symbol used beside BackgroundMusic.",
+    );
+    rel.set_entity_association(memory, existing, true, rel.graph_version())
+        .unwrap();
+    let key = install_rel_mention(&mut rel, memory, "background_music_player");
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "candidate-recurrence-test",
+        vec![
+            json!({
+                "decision": "create_new",
+                "reason": "context_conflict_new_identity",
+                "target_candidate_index": -1
+            }),
+            json!({
+                "decision": "create_new",
+                "reason": "first_seen_identity",
+                "promotion_policy": "immediate",
+                "entity_kind": "code_symbol",
+                "entity_summary": "The background_music_player code symbol."
+            }),
+        ],
+    ));
+
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 75)
+        .unwrap();
+
+    assert_eq!(result.decision, EntityResolutionDecision::Unresolved);
+    assert_eq!(result.reason, EntityResolutionReason::RecurrenceRequired);
+    assert_eq!(rel.entities().len(), 1);
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Pending(ref value)
+            if value.reason == EntityResolutionReason::RecurrenceRequired
+    ));
+}
+
+#[test]
+fn candidate_path_create_new_can_promote_after_recurrence() {
+    let mut rel = Cva::create_project(temp_path("candidate-recurrence-promote.rel")).unwrap();
+    let existing = rel
+        .publish_entity(
+            None,
+            0,
+            entity_draft("BackgroundMusic", &[], "existing music node", 1),
+        )
+        .unwrap()
+        .0
+        .id;
+    publish_rel_memory(
+        &mut rel,
+        "earlier-symbol",
+        "Music binding",
+        "background_music_player stores the scene music player reference.",
+    );
+    let memory = publish_rel_memory(
+        &mut rel,
+        "candidate-symbol",
+        "Music binding reuse",
+        "background_music_player is reused for playback control beside BackgroundMusic.",
+    );
+    rel.set_entity_association(memory, existing, true, rel.graph_version())
+        .unwrap();
+    let key = install_rel_mention(&mut rel, memory, "background_music_player");
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "candidate-recurrence-test",
+        vec![
+            json!({
+                "decision": "create_new",
+                "reason": "context_conflict_new_identity",
+                "target_candidate_index": -1
+            }),
+            json!({
+                "decision": "create_new",
+                "reason": "first_seen_identity",
+                "promotion_policy": "requires_recurrence",
+                "entity_kind": "code_symbol",
+                "entity_summary": "The background_music_player code symbol."
+            }),
+        ],
+    ));
+
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 76)
+        .unwrap();
+
+    assert!(result.entity_created);
+    assert_eq!(rel.entities().len(), 2);
+}
+
+#[test]
+fn first_seen_high_level_entity_can_still_promote_immediately() {
+    let mut rel = Cva::create_project(temp_path("immediate-promotion.rel")).unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "service",
+        "Telemetry service",
+        "TelemetryHub is the persistent service that owns event ingestion.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "TelemetryHub");
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "immediate-test",
+        vec![json!({
+            "decision": "create_new",
+            "reason": "first_seen_identity",
+            "promotion_policy": "immediate",
+            "entity_kind": "service",
+            "entity_summary": "The persistent TelemetryHub event-ingestion service."
+        })],
+    ));
+
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 80)
+        .unwrap();
+    assert!(result.entity_created);
+    assert_eq!(rel.entities().len(), 1);
 }

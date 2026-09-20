@@ -29,7 +29,21 @@ macro_rules! impl_owner {
                     &mention.text,
                     MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
                 ) {
-                    evidence.entry(entity.id).or_default().exact_surface = true;
+                    let value = evidence.entry(entity.id).or_default();
+                    value.exact_surface = true;
+                    value.normalized_surface = true;
+                }
+                for entity in self.entity_candidates_for_normalized_surface(
+                    &mention.text,
+                    MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
+                ) {
+                    evidence.entry(entity.id).or_default().normalized_surface = true;
+                }
+                for entity in self.entity_candidates_for_alias_surface(
+                    &mention.text,
+                    MAX_ENTITY_CANDIDATE_SURFACE_MATCHES,
+                ) {
+                    evidence.entry(entity.id).or_default().alias_surface = true;
                 }
                 for entity_id in self.entity_associations_for_memory(key.memory_id) {
                     evidence.entry(entity_id).or_default().source_association = true;
@@ -83,42 +97,39 @@ macro_rules! impl_owner {
                 candidates.sort_by(candidate_order);
                 candidates.truncate(config.max_candidates);
 
-                let admission_context_memory_ids = if candidates.is_empty() {
-                    let mut hits = self.memory_lexical_candidates(
-                        &mention.text,
-                        MAX_ENTITY_ADMISSION_SURFACE_MEMORIES.saturating_add(1),
-                    )?;
-                    hits.retain(|hit| hit.memory_id != key.memory_id);
-                    hits.truncate(MAX_ENTITY_ADMISSION_SURFACE_MEMORIES);
+                let mut admission_hits = self.memory_lexical_candidates(
+                    &mention.text,
+                    MAX_ENTITY_ADMISSION_SURFACE_MEMORIES.saturating_add(1),
+                )?;
+                admission_hits.retain(|hit| hit.memory_id != key.memory_id);
+                admission_hits.truncate(MAX_ENTITY_ADMISSION_SURFACE_MEMORIES);
 
-                    let mut ids = Vec::new();
-                    for hit in &hits {
-                        let memory = self.memory(hit.memory_id)?;
-                        if memory_contains_surface(&memory, &mention.text) {
-                            push_unique(
-                                &mut ids,
-                                hit.memory_id,
-                                crate::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES,
-                            );
-                        }
+                let mut admission_context_memory_ids = Vec::new();
+                for hit in &admission_hits {
+                    let memory = self.memory(hit.memory_id)?;
+                    if memory_contains_surface(&memory, &mention.text) {
+                        push_unique(
+                            &mut admission_context_memory_ids,
+                            hit.memory_id,
+                            crate::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES,
+                        );
                     }
-                    for memory_id in &graph_neighbors {
-                        if ids.len() >= crate::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES {
-                            break;
-                        }
-                        let memory = self.memory(*memory_id)?;
-                        if memory_contains_surface(&memory, &mention.text) {
-                            push_unique(
-                                &mut ids,
-                                *memory_id,
-                                crate::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES,
-                            );
-                        }
+                }
+                for memory_id in &graph_neighbors {
+                    if admission_context_memory_ids.len()
+                        >= crate::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES
+                    {
+                        break;
                     }
-                    ids
-                } else {
-                    Vec::new()
-                };
+                    let memory = self.memory(*memory_id)?;
+                    if memory_contains_surface(&memory, &mention.text) {
+                        push_unique(
+                            &mut admission_context_memory_ids,
+                            *memory_id,
+                            crate::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES,
+                        );
+                    }
+                }
 
                 Ok(EntityCandidateSet {
                     key,

@@ -72,9 +72,10 @@ impl ConfiguredRuntime {
                 ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&self.switchboard)
                     .map_err(operation)?,
             );
-        } else {
+        }
+        if self.switchboard.entity_extraction().is_some() {
             extractor = extractor.with_enrichment_endpoint(
-                ConfiguredGeneralEndpoint::from_insomnia_switchboard(&self.switchboard)
+                ConfiguredGeneralEndpoint::from_entity_extraction_switchboard(&self.switchboard)
                     .map_err(operation)?,
             );
         }

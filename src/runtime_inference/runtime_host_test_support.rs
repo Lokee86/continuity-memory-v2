@@ -85,9 +85,10 @@ impl GeneralEndpoint for UserMemoryEndpoint {
                 }}
             })),
             "insomnia_memory_entity_mentions" => routing_metadata_response(user_payload),
-            "entity_admission_v1" => Ok(json!({
+            "entity_admission_v6" => Ok(json!({
                 "decision": "create_new",
                 "reason": "first_seen_identity",
+                "promotion_policy": "immediate",
                 "entity_kind": "tool",
                 "entity_summary": "Helix, the user's preferred code editor."
             })),

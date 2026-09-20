@@ -20,7 +20,7 @@ impl GeneralEndpoint for BlockingEntityEndpoint {
         schema_name: &str,
         _schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
-        if schema_name != "entity_admission_v1" {
+        if schema_name != "entity_admission_v6" {
             return Err(GeneralEndpointError::Failure(format!(
                 "unexpected schema {schema_name}"
             )));
@@ -30,6 +30,7 @@ impl GeneralEndpoint for BlockingEntityEndpoint {
         Ok(json!({
             "decision": "create_new",
             "reason": "first_seen_identity",
+            "promotion_policy": "immediate",
             "entity_kind": "tool",
             "entity_summary": "Helix, a durable code editor."
         }))

@@ -1,4 +1,4 @@
-use crate::model_auth::{resolve_auth, validate_credentials};
+use crate::model_auth::{resolve_api_key_auth, resolve_auth, validate_credentials};
 use crate::{ConfigError, CredentialId, CredentialsConfig, ModelRequestAuth, VectorNormalization};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -12,6 +12,8 @@ pub enum ModelCapability {
     General,
     Insomnia,
     InsomniaMetadata,
+    EntityExtraction,
+    EntityResolution,
     Chronos,
     Dream,
     Embedding,
@@ -23,6 +25,8 @@ impl ModelCapability {
             Self::General => "general",
             Self::Insomnia => "insomnia",
             Self::InsomniaMetadata => "insomnia_metadata",
+            Self::EntityExtraction => "entity_extraction",
+            Self::EntityResolution => "entity_resolution",
             Self::Chronos => "chronos",
             Self::Dream => "dream",
             Self::Embedding => "embedding",
@@ -101,6 +105,8 @@ impl ModelProvider {
                 ModelCapability::General
                 | ModelCapability::Insomnia
                 | ModelCapability::InsomniaMetadata
+                | ModelCapability::EntityExtraction
+                | ModelCapability::EntityResolution
                 | ModelCapability::Chronos
                 | ModelCapability::Dream,
             ) => true,
@@ -135,6 +141,13 @@ pub struct GeneralModelEndpoint {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DecisionModelEndpoint {
+    pub model: String,
+    pub url: String,
+    pub credential_id: CredentialId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EmbeddingModelEndpoint {
     pub provider: ModelProvider,
     pub model: String,
@@ -149,6 +162,9 @@ pub struct ModelSwitchboardConfig {
     pub general: Option<GeneralModelEndpoint>,
     pub insomnia: Option<GeneralModelEndpoint>,
     pub insomnia_metadata: Option<GeneralModelEndpoint>,
+    pub entity_extraction: Option<GeneralModelEndpoint>,
+    pub entity_resolution_decision: Option<DecisionModelEndpoint>,
+    pub entity_resolution: Option<GeneralModelEndpoint>,
     pub chronos: Option<GeneralModelEndpoint>,
     pub dream: Option<GeneralModelEndpoint>,
     pub embedding: Option<EmbeddingModelEndpoint>,
@@ -186,6 +202,18 @@ impl ModelSwitchboard {
 
     pub fn insomnia_metadata(&self) -> Option<&GeneralModelEndpoint> {
         self.config.insomnia_metadata.as_ref()
+    }
+
+    pub fn entity_extraction(&self) -> Option<&GeneralModelEndpoint> {
+        self.config.entity_extraction.as_ref()
+    }
+
+    pub fn entity_resolution_decision(&self) -> Option<&DecisionModelEndpoint> {
+        self.config.entity_resolution_decision.as_ref()
+    }
+
+    pub fn entity_resolution(&self) -> Option<&GeneralModelEndpoint> {
+        self.config.entity_resolution.as_ref()
     }
 
     pub fn insomnia_ownership(&self) -> Option<&GeneralModelEndpoint> {
@@ -232,6 +260,21 @@ impl ModelSwitchboard {
                 &self.credentials,
             )
         })
+    }
+
+    pub fn entity_extraction_auth(&self) -> Option<ModelRequestAuth> {
+        self.entity_extraction()
+            .map(|e| resolve_auth(e.provider, &e.credential_id, &self.credentials))
+    }
+
+    pub fn entity_resolution_decision_auth(&self) -> Option<ModelRequestAuth> {
+        self.entity_resolution_decision()
+            .map(|e| resolve_api_key_auth(&e.credential_id, &self.credentials))
+    }
+
+    pub fn entity_resolution_auth(&self) -> Option<ModelRequestAuth> {
+        self.entity_resolution()
+            .map(|e| resolve_auth(e.provider, &e.credential_id, &self.credentials))
     }
 
     pub fn insomnia_ownership_auth(&self) -> Option<ModelRequestAuth> {
@@ -287,6 +330,17 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
         validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.insomnia_metadata {
+        validate_general_endpoint(endpoint)?;
+    }
+    if let Some(endpoint) = &config.entity_extraction {
+        validate_general_endpoint(endpoint)?;
+    }
+    if let Some(endpoint) = &config.entity_resolution_decision {
+        if endpoint.model.trim().is_empty() || !valid_url(&endpoint.url) {
+            return Err(ConfigError::InvalidModelSwitchboard);
+        }
+    }
+    if let Some(endpoint) = &config.entity_resolution {
         validate_general_endpoint(endpoint)?;
     }
     if let Some(endpoint) = &config.chronos {

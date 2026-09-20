@@ -31,10 +31,10 @@ pub fn summarize(rows: &[Value], model: &str, effort: &str) -> Value {
             if n > 0 {
                 c["mentions_with_prior_candidates"] =
                     json!(c["mentions_with_prior_candidates"].as_u64().unwrap() + 1);
-                let lexical_key = if k == "resolve_existing" {
-                    "lexical_candidate_mentions_resolved_existing".to_owned()
-                } else {
-                    format!("lexical_candidate_mentions_{k}")
+                let lexical_key = match k {
+                    "resolve_existing" => "lexical_candidate_mentions_resolved_existing".to_owned(),
+                    "reject" => "lexical_candidate_mentions_rejected".to_owned(),
+                    _ => format!("lexical_candidate_mentions_{k}"),
                 };
                 c[&lexical_key] = json!(c[&lexical_key].as_u64().unwrap() + 1);
                 if n > 1 {

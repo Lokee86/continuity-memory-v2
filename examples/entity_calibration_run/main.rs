@@ -2,8 +2,8 @@ mod runner;
 mod score;
 
 use reliquary_memory::{
-    ConfiguredGeneralEndpoint, GeneralEndpoint, ModelProvider, ModelReasoningEffort,
-    ModelSwitchboard, ReliquaryConfig,
+    ConfiguredGeneralEndpoint, GeneralEndpoint, ModelReasoningEffort, ModelSwitchboard,
+    ReliquaryConfig,
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.len() < 3 {
         return Err(
-            "usage: entity_calibration_run <gold.jsonl> <candidates.jsonl> <output-dir> [workers] [low|medium|high] [model]"
+            "usage: entity_calibration_run <gold.jsonl> <candidates.jsonl> <output-dir> [workers] [none|minimal|low|medium|high|xhigh|max] [model]"
                 .into(),
         );
     }
@@ -59,27 +59,28 @@ fn endpoint(
 ) -> Result<(ConfiguredGeneralEndpoint, String), Box<dyn Error>> {
     let config = ReliquaryConfig::open(repo.join("reliquary.cfg"))?;
     let mut models = config.models.clone();
-    let route = if models.insomnia_metadata.is_some() {
-        models.insomnia_metadata.as_mut().expect("checked")
+    let route = if models.entity_extraction.is_some() {
+        models.entity_extraction.as_mut().expect("checked")
     } else {
-        return Err("Entity calibration requires the configured insomnia_metadata route".into());
+        return Err("Entity calibration requires the configured entity_extraction route".into());
     };
-    if route.provider != ModelProvider::OpenAiCodex {
-        return Err("Entity calibration requires openai-codex metadata route".into());
-    }
     route.model = model.into();
     route.reasoning_effort = Some(effort);
     let switchboard = ModelSwitchboard::new(models, config.credentials.clone())?;
-    let endpoint = ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&switchboard)?;
+    let endpoint = ConfiguredGeneralEndpoint::from_entity_extraction_switchboard(&switchboard)?;
     let model = endpoint.model().to_owned();
     Ok((endpoint, model))
 }
 
 fn parse_reasoning_effort(value: &str) -> Result<ModelReasoningEffort, Box<dyn Error>> {
     match value {
+        "none" => Ok(ModelReasoningEffort::None),
+        "minimal" => Ok(ModelReasoningEffort::Minimal),
         "low" => Ok(ModelReasoningEffort::Low),
         "medium" => Ok(ModelReasoningEffort::Medium),
         "high" => Ok(ModelReasoningEffort::High),
+        "xhigh" => Ok(ModelReasoningEffort::XHigh),
+        "max" => Ok(ModelReasoningEffort::Max),
         other => Err(format!("unsupported reasoning effort: {other}").into()),
     }
 }

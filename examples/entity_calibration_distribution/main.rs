@@ -1,12 +1,12 @@
 use reliquary_memory::{
     ConfiguredGeneralEndpoint, GeneralEndpoint, InsomniaCandidate, InsomniaExtractionError,
-    InsomniaOwnership, MemoryTextField, ModelProvider, ModelReasoningEffort, ModelSwitchboard,
-    ReliquaryConfig, enrich_entity_calibration,
+    InsomniaOwnership, MemoryTextField, ModelReasoningEffort, ModelSwitchboard, ReliquaryConfig,
+    enrich_entity_calibration,
 };
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, mpsc};
@@ -29,10 +29,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect::<HashMap<_, _>>();
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let (endpoint, model) = endpoint(&repo, effort, model)?;
-    let started = Instant::now();
-    let rows = run(endpoint, population, sources, workers, batch_size)?;
     let output = PathBuf::from(&args[2]);
     fs::create_dir_all(&output)?;
+    let checkpoint = output.join("results.partial.jsonl");
+    let started = Instant::now();
+    let rows = run(
+        endpoint,
+        population,
+        sources,
+        workers,
+        batch_size,
+        &checkpoint,
+    )?;
     write_jsonl(&output.join("results.jsonl"), &rows)?;
     let summary = summarize(
         &rows,
@@ -55,19 +63,55 @@ fn run(
     sources: HashMap<String, Value>,
     workers: usize,
     batch_size: usize,
+    checkpoint: &Path,
 ) -> Result<Vec<Value>, String> {
     let endpoint = Arc::new(endpoint);
     let population = Arc::new(population);
     let sources = Arc::new(sources);
     let batches = population.len().div_ceil(batch_size);
+    let mut output = vec![None; population.len()];
+    let mut completed_batches = HashSet::new();
+    if checkpoint.exists() {
+        let by_id = population
+            .iter()
+            .enumerate()
+            .filter_map(|(index, row)| Some((row["memory_id"].as_str()?.to_owned(), index)))
+            .collect::<HashMap<_, _>>();
+        for row in load_jsonl(checkpoint).map_err(|error| error.to_string())? {
+            let id = row["memory_id"]
+                .as_str()
+                .ok_or("checkpoint row missing memory_id")?;
+            let index = *by_id
+                .get(id)
+                .ok_or_else(|| format!("checkpoint Memory not in population: {id}"))?;
+            output[index] = Some(row);
+        }
+        for batch in 0..batches {
+            let start = batch * batch_size;
+            let end = (start + batch_size).min(population.len());
+            let completed = output[start..end]
+                .iter()
+                .filter(|row| row.is_some())
+                .count();
+            if completed == end - start {
+                completed_batches.insert(batch);
+            } else if completed != 0 {
+                return Err(format!(
+                    "checkpoint contains incomplete fixed batch {batch}"
+                ));
+            }
+        }
+    }
+    let completed_batches = Arc::new(completed_batches);
     let next = Arc::new(Mutex::new(0usize));
     let (tx, rx) = mpsc::channel();
     thread::scope(|scope| {
         for _ in 0..workers.min(batches.max(1)) {
-            let (endpoint, population, sources, next, tx) = (
+            let (endpoint, population, sources, completed_batches, next, tx) = (
                 Arc::clone(&endpoint),
                 Arc::clone(&population),
                 Arc::clone(&sources),
+                Arc::clone(&completed_batches),
                 Arc::clone(&next),
                 tx.clone(),
             );
@@ -75,6 +119,9 @@ fn run(
                 loop {
                     let batch = {
                         let mut n = next.lock().unwrap();
+                        while *n < batches && completed_batches.contains(&*n) {
+                            *n += 1;
+                        }
                         if *n >= batches {
                             break;
                         }
@@ -98,11 +145,21 @@ fn run(
         }
         drop(tx);
     });
-    let mut output = vec![None; population.len()];
-    let mut done = 0usize;
+    let mut checkpoint_writer = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(checkpoint)
+        .map_err(|error| error.to_string())?;
+    let mut done = completed_batches.len();
     for (batch, result) in rx {
         let start = batch * batch_size;
         let rows = result?;
+        for row in &rows {
+            writeln!(checkpoint_writer, "{row}").map_err(|error| error.to_string())?;
+        }
+        checkpoint_writer
+            .flush()
+            .map_err(|error| error.to_string())?;
         for (offset, row) in rows.into_iter().enumerate() {
             output[start + offset] = Some(row);
         }
@@ -236,16 +293,13 @@ fn endpoint(
     let config = ReliquaryConfig::open(repo.join("reliquary.cfg"))?;
     let mut models = config.models.clone();
     let route = models
-        .insomnia_metadata
+        .entity_extraction
         .as_mut()
-        .ok_or("distribution calibration requires insomnia_metadata route")?;
-    if route.provider != ModelProvider::OpenAiCodex {
-        return Err("Luna calibration requires openai-codex metadata route".into());
-    }
+        .ok_or("distribution calibration requires entity_extraction route")?;
     route.model = model.into();
     route.reasoning_effort = Some(effort);
     let switchboard = ModelSwitchboard::new(models, config.credentials.clone())?;
-    let endpoint = ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(&switchboard)?;
+    let endpoint = ConfiguredGeneralEndpoint::from_entity_extraction_switchboard(&switchboard)?;
     let model = endpoint.model().to_owned();
     Ok((endpoint, model))
 }

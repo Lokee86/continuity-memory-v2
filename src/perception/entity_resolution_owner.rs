@@ -162,11 +162,15 @@ macro_rules! impl_owner {
                     .compact(&mut self.container, &self.memories, now_ns)
             }
 
+            pub fn entity_resolutions(&self) -> Vec<MemoryEntityResolution> {
+                self.entity_resolutions.records()
+            }
+
             pub(crate) fn entity_resolution_records(&self) -> Vec<MemoryEntityResolution> {
                 self.entity_resolutions.records()
             }
 
-            pub(crate) fn import_entity_resolution(
+            pub fn import_entity_resolution(
                 &mut self,
                 value: MemoryEntityResolution,
             ) -> Result<(), MemoryError> {

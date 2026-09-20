@@ -7,9 +7,11 @@ use crate::config_object::{
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
-    CHRONOS_MODEL_KEY, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY, EMBEDDING_MODEL_SCHEMA_V2,
-    GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3, INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY,
-    decode_embedding, decode_general_v2, decode_general_v3, encode_embedding, encode_general,
+    CHRONOS_MODEL_KEY, DECISION_MODEL_SCHEMA_V1, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY,
+    EMBEDDING_MODEL_SCHEMA_V2, ENTITY_EXTRACTION_MODEL_KEY, ENTITY_RESOLUTION_DECISION_MODEL_KEY,
+    ENTITY_RESOLUTION_MODEL_KEY, GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3,
+    INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, decode_decision, decode_embedding,
+    decode_general_v2, decode_general_v3, encode_decision, encode_embedding, encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
@@ -64,6 +66,19 @@ impl ReliquaryConfig {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
         };
+        let entity_extraction = match objects.remove(ENTITY_EXTRACTION_MODEL_KEY) {
+            Some(object) => Some(decode_known_general(object)?),
+            None => None,
+        };
+        let entity_resolution_decision = match objects.remove(ENTITY_RESOLUTION_DECISION_MODEL_KEY)
+        {
+            Some(object) => Some(decode_known_decision(object)?),
+            None => None,
+        };
+        let entity_resolution = match objects.remove(ENTITY_RESOLUTION_MODEL_KEY) {
+            Some(object) => Some(decode_known_general(object)?),
+            None => None,
+        };
         let chronos = match objects.remove(CHRONOS_MODEL_KEY) {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
@@ -80,6 +95,9 @@ impl ReliquaryConfig {
             general,
             insomnia,
             insomnia_metadata,
+            entity_extraction,
+            entity_resolution_decision,
+            entity_resolution,
             chronos,
             dream,
             embedding,
@@ -148,6 +166,24 @@ impl ReliquaryConfig {
                 general_model_object(encode_general(endpoint)?),
             );
         }
+        if let Some(endpoint) = &self.models.entity_extraction {
+            objects.insert(
+                ENTITY_EXTRACTION_MODEL_KEY.to_owned(),
+                general_model_object(encode_general(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.entity_resolution_decision {
+            objects.insert(
+                ENTITY_RESOLUTION_DECISION_MODEL_KEY.to_owned(),
+                decision_model_object(encode_decision(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.entity_resolution {
+            objects.insert(
+                ENTITY_RESOLUTION_MODEL_KEY.to_owned(),
+                general_model_object(encode_general(endpoint)?),
+            );
+        }
         if let Some(endpoint) = &self.models.chronos {
             objects.insert(
                 CHRONOS_MODEL_KEY.to_owned(),
@@ -195,6 +231,15 @@ fn decode_known_general(
     }
 }
 
+fn decode_known_decision(
+    object: RawConfigObject,
+) -> Result<crate::DecisionModelEndpoint, ConfigError> {
+    if object.schema != DECISION_MODEL_SCHEMA_V1 || object.flags != OBJECT_FLAGS_NONE {
+        return Err(ConfigError::InvalidObject);
+    }
+    decode_decision(&object.payload)
+}
+
 fn decode_known_embedding(
     object: RawConfigObject,
 ) -> Result<crate::EmbeddingModelEndpoint, ConfigError> {
@@ -207,6 +252,14 @@ fn decode_known_embedding(
 fn general_model_object(payload: Vec<u8>) -> RawConfigObject {
     RawConfigObject {
         schema: GENERAL_MODEL_SCHEMA_V3,
+        flags: OBJECT_FLAGS_NONE,
+        payload,
+    }
+}
+
+fn decision_model_object(payload: Vec<u8>) -> RawConfigObject {
+    RawConfigObject {
+        schema: DECISION_MODEL_SCHEMA_V1,
         flags: OBJECT_FLAGS_NONE,
         payload,
     }

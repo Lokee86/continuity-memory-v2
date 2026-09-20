@@ -4,6 +4,8 @@ use std::collections::{HashMap, HashSet};
 #[derive(Default)]
 pub(super) struct CandidateEvidence {
     pub exact_surface: bool,
+    pub normalized_surface: bool,
+    pub alias_surface: bool,
     pub source_association: bool,
     pub lexical_memories: HashMap<MemoryId, f64>,
     pub graph_memories: HashSet<MemoryId>,
@@ -38,6 +40,8 @@ pub(super) fn finalize_candidate(
     EntityCandidate {
         entity,
         exact_surface: evidence.exact_surface,
+        normalized_surface: evidence.normalized_surface,
+        alias_surface: evidence.alias_surface,
         source_association: evidence.source_association,
         lexical_memory_hits,
         graph_neighbor_hits,
@@ -65,6 +69,8 @@ pub(super) fn candidate_order(
     right
         .exact_surface
         .cmp(&left.exact_surface)
+        .then_with(|| right.normalized_surface.cmp(&left.normalized_surface))
+        .then_with(|| right.alias_surface.cmp(&left.alias_surface))
         .then_with(|| right_lanes.cmp(&left_lanes))
         .then_with(|| right.best_lexical_score.total_cmp(&left.best_lexical_score))
         .then_with(|| right.lexical_memory_hits.cmp(&left.lexical_memory_hits))

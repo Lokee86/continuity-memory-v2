@@ -38,7 +38,7 @@ impl GeneralEndpoint for BootstrapEndpoint {
             .map_err(|error| GeneralEndpointError::Failure(error.to_string()))?;
         let content = payload["content"].as_str().unwrap_or_default();
 
-        if schema_name == "entity_admission_v1" {
+        if schema_name == "entity_admission_v6" {
             if content.contains("not a durable referent") {
                 return Ok(admission("reject", "generic_role", "unknown", ""));
             }
@@ -115,9 +115,15 @@ fn decision(decision: &str, reason: &str, target: i64) -> Value {
 }
 
 fn admission(decision: &str, reason: &str, kind: &str, summary: &str) -> Value {
+    let promotion_policy = if decision == "create_new" {
+        "immediate"
+    } else {
+        "none"
+    };
     json!({
         "decision": decision,
         "reason": reason,
+        "promotion_policy": promotion_policy,
         "entity_kind": kind,
         "entity_summary": summary,
     })

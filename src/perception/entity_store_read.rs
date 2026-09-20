@@ -1,4 +1,4 @@
-use super::{EntityStore, normalize_surface, resolve};
+use super::{EntityStore, alias_surface_keys, normalize_surface, normalized_surface, resolve};
 use crate::entity_model::EntityRecord;
 use crate::{Entity, EntityError, EntityId, EntityStats};
 
@@ -32,6 +32,46 @@ impl EntityStore {
             .flat_map(|ids| ids.iter())
             .take(limit)
             .filter_map(|id| self.current.get(id))
+            .map(|index| resolve(&self.records[*index]))
+            .collect()
+    }
+
+    pub(crate) fn candidates_for_normalized_surface(
+        &self,
+        surface: &str,
+        limit: usize,
+    ) -> Vec<Entity> {
+        let needle = normalized_surface(surface);
+        if needle.is_empty() {
+            return Vec::new();
+        }
+        self.by_normalized_surface
+            .get(&needle)
+            .into_iter()
+            .flat_map(|ids| ids.iter())
+            .take(limit)
+            .filter_map(|id| self.current.get(id))
+            .map(|index| resolve(&self.records[*index]))
+            .collect()
+    }
+
+    pub(crate) fn candidates_for_alias_surface(&self, surface: &str, limit: usize) -> Vec<Entity> {
+        let mut ids = std::collections::BTreeSet::new();
+        for key in alias_surface_keys(surface) {
+            if let Some(values) = self.by_alias_surface.get(&key) {
+                for id in values {
+                    ids.insert(*id);
+                    if ids.len() >= limit {
+                        break;
+                    }
+                }
+            }
+            if ids.len() >= limit {
+                break;
+            }
+        }
+        ids.into_iter()
+            .filter_map(|id| self.current.get(&id))
             .map(|index| resolve(&self.records[*index]))
             .collect()
     }

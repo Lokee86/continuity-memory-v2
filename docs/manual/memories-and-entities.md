@@ -8,7 +8,9 @@ Show how to create, revise, inspect, and connect the two currently durable seman
 
 ## Overview
 
-Memory and Entity are sibling semantic objects with separate authority. Memory is source-grounded proposition state; Entity is canonical referent state.
+Memory and Entity are sibling semantic objects with separate authority. Memory is source-grounded proposition state; Entity is canonical state for a **continuing identity**.
+
+A stable identifier alone does not make something an Entity. Individual commits/revisions, builds, benchmark/test runs, snapshots, requests/responses, transactions, deployment instances, and one-off sessions normally remain in Memory/provenance.\n\nFine-grained implementation referents are also not promoted merely because they can be named precisely. A first mention of a function, field, constant, input action, minor file, UI control, small helper, or similar implementation detail normally stays as an extracted Memory mention plus `Pending(recurrence_required)`. A second compatible Memory can promote the referent; the earlier pending mention is then eligible to resolve to the same Entity. Repositories, continuing files/directories, services, components, people, projects, tools, and other identities that can recur and accumulate observations are appropriate Entity candidates.
 
 ## Publish a Memory
 
@@ -52,20 +54,20 @@ Entity metadata currently includes canonical name, aliases, kind, summary, mutat
 
 ## Candidate lookup
 
-`entity_candidates_for_surface(surface, limit)` provides the exact canonical-name/alias lane through a derived one-to-many surface index.
+`entity_candidates_for_surface(surface, limit)` provides the exact canonical-name/alias lane through a derived one-to-many surface index. `entity_candidates_for_normalized_surface(surface, limit)` is a looser candidate-only lane that ignores separators/punctuation; it exists to surface lexical variants such as CamelCase versus spaced or hyphenated names, not to decide identity.
 
 For a real Insomnia mention, use `entity_candidates_for_mention(key, config)`. It adds two bounded context lanes without making an identity decision:
 
 - lexical-Memory context: search current owner-local Memory text and collect Entities already associated with those Memories;
 - Dream-neighbour context: collect Entities attached to first-hop Memory neighbours in the Memory Graph projection.
 
-Each returned candidate retains separate evidence flags/counts plus bounded supporting Memory IDs. Exact matches are ranked first, then corroborated lexical/structural evidence is used only to decide which candidates fit under the resolver cap.
+Each returned candidate retains separate evidence flags/counts plus bounded supporting Memory IDs. Exact matches are ranked first, then normalized-surface variants, then corroborated lexical/structural evidence is used only to decide which candidates fit under the resolver cap. When the resolver positively confirms an existing Entity, the observed mention surface may be learned as an alias for future exact lookup.
 
 Important rules:
 
 - one surface may return multiple Entities;
 - one Entity may have many aliases;
-- lexical equality creates candidates only;
+- exact or normalized lexical equality creates candidates only;
 - contextual proximity creates candidates only;
 - neither lexical equality nor Memory-Web proximity proves identity.
 

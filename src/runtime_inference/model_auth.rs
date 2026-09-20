@@ -32,6 +32,20 @@ impl ModelRequestAuth {
     }
 }
 
+pub(crate) fn resolve_api_key_auth(
+    id: &CredentialId,
+    credentials: &CredentialsConfig,
+) -> ModelRequestAuth {
+    let credential = credentials.get(id).expect("validated credential");
+    match credential {
+        Credential::ApiKey { api_key } => ModelRequestAuth {
+            authorization: bearer(api_key.expose()),
+            chatgpt_account_id: None,
+        },
+        _ => unreachable!("validated API-key credential kind"),
+    }
+}
+
 pub(crate) fn resolve_auth(
     provider: ModelProvider,
     id: &CredentialId,
@@ -62,6 +76,17 @@ pub(crate) fn validate_credentials(
     config: &ModelSwitchboardConfig,
     credentials: &CredentialsConfig,
 ) -> Result<(), CredentialError> {
+    if let Some(endpoint) = &config.entity_resolution_decision {
+        let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
+            CredentialError::MissingCredential(endpoint.credential_id.as_str().into())
+        })?;
+        if credential.auth_kind() != crate::ModelAuthKind::ApiKey {
+            return Err(CredentialError::WrongAuthKind(
+                endpoint.credential_id.as_str().into(),
+            ));
+        }
+    }
+
     for (provider, id) in config
         .general
         .iter()
@@ -75,6 +100,18 @@ pub(crate) fn validate_credentials(
         .chain(
             config
                 .insomnia_metadata
+                .iter()
+                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
+        )
+        .chain(
+            config
+                .entity_extraction
+                .iter()
+                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
+        )
+        .chain(
+            config
+                .entity_resolution
                 .iter()
                 .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
         )

@@ -38,6 +38,7 @@ pub enum EntityResolutionReason {
     SentenceLocal,
     WrapperCategory,
     Ambiguous,
+    RecurrenceRequired,
 }
 
 impl EntityResolutionReason {
@@ -56,6 +57,7 @@ impl EntityResolutionReason {
             Self::SentenceLocal => 11,
             Self::WrapperCategory => 12,
             Self::Ambiguous => 13,
+            Self::RecurrenceRequired => 14,
         }
     }
 
@@ -74,6 +76,7 @@ impl EntityResolutionReason {
             11 => Self::SentenceLocal,
             12 => Self::WrapperCategory,
             13 => Self::Ambiguous,
+            14 => Self::RecurrenceRequired,
             _ => return None,
         })
     }

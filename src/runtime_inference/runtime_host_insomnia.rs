@@ -62,8 +62,10 @@ pub(super) fn worker_loop(
         let mut extractor = InsomniaExtractor::new(SharedGeneralEndpoint(Arc::clone(&main)));
         if let Some(metadata) = routes.insomnia_metadata() {
             extractor = extractor.with_metadata_endpoint(SharedGeneralEndpoint(metadata));
-        } else {
-            extractor = extractor.with_enrichment_endpoint(SharedGeneralEndpoint(main));
+        }
+        if let Some(entity_extraction) = routes.entity_extraction() {
+            extractor =
+                extractor.with_enrichment_endpoint(SharedGeneralEndpoint(entity_extraction));
         }
         if shared
             .phylactery

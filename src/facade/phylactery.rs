@@ -142,6 +142,14 @@ impl Phylactery {
         self.memories.routing_metadata(id)
     }
 
+    pub fn put_memory_routing_metadata(
+        &mut self,
+        metadata: crate::MemoryRoutingMetadata,
+    ) -> Result<bool, MemoryError> {
+        self.memories
+            .put_routing_metadata(&mut self.container, metadata)
+    }
+
     pub fn sync(&self) -> Result<(), PhylacteryError> {
         self.container.sync()?;
         Ok(())

@@ -1,7 +1,8 @@
 use crate::entity_resolution_processor_support::bootstrap_entity_draft;
 use crate::{
-    Cva, EntityResolutionDecision, EntityResolutionEvaluation, EntityResolutionOutcome,
-    EntityResolutionPrepared, EntityResolverError, Phylactery,
+    Cva, EntityDraft, EntityResolutionDecision, EntityResolutionEvaluation,
+    EntityResolutionOutcome, EntityResolutionPrepared, EntityResolverError, MAX_ENTITY_ALIASES,
+    Phylactery,
 };
 
 macro_rules! impl_owner {
@@ -30,6 +31,34 @@ macro_rules! impl_owner {
                 let expected_revision = prepared.expected_resolution_revision;
                 let outcome = match output.decision {
                     EntityResolutionDecision::ResolveExisting(entity_id) => {
+                        let entity = self.entity(entity_id)?;
+                        let surface = prepared.candidates.mention.text.trim();
+                        let already_known = entity.canonical_name.eq_ignore_ascii_case(surface)
+                            || entity
+                                .aliases
+                                .iter()
+                                .any(|alias| alias.eq_ignore_ascii_case(surface));
+                        if !surface.is_empty()
+                            && !already_known
+                            && entity.aliases.len() < MAX_ENTITY_ALIASES
+                        {
+                            let mut aliases = entity.aliases.clone();
+                            aliases.push(surface.to_owned());
+                            let draft = EntityDraft {
+                                canonical_name: entity.canonical_name.clone(),
+                                aliases,
+                                kind: entity.kind.clone(),
+                                summary: entity.summary.clone(),
+                                mutation_id: format!(
+                                    "entity-resolution-alias:{}:{}",
+                                    hex32(&entity.id.0),
+                                    entity.revision + 1
+                                ),
+                                created_at_ns: entity.created_at_ns,
+                                updated_at_ns: now_ns.max(entity.updated_at_ns),
+                            };
+                            self.publish_entity(Some(entity_id), entity.revision, draft)?;
+                        }
                         let association_changed = self
                             .set_entity_association(
                                 key.memory_id,
@@ -143,3 +172,12 @@ macro_rules! impl_owner {
 
 impl_owner!(Cva);
 impl_owner!(Phylactery);
+
+fn hex32(bytes: &[u8; 32]) -> String {
+    let mut out = String::with_capacity(64);
+    for byte in bytes {
+        use std::fmt::Write;
+        let _ = write!(&mut out, "{byte:02x}");
+    }
+    out
+}

@@ -66,6 +66,44 @@ impl ConfiguredGeneralEndpoint {
         }
     }
 
+    pub fn from_entity_extraction_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let provider = switchboard
+            .entity_extraction()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Entity extraction route is not configured",
+            ))?
+            .provider;
+        match provider {
+            ModelProvider::OpenAiCodex => Ok(Self::OpenAiCodex(
+                OpenAiCodexGeneralEndpoint::from_entity_extraction_switchboard(switchboard)?,
+            )),
+            ModelProvider::OpenAiReady => Ok(Self::OpenAiReady(
+                OpenAiReadyGeneralEndpoint::from_entity_extraction_switchboard(switchboard)?,
+            )),
+        }
+    }
+
+    pub fn from_entity_resolution_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let provider = switchboard
+            .entity_resolution()
+            .ok_or(GeneralEndpointError::InvalidConfiguration(
+                "Entity resolution route is not configured",
+            ))?
+            .provider;
+        match provider {
+            ModelProvider::OpenAiCodex => Ok(Self::OpenAiCodex(
+                OpenAiCodexGeneralEndpoint::from_entity_resolution_switchboard(switchboard)?,
+            )),
+            ModelProvider::OpenAiReady => Ok(Self::OpenAiReady(
+                OpenAiReadyGeneralEndpoint::from_entity_resolution_switchboard(switchboard)?,
+            )),
+        }
+    }
+
     pub fn from_insomnia_ownership_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

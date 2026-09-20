@@ -36,6 +36,9 @@ fn live_endpoint_is_constructed_from_validated_switchboard() {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
+        entity_extraction: None,
+        entity_resolution_decision: None,
+        entity_resolution: None,
         chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {
@@ -62,6 +65,9 @@ fn zero_batching_limits_are_rejected() {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
+        entity_extraction: None,
+        entity_resolution_decision: None,
+        entity_resolution: None,
         chronos: None,
         dream: None,
         embedding: Some(EmbeddingModelEndpoint {

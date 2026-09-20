@@ -68,6 +68,36 @@ impl OpenAiCodexGeneralEndpoint {
         Self::from_route(route, auth)
     }
 
+    pub fn from_entity_extraction_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route =
+            switchboard
+                .entity_extraction()
+                .ok_or(GeneralEndpointError::InvalidConfiguration(
+                    "Entity extraction route is not configured",
+                ))?;
+        let auth = switchboard.entity_extraction_auth().ok_or(
+            GeneralEndpointError::InvalidConfiguration("Entity extraction auth is missing"),
+        )?;
+        Self::from_route(route, auth)
+    }
+
+    pub fn from_entity_resolution_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, GeneralEndpointError> {
+        let route =
+            switchboard
+                .entity_resolution()
+                .ok_or(GeneralEndpointError::InvalidConfiguration(
+                    "Entity resolution route is not configured",
+                ))?;
+        let auth = switchboard.entity_resolution_auth().ok_or(
+            GeneralEndpointError::InvalidConfiguration("Entity resolution auth is missing"),
+        )?;
+        Self::from_route(route, auth)
+    }
+
     pub fn from_insomnia_ownership_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, GeneralEndpointError> {

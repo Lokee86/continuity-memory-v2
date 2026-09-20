@@ -1,6 +1,6 @@
 use crate::{
-    ConfigError, ConfiguredGeneralEndpoint, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint,
-    ReliquaryConfig, ReliquaryRuntimeRoutes,
+    ConfigError, ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint, ModelSwitchboard,
+    OpenAiReadyEmbeddingEndpoint, ReliquaryConfig, ReliquaryRuntimeRoutes,
 };
 use std::path::Path;
 use std::sync::Arc;
@@ -66,6 +66,35 @@ impl ConfiguredRuntime {
             .transpose()
             .map_err(operation)?
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
+        let entity_extraction = config
+            .entity_extraction
+            .as_ref()
+            .map(|_| {
+                ConfiguredGeneralEndpoint::from_entity_extraction_switchboard(&self.switchboard)
+            })
+            .transpose()
+            .map_err(operation)?
+            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
+        let entity_resolution_decision = config
+            .entity_resolution_decision
+            .as_ref()
+            .map(|_| {
+                ConfiguredDecisionEndpoint::from_entity_resolution_decision_switchboard(
+                    &self.switchboard,
+                )
+            })
+            .transpose()
+            .map_err(operation)?
+            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::DecisionEndpoint>);
+        let entity_resolution = config
+            .entity_resolution
+            .as_ref()
+            .map(|_| {
+                ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(&self.switchboard)
+            })
+            .transpose()
+            .map_err(operation)?
+            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
         let chronos = config
             .chronos
             .as_ref()
@@ -89,6 +118,8 @@ impl ConfiguredRuntime {
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::EmbeddingEndpoint + Send + Sync>);
         Ok(
             ReliquaryRuntimeRoutes::new(general, insomnia, insomnia_metadata, dream, embedding)
+                .with_entity_routes(entity_extraction, entity_resolution)
+                .with_entity_resolution_decision(entity_resolution_decision)
                 .with_chronos(chronos),
         )
     }

@@ -35,10 +35,11 @@ fn perception_inference_does_not_hold_the_interaction_runtime_lock() {
         ReliquaryRuntimeRoutes::new(
             Some(Arc::clone(&endpoint)),
             None,
-            Some(endpoint),
+            Some(Arc::clone(&endpoint)),
             None,
             None,
-        ),
+        )
+        .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
     );
@@ -83,10 +84,11 @@ fn detached_phylactery_inference_is_not_requeued_into_replacement_owner() {
         ReliquaryRuntimeRoutes::new(
             Some(Arc::clone(&endpoint)),
             None,
-            Some(endpoint),
+            Some(Arc::clone(&endpoint)),
             None,
             None,
-        ),
+        )
+        .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
     );
@@ -133,7 +135,8 @@ fn runtime_host_resolves_project_entities_after_dream() {
                 VectorNormalization::L2,
                 19,
             ))),
-        ),
+        )
+        .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
     );

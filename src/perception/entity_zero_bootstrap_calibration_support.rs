@@ -22,13 +22,13 @@ pub(crate) fn live_resolver_endpoint() -> ConfiguredGeneralEndpoint {
     let config = ReliquaryConfig::open(Path::new("reliquary.cfg")).unwrap();
     let mut models = config.models.clone();
     let route = models
-        .insomnia_metadata
+        .entity_resolution
         .as_mut()
-        .expect("calibration config requires insomnia_metadata route");
+        .expect("calibration config requires entity_resolution route");
     assert_eq!(route.provider, ModelProvider::OpenAiCodex);
     route.model = "gpt-5.6-sol".into();
     route.reasoning_effort = Some(ModelReasoningEffort::Low);
-    ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(
+    ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(
         &ModelSwitchboard::new(models, config.credentials.clone()).unwrap(),
     )
     .unwrap()

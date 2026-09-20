@@ -1,7 +1,7 @@
 mod runner;
 mod score;
 use reliquary_memory::{
-    ConfiguredGeneralEndpoint, CredentialId, ModelProvider, ModelReasoningEffort, ModelSwitchboard,
+    ConfiguredGeneralEndpoint, CredentialId, ModelReasoningEffort, ModelSwitchboard,
     ReliquaryConfig,
 };
 use serde_json::Value;
@@ -30,18 +30,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = ReliquaryConfig::open(Path::new(&a[3]))?;
     let mut models = config.models.clone();
     let route = models
-        .insomnia_metadata
+        .entity_resolution
         .as_mut()
-        .ok_or("config requires insomnia_metadata route")?;
-    if route.provider != ModelProvider::OpenAiCodex {
-        return Err("experiment requires openai-codex metadata route".into());
-    }
+        .ok_or("config requires entity_resolution route")?;
     route.model = model.into();
     route.reasoning_effort = Some(effort);
     if let Some(credential_id) = a.get(7) {
         route.credential_id = CredentialId::new(credential_id.clone())?;
     }
-    let ep = ConfiguredGeneralEndpoint::from_insomnia_metadata_switchboard(
+    let ep = ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(
         &ModelSwitchboard::new(models, config.credentials.clone())?,
     )?;
     let out = PathBuf::from(&a[2]);

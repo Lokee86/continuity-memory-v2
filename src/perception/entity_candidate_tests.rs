@@ -56,6 +56,200 @@ fn exact_surface_index_is_one_to_many_revision_safe_and_reopenable() {
 }
 
 #[test]
+fn normalized_surface_index_proposes_variants_without_collapsing_distinct_symbols() {
+    let path = temp_path("normalized-surface.rel");
+    let mut rel = Cva::create_project(&path).unwrap();
+
+    let presenter = EntityId([7; 32]);
+    rel.publish_entity(
+        Some(presenter),
+        0,
+        entity_draft("PlayerHuePresenter", &[], "presenter", 1),
+    )
+    .unwrap();
+
+    let memory = publish_rel_memory(
+        &mut rel,
+        "presenter-memory",
+        "Presenter",
+        "Player Hue Presenter owns player hue presentation.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "Player Hue Presenter");
+    let result = rel
+        .entity_candidates_for_mention(key, EntityCandidateConfig::default())
+        .unwrap();
+
+    assert_eq!(candidate_ids(&result), vec![presenter]);
+    assert!(!result.candidates[0].exact_surface);
+    assert!(result.candidates[0].normalized_surface);
+
+    let qualified = EntityId([8; 32]);
+    rel.publish_entity(
+        Some(qualified),
+        0,
+        entity_draft("game.randomRange", &[], "qualified-random", 1),
+    )
+    .unwrap();
+    let distinct_memory = publish_rel_memory(
+        &mut rel,
+        "random-memory",
+        "Random helper",
+        "randomRange is a separate helper in the spawning package.",
+    );
+    let distinct_key = install_rel_mention(&mut rel, distinct_memory, "randomRange");
+    let distinct = rel
+        .entity_candidates_for_mention(
+            distinct_key,
+            EntityCandidateConfig {
+                lexical_memory_limit: 0,
+                graph_neighbor_limit: 0,
+                ..EntityCandidateConfig::default()
+            },
+        )
+        .unwrap();
+    assert!(
+        distinct
+            .candidates
+            .iter()
+            .all(|candidate| candidate.entity.id != qualified)
+    );
+
+    rel.sync().unwrap();
+    drop(rel);
+    let reopened = Cva::open(path).unwrap();
+    assert_eq!(
+        ids(reopened.entity_candidates_for_normalized_surface("Player Hue Presenter", 8)),
+        vec![presenter]
+    );
+}
+
+#[test]
+fn alias_surface_index_proposes_repository_and_acronym_variants_without_direct_merge_evidence() {
+    let mut rel = Cva::create_project(temp_path("alias-surface.rel")).unwrap();
+
+    let repository = EntityId([10; 32]);
+    rel.publish_entity(
+        Some(repository),
+        0,
+        entity_draft("@SpaceRocks repository", &[], "repository-alias", 1),
+    )
+    .unwrap();
+    let repo_memory = publish_rel_memory(
+        &mut rel,
+        "repo-url",
+        "Repository URL",
+        "https://github.com/Lokee86/space-rocks is the project repository.",
+    );
+    let repo_key = install_rel_mention(
+        &mut rel,
+        repo_memory,
+        "https://github.com/Lokee86/space-rocks",
+    );
+    let repo_candidates = rel
+        .entity_candidates_for_mention(
+            repo_key,
+            EntityCandidateConfig {
+                lexical_memory_limit: 0,
+                graph_neighbor_limit: 0,
+                ..EntityCandidateConfig::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(candidate_ids(&repo_candidates), vec![repository]);
+    assert!(!repo_candidates.candidates[0].exact_surface);
+    assert!(!repo_candidates.candidates[0].normalized_surface);
+    assert!(repo_candidates.candidates[0].alias_surface);
+
+    let uuid = EntityId([11; 32]);
+    rel.publish_entity(Some(uuid), 0, entity_draft("UUID", &[], "uuid-format", 1))
+        .unwrap();
+    let uuid_memory = publish_rel_memory(
+        &mut rel,
+        "uuid-plural",
+        "Identifiers",
+        "UUIDs are used for stable identifiers.",
+    );
+    let uuid_key = install_rel_mention(&mut rel, uuid_memory, "UUIDs");
+    let uuid_candidates = rel
+        .entity_candidates_for_mention(
+            uuid_key,
+            EntityCandidateConfig {
+                lexical_memory_limit: 0,
+                graph_neighbor_limit: 0,
+                ..EntityCandidateConfig::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(candidate_ids(&uuid_candidates), vec![uuid]);
+    assert!(!uuid_candidates.candidates[0].exact_surface);
+    assert!(!uuid_candidates.candidates[0].normalized_surface);
+    assert!(uuid_candidates.candidates[0].alias_surface);
+
+    let gdscript = EntityId([13; 32]);
+    rel.publish_entity(
+        Some(gdscript),
+        0,
+        entity_draft("GDScript", &[], "gdscript-language", 1),
+    )
+    .unwrap();
+    let gds_memory = publish_rel_memory(
+        &mut rel,
+        "gds-shorthand",
+        "Language target",
+        "GDS is the shorthand used for the GDScript target.",
+    );
+    let gds_key = install_rel_mention(&mut rel, gds_memory, "GDS");
+    let gds_candidates = rel
+        .entity_candidates_for_mention(
+            gds_key,
+            EntityCandidateConfig {
+                lexical_memory_limit: 0,
+                graph_neighbor_limit: 0,
+                ..EntityCandidateConfig::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(candidate_ids(&gds_candidates), vec![gdscript]);
+    assert!(gds_candidates.candidates[0].alias_surface);
+}
+
+#[test]
+fn repository_alias_surface_is_order_independent() {
+    let mut rel = Cva::create_project(temp_path("repo-alias-reverse.rel")).unwrap();
+    let repository = EntityId([12; 32]);
+    rel.publish_entity(
+        Some(repository),
+        0,
+        entity_draft(
+            "https://github.com/Lokee86/space-rocks",
+            &[],
+            "repository-url",
+            1,
+        ),
+    )
+    .unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "repo-name",
+        "Repository",
+        "@SpaceRocks repository is the existing project repository.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "@SpaceRocks repository");
+    let candidates = rel
+        .entity_candidates_for_mention(
+            key,
+            EntityCandidateConfig {
+                lexical_memory_limit: 0,
+                graph_neighbor_limit: 0,
+                ..EntityCandidateConfig::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(candidate_ids(&candidates), vec![repository]);
+    assert!(candidates.candidates[0].alias_surface);
+}
+
+#[test]
 fn candidates_combine_exact_lexical_and_graph_evidence_without_deciding_identity() {
     let path = temp_path("candidate-evidence.rel");
     let mut rel = Cva::create_project(&path).unwrap();

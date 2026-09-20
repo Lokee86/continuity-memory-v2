@@ -2,7 +2,8 @@ use crate::config_args::{ConfigCommand, CredentialCommand, ModelCommand};
 use crate::util::{credential_id, normalization, provider, read_secret, reasoning};
 use anyhow::{Result, anyhow};
 use reliquary_memory::{
-    EmbeddingModelEndpoint, GeneralModelEndpoint, OpenAiCodexDeviceAuth, ReliquaryConfig,
+    DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, OpenAiCodexDeviceAuth,
+    ReliquaryConfig,
 };
 use std::path::Path;
 
@@ -32,6 +33,9 @@ fn show(path: &Path) -> Result<()> {
     show_general(config.models.general.as_ref());
     show_insomnia(config.models.insomnia.as_ref());
     show_insomnia_metadata(config.models.insomnia_metadata.as_ref());
+    show_entity_extraction(config.models.entity_extraction.as_ref());
+    show_entity_resolution_decision(config.models.entity_resolution_decision.as_ref());
+    show_entity_resolution(config.models.entity_resolution.as_ref());
     show_dream(config.models.dream.as_ref());
     show_embedding(config.models.embedding.as_ref());
     println!("credentials:");
@@ -152,6 +156,55 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
             validate_runtime(&config)?;
         }
         ModelCommand::ClearInsomniaMetadata => config.models.insomnia_metadata = None,
+        ModelCommand::SetEntityExtraction {
+            provider: p,
+            model,
+            credential,
+            url,
+            reasoning: r,
+        } => {
+            config.models.entity_extraction = Some(GeneralModelEndpoint {
+                provider: provider(p),
+                model,
+                url,
+                credential_id: credential_id(credential)?,
+                reasoning_effort: r.map(reasoning),
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearEntityExtraction => config.models.entity_extraction = None,
+        ModelCommand::SetEntityResolutionDecision {
+            model,
+            credential,
+            url,
+        } => {
+            config.models.entity_resolution_decision = Some(DecisionModelEndpoint {
+                model,
+                url,
+                credential_id: credential_id(credential)?,
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearEntityResolutionDecision => {
+            config.models.entity_resolution_decision = None
+        }
+        ModelCommand::SetEntityResolution {
+            provider: p,
+            model,
+            credential,
+            url,
+            reasoning: r,
+        } => {
+            config.models.entity_resolution = Some(GeneralModelEndpoint {
+                provider: provider(p),
+                model,
+                url,
+                credential_id: credential_id(credential)?,
+                reasoning_effort: r.map(reasoning),
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearEntityResolution => config.models.entity_resolution = None,
         ModelCommand::SetDream {
             provider: p,
             model,
@@ -255,6 +308,52 @@ fn show_insomnia_metadata(value: Option<&GeneralModelEndpoint>) {
             endpoint.credential_id.as_str()
         ),
         None => println!("insomnia_metadata: <unset>"),
+    }
+}
+
+fn show_entity_extraction(value: Option<&GeneralModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!(
+            "entity_extraction: provider={:?} model={} reasoning={} url={} credential={}",
+            endpoint.provider,
+            endpoint.model,
+            endpoint
+                .reasoning_effort
+                .map(|value| value.as_str())
+                .unwrap_or("<unset>"),
+            endpoint.url.as_deref().unwrap_or("<provider-owned>"),
+            endpoint.credential_id.as_str()
+        ),
+        None => println!("entity_extraction: <unset>"),
+    }
+}
+
+fn show_entity_resolution_decision(value: Option<&DecisionModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!(
+            "entity_resolution_decision: model={} url={} credential={}",
+            endpoint.model,
+            endpoint.url,
+            endpoint.credential_id.as_str()
+        ),
+        None => println!("entity_resolution_decision: <unset>"),
+    }
+}
+
+fn show_entity_resolution(value: Option<&GeneralModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!(
+            "entity_resolution_fallback: provider={:?} model={} reasoning={} url={} credential={}",
+            endpoint.provider,
+            endpoint.model,
+            endpoint
+                .reasoning_effort
+                .map(|value| value.as_str())
+                .unwrap_or("<unset>"),
+            endpoint.url.as_deref().unwrap_or("<provider-owned>"),
+            endpoint.credential_id.as_str()
+        ),
+        None => println!("entity_resolution_fallback: <unset>"),
     }
 }
 

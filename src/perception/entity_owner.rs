@@ -29,6 +29,23 @@ macro_rules! impl_owner {
                 self.entities.candidates_for_surface(surface, limit)
             }
 
+            pub fn entity_candidates_for_normalized_surface(
+                &self,
+                surface: &str,
+                limit: usize,
+            ) -> Vec<Entity> {
+                self.entities
+                    .candidates_for_normalized_surface(surface, limit)
+            }
+
+            pub fn entity_candidates_for_alias_surface(
+                &self,
+                surface: &str,
+                limit: usize,
+            ) -> Vec<Entity> {
+                self.entities.candidates_for_alias_surface(surface, limit)
+            }
+
             pub fn entity_version(&self) -> u64 {
                 self.entities.entity_version()
             }

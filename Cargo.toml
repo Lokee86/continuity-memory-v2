@@ -9,6 +9,11 @@ community-benchmarks = []
 entity-calibration = []
 
 [[example]]
+name = "entity_admission_calibration"
+path = "examples/entity_admission_calibration/main.rs"
+required-features = ["entity-calibration"]
+
+[[example]]
 name = "entity_calibration_run"
 path = "examples/entity_calibration_run/main.rs"
 required-features = ["entity-calibration"]
@@ -36,6 +41,11 @@ required-features = ["entity-calibration"]
 [[example]]
 name = "entity_store_resolution_experiment"
 path = "examples/entity_store_resolution_experiment/main.rs"
+required-features = ["entity-calibration"]
+
+[[example]]
+name = "entity_jev_resolution_experiment"
+path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]

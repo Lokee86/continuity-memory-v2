@@ -36,6 +36,8 @@ impl Default for EntityCandidateConfig {
 pub struct EntityCandidate {
     pub entity: Entity,
     pub exact_surface: bool,
+    pub normalized_surface: bool,
+    pub alias_surface: bool,
     pub source_association: bool,
     pub lexical_memory_hits: usize,
     pub graph_neighbor_hits: usize,
