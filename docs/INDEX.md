@@ -19,6 +19,7 @@
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
+- [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
 - [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md) — activity-relative REL synthesis design, refresh policy, stress-fixture measurements, and Personality boundary.
 - [Ego Cross-chat context plan](ego-cross-chat-context-plan.md) — deterministic selection of recent active REL conversation compactions within the Ego context budget.
 - [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.

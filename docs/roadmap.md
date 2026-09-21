@@ -86,7 +86,24 @@ Add normalized ingestion for historical and external interaction sources:
 
 ACP remains an adapter, not a canonical storage schema. See [ADR 0015](decisions/0015-acp-inline-interaction-stream.md) and [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
 
-### 6. File usability
+### 6. External canonical-transcript integrations
+
+Add the reference-only external integration mode defined by the [External conversation index integration plan](conversation-index-integration-plan.md).
+
+This is additive to native Archive-backed operation. For hosts that already own canonical conversation history, Reliquary should:
+
+- consume a durable/reconstructable host change feed asynchronously;
+- store stable external message IDs, content hashes, offsets, vectors, cursors, and derived semantic metadata without copying canonical transcript bodies into Archive;
+- hydrate source text only transiently through the host's authorized source API;
+- add a generalized identifier-only external provenance lane rather than inventing Archive Episode/node identities;
+- make lost/corrupt derived indexes rebuildable from host canonical history;
+- route external-source semantic extraction through shared Insomnia semantics without persisting a duplicate source transcript;
+- return source references from derived search so the host remains responsible for authorization and canonical hydration; and
+- expose semantic compaction as an optional proposal service whose result the host validates and commits.
+
+The first target is Hermes, but the Reliquary core contract must remain framework-neutral. Hermes-specific transport belongs in an adapter.
+
+### 7. File usability
 
 Add product-facing file operations without reintroducing REL-owned project-file history:
 
@@ -97,7 +114,7 @@ Add product-facing file operations without reintroducing REL-owned project-file 
 - file-content indexing and retrieval separated from filename metadata; and
 - generated-artifact provenance and lifecycle policy.
 
-### 7. Runtime and security hardening
+### 8. Runtime and security hardening
 
 Complete production hardening:
 
