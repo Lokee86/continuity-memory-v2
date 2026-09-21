@@ -197,7 +197,7 @@ The implementation sequence is:
 1. add a post-extraction Insomnia metadata pass for Entity mentions and lexical terms without moving Entity authority into Insomnia;
 2. implement Perception pass 1 for owner-local Entity synthesis, association, durable identity, and ambiguity preservation;
 3. implement the ADR 0034 Relationship lane: sparse typed Relationship containers over owner-qualified Entity references, cross-owner references without cross-owner Dream edges, relationship-local derived state, and the active-PHY/authorized-REL visibility boundary;
-4. extend derived Communities to recursive Leiden subdivision, stopping when no genuine subcommunities remain, and add ephemeral bounded local processing neighbourhoods for oversized irreducible leaves;
+4. extend derived Communities into a multi-resolution semantic hierarchy: recursive Leiden subdivision for genuine subcommunities, a Community meta-graph for meaningful super-communities, lineage/naming/inspection semantics across persisted levels, coarse -> normal -> fine routing, and ephemeral bounded local processing neighbourhoods for oversized irreducible leaves;
 5. implement Observation persistence and pass 3 for bounded multi-Memory extrapolation with exact support/derivation lineage;
 6. implement pass 4 to generate and separately embed high-recall Observation routing receptors;
 7. implement pass 2 as strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/Relationship-routed candidates rather than an all-Observation scan;
@@ -209,12 +209,13 @@ Perception must preserve these scaling boundaries:
 - no exhaustive `new Memory x all Observations` inference path;
 - no exhaustive Entity-pair Relationship inference path and no automatic Relationship-per-Entity materialization;
 - no non-active PHY Relationship traversal through shared REL Entities;
-- no forced/fake Leiden subdivisions solely to meet context budgets;
+- no forced/fake Leiden subdivisions or super-community groupings solely to meet context/presentation budgets;
+- no promotion of scan-and-merge reduction intermediates into semantic hierarchy; multi-resolution structure must be derived independently from graph/community state;
 - no routing receptor as evidentiary authority;
 - no deletion/invalidation of Observations merely because confirming evidence failed to arrive; and
 - no general curiosity/open-question framework beyond Entity/Observation ambiguity in the initial subsystem.
 
-Scale/quality gates should measure receptor recall, pairwise false positives, recursive-Community/local-neighbourhood coverage, inference cost growth, and stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
+Scale/quality gates should measure receptor recall, pairwise false positives, multi-resolution Community/local-neighbourhood coverage, hierarchy stability/lineage quality, inference cost growth, and stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
 
 ## Memory-web and retrieval integration
 
@@ -226,8 +227,9 @@ Future integration work:
 - measure release-mode latency against `GlobalExact` during rollout;
 - consider explicit lower-cost routing modes only if production economics justify them;
 - tune the implemented Community-lineage continuation/material-change thresholds only from real archive behavior; continuity-preserving Community IDs remain unnecessary while derived lineage is sufficient;
+- evaluate multi-resolution Community routing for coarse -> normal -> fine retrieval/Ego composition after Perception C lands, while keeping every Community level derived rather than an independent semantic authority;
 - add incremental Community maintenance only if measured scan-and-merge cost becomes material; and
-- preserve explicit user Community names as metadata only, never Memory-Web authority; current lineage inheritance must remain conservative around ambiguous splits/merges.
+- preserve explicit user Community names as derived semantic metadata only, never Memory-Web authority; current lineage inheritance must remain conservative around ambiguous splits/merges.
 
 ## Ego
 
