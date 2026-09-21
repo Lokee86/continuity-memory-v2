@@ -2,7 +2,7 @@ use crate::entity_resolution_processor_support::bootstrap_entity_draft;
 use crate::{
     Cva, EntityDraft, EntityResolutionDecision, EntityResolutionEvaluation,
     EntityResolutionOutcome, EntityResolutionPrepared, EntityResolverError, MAX_ENTITY_ALIASES,
-    Phylactery,
+    MAX_ENTITY_RESOLUTION_CANDIDATES, Phylactery,
 };
 
 macro_rules! impl_owner {
@@ -38,8 +38,19 @@ macro_rules! impl_owner {
                                 .aliases
                                 .iter()
                                 .any(|alias| alias.eq_ignore_ascii_case(surface));
+                        let alias_equivalent = prepared
+                            .candidates
+                            .candidates
+                            .iter()
+                            .find(|candidate| candidate.entity.id == entity_id)
+                            .is_some_and(|candidate| {
+                                candidate.exact_surface
+                                    || candidate.normalized_surface
+                                    || candidate.alias_surface
+                            });
                         if !surface.is_empty()
                             && !already_known
+                            && alias_equivalent
                             && entity.aliases.len() < MAX_ENTITY_ALIASES
                         {
                             let mut aliases = entity.aliases.clone();
@@ -90,6 +101,41 @@ macro_rules! impl_owner {
                                 "create_new evaluation missing Entity metadata".into(),
                             )
                         })?;
+                        let conflicts = self.entity_creation_conflicts(
+                            prepared.candidates.mention.text.trim(),
+                            &materialization.kind,
+                            MAX_ENTITY_RESOLUTION_CANDIDATES,
+                        );
+                        if !conflicts.is_empty() {
+                            let mut candidate_entity_ids =
+                                conflicts.iter().map(|entity| entity.id).collect::<Vec<_>>();
+                            for candidate in &prepared.candidates.candidates {
+                                if candidate_entity_ids.len() >= MAX_ENTITY_RESOLUTION_CANDIDATES {
+                                    break;
+                                }
+                                if !candidate_entity_ids.contains(&candidate.entity.id) {
+                                    candidate_entity_ids.push(candidate.entity.id);
+                                }
+                            }
+                            let resolution_changed = self.put_entity_unresolved(
+                                key,
+                                expected_revision,
+                                candidate_entity_ids,
+                                crate::EntityResolutionReason::Ambiguous,
+                                prepared.candidate_fingerprint,
+                                prepared.context_fingerprint,
+                                now_ns,
+                            )?;
+                            return Ok(Some(EntityResolutionOutcome {
+                                key,
+                                decision: EntityResolutionDecision::Unresolved,
+                                reason: crate::EntityResolutionReason::Ambiguous,
+                                entity_id: None,
+                                entity_created: false,
+                                association_changed: false,
+                                resolution_changed,
+                            }));
+                        }
                         let draft = bootstrap_entity_draft(
                             &prepared.memory,
                             &prepared.candidates,

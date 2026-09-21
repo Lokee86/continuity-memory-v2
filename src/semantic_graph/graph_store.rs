@@ -106,10 +106,10 @@ impl GraphStore {
         entities: &EntityStore,
     ) -> Result<(), GraphError> {
         for node in &self.nodes {
-            validation::validate_node(memories, entities, node.semantic_node)?;
+            validation::validate_stored_node(memories, entities, node.semantic_node)?;
         }
         for relation in &self.mutations {
-            validation::validate_change(
+            validation::validate_stored_change(
                 memories,
                 entities,
                 crate::SemanticGraphRelationChange {
@@ -125,6 +125,19 @@ impl GraphStore {
             {
                 return Err(GraphError::InvalidNodeMapping);
             }
+        }
+        for relation in self.states.values().filter(|relation| relation.active) {
+            validation::validate_change(
+                memories,
+                entities,
+                crate::SemanticGraphRelationChange {
+                    source: relation.source,
+                    target: relation.target,
+                    kind: relation.kind,
+                    active: true,
+                },
+                relation.origin,
+            )?;
         }
         self.rebuild_topologies()
     }

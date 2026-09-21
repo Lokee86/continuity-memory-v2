@@ -136,6 +136,102 @@ impl EntityResolutionStore {
         )
     }
 
+    pub(crate) fn retarget_resolved(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+        key: MemoryEntityMentionKey,
+        from: EntityId,
+        to: EntityId,
+        now_ns: i64,
+    ) -> Result<bool, MemoryError> {
+        memories.validate_entity_mention_key(key)?;
+        if !entities.contains(to) {
+            return Err(MemoryError::InvalidField(
+                "Entity resolution Entity reference",
+            ));
+        }
+        let current = self
+            .current
+            .get(&key)
+            .cloned()
+            .ok_or(MemoryError::InvalidField("missing Entity resolution"))?;
+        match current.status {
+            MemoryEntityResolutionStatus::Resolved { entity_id, .. } if entity_id == to => {
+                Ok(false)
+            }
+            MemoryEntityResolutionStatus::Resolved { entity_id, reason } if entity_id == from => {
+                self.append(
+                    container,
+                    key,
+                    now_ns.max(current.updated_at_ns),
+                    MemoryEntityResolutionStatus::Resolved {
+                        entity_id: to,
+                        reason,
+                    },
+                )
+            }
+            _ => Err(MemoryError::InvalidField(
+                "Entity resolution retarget source",
+            )),
+        }
+    }
+
+    pub(crate) fn retarget_entity_references(
+        &mut self,
+        container: &mut Container,
+        entities: &EntityStore,
+        from: EntityId,
+        to: EntityId,
+        now_ns: i64,
+    ) -> Result<usize, MemoryError> {
+        if !entities.contains(to) {
+            return Err(MemoryError::InvalidField(
+                "Entity resolution Entity reference",
+            ));
+        }
+        let values = self.current.values().cloned().collect::<Vec<_>>();
+        let mut changed = 0usize;
+        for current in values {
+            let status = match current.status {
+                MemoryEntityResolutionStatus::Resolved { entity_id, reason }
+                    if entity_id == from =>
+                {
+                    Some(MemoryEntityResolutionStatus::Resolved {
+                        entity_id: to,
+                        reason,
+                    })
+                }
+                MemoryEntityResolutionStatus::Pending(mut value)
+                    if value.candidate_entity_ids.contains(&from) =>
+                {
+                    replace_candidate(&mut value.candidate_entity_ids, from, to);
+                    value.candidate_set_fingerprint = [0; 32];
+                    Some(MemoryEntityResolutionStatus::Pending(value))
+                }
+                MemoryEntityResolutionStatus::Dormant(mut value)
+                    if value.candidate_entity_ids.contains(&from) =>
+                {
+                    replace_candidate(&mut value.candidate_entity_ids, from, to);
+                    value.candidate_set_fingerprint = [0; 32];
+                    Some(MemoryEntityResolutionStatus::Dormant(value))
+                }
+                _ => None,
+            };
+            if let Some(status) = status {
+                self.append(
+                    container,
+                    current.key,
+                    now_ns.max(current.updated_at_ns),
+                    status,
+                )?;
+                changed += 1;
+            }
+        }
+        Ok(changed)
+    }
+
     fn validate_write(
         &self,
         memories: &MemoryStore,
@@ -165,6 +261,16 @@ fn reject_terminal(status: &MemoryEntityResolutionStatus) -> Result<(), MemoryEr
     } else {
         Ok(())
     }
+}
+
+fn replace_candidate(values: &mut Vec<EntityId>, from: EntityId, to: EntityId) {
+    for value in values.iter_mut() {
+        if *value == from {
+            *value = to;
+        }
+    }
+    values.sort();
+    values.dedup();
 }
 
 fn normalize_candidates(values: &mut Vec<EntityId>) -> Result<(), MemoryError> {

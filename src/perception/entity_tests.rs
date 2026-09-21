@@ -137,6 +137,56 @@ fn divergent_reconcile_replays_right_entity_revision() {
     );
 }
 
+#[test]
+fn divergent_reconcile_replays_entity_retirement() {
+    let base = temp_path("entity-retirement-base.rel");
+    let left = temp_path("entity-retirement-left.rel");
+    let right = temp_path("entity-retirement-right.rel");
+    let output = temp_path("entity-retirement-merged.rel");
+
+    let mut rel = Cva::create_project(&base).unwrap();
+    let (survivor, _) = rel
+        .publish_entity(None, 0, draft("Canonical", vec![], "service", 1))
+        .unwrap();
+    let (retired, _) = rel
+        .publish_entity(None, 0, draft("Qualified Canonical", vec![], "service", 1))
+        .unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+    fs::copy(&base, &left).unwrap();
+    fs::copy(&base, &right).unwrap();
+
+    let mut left_rel = Cva::open(&left).unwrap();
+    left_rel
+        .merge_entities(survivor.id, retired.id, 10)
+        .unwrap();
+    left_rel.sync().unwrap();
+    drop(left_rel);
+
+    let mut right_rel = Cva::open(&right).unwrap();
+    let (right_only, _) = right_rel
+        .publish_entity(None, 0, draft("Right Only", vec![], "service", 2))
+        .unwrap();
+    right_rel.sync().unwrap();
+    drop(right_rel);
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+
+    let merged = Cva::open(&output).unwrap();
+    assert!(matches!(
+        merged.entity(retired.id),
+        Err(EntityError::MissingEntity)
+    ));
+    assert_eq!(
+        merged.retired_entity_replacement(retired.id),
+        Some(survivor.id)
+    );
+    assert_eq!(
+        merged.entity(right_only.id).unwrap().canonical_name,
+        "Right Only"
+    );
+}
+
 fn draft(name: &str, aliases: Vec<&str>, kind: &str, revision: u64) -> EntityDraft {
     EntityDraft {
         canonical_name: name.into(),

@@ -363,8 +363,15 @@ mod entity_candidate_tests;
 mod entity_candidates;
 #[path = "perception/entity_codec.rs"]
 mod entity_codec;
+#[cfg(test)]
+#[path = "perception/entity_creation_guard_tests.rs"]
+mod entity_creation_guard_tests;
 #[path = "perception/entity_error.rs"]
 mod entity_error;
+#[path = "perception/entity_identity_guard.rs"]
+mod entity_identity_guard;
+#[path = "perception/entity_merge.rs"]
+mod entity_merge;
 #[path = "perception/entity_model.rs"]
 mod entity_model;
 #[path = "perception/entity_owner.rs"]
@@ -822,8 +829,8 @@ pub use entity_candidate_model::{
 };
 pub use entity_error::EntityError;
 pub use entity_model::{
-    Entity, EntityDraft, EntityId, EntityStats, MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES,
-    MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+    Entity, EntityDraft, EntityId, EntityMergeOutcome, EntityStats, MAX_ENTITY_ALIASES,
+    MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
 pub use entity_resolution_batch::EntityResolutionBatchOutcome;
 pub use entity_resolution_engine::EntityResolutionEngine;

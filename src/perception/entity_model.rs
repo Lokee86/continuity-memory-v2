@@ -39,6 +39,16 @@ pub struct EntityStats {
     pub entity_version: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EntityMergeOutcome {
+    pub survivor_id: EntityId,
+    pub retired_id: EntityId,
+    pub aliases_added: usize,
+    pub associations_retargeted: usize,
+    pub resolutions_retargeted: usize,
+    pub changed: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct EntityRecord {
     pub id: EntityId,

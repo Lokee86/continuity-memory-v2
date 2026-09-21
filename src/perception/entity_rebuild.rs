@@ -1,4 +1,4 @@
-use crate::entity_codec::{decode_format, decode_record, decode_version};
+use crate::entity_codec::{decode_format, decode_record, decode_tombstone, decode_version};
 use crate::entity_model::EntityRecord;
 use crate::{EntityError, ObjectRef};
 use std::collections::HashMap;
@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub(crate) struct EntityOpenState {
     store: crate::entity_store::EntityStore,
     pending_records: HashMap<ObjectRef, EntityRecord>,
+    pending_tombstones: HashMap<ObjectRef, crate::entity_codec::EntityTombstone>,
     format_seen: bool,
 }
 
@@ -14,6 +15,7 @@ impl EntityOpenState {
         Self {
             store: crate::entity_store::EntityStore::empty(),
             pending_records: HashMap::new(),
+            pending_tombstones: HashMap::new(),
             format_seen: false,
         }
     }
@@ -35,17 +37,27 @@ impl EntityOpenState {
             self.pending_records.insert(chunk, record);
             return Ok(());
         }
+        if let Some(tombstone) = decode_tombstone(payload)? {
+            self.pending_tombstones.insert(chunk, tombstone);
+            return Ok(());
+        }
         if let Some(version) = decode_version(payload)? {
             if version.global_version == 0 || version.global_version > latest_global_version {
                 return Err(EntityError::InvalidVersion);
             }
-            let mut record = self
-                .pending_records
-                .remove(&version.record)
-                .ok_or(EntityError::InvalidVersion)?;
-            record.global_version = version.global_version;
-            record.entity_version = version.entity_version;
-            self.store.insert_rebuilt(record)?;
+            if let Some(mut record) = self.pending_records.remove(&version.record) {
+                record.global_version = version.global_version;
+                record.entity_version = version.entity_version;
+                self.store.insert_rebuilt(record)?;
+            } else if let Some(tombstone) = self.pending_tombstones.remove(&version.record) {
+                self.store.insert_tombstone_rebuilt(
+                    tombstone,
+                    version.global_version,
+                    version.entity_version,
+                )?;
+            } else {
+                return Err(EntityError::InvalidVersion);
+            }
         }
         Ok(())
     }

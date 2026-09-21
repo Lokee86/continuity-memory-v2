@@ -46,6 +46,19 @@ macro_rules! impl_owner {
                 self.entities.candidates_for_alias_surface(surface, limit)
             }
 
+            pub(crate) fn entity_creation_conflicts(
+                &self,
+                surface: &str,
+                kind: &str,
+                limit: usize,
+            ) -> Vec<Entity> {
+                self.entities.creation_conflicts(surface, kind, limit)
+            }
+
+            pub fn retired_entity_replacement(&self, id: EntityId) -> Option<EntityId> {
+                self.entities.retired_replacement(id)
+            }
+
             pub fn entity_version(&self) -> u64 {
                 self.entities.entity_version()
             }

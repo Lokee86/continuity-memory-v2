@@ -3,7 +3,9 @@ mod read;
 #[path = "entity_store_validation.rs"]
 mod validation;
 
-use crate::entity_codec::{EntityVersion, encode_format, encode_record, encode_version};
+use crate::entity_codec::{
+    EntityTombstone, EntityVersion, encode_format, encode_record, encode_tombstone, encode_version,
+};
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityId};
 use sha2::{Digest, Sha256};
@@ -17,6 +19,8 @@ pub(crate) struct EntityStore {
     by_surface: HashMap<String, BTreeSet<EntityId>>,
     by_normalized_surface: HashMap<String, BTreeSet<EntityId>>,
     by_alias_surface: HashMap<String, BTreeSet<EntityId>>,
+    revisions: HashMap<EntityId, u64>,
+    retired: HashMap<EntityId, EntityId>,
     next_entity_version: u64,
 }
 
@@ -29,6 +33,8 @@ impl EntityStore {
             by_surface: HashMap::new(),
             by_normalized_surface: HashMap::new(),
             by_alias_surface: HashMap::new(),
+            revisions: HashMap::new(),
+            retired: HashMap::new(),
             next_entity_version: 1,
         }
     }
@@ -48,7 +54,7 @@ impl EntityStore {
         normalize_draft(&mut draft)?;
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = resolve(&self.records[index]);
-            return if same_draft(&existing, &draft) {
+            return if self.current.contains_key(&existing.id) && same_draft(&existing, &draft) {
                 Ok((existing, false))
             } else {
                 Err(EntityError::MutationConflict)
@@ -57,7 +63,7 @@ impl EntityStore {
 
         let id = id.unwrap_or_else(|| entity_id(&draft.mutation_id));
         let current = self.current.get(&id).map(|index| &self.records[*index]);
-        let current_revision = current.map_or(0, |record| record.revision);
+        let current_revision = self.revisions.get(&id).copied().unwrap_or(0);
         if current_revision != expected_revision {
             return Err(EntityError::RevisionConflict);
         }
@@ -117,7 +123,13 @@ impl EntityStore {
             .current
             .get(&record.id)
             .map(|index| &self.records[*index]);
-        let expected_revision = current.map_or(1, |record| record.revision + 1);
+        let expected_revision = self
+            .revisions
+            .get(&record.id)
+            .copied()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
         if record.revision != expected_revision
             || current.is_some_and(|prior| prior.created_at_ns != record.created_at_ns)
         {
@@ -141,6 +153,8 @@ impl EntityStore {
         let index = self.records.len();
         self.by_mutation.insert(record.mutation_id.clone(), index);
         self.current.insert(record.id, index);
+        self.revisions.insert(record.id, record.revision);
+        self.retired.remove(&record.id);
         for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
             self.by_surface
                 .entry(surface)
@@ -165,6 +179,105 @@ impl EntityStore {
             .checked_add(1)
             .ok_or(EntityError::VersionExhausted)?;
         Ok(())
+    }
+
+    pub(crate) fn tombstone(
+        &mut self,
+        container: &mut Container,
+        id: EntityId,
+        expected_revision: u64,
+        replacement_id: EntityId,
+    ) -> Result<bool, EntityError> {
+        if id == replacement_id || !self.current.contains_key(&replacement_id) {
+            return Err(EntityError::InvalidField("Entity replacement"));
+        }
+        let Some(current_index) = self.current.get(&id).copied() else {
+            return if self.retired.get(&id).copied() == Some(replacement_id) {
+                Ok(false)
+            } else {
+                Err(EntityError::MissingEntity)
+            };
+        };
+        let current = &self.records[current_index];
+        if current.revision != expected_revision {
+            return Err(EntityError::RevisionConflict);
+        }
+        let revision = expected_revision
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        let entity_version = self.next_entity_version;
+        entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        let mutation = container.append(&encode_tombstone(EntityTombstone {
+            id,
+            revision,
+            replacement_id,
+        }))?;
+        let global_version = container.allocate_version()?;
+        container.append(&encode_version(EntityVersion {
+            global_version,
+            entity_version,
+            record: mutation,
+        }))?;
+        self.insert_tombstone_rebuilt(
+            EntityTombstone {
+                id,
+                revision,
+                replacement_id,
+            },
+            global_version,
+            entity_version,
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn insert_tombstone_rebuilt(
+        &mut self,
+        tombstone: EntityTombstone,
+        global_version: u64,
+        entity_version: u64,
+    ) -> Result<(), EntityError> {
+        if global_version == 0
+            || entity_version == 0
+            || entity_version != self.next_entity_version
+            || tombstone.id == tombstone.replacement_id
+            || !self.current.contains_key(&tombstone.replacement_id)
+        {
+            return Err(EntityError::InvalidVersion);
+        }
+        let expected_revision = self
+            .revisions
+            .get(&tombstone.id)
+            .copied()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        if tombstone.revision != expected_revision {
+            return Err(EntityError::RevisionConflict);
+        }
+        let index = self
+            .current
+            .remove(&tombstone.id)
+            .ok_or(EntityError::MissingEntity)?;
+        let prior = &self.records[index];
+        deindex_entity(
+            &mut self.by_surface,
+            &mut self.by_normalized_surface,
+            &mut self.by_alias_surface,
+            prior,
+        );
+        self.revisions.insert(tombstone.id, tombstone.revision);
+        self.retired.insert(tombstone.id, tombstone.replacement_id);
+        self.next_entity_version = self
+            .next_entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        Ok(())
+    }
+
+    pub(crate) fn retired_replacement(&self, id: EntityId) -> Option<EntityId> {
+        self.retired.get(&id).copied()
     }
 }
 
@@ -294,6 +407,23 @@ fn acronym_alias_key(value: &str) -> Option<String> {
     }
 
     None
+}
+
+fn deindex_entity(
+    by_surface: &mut HashMap<String, BTreeSet<EntityId>>,
+    by_normalized_surface: &mut HashMap<String, BTreeSet<EntityId>>,
+    by_alias_surface: &mut HashMap<String, BTreeSet<EntityId>>,
+    record: &EntityRecord,
+) {
+    for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
+        remove_surface(by_surface, &surface, record.id);
+    }
+    for surface in normalized_entity_surfaces(&record.canonical_name, &record.aliases) {
+        remove_surface(by_normalized_surface, &surface, record.id);
+    }
+    for surface in alias_entity_surfaces(&record.canonical_name, &record.aliases) {
+        remove_surface(by_alias_surface, &surface, record.id);
+    }
 }
 
 fn remove_surface(

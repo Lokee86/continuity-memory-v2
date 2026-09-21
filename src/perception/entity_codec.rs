@@ -4,12 +4,20 @@ use crate::{EntityError, EntityId, ObjectRef};
 const FORMAT_MAGIC: [u8; 8] = *b"CVAENTF1";
 const RECORD_MAGIC: [u8; 8] = *b"CVAENTR1";
 const VERSION_MAGIC: [u8; 8] = *b"CVAENTV1";
+const TOMBSTONE_MAGIC: [u8; 8] = *b"CVAENTT1";
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct EntityVersion {
     pub global_version: u64,
     pub entity_version: u64,
     pub record: ObjectRef,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct EntityTombstone {
+    pub id: EntityId,
+    pub revision: u64,
+    pub replacement_id: EntityId,
 }
 
 pub(crate) fn encode_format() -> [u8; 8] {
@@ -90,6 +98,29 @@ pub(crate) fn decode_version(bytes: &[u8]) -> Result<Option<EntityVersion>, Enti
         global_version: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
         entity_version: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
         record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
+    }))
+}
+
+pub(crate) fn encode_tombstone(value: EntityTombstone) -> Vec<u8> {
+    let mut out = Vec::with_capacity(80);
+    out.extend_from_slice(&TOMBSTONE_MAGIC);
+    out.extend_from_slice(&value.id.0);
+    out.extend_from_slice(&value.revision.to_le_bytes());
+    out.extend_from_slice(&value.replacement_id.0);
+    out
+}
+
+pub(crate) fn decode_tombstone(bytes: &[u8]) -> Result<Option<EntityTombstone>, EntityError> {
+    if bytes.len() < 8 || bytes[..8] != TOMBSTONE_MAGIC {
+        return Ok(None);
+    }
+    if bytes.len() != 80 {
+        return Err(EntityError::CorruptRecord("invalid Entity tombstone"));
+    }
+    Ok(Some(EntityTombstone {
+        id: EntityId(bytes[8..40].try_into().unwrap()),
+        revision: u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
+        replacement_id: EntityId(bytes[48..80].try_into().unwrap()),
     }))
 }
 
