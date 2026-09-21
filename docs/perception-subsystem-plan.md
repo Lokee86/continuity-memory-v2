@@ -134,17 +134,24 @@ It runs independently of pass 2: one Memory may support an existing Observation 
 
 Observation extrapolation is bounded multi-Memory inference over Dream's structural organization.
 
-### Recursive Community narrowing
+### Multi-resolution Community hierarchy
 
 The current flat Community layer is insufficient as an inference boundary for large RELs/PHYs.
 
-Community processing must:
+Communities are **derived semantic structure**. They are inferred from the organization of the semantic Graph and therefore carry meaningful information about how Memories cohere, but they do not create, override, or replace Memory, Entity, Observation, or Relationship authority.
+
+Community processing should expose multiple useful resolutions:
 
 1. compute the normal owner-local Leiden partition;
 2. recursively run Leiden inside a Community while genuine subcommunities exist;
-3. stop when Leiden no longer finds a meaningful subdivision.
+3. build a Community meta-graph from cross-Community semantic relationships and derive coarser super-communities where genuine higher-level structure exists;
+4. stop subdivision or aggregation when another level does not add meaningful structure.
 
-Depth is dynamic. Leiden must not be forced to invent a split solely to satisfy an inference budget.
+Depth is dynamic in both directions. Leiden must not be forced to invent a split or grouping solely to satisfy an inference or presentation budget.
+
+The hierarchy must be derived from persisted Graph/Community state, not from the temporary shard/reduction tree used by scan-and-merge. Execution topology is not semantic hierarchy.
+
+Persisted sub-/super-Community structure may be named, assigned lineage, traversed, surfaced in the Knowledge Interface, and used for coarse -> normal -> fine retrieval or Perception routing. It remains descriptive organization: a Community-level node is not itself a proposition and cannot become an independent relationship authority.
 
 ### Oversized irreducible leaves
 
@@ -230,7 +237,9 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 - Perception owns Entity, Relationship, and Observation semantic objects plus Entity/Observation ambiguity state; it consumes Chronos for Observation temporal interpretation.
 - Relationship participants are owner-qualified Entity references; Relationship ownership and visibility are independent of participant-Entity visibility.
 - Only the active PHY may contribute private Relationship state to normal runtime composition; authorized REL Relationship state may be shared/portable across users.
-- Community detection remains derived organization, never semantic authority.
+- Community detection and hierarchy remain derived semantic organization, never independent semantic authority.
+- Sub-/super-Community levels may be persisted, named, lineaged, traversed, and used for routing, but cannot create or override Memory/Entity/Observation/Relationship truth.
+- Scan-and-merge reduction intermediates are execution machinery and must not be promoted into semantic hierarchy without an independent graph-derived hierarchy pass.
 - Processing neighbourhoods are ephemeral and never fake Communities.
 - Routing receptors are metadata, never evidence.
 - Pairwise Observation contribution and multi-Memory extrapolation remain separate contracts.
@@ -263,12 +272,16 @@ The next implementation milestone is **B — Entity owner and pass 1**.
 - Implement active-PHY privacy and authorized-REL runtime composition fixtures.
 - Define bounded relationship-local Observations/perspectives without creating nested Memory Webs.
 
-### C — Recursive Communities and local neighbourhoods
+### C — Multi-resolution Communities and local neighbourhoods
 
-- Extend Community representation to recursive parent/child structure.
-- Preserve lineage/naming semantics where applicable.
-- Detect irreducible leaves.
-- Implement ephemeral bounded local-neighbourhood construction.
+- Extend Community representation to a derived multi-resolution hierarchy.
+- Add recursive sub-Communities only while genuine internal structure remains.
+- Build a Community meta-graph from cross-Community semantic relationships and derive coarser super-Communities where meaningful higher-level structure exists.
+- Keep the hierarchy graph-derived; do not persist scan-and-merge reduction intermediates as semantic structure.
+- Preserve or extend lineage, semantic naming, and stable inspection semantics at each persisted hierarchy level.
+- Expose coarse -> normal -> fine routing for Perception and later retrieval/Ego integration.
+- Detect oversized irreducible leaves.
+- Implement ephemeral bounded local-neighbourhood construction for leaves that still exceed inference budgets.
 
 ### D — Observation owner and pass 3
 
@@ -305,7 +318,7 @@ The next implementation milestone is **B — Entity owner and pass 1**.
 - Owner-qualified `EntityRef` representation, dangling-reference behavior, Relationship roles/cardinality, and materialization thresholds.
 - Dedicated Perception model route vs General/Dream fallback.
 - Entity candidate thresholds and multi-centroid maintenance.
-- Recursive-Leiden split criteria and processing-neighbourhood budget.
+- Multi-resolution Community criteria: recursive split stopping rules, Community meta-graph construction/weighting, super-Community resolution/stopping rules, and processing-neighbourhood budget.
 - Observation derivation/inference taxonomy beyond support lineage.
 - Receptor vector-index implementation and candidate limits.
 - Mutation-accounting boundaries and wall-time policy.
