@@ -33,7 +33,8 @@ macro_rules! impl_entity_merge {
                     return Err(EntityError::InvalidField("Entity merge kind").into());
                 }
 
-                let aliases = merged_aliases(&survivor, &retired)?;
+                let active_entities = self.entities();
+                let aliases = merged_aliases(&survivor, &retired, &active_entities)?;
                 let aliases_added = aliases.len().saturating_sub(survivor.aliases.len());
                 if aliases_added > 0 {
                     self.publish_entity(
@@ -169,6 +170,7 @@ impl_entity_merge!(Phylactery, PhylacteryError);
 fn merged_aliases(
     survivor: &crate::Entity,
     retired: &crate::Entity,
+    active_entities: &[crate::Entity],
 ) -> Result<Vec<String>, EntityError> {
     let mut aliases = survivor.aliases.clone();
     for value in std::iter::once(retired.canonical_name.as_str())
@@ -178,6 +180,7 @@ fn merged_aliases(
             || aliases
                 .iter()
                 .any(|alias| alias.eq_ignore_ascii_case(value))
+            || surface_claimed_by_other_entity(value, survivor.id, retired.id, active_entities)
         {
             continue;
         }
@@ -189,6 +192,23 @@ fn merged_aliases(
         return Err(EntityError::FieldTooLarge);
     }
     Ok(aliases)
+}
+
+fn surface_claimed_by_other_entity(
+    surface: &str,
+    survivor_id: EntityId,
+    retired_id: EntityId,
+    active_entities: &[crate::Entity],
+) -> bool {
+    active_entities.iter().any(|entity| {
+        entity.id != survivor_id
+            && entity.id != retired_id
+            && (entity.canonical_name.eq_ignore_ascii_case(surface)
+                || entity
+                    .aliases
+                    .iter()
+                    .any(|alias| alias.eq_ignore_ascii_case(surface)))
+    })
 }
 
 fn short_id(id: EntityId) -> String {

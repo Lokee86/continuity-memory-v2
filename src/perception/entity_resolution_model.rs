@@ -80,6 +80,17 @@ impl EntityResolutionReason {
             _ => return None,
         })
     }
+
+    pub(crate) fn is_rejection_class(self) -> bool {
+        matches!(
+            self,
+            Self::GenericRole
+                | Self::AbstractProcess
+                | Self::TransientValue
+                | Self::SentenceLocal
+                | Self::WrapperCategory
+        )
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

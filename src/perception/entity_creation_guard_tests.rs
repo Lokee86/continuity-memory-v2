@@ -202,6 +202,40 @@ fn context_only_resolution_does_not_promote_global_alias() {
 }
 
 #[test]
+fn merge_does_not_inherit_alias_claimed_by_other_active_entity() {
+    let mut rel = Cva::create_project(temp_path("merge-alias-shadow.rel")).unwrap();
+    let survivor = rel
+        .publish_entity(
+            None,
+            0,
+            typed_entity_draft("game server", "service", "game-server-canonical"),
+        )
+        .unwrap()
+        .0;
+    rel.publish_entity(
+        None,
+        0,
+        typed_entity_draft("Go", "programming_language", "go-language"),
+    )
+    .unwrap();
+    let mut retired_draft = typed_entity_draft("Go Game Server", "service", "go-game-server");
+    retired_draft.aliases = vec!["Go".into()];
+    let retired = rel.publish_entity(None, 0, retired_draft).unwrap().0;
+
+    let outcome = rel.merge_entities(survivor.id, retired.id, 20).unwrap();
+
+    assert!(outcome.changed);
+    let merged = rel.entity(survivor.id).unwrap();
+    assert!(merged.aliases.iter().any(|alias| alias == "Go Game Server"));
+    assert!(
+        !merged
+            .aliases
+            .iter()
+            .any(|alias| alias.eq_ignore_ascii_case("Go"))
+    );
+}
+
+#[test]
 fn merge_retargets_state_graph_and_survives_reopen() {
     let path = temp_path("entity-merge.rel");
     let mut rel = Cva::create_project(&path).unwrap();

@@ -27,7 +27,10 @@ macro_rules! impl_owner {
                 }
 
                 let key = prepared.key;
-                let output = evaluation.output;
+                let mut output = evaluation.output;
+                if output.reason.is_rejection_class() {
+                    output.decision = EntityResolutionDecision::Reject;
+                }
                 let expected_revision = prepared.expected_resolution_revision;
                 let outcome = match output.decision {
                     EntityResolutionDecision::ResolveExisting(entity_id) => {

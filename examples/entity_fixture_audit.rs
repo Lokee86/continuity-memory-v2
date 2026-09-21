@@ -169,6 +169,10 @@ fn audit(label: &str, entities: &[AuditEntity], states: &[AuditState], associati
     print_clusters("EXACT_SAME_SURFACE_KIND", exact_clusters(entities));
     print_clusters("NORMALIZED_SURFACE_KIND", normalized_clusters(entities));
     print_clusters("ALIAS_KEY_KIND", alias_clusters(entities));
+    print_clusters(
+        "CROSS_KIND_ALIAS_SHADOW",
+        cross_kind_alias_shadow_clusters(entities),
+    );
 
     let python = entities
         .iter()
@@ -356,6 +360,64 @@ where
         .filter(|(_, names)| names.len() > 1)
         .map(|((surface, kind), names)| {
             (format!("{surface} : {kind}"), names.into_iter().collect())
+        })
+        .collect()
+}
+
+fn cross_kind_alias_shadow_clusters(entities: &[AuditEntity]) -> Vec<(String, Vec<String>)> {
+    let mut map = BTreeMap::<String, Vec<(EntityId, String, String, bool)>>::new();
+    for entity in entities {
+        for (surface, is_alias) in std::iter::once((entity.name.as_str(), false))
+            .chain(entity.aliases.iter().map(|alias| (alias.as_str(), true)))
+        {
+            let key = surface.trim().to_lowercase();
+            if key.is_empty() {
+                continue;
+            }
+            let values = map.entry(key).or_default();
+            if let Some(existing) = values.iter_mut().find(|value| value.0 == entity.id) {
+                existing.3 |= is_alias;
+            } else {
+                values.push((
+                    entity.id,
+                    entity.name.clone(),
+                    entity.kind.clone(),
+                    is_alias,
+                ));
+            }
+        }
+    }
+
+    map.into_iter()
+        .filter_map(|(surface, mut values)| {
+            if values.len() < 2 || !values.iter().any(|value| value.3) {
+                return None;
+            }
+            let kinds = values
+                .iter()
+                .map(|value| value.2.as_str())
+                .collect::<BTreeSet<_>>();
+            if kinds.len() < 2 {
+                return None;
+            }
+            values.sort_by(|left, right| {
+                left.1
+                    .cmp(&right.1)
+                    .then_with(|| left.2.cmp(&right.2))
+                    .then_with(|| left.0.cmp(&right.0))
+            });
+            Some((
+                surface,
+                values
+                    .into_iter()
+                    .map(|(_, name, kind, is_alias)| {
+                        format!(
+                            "{name} : {kind} ({})",
+                            if is_alias { "alias" } else { "canonical" }
+                        )
+                    })
+                    .collect(),
+            ))
         })
         .collect()
 }

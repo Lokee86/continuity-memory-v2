@@ -182,6 +182,8 @@ fn parse_output(
     };
     if reason == EntityResolutionReason::RecurrenceRequired {
         decision = EntityResolutionDecision::Unresolved;
+    } else if reason.is_rejection_class() {
+        decision = EntityResolutionDecision::Reject;
     }
     Ok(EntityResolverOutput { decision, reason })
 }

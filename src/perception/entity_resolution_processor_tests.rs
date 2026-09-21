@@ -162,6 +162,82 @@ fn unresolved_and_rejected_states_are_persisted_and_do_not_repeat_inference() {
 }
 
 #[test]
+fn admission_rejection_reason_cannot_remain_pending() {
+    let mut rel = Cva::create_project(temp_path("admission-terminal-reason.rel")).unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "logger-role",
+        "Logger",
+        "project logger writes task diagnostics.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "project logger");
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "terminal-reason-test",
+        vec![json!({
+            "decision": "unresolved",
+            "reason": "generic_role",
+            "promotion_policy": "none",
+            "entity_kind": "unknown",
+            "entity_summary": ""
+        })],
+    ));
+
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 24)
+        .unwrap();
+
+    assert_eq!(result.decision, EntityResolutionDecision::Reject);
+    assert_eq!(result.reason, EntityResolutionReason::GenericRole);
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Rejected {
+            reason: EntityResolutionReason::GenericRole
+        }
+    ));
+}
+
+#[test]
+fn candidate_rejection_reason_cannot_remain_pending() {
+    let mut rel = Cva::create_project(temp_path("candidate-terminal-reason.rel")).unwrap();
+    rel.publish_entity(
+        None,
+        0,
+        entity_draft("Project Logger", &[], "logger service", 1),
+    )
+    .unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "logger-role",
+        "Logger",
+        "Project Logger writes task diagnostics.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "Project Logger");
+    let resolver = EntityResolver::new(SimulatedGeneralEndpoint::new(
+        "terminal-reason-test",
+        vec![json!({
+            "decision": "unresolved",
+            "reason": "generic_role",
+            "target_candidate_index": -1,
+            "identity_relation": "uncertain",
+            "mention_kind": "unknown"
+        })],
+    ));
+
+    let result = rel
+        .resolve_entity_mention(&resolver, key, EntityCandidateConfig::default(), 25)
+        .unwrap();
+
+    assert_eq!(result.decision, EntityResolutionDecision::Reject);
+    assert_eq!(result.reason, EntityResolutionReason::GenericRole);
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Rejected {
+            reason: EntityResolutionReason::GenericRole
+        }
+    ));
+}
+
+#[test]
 fn existing_source_association_recovers_partial_resolution_write() {
     let mut rel = Cva::create_project(temp_path("association-recovery.rel")).unwrap();
     let memory = publish_rel_memory(

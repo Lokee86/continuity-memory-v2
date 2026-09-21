@@ -84,6 +84,8 @@ fn parse_admission_output(output: &Value) -> Result<ParsedEntityAdmission, Entit
     let reason = parse_reason(required_string(output, "reason")?)?;
     if reason == EntityResolutionReason::RecurrenceRequired {
         decision = EntityAdmissionDecision::Unresolved;
+    } else if reason.is_rejection_class() {
+        decision = EntityAdmissionDecision::Reject;
     }
     let promotion_policy = match required_string(output, "promotion_policy")? {
         "immediate" => EntityPromotionPolicy::Immediate,
