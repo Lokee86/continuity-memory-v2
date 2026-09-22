@@ -1,6 +1,7 @@
 use crate::episode_codec::encode_episode;
 use crate::episode_model::episode_id;
 use crate::{Archive, ArchiveError, Container, Episode, EpisodeId, Node};
+use std::collections::HashSet;
 
 impl Archive {
     pub(crate) fn put_episode(
@@ -85,6 +86,37 @@ impl Archive {
         Ok(nodes[start..].iter().any(|node| node.id == node_id))
     }
 
+    pub(crate) fn episode_contains_all_nodes(
+        &self,
+        episode_id: EpisodeId,
+        node_ids: &HashSet<&str>,
+    ) -> Result<bool, ArchiveError> {
+        if node_ids.is_empty() {
+            return Ok(true);
+        }
+        let episode = self
+            .episodes
+            .get(episode_id)
+            .ok_or(ArchiveError::InvalidEpisodeRange)?;
+        let mut remaining = node_ids.clone();
+        let mut seen = HashSet::new();
+        let mut current = Some(episode.end_node_id.as_str());
+
+        while let Some(id) = current {
+            if !seen.insert(id) {
+                return Err(ArchiveError::NodeCycle);
+            }
+            remaining.remove(id);
+            if id == episode.start_node_id.as_str() {
+                return Ok(remaining.is_empty());
+            }
+            let node =
+                self.require_node(&episode.conversation_id, id, ArchiveError::MissingNode)?;
+            current = node.parent_id.as_deref();
+        }
+        Err(ArchiveError::InvalidEpisodeRange)
+    }
+
     pub(crate) fn validate_episodes(&self) -> Result<(), ArchiveError> {
         for episode in self.episodes.iter() {
             self.validate_episode(episode)?;
@@ -120,7 +152,18 @@ impl Archive {
     }
 
     fn node_descends_from(&self, end: &Node, start: &Node) -> Result<bool, ArchiveError> {
-        let nodes = self.branch_nodes(&end.conversation_id, &end.id)?;
-        Ok(nodes.iter().any(|node| node.id == start.id))
+        let mut seen = HashSet::new();
+        let mut current = Some(end.id.as_str());
+        while let Some(id) = current {
+            if !seen.insert(id) {
+                return Err(ArchiveError::NodeCycle);
+            }
+            if id == start.id.as_str() {
+                return Ok(true);
+            }
+            let node = self.require_node(&end.conversation_id, id, ArchiveError::MissingNode)?;
+            current = node.parent_id.as_deref();
+        }
+        Ok(false)
     }
 }

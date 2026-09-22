@@ -70,8 +70,22 @@ impl Archive {
         {
             return Err(ArchiveError::InvalidFragmentId);
         }
-        self.fragment_nodes_for(fragment)?;
-        Ok(())
+        let mut seen = HashSet::new();
+        let mut current = Some(fragment.end_node_id.as_str());
+        while let Some(id) = current {
+            if !seen.insert(id) {
+                return Err(ArchiveError::NodeCycle);
+            }
+            let node = self
+                .nodes
+                .get(&fragment.conversation_id, id)
+                .ok_or(ArchiveError::MissingNode)?;
+            if id == fragment.start_node_id.as_str() {
+                return Ok(());
+            }
+            current = node.parent_id.as_deref();
+        }
+        Err(ArchiveError::InvalidFragmentRange)
     }
 
     pub(crate) fn fragment_turns(

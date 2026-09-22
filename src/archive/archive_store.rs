@@ -104,7 +104,16 @@ impl Archive {
                 &branch.leaf_node_id,
                 ArchiveError::MissingLeaf,
             )?;
-            self.branch_nodes(&branch.conversation_id, &branch.leaf_node_id)?;
+            let mut seen = HashSet::new();
+            let mut current = Some(branch.leaf_node_id.as_str());
+            while let Some(id) = current {
+                if !seen.insert(id) {
+                    return Err(ArchiveError::NodeCycle);
+                }
+                let node =
+                    self.require_node(&branch.conversation_id, id, ArchiveError::MissingNode)?;
+                current = node.parent_id.as_deref();
+            }
         }
         for metadata in self.conversations.iter() {
             if !self.has_conversation(&metadata.conversation_id) {

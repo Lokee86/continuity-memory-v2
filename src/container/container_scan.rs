@@ -1,10 +1,10 @@
 use super::{
-    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, read_u64,
-    truncated_or_io,
+    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, truncated_or_io,
 };
+use crate::container_version::observe_version_payload_state;
 use std::collections::BTreeMap;
 use std::fs::OpenOptions;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
 
 impl Container {
@@ -49,35 +49,57 @@ impl Container {
     where
         E: From<ContainerError>,
     {
+        const SCAN_BUFFER_BYTES: usize = 64 * 1024;
+
         let file_len = self.file.metadata().map_err(ContainerError::Io)?.len();
         let mut offset = self.header_len;
         self.file
             .seek(SeekFrom::Start(offset))
             .map_err(ContainerError::Io)?;
-        while offset < file_len {
-            if file_len - offset < CHUNK_HEADER_LEN {
-                self.recover_truncated_tail(offset).map_err(E::from)?;
-                break;
+
+        let mut truncate_at = None;
+        {
+            let file = &mut self.file;
+            let next_version = &mut self.next_version;
+            let transaction_times = &mut self.transaction_times;
+            let mut reader = BufReader::with_capacity(SCAN_BUFFER_BYTES, file);
+            let mut length_bytes = [0_u8; CHUNK_HEADER_LEN as usize];
+            let mut payload = Vec::new();
+
+            while offset < file_len {
+                if file_len - offset < CHUNK_HEADER_LEN {
+                    truncate_at = Some(offset);
+                    break;
+                }
+                reader
+                    .read_exact(&mut length_bytes)
+                    .map_err(|error| E::from(truncated_or_io(error, offset)))?;
+                let len = u64::from_le_bytes(length_bytes);
+                let end = offset
+                    .checked_add(CHUNK_HEADER_LEN)
+                    .and_then(|value| value.checked_add(len))
+                    .ok_or_else(|| E::from(ContainerError::ChunkTooLarge))?;
+                if end > file_len {
+                    truncate_at = Some(offset);
+                    break;
+                }
+                let payload_len =
+                    usize::try_from(len).map_err(|_| E::from(ContainerError::ChunkTooLarge))?;
+                payload.resize(payload_len, 0);
+                reader
+                    .read_exact(&mut payload)
+                    .map_err(|error| E::from(truncated_or_io(error, offset)))?;
+
+                let object = ObjectRef::from_chunk(ChunkRef { offset, len });
+                observe_version_payload_state(next_version, transaction_times, &payload)
+                    .map_err(E::from)?;
+                visitor(object, &payload, next_version.saturating_sub(1))?;
+                offset = end;
             }
-            let len = read_u64(&mut self.file, offset).map_err(E::from)?;
-            let end = offset
-                .checked_add(CHUNK_HEADER_LEN)
-                .and_then(|value| value.checked_add(len))
-                .ok_or_else(|| E::from(ContainerError::ChunkTooLarge))?;
-            if end > file_len {
-                self.recover_truncated_tail(offset).map_err(E::from)?;
-                break;
-            }
-            let payload_len =
-                usize::try_from(len).map_err(|_| E::from(ContainerError::ChunkTooLarge))?;
-            let mut payload = vec![0_u8; payload_len];
-            self.file
-                .read_exact(&mut payload)
-                .map_err(|error| E::from(truncated_or_io(error, offset)))?;
-            let object = ObjectRef::from_chunk(ChunkRef { offset, len });
-            self.observe_version_payload(&payload).map_err(E::from)?;
-            visitor(object, &payload, self.latest_version())?;
-            offset = end;
+        }
+
+        if let Some(offset) = truncate_at {
+            self.recover_truncated_tail(offset).map_err(E::from)?;
         }
         Ok(())
     }

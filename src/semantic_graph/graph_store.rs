@@ -27,10 +27,11 @@ pub(crate) struct GraphStore {
     nodes: Vec<GraphNodeRecord>,
     node_by_semantic: HashMap<SemanticNodeRef, NodeId>,
     states: HashMap<RelationKey, SemanticGraphRelation>,
-    mutations: Vec<SemanticGraphRelation>,
+    relation_mutations: usize,
     transaction_global_versions: Vec<u64>,
     topology: InMemoryGraph,
     memory_topology: InMemoryGraph,
+    memory_relation_nodes: HashSet<MemoryId>,
     memory_nodes: Vec<MemoryId>,
     memory_node_by_id: HashMap<MemoryId, NodeId>,
     entities_by_memory: HashMap<MemoryId, BTreeSet<crate::EntityId>>,
@@ -46,10 +47,11 @@ impl GraphStore {
             nodes: Vec::new(),
             node_by_semantic: HashMap::new(),
             states: HashMap::new(),
-            mutations: Vec::new(),
+            relation_mutations: 0,
             transaction_global_versions: Vec::new(),
             topology: empty_topology(),
             memory_topology: empty_topology(),
+            memory_relation_nodes: HashSet::new(),
             memory_nodes: Vec::new(),
             memory_node_by_id: HashMap::new(),
             entities_by_memory: HashMap::new(),
@@ -92,6 +94,19 @@ impl GraphStore {
         {
             return Err(GraphError::InvalidGraphVersion);
         }
+        for relation in relations {
+            validation::validate_relation_contract(
+                relation.source,
+                relation.target,
+                relation.kind,
+                relation.origin,
+            )?;
+            if !self.node_by_semantic.contains_key(&relation.source)
+                || !self.node_by_semantic.contains_key(&relation.target)
+            {
+                return Err(GraphError::InvalidNodeMapping);
+            }
+        }
         self.insert_transaction(relations)?;
         self.next_graph_version = self
             .next_graph_version
@@ -107,24 +122,6 @@ impl GraphStore {
     ) -> Result<(), GraphError> {
         for node in &self.nodes {
             validation::validate_stored_node(memories, entities, node.semantic_node)?;
-        }
-        for relation in &self.mutations {
-            validation::validate_stored_change(
-                memories,
-                entities,
-                crate::SemanticGraphRelationChange {
-                    source: relation.source,
-                    target: relation.target,
-                    kind: relation.kind,
-                    active: relation.active,
-                },
-                relation.origin,
-            )?;
-            if !self.node_by_semantic.contains_key(&relation.source)
-                || !self.node_by_semantic.contains_key(&relation.target)
-            {
-                return Err(GraphError::InvalidNodeMapping);
-            }
         }
         for relation in self.states.values().filter(|relation| relation.active) {
             validation::validate_change(
@@ -207,8 +204,14 @@ impl GraphStore {
                 kind: relation.kind,
             };
             self.states.insert(key, *relation);
-            self.mutations.push(*relation);
+            if matches!(relation.kind, SemanticGraphRelationKind::Memory(_)) {
+                self.memory_relation_nodes
+                    .insert(relation.source.as_memory().expect("Memory relation source"));
+                self.memory_relation_nodes
+                    .insert(relation.target.as_memory().expect("Memory relation target"));
+            }
         }
+        self.relation_mutations += relations.len();
         if relations
             .iter()
             .any(|relation| matches!(relation.kind, SemanticGraphRelationKind::Memory(_)))

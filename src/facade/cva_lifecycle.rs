@@ -8,6 +8,7 @@ use crate::conversation_compaction_store::{
     ConversationCompactionOpenState, ConversationCompactionStore,
 };
 use crate::cva_global_validation::validate_semantic_global_versions;
+use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
 use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::echo_store::EchoStore;
@@ -221,29 +222,43 @@ impl Cva {
         let mut dream_cooldowns = DreamCooldownStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
-            archive_state.ingest(chunk, payload, latest_global)?;
-            memory_state.ingest(chunk, payload, latest_global)?;
-            graph_state.ingest(chunk, payload, latest_global)?;
-            entity_state.ingest(chunk, payload, latest_global)?;
-            community_state.ingest(payload)?;
-            insomnia_state.ingest(chunk, payload)?;
-            packed_state.ingest(chunk, payload)?;
-            memory_vector_state.ingest(chunk, payload)?;
-            archive_vector_state.ingest(chunk, payload)?;
-            profile_state.ingest(chunk, payload)?;
-            generation_state.ingest(chunk, payload, latest_global)?;
-            interaction_streams.ingest(payload)?;
-            compaction_state.ingest(chunk, payload)?;
-            echo.ingest(payload)?;
-            ego.ingest(payload)?;
-            entity_resolutions.ingest(payload)?;
-            project_history.ingest(payload)?;
-            project_files.ingest(payload)?;
-            rel_metadata
-                .ingest(payload)
-                .map_err(CvaError::RelMetadata)?;
-            dream_cooldowns.ingest(payload)?;
-            dream_pairs.ingest(payload)?;
+            match classify_open_record(payload) {
+                OpenRecordRoute::Archive => {
+                    archive_state.ingest(chunk, payload, latest_global)?;
+                }
+                OpenRecordRoute::Memory => {
+                    memory_state.ingest(chunk, payload, latest_global)?;
+                }
+                OpenRecordRoute::Graph => {
+                    graph_state.ingest(chunk, payload, latest_global)?;
+                }
+                OpenRecordRoute::ContainerVersion => {}
+                OpenRecordRoute::Fallback => {
+                    archive_state.ingest(chunk, payload, latest_global)?;
+                    memory_state.ingest(chunk, payload, latest_global)?;
+                    graph_state.ingest(chunk, payload, latest_global)?;
+                    entity_state.ingest(chunk, payload, latest_global)?;
+                    community_state.ingest(payload)?;
+                    insomnia_state.ingest(chunk, payload)?;
+                    packed_state.ingest(chunk, payload)?;
+                    memory_vector_state.ingest(chunk, payload)?;
+                    archive_vector_state.ingest(chunk, payload)?;
+                    profile_state.ingest(chunk, payload)?;
+                    generation_state.ingest(chunk, payload, latest_global)?;
+                    interaction_streams.ingest(payload)?;
+                    compaction_state.ingest(chunk, payload)?;
+                    echo.ingest(payload)?;
+                    ego.ingest(payload)?;
+                    entity_resolutions.ingest(payload)?;
+                    project_history.ingest(payload)?;
+                    project_files.ingest(payload)?;
+                    rel_metadata
+                        .ingest(payload)
+                        .map_err(CvaError::RelMetadata)?;
+                    dream_cooldowns.ingest(payload)?;
+                    dream_pairs.ingest(payload)?;
+                }
+            }
             Ok::<(), CvaError>(())
         })?;
         if let Some(identity) = container.identity()

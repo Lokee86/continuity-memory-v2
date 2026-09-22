@@ -1,4 +1,5 @@
 use crate::{Container, ContainerError};
+use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const VERSION_MAGIC_V1: [u8; 8] = *b"CVAVERS1";
@@ -7,26 +8,6 @@ const VERSION_RECORD_V1_LEN: usize = 16;
 const VERSION_RECORD_V2_LEN: usize = 24;
 
 impl Container {
-    pub(crate) fn observe_version_payload(&mut self, payload: &[u8]) -> Result<(), ContainerError> {
-        if let Some((version, transaction_time_ns)) = decode_version(payload)? {
-            self.observe_version_range(version, 1)?;
-            if let Some(transaction_time_ns) = transaction_time_ns {
-                self.observe_transaction_time(version, transaction_time_ns)?;
-            }
-            return Ok(());
-        }
-        if let Some((start, count, transaction_time_ns)) =
-            crate::insomnia::completion::decode_embedded_version_range(payload)
-                .map_err(|_| ContainerError::InvalidVersionRecord)?
-        {
-            self.observe_version_range(start, u64::from(count))?;
-            if let Some(transaction_time_ns) = transaction_time_ns {
-                self.observe_transaction_time_range(start, u64::from(count), transaction_time_ns)?;
-            }
-        }
-        Ok(())
-    }
-
     pub(crate) fn allocate_version(&mut self) -> Result<u64, ContainerError> {
         let transaction_time_ns = match self.next_transaction_time_override.take() {
             Some(value) => value,
@@ -109,16 +90,7 @@ impl Container {
     }
 
     fn observe_version_range(&mut self, start: u64, count: u64) -> Result<(), ContainerError> {
-        if count == 0 {
-            return Ok(());
-        }
-        if start != self.next_version {
-            return Err(ContainerError::InvalidVersionRecord);
-        }
-        self.next_version = start
-            .checked_add(count)
-            .ok_or(ContainerError::VersionExhausted)?;
-        Ok(())
+        observe_version_range(&mut self.next_version, start, count)
     }
 
     fn observe_transaction_time(
@@ -126,15 +98,12 @@ impl Container {
         version: u64,
         transaction_time_ns: i64,
     ) -> Result<(), ContainerError> {
-        if version == 0 || version >= self.next_version {
-            return Err(ContainerError::InvalidVersionRecord);
-        }
-        if let Some(existing) = self.transaction_times.insert(version, transaction_time_ns)
-            && existing != transaction_time_ns
-        {
-            return Err(ContainerError::InvalidVersionRecord);
-        }
-        Ok(())
+        observe_transaction_time(
+            self.next_version,
+            &mut self.transaction_times,
+            version,
+            transaction_time_ns,
+        )
     }
 
     fn observe_transaction_time_range(
@@ -143,14 +112,105 @@ impl Container {
         count: u64,
         transaction_time_ns: i64,
     ) -> Result<(), ContainerError> {
-        for offset in 0..count {
-            let version = start
-                .checked_add(offset)
-                .ok_or(ContainerError::VersionExhausted)?;
-            self.observe_transaction_time(version, transaction_time_ns)?;
-        }
-        Ok(())
+        observe_transaction_time_range(
+            self.next_version,
+            &mut self.transaction_times,
+            start,
+            count,
+            transaction_time_ns,
+        )
     }
+}
+
+pub(crate) fn observe_version_payload_state(
+    next_version: &mut u64,
+    transaction_times: &mut BTreeMap<u64, i64>,
+    payload: &[u8],
+) -> Result<(), ContainerError> {
+    if let Some((version, transaction_time_ns)) = decode_version(payload)? {
+        observe_version_range(next_version, version, 1)?;
+        if let Some(transaction_time_ns) = transaction_time_ns {
+            observe_transaction_time(
+                *next_version,
+                transaction_times,
+                version,
+                transaction_time_ns,
+            )?;
+        }
+        return Ok(());
+    }
+    if let Some((start, count, transaction_time_ns)) =
+        crate::insomnia::completion::decode_embedded_version_range(payload)
+            .map_err(|_| ContainerError::InvalidVersionRecord)?
+    {
+        let count = u64::from(count);
+        observe_version_range(next_version, start, count)?;
+        if let Some(transaction_time_ns) = transaction_time_ns {
+            observe_transaction_time_range(
+                *next_version,
+                transaction_times,
+                start,
+                count,
+                transaction_time_ns,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn observe_version_range(
+    next_version: &mut u64,
+    start: u64,
+    count: u64,
+) -> Result<(), ContainerError> {
+    if count == 0 {
+        return Ok(());
+    }
+    if start != *next_version {
+        return Err(ContainerError::InvalidVersionRecord);
+    }
+    *next_version = start
+        .checked_add(count)
+        .ok_or(ContainerError::VersionExhausted)?;
+    Ok(())
+}
+
+fn observe_transaction_time(
+    next_version: u64,
+    transaction_times: &mut BTreeMap<u64, i64>,
+    version: u64,
+    transaction_time_ns: i64,
+) -> Result<(), ContainerError> {
+    if version == 0 || version >= next_version {
+        return Err(ContainerError::InvalidVersionRecord);
+    }
+    if let Some(existing) = transaction_times.insert(version, transaction_time_ns)
+        && existing != transaction_time_ns
+    {
+        return Err(ContainerError::InvalidVersionRecord);
+    }
+    Ok(())
+}
+
+fn observe_transaction_time_range(
+    next_version: u64,
+    transaction_times: &mut BTreeMap<u64, i64>,
+    start: u64,
+    count: u64,
+    transaction_time_ns: i64,
+) -> Result<(), ContainerError> {
+    for offset in 0..count {
+        let version = start
+            .checked_add(offset)
+            .ok_or(ContainerError::VersionExhausted)?;
+        observe_transaction_time(
+            next_version,
+            transaction_times,
+            version,
+            transaction_time_ns,
+        )?;
+    }
+    Ok(())
 }
 
 fn encode_version(version: u64, transaction_time_ns: Option<i64>) -> Vec<u8> {

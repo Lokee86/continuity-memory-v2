@@ -31,7 +31,7 @@ impl GraphStore {
                     relation.active && matches!(relation.kind, SemanticGraphRelationKind::Memory(_))
                 })
                 .count(),
-            relation_mutations: self.mutations.len(),
+            relation_mutations: self.relation_mutations,
             graph_version: self.graph_version(),
             memory_graph_version: self.memory_graph_version(),
         }
@@ -206,18 +206,11 @@ impl GraphStore {
     }
 
     fn rebuild_memory_projection(&mut self) -> Result<(), GraphError> {
-        let memory_relation_nodes: std::collections::HashSet<_> = self
-            .mutations
-            .iter()
-            .filter(|relation| matches!(relation.kind, SemanticGraphRelationKind::Memory(_)))
-            .flat_map(|relation| [relation.source.as_memory(), relation.target.as_memory()])
-            .flatten()
-            .collect();
         self.memory_nodes = self
             .nodes
             .iter()
             .filter_map(|node| node.semantic_node.as_memory())
-            .filter(|memory_id| memory_relation_nodes.contains(memory_id))
+            .filter(|memory_id| self.memory_relation_nodes.contains(memory_id))
             .collect();
         self.memory_node_by_id.clear();
         for (index, memory_id) in self.memory_nodes.iter().copied().enumerate() {

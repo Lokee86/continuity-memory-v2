@@ -30,37 +30,24 @@ pub(super) fn validate_change(
     change: SemanticGraphRelationChange,
     origin: GraphRelationOrigin,
 ) -> Result<(), GraphError> {
-    if change.source == change.target {
-        return Err(GraphError::SelfRelation);
-    }
+    validate_relation_contract(change.source, change.target, change.kind, origin)?;
     validate_node(memories, entities, change.source)?;
     validate_node(memories, entities, change.target)?;
-    validate_relation_shape(change, origin)
+    Ok(())
 }
 
-pub(super) fn validate_stored_change(
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    change: SemanticGraphRelationChange,
+pub(super) fn validate_relation_contract(
+    source: SemanticNodeRef,
+    target: SemanticNodeRef,
+    kind: SemanticGraphRelationKind,
     origin: GraphRelationOrigin,
 ) -> Result<(), GraphError> {
-    if change.source == change.target {
+    if source == target {
         return Err(GraphError::SelfRelation);
     }
-    validate_stored_node(memories, entities, change.source)?;
-    validate_stored_node(memories, entities, change.target)?;
-    validate_relation_shape(change, origin)
-}
-
-fn validate_relation_shape(
-    change: SemanticGraphRelationChange,
-    origin: GraphRelationOrigin,
-) -> Result<(), GraphError> {
-    match change.kind {
+    match kind {
         SemanticGraphRelationKind::Memory(_) => {
-            if change.source.kind != SemanticNodeKind::Memory
-                || change.target.kind != SemanticNodeKind::Memory
-            {
+            if source.kind != SemanticNodeKind::Memory || target.kind != SemanticNodeKind::Memory {
                 return Err(GraphError::InvalidRelationShape);
             }
             if origin == GraphRelationOrigin::Perception {
@@ -68,9 +55,7 @@ fn validate_relation_shape(
             }
         }
         SemanticGraphRelationKind::EntityAssociation => {
-            if change.source.kind != SemanticNodeKind::Memory
-                || change.target.kind != SemanticNodeKind::Entity
-            {
+            if source.kind != SemanticNodeKind::Memory || target.kind != SemanticNodeKind::Entity {
                 return Err(GraphError::InvalidRelationShape);
             }
             if origin == GraphRelationOrigin::Dream {

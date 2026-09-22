@@ -419,15 +419,11 @@ impl MemoryStore {
     }
 
     pub(crate) fn validate_provenance(&self, archive: &crate::Archive) -> Result<(), MemoryError> {
+        let mut episode_nodes: HashMap<_, HashSet<&str>> = HashMap::new();
         for record in &self.records {
             match (record.source_episode_id, record.source_node_id.as_deref()) {
                 (Some(episode_id), Some(node_id)) => {
-                    if !archive
-                        .episode_contains_node(episode_id, node_id)
-                        .map_err(|_| MemoryError::InvalidProvenance)?
-                    {
-                        return Err(MemoryError::InvalidProvenance);
-                    }
+                    episode_nodes.entry(episode_id).or_default().insert(node_id);
                 }
                 (None, None) => {}
                 _ => return Err(MemoryError::InvalidProvenance),
@@ -449,6 +445,14 @@ impl MemoryStore {
                     if archive.has_node(conversation_id, node_id) => {}
                 (None, None) => {}
                 _ => return Err(MemoryError::InvalidProvenance),
+            }
+        }
+        for (episode_id, node_ids) in episode_nodes {
+            if !archive
+                .episode_contains_all_nodes(episode_id, &node_ids)
+                .map_err(|_| MemoryError::InvalidProvenance)?
+            {
+                return Err(MemoryError::InvalidProvenance);
             }
         }
         Ok(())

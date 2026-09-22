@@ -223,6 +223,8 @@ mod cva_memory_publish;
 mod cva_memory_retrieval;
 #[path = "facade/cva_memory_vectors.rs"]
 mod cva_memory_vectors;
+#[path = "facade/cva_open_route.rs"]
+mod cva_open_route;
 #[path = "facade/cva_packed_vectors.rs"]
 mod cva_packed_vectors;
 #[path = "facade/cva_reconcile.rs"]
