@@ -25,7 +25,8 @@ fn runtime_routes_keep_inference_capabilities_separate() {
         Some(endpoint("entity-extraction")),
         Some(endpoint("entity-resolution")),
     )
-    .with_entity_resolution_decision(Some(decision_endpoint("entity-decision")));
+    .with_entity_resolution_decision(Some(decision_endpoint("entity-decision")))
+    .with_chronos(Some(endpoint("chronos")));
 
     assert_eq!(routes.insomnia().unwrap().model(), "insomnia");
     assert_eq!(routes.insomnia_metadata().unwrap().model(), "metadata");
@@ -42,11 +43,12 @@ fn runtime_routes_keep_inference_capabilities_separate() {
         routes.entity_resolution().unwrap().model(),
         "entity-resolution"
     );
+    assert_eq!(routes.chronos().unwrap().model(), "chronos");
     assert_eq!(routes.dream().unwrap().model(), "dream");
 }
 
 #[test]
-fn entity_routes_do_not_fall_back_to_other_capabilities() {
+fn dedicated_routes_do_not_fall_back_to_other_capabilities() {
     let routes = ReliquaryRuntimeRoutes::new(Some(endpoint("general")), None, None, None, None);
 
     assert_eq!(routes.insomnia().unwrap().model(), "general");
@@ -56,4 +58,5 @@ fn entity_routes_do_not_fall_back_to_other_capabilities() {
     assert!(routes.entity_extraction().is_none());
     assert!(routes.entity_resolution_decision().is_none());
     assert!(routes.entity_resolution().is_none());
+    assert!(routes.chronos().is_none());
 }

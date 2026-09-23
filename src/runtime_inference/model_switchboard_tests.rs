@@ -245,15 +245,14 @@ fn configured_entity_endpoints_use_dedicated_routes() {
 }
 
 #[test]
-fn chronos_route_falls_back_to_insomnia_then_general_when_unset() {
+fn chronos_route_is_explicit_and_does_not_fall_back() {
     let mut models = configured_models();
     models.chronos = None;
-    let switchboard = ModelSwitchboard::new(models.clone(), configured_credentials()).unwrap();
-    assert_eq!(switchboard.chronos(), switchboard.insomnia());
-
-    models.insomnia = None;
     let switchboard = ModelSwitchboard::new(models, configured_credentials()).unwrap();
-    assert_eq!(switchboard.chronos(), switchboard.general());
+
+    assert!(switchboard.chronos().is_none());
+    assert!(switchboard.chronos_auth().is_none());
+    assert!(ConfiguredGeneralEndpoint::from_chronos_switchboard(&switchboard).is_err());
 }
 
 #[test]

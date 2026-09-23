@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 use std::time::Duration;
 
 pub const OPENAI_CODEX_RESPONSES_URL: &str = "https://chatgpt.com/backend-api/codex/responses";
-pub const OPENAI_CODEX_COMPAT_VERSION: &str = "0.146.1";
+pub const OPENAI_CODEX_COMPAT_VERSION: &str = "0.156.0";
 const OPENAI_CODEX_ORIGINATOR: &str = "codex_cli_rs";
 const REQUEST_TIMEOUT_SECS: u64 = 180;
 
@@ -119,7 +119,7 @@ impl OpenAiCodexGeneralEndpoint {
         let route = switchboard
             .chronos()
             .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Chronos, Insomnia, and general routes are not configured",
+                "Chronos route is not configured",
             ))?;
         let auth = switchboard
             .chronos_auth()
@@ -351,7 +351,7 @@ fn process_event(
 }
 
 fn uses_responses_lite(model: &str) -> bool {
-    model.starts_with("gpt-5.6-")
+    model.starts_with("gpt-5.6-") || model.starts_with("gpt-6-")
 }
 
 fn retry_after_header(headers: &reqwest::header::HeaderMap) -> Option<Duration> {

@@ -129,7 +129,7 @@ impl ConfiguredGeneralEndpoint {
         let provider = switchboard
             .chronos()
             .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Chronos, Insomnia, and general routes are not configured",
+                "Chronos route is not configured",
             ))?
             .provider;
         match provider {

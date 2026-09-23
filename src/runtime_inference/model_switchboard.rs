@@ -221,7 +221,7 @@ impl ModelSwitchboard {
     }
 
     pub fn chronos(&self) -> Option<&GeneralModelEndpoint> {
-        self.config.chronos.as_ref().or_else(|| self.insomnia())
+        self.config.chronos.as_ref()
     }
 
     pub fn dream(&self) -> Option<&GeneralModelEndpoint> {

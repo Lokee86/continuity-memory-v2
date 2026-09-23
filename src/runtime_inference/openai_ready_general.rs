@@ -128,7 +128,7 @@ impl OpenAiReadyGeneralEndpoint {
         let route = switchboard
             .chronos()
             .ok_or(GeneralEndpointError::InvalidConfiguration(
-                "Chronos, Insomnia, and general routes are not configured",
+                "Chronos route is not configured",
             ))?;
         let auth = switchboard
             .chronos_auth()

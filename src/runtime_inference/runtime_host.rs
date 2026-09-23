@@ -162,7 +162,7 @@ impl ReliquaryRuntimeRoutes {
     }
 
     pub(crate) fn chronos(&self) -> Option<Arc<dyn GeneralEndpoint>> {
-        self.chronos.clone().or_else(|| self.insomnia())
+        self.chronos.clone()
     }
 
     pub(crate) fn dream(&self) -> Option<Arc<dyn GeneralEndpoint>> {
