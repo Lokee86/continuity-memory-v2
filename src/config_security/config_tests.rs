@@ -1,5 +1,5 @@
 use crate::config_codec::{RawConfigObject, decode_config, encode_config};
-use crate::{FragmentConfig, ReliquaryConfig, RetrievalConfig};
+use crate::{FragmentConfig, ReliquaryConfig, RetrievalConfig, RuntimeConfig};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
@@ -20,6 +20,7 @@ fn default_config_saves_and_reopens() {
     let reopened = ReliquaryConfig::open(&path).unwrap();
     assert_eq!(reopened.fragments, FragmentConfig::default());
     assert_eq!(reopened.retrieval, RetrievalConfig::default());
+    assert_eq!(reopened.runtime, RuntimeConfig::default());
     assert_eq!(reopened.models, crate::ModelSwitchboardConfig::default());
     assert_eq!(reopened.credentials, crate::CredentialsConfig::default());
     assert_eq!(&fs::read(&path).unwrap()[..8], b"CVCFG\0\r\n");
@@ -77,6 +78,17 @@ fn unknown_objects_survive_known_config_replacement() {
     assert_eq!(future.schema, 7);
     assert_eq!(future.flags, 42);
     assert_eq!(future.payload, b"future payload");
+}
+
+#[test]
+fn runtime_dream_concurrency_round_trips() {
+    let path = test_path("runtime.cfg");
+    let mut config = ReliquaryConfig::new(&path);
+    config.runtime.dream_inference_concurrency = 8;
+    config.save().unwrap();
+
+    let reopened = ReliquaryConfig::open(&path).unwrap();
+    assert_eq!(reopened.runtime.dream_inference_concurrency, 8);
 }
 
 #[test]

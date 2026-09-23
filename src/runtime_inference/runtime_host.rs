@@ -33,10 +33,14 @@ pub mod memory_search;
 mod perception;
 #[path = "runtime_host_perception_api.rs"]
 mod perception_api;
+#[path = "runtime_host_perception_flow.rs"]
+mod perception_flow;
 #[path = "runtime_host_perception_owner.rs"]
 mod perception_owner;
 #[path = "runtime_host_perception_queue.rs"]
 mod perception_queue;
+#[path = "runtime_host_perception_reconciliation.rs"]
+mod perception_reconciliation;
 #[path = "runtime_host_status.rs"]
 pub mod status;
 #[path = "runtime_host_vectors.rs"]

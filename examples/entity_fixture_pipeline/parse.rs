@@ -1,5 +1,6 @@
 use reliquary_memory::{
-    MemoryBodyId, MemoryEntityMention, MemoryId, MemoryRoutingMetadata, MemoryTextField,
+    Cva, MemoryBodyId, MemoryEntityMention, MemoryEntityMentionKey, MemoryId,
+    MemoryRoutingMetadata, MemoryTextField, Phylactery,
 };
 use serde_json::Value;
 use std::error::Error;
@@ -70,6 +71,40 @@ fn required<'a>(value: &'a Value, key: &str) -> Result<&'a str, Box<dyn Error>> 
     value[key]
         .as_str()
         .ok_or_else(|| format!("missing string field {key}").into())
+}
+
+pub fn ordered_mention_keys(
+    rows: &[ExtractionRow],
+    rel: &mut Cva,
+    phy: &mut Phylactery,
+) -> Result<Vec<(Owner, MemoryEntityMentionKey)>, Box<dyn Error>> {
+    let mut values = Vec::new();
+    for row in rows {
+        let memory = match row.owner {
+            Owner::Rel => rel.memory(row.metadata.memory_id)?,
+            Owner::Phy => phy.memory(row.metadata.memory_id)?,
+        };
+        let time = memory.source_time_ns.unwrap_or(memory.created_at_ns);
+        for mention in &row.metadata.entity_mentions {
+            values.push((
+                time,
+                row.metadata.memory_id.0,
+                field_ord(mention.field),
+                mention.start_byte,
+                row.owner,
+                MemoryEntityMentionKey::new(row.metadata.memory_id, mention),
+            ));
+        }
+    }
+    values.sort_by_key(|value| (value.0, value.1, value.2, value.3));
+    Ok(values.into_iter().map(|value| (value.4, value.5)).collect())
+}
+
+fn field_ord(field: MemoryTextField) -> u8 {
+    match field {
+        MemoryTextField::Title => 0,
+        MemoryTextField::Content => 1,
+    }
 }
 
 pub fn hex32(value: &str) -> Result<[u8; 32], Box<dyn Error>> {

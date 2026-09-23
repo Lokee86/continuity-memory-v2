@@ -1,4 +1,4 @@
-use crate::entity_admission::is_obvious_transient_occurrence;
+use crate::entity_admission::{is_bare_generic_surface, is_obvious_transient_occurrence};
 use crate::entity_resolution_decision::try_decision_fast_path;
 use crate::{
     DecisionEndpoint, EntityResolutionEvaluation, EntityResolutionPrepared, EntityResolver,
@@ -36,6 +36,16 @@ impl<E: GeneralEndpoint> EntityResolutionEngine<E> {
         &self,
         prepared: &EntityResolutionPrepared,
     ) -> Result<EntityResolutionEvaluation, EntityResolverError> {
+        if is_bare_generic_surface(&prepared.candidates.mention.text) {
+            return Ok(EntityResolutionEvaluation {
+                output: crate::EntityResolverOutput {
+                    decision: crate::EntityResolutionDecision::Reject,
+                    reason: crate::EntityResolutionReason::GenericRole,
+                },
+                materialization: None,
+            });
+        }
+
         if is_obvious_transient_occurrence(&prepared.memory, &prepared.candidates) {
             return Ok(EntityResolutionEvaluation {
                 output: crate::EntityResolverOutput {
@@ -119,6 +129,30 @@ mod tests {
             EntityResolutionDecision::ResolveExisting(entity_id)
         );
         assert_eq!(outcome.entity_id, Some(entity_id));
+    }
+
+    #[test]
+    fn bare_generic_guard_precedes_candidate_resolution() {
+        let mut rel = Cva::create_project(temp_path("engine-generic-role.rel")).unwrap();
+        let memory = publish_rel_memory(
+            &mut rel,
+            "generic-role",
+            "Preference",
+            "The user prefers concise workshop notes.",
+        );
+        let key = install_rel_mention(&mut rel, memory, "The user");
+        let entity_id = publish_typed_entity(&mut rel, "Workshop Notes", "domain_entity", "notes");
+        rel.set_entity_association(memory, entity_id, true, rel.graph_version())
+            .unwrap();
+
+        let engine =
+            EntityResolutionEngine::new(SimulatedGeneralEndpoint::new("fallback", Vec::new()));
+        let outcome = rel
+            .resolve_entity_mention_with_engine(&engine, key, EntityCandidateConfig::default(), 102)
+            .unwrap();
+
+        assert_eq!(outcome.decision, EntityResolutionDecision::Reject);
+        assert_eq!(outcome.reason, crate::EntityResolutionReason::GenericRole);
     }
 
     #[test]

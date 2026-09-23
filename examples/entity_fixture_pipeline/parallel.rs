@@ -1,8 +1,7 @@
-use crate::parse::{Owner, load_rows};
+use crate::parse::{Owner, load_rows, ordered_mention_keys};
 use reliquary_memory::{
     ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint, Cva, DecisionEndpoint,
-    EntityCandidateConfig, EntityResolutionEngine, MemoryEntityMentionKey, ModelSwitchboard,
-    Phylactery, ReliquaryConfig,
+    EntityCandidateConfig, EntityResolutionEngine, ModelSwitchboard, Phylactery, ReliquaryConfig,
 };
 use std::error::Error;
 use std::sync::Arc;
@@ -21,6 +20,7 @@ pub fn resume_parallel_batch(
     let config = ReliquaryConfig::open(config)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let fallback = ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(&switchboard)?;
+    let reconciliation_endpoint = fallback.clone();
     let decision = switchboard
         .entity_resolution_decision()
         .map(|_| {
@@ -37,24 +37,19 @@ pub fn resume_parallel_batch(
         .sum::<usize>();
     let mut rel = Cva::open(rel)?;
     let mut phy = Phylactery::open(phy)?;
+    let ordered = ordered_mention_keys(&rows, &mut rel, &mut phy)?;
     let mut tasks = Vec::with_capacity(limit);
 
-    'rows: for row in rows {
-        for mention in &row.metadata.entity_mentions {
-            if tasks.len() >= limit {
-                break 'rows;
-            }
-            let key = MemoryEntityMentionKey::new(row.metadata.memory_id, mention);
-            let unseen = match row.owner {
-                Owner::Rel => rel.entity_resolution(key).is_none(),
-                Owner::Phy => phy.entity_resolution(key).is_none(),
-            };
-            if unseen {
-                tasks.push((row.owner, key));
-                if tasks.len() >= limit {
-                    break 'rows;
-                }
-            }
+    for (owner, key) in ordered {
+        if tasks.len() >= limit {
+            break;
+        }
+        let unseen = match owner {
+            Owner::Rel => rel.entity_resolution(key).is_none(),
+            Owner::Phy => phy.entity_resolution(key).is_none(),
+        };
+        if unseen {
+            tasks.push((owner, key));
         }
     }
 
@@ -125,7 +120,29 @@ pub fn resume_parallel_batch(
         );
     }
 
+    print_reconciliation(
+        "REL",
+        &rel.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+    );
+    print_reconciliation(
+        "PHY",
+        &phy.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+    );
     Ok(())
+}
+
+fn print_reconciliation(label: &str, report: &reliquary_memory::EntityReconciliationReport) {
+    println!(
+        "entity reconciliation: owner={label} rounds={} candidates={} deterministic_merges={} model_merges={} rejected_reconsidered={} unresolved_pairs={} clean={} findings={}",
+        report.rounds,
+        report.candidate_pairs,
+        report.deterministic_merges,
+        report.model_merges,
+        report.rejected_mentions_reconsidered,
+        report.unresolved_pairs,
+        report.final_audit.is_clean(),
+        report.final_audit.finding_count(),
+    );
 }
 
 fn now_ns() -> i64 {

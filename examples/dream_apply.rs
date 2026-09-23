@@ -1,8 +1,7 @@
 use reliquary_memory::{
     CompatibilityProfileId, ConfiguredGeneralEndpoint, Cva, DEFAULT_DREAM_FRONTIER_SIZE,
-    DEFAULT_DREAM_INFERENCE_CONCURRENCY, DreamCandidateConfig, DreamMemoryProcessOutcome,
-    DreamProcessError, DreamProcessor, DreamVerificationPolicy, GeneralEndpoint, ModelSwitchboard,
-    Phylactery, ReliquaryConfig,
+    DreamCandidateConfig, DreamMemoryProcessOutcome, DreamProcessError, DreamProcessor,
+    DreamVerificationPolicy, GeneralEndpoint, ModelSwitchboard, Phylactery, ReliquaryConfig,
 };
 use std::collections::HashSet;
 use std::error::Error;
@@ -23,12 +22,21 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err("usage: dream_apply <config> <rel> <phy>".into());
     }
     let config = ReliquaryConfig::open(PathBuf::from(&args[0]))?;
+    let dream_inference_concurrency = config.runtime.dream_inference_concurrency;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = ConfiguredGeneralEndpoint::from_dream_switchboard(&switchboard)?;
     let processor = DreamProcessor::new(endpoint.clone(), endpoint);
 
-    let rel = process_rel(&processor, PathBuf::from(&args[1]))?;
-    let phy = process_phy(&processor, PathBuf::from(&args[2]))?;
+    let rel = process_rel(
+        &processor,
+        PathBuf::from(&args[1]),
+        dream_inference_concurrency,
+    )?;
+    let phy = process_phy(
+        &processor,
+        PathBuf::from(&args[2]),
+        dream_inference_concurrency,
+    )?;
     println!(
         "dream_done: rel_attempted={} rel_failed={} rel_remaining={} rel_relations={} phy_attempted={} phy_failed={} phy_remaining={} phy_relations={}",
         rel.0, rel.1, rel.2, rel.3, phy.0, phy.1, phy.2, phy.3
@@ -72,6 +80,7 @@ fn single_profile(
 fn process_rel<C, V>(
     processor: &DreamProcessor<C, V>,
     path: PathBuf,
+    dream_inference_concurrency: usize,
 ) -> Result<(usize, usize, usize, usize), Box<dyn Error>>
 where
     C: GeneralEndpoint,
@@ -84,7 +93,7 @@ where
         "dream_rel: pending={} frontier={} inference_concurrency={}",
         pending.len(),
         DEFAULT_DREAM_FRONTIER_SIZE,
-        DEFAULT_DREAM_INFERENCE_CONCURRENCY
+        dream_inference_concurrency
     );
 
     let mut attempted = 0;
@@ -98,7 +107,7 @@ where
             DreamCandidateConfig::default(),
             DreamVerificationPolicy::default(),
             DEFAULT_DREAM_FRONTIER_SIZE,
-            DEFAULT_DREAM_INFERENCE_CONCURRENCY,
+            dream_inference_concurrency,
         )?;
         failed += report_failures("dream_rel_error", &outcomes);
         attempted += outcomes.len();
@@ -121,6 +130,7 @@ where
 fn process_phy<C, V>(
     processor: &DreamProcessor<C, V>,
     path: PathBuf,
+    dream_inference_concurrency: usize,
 ) -> Result<(usize, usize, usize, usize), Box<dyn Error>>
 where
     C: GeneralEndpoint,
@@ -133,7 +143,7 @@ where
         "dream_phy: pending={} frontier={} inference_concurrency={}",
         pending.len(),
         DEFAULT_DREAM_FRONTIER_SIZE,
-        DEFAULT_DREAM_INFERENCE_CONCURRENCY
+        dream_inference_concurrency
     );
 
     let mut attempted = 0;
@@ -147,7 +157,7 @@ where
             DreamCandidateConfig::default(),
             DreamVerificationPolicy::default(),
             DEFAULT_DREAM_FRONTIER_SIZE,
-            DEFAULT_DREAM_INFERENCE_CONCURRENCY,
+            dream_inference_concurrency,
         )?;
         failed += report_failures("dream_phy_error", &outcomes);
         attempted += outcomes.len();

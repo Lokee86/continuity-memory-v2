@@ -153,6 +153,29 @@ fn phylactery_resolution_state_reopens() {
 }
 
 #[test]
+fn terminal_state_can_be_explicitly_reset_for_manual_correction() {
+    let (mut rel, _, keys, _) = rel_with_three_mentions();
+    let key = keys[0];
+    rel.put_entity_rejected(key, 0, EntityResolutionReason::GenericRole, 1)
+        .unwrap();
+
+    assert!(rel.reset_entity_resolution(key, 2).unwrap());
+    assert!(rel.entity_resolution(key).is_none());
+    rel.put_entity_resolved(
+        key,
+        0,
+        EntityId([1; 32]),
+        EntityResolutionReason::ContextMatch,
+        3,
+    )
+    .unwrap();
+    assert!(matches!(
+        rel.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Resolved { .. }
+    ));
+}
+
+#[test]
 fn terminal_states_are_not_silently_reopened() {
     let (mut rel, _, keys, _) = rel_with_three_mentions();
     rel.put_entity_resolved(

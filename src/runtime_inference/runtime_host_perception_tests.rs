@@ -1,5 +1,5 @@
 use crate::entity_candidate_test_support::{
-    install_phy_mention, install_rel_mention, publish_phy_memory, publish_rel_memory,
+    entity_draft, install_phy_mention, install_rel_mention, publish_phy_memory, publish_rel_memory,
 };
 use crate::entity_resolution_processor_test_support::BootstrapEndpoint;
 use crate::runtime_host_perception_test_support::{BlockingEntityEndpoint, wait_entities};
@@ -8,8 +8,10 @@ use crate::runtime_host_test_support::{
 };
 use crate::{
     Cva, EpisodePolicy, InteractionRole, InteractionRuntime, Phylactery, ReliquaryRuntimeHost,
-    ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
+    ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, SimulatedGeneralEndpoint,
+    VectorNormalization,
 };
+use serde_json::json;
 use std::sync::{Arc, Barrier};
 
 #[test]
@@ -109,6 +111,76 @@ fn detached_phylactery_inference_is_not_requeued_into_replacement_owner() {
     );
     let (_, replacement) = host.into_cva_and_phylactery().unwrap();
     assert!(replacement.unwrap().entities().is_empty());
+}
+
+#[test]
+fn runtime_host_reconciles_entities_when_perception_queue_drains() {
+    let mut cva = Cva::create_project(test_path("perception-reconcile.prj.rel")).unwrap();
+    let left_memory = publish_rel_memory(
+        &mut cva,
+        "garden-left",
+        "Garden",
+        "The family garden has tomatoes.",
+    );
+    let right_memory = publish_rel_memory(
+        &mut cva,
+        "garden-right",
+        "Garden",
+        "The backyard garden has raised beds.",
+    );
+    let left = cva
+        .publish_entity(
+            None,
+            0,
+            entity_draft(
+                "family garden",
+                &[],
+                "The family's continuing backyard vegetable garden.",
+                1,
+            ),
+        )
+        .unwrap()
+        .0;
+    let right = cva
+        .publish_entity(
+            None,
+            0,
+            entity_draft(
+                "backyard garden",
+                &[],
+                "The continuing family garden with raised beds.",
+                2,
+            ),
+        )
+        .unwrap()
+        .0;
+    cva.set_entity_association(left_memory, left.id, true, cva.graph_version())
+        .unwrap();
+    cva.set_entity_association(right_memory, right.id, true, cva.graph_version())
+        .unwrap();
+
+    let endpoint: Arc<dyn crate::GeneralEndpoint> = Arc::new(SimulatedGeneralEndpoint::new(
+        "runtime-reconciler",
+        vec![json!({"relation":"same_identity"})],
+    ));
+    let host = ReliquaryRuntimeHost::start(
+        InteractionRuntime::new(cva),
+        ReliquaryRuntimeRoutes::new(None, None, None, None, None)
+            .with_entity_routes(None, Some(endpoint)),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+
+    for _ in 0..1_000 {
+        if host.entity_stats().unwrap().entities == 1 {
+            let cva = host.into_cva().unwrap();
+            assert_eq!(cva.entities().len(), 1);
+            assert_eq!(cva.memories_for_entity(cva.entities()[0].id).len(), 2);
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    panic!("Entity reconciliation did not complete");
 }
 
 #[test]

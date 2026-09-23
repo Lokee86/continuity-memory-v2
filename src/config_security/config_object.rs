@@ -1,7 +1,8 @@
-use crate::{ConfigError, FragmentConfig, RetrievalConfig};
+use crate::{ConfigError, FragmentConfig, RetrievalConfig, RuntimeConfig};
 
 pub(crate) const FRAGMENT_KEY: &str = "archive.fragments";
 pub(crate) const RETRIEVAL_KEY: &str = "retrieval.default";
+pub(crate) const RUNTIME_KEY: &str = "runtime.default";
 pub(crate) const OBJECT_SCHEMA_V1: u16 = 1;
 pub(crate) const OBJECT_FLAGS_NONE: u32 = 0;
 
@@ -57,6 +58,32 @@ pub(crate) fn decode_retrieval(bytes: &[u8]) -> Result<RetrievalConfig, ConfigEr
 pub(crate) fn validate_fragments(config: FragmentConfig) -> Result<(), ConfigError> {
     if config.turns == 0 || config.overlap >= config.turns {
         return Err(ConfigError::InvalidFragmentConfig);
+    }
+    Ok(())
+}
+
+pub(crate) fn encode_runtime(config: RuntimeConfig) -> Vec<u8> {
+    (config.dream_inference_concurrency as u64)
+        .to_le_bytes()
+        .to_vec()
+}
+
+pub(crate) fn decode_runtime(bytes: &[u8]) -> Result<RuntimeConfig, ConfigError> {
+    if bytes.len() != 8 {
+        return Err(ConfigError::InvalidRuntimeConfig);
+    }
+    let concurrency = u64::from_le_bytes(bytes.try_into().unwrap());
+    let config = RuntimeConfig {
+        dream_inference_concurrency: usize::try_from(concurrency)
+            .map_err(|_| ConfigError::InvalidRuntimeConfig)?,
+    };
+    validate_runtime(config)?;
+    Ok(config)
+}
+
+pub(crate) fn validate_runtime(config: RuntimeConfig) -> Result<(), ConfigError> {
+    if config.dream_inference_concurrency == 0 {
+        return Err(ConfigError::InvalidRuntimeConfig);
     }
     Ok(())
 }

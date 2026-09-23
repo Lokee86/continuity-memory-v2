@@ -347,6 +347,15 @@ mod ego_store;
 mod embedding_endpoint;
 #[path = "perception/entity_admission.rs"]
 mod entity_admission;
+#[path = "perception/entity_audit.rs"]
+mod entity_audit;
+#[path = "perception/entity_audit_collisions.rs"]
+mod entity_audit_collisions;
+#[path = "perception/entity_audit_model.rs"]
+mod entity_audit_model;
+#[cfg(test)]
+#[path = "perception/entity_audit_tests.rs"]
+mod entity_audit_tests;
 #[path = "perception/entity_candidate_model.rs"]
 mod entity_candidate_model;
 #[path = "perception/entity_candidate_rank.rs"]
@@ -378,6 +387,34 @@ mod entity_model;
 mod entity_owner;
 #[path = "perception/entity_rebuild.rs"]
 mod entity_rebuild;
+#[path = "perception/entity_reconciliation.rs"]
+mod entity_reconciliation;
+#[cfg(test)]
+#[path = "perception/entity_reconciliation_candidate_tests.rs"]
+mod entity_reconciliation_candidate_tests;
+#[path = "perception/entity_reconciliation_candidates.rs"]
+mod entity_reconciliation_candidates;
+#[path = "perception/entity_reconciliation_commit.rs"]
+mod entity_reconciliation_commit;
+#[path = "perception/entity_reconciliation_error.rs"]
+mod entity_reconciliation_error;
+#[path = "perception/entity_reconciliation_inference.rs"]
+mod entity_reconciliation_inference;
+#[path = "perception/entity_reconciliation_model.rs"]
+mod entity_reconciliation_model;
+#[path = "perception/entity_reconciliation_owner.rs"]
+mod entity_reconciliation_owner;
+#[path = "perception/entity_reconciliation_prepare.rs"]
+mod entity_reconciliation_prepare;
+#[path = "perception/entity_reconciliation_schema.rs"]
+mod entity_reconciliation_schema;
+#[path = "perception/entity_reconciliation_staged.rs"]
+mod entity_reconciliation_staged;
+#[path = "perception/entity_reconciliation_support.rs"]
+mod entity_reconciliation_support;
+#[cfg(test)]
+#[path = "perception/entity_reconciliation_tests.rs"]
+mod entity_reconciliation_tests;
 #[path = "perception/entity_resolution_batch.rs"]
 mod entity_resolution_batch;
 #[cfg(test)]
@@ -656,6 +693,8 @@ mod rel_metadata_codec;
 mod rel_metadata_model;
 #[path = "facade/rel_metadata_store.rs"]
 mod rel_metadata_store;
+#[path = "config_security/runtime_config.rs"]
+mod runtime_config;
 #[path = "runtime_inference/runtime_host.rs"]
 mod runtime_host;
 #[path = "runtime_inference/runtime_vector_step.rs"]
@@ -741,6 +780,7 @@ pub use conversation_metadata_model::ConversationMetadata;
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
+pub use runtime_config::RuntimeConfig;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_inference::{
@@ -819,6 +859,9 @@ pub use embedding_endpoint::{
     VectorNormalization,
 };
 pub use entity_admission::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;
+pub use entity_audit_model::{
+    EntityAuditCollision, EntityAuditEntity, EntityAuditReport, EntityAuditResolutionViolation,
+};
 pub use entity_candidate_model::{
     DEFAULT_ENTITY_CANDIDATE_GRAPH_NEIGHBORS, DEFAULT_ENTITY_CANDIDATE_LEXICAL_MEMORIES,
     DEFAULT_ENTITY_CANDIDATE_SUPPORT_MEMORIES, EntityCandidate, EntityCandidateConfig,
@@ -831,6 +874,11 @@ pub use entity_error::EntityError;
 pub use entity_model::{
     Entity, EntityDraft, EntityId, EntityMergeOutcome, EntityStats, MAX_ENTITY_ALIASES,
     MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+};
+pub use entity_reconciliation_error::EntityReconciliationError;
+pub use entity_reconciliation_model::{
+    DEFAULT_ENTITY_RECONCILIATION_PAIR_LIMIT, DEFAULT_ENTITY_RECONCILIATION_ROUNDS,
+    EntityReconciliationCandidate, EntityReconciliationRelation, EntityReconciliationReport,
 };
 pub use entity_resolution_batch::EntityResolutionBatchOutcome;
 pub use entity_resolution_engine::EntityResolutionEngine;

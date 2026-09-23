@@ -1,8 +1,8 @@
-use crate::parse::{Owner, load_rows};
+use crate::parse::{Owner, load_rows, ordered_mention_keys};
 use reliquary_memory::{
     ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint, Cva, DecisionEndpoint,
-    EntityCandidateConfig, EntityDraft, EntityId, EntityResolutionEngine, EntityResolutionOutcome,
-    EntityResolverError, GeneralEndpointError, MemoryEntityMentionKey,
+    EntityAuditReport, EntityCandidateConfig, EntityDraft, EntityId, EntityResolutionEngine,
+    EntityResolutionOutcome, EntityResolverError, GeneralEndpointError, MemoryEntityMentionKey,
     MemoryEntityResolutionStatus, ModelSwitchboard, Phylactery, ReliquaryConfig,
 };
 use std::collections::HashSet;
@@ -224,6 +224,7 @@ fn resolve_with_limit(
     let config = ReliquaryConfig::open(config)?;
     let switchboard = ModelSwitchboard::new(config.models, config.credentials)?;
     let endpoint = ConfiguredGeneralEndpoint::from_entity_resolution_switchboard(&switchboard)?;
+    let reconciliation_endpoint = endpoint.clone();
     let decision = switchboard
         .entity_resolution_decision()
         .map(|_| {
@@ -239,6 +240,7 @@ fn resolve_with_limit(
         .sum::<usize>();
     let mut rel = Cva::open(rel)?;
     let mut phy = Phylactery::open(phy)?;
+    let ordered = ordered_mention_keys(&rows, &mut rel, &mut phy)?;
     let starting_states = rel.entity_resolutions().len() + phy.entity_resolutions().len();
     let starting_unseen = total_mentions.saturating_sub(starting_states);
     println!(
@@ -255,98 +257,97 @@ fn resolve_with_limit(
     let mut skipped_pending = 0usize;
     let mut skipped_terminal = 0usize;
     let mut base = now_ns();
-    for row in rows {
-        let keys = row
-            .metadata
-            .entity_mentions
-            .iter()
-            .map(|mention| MemoryEntityMentionKey::new(row.metadata.memory_id, mention))
-            .collect::<Vec<_>>();
-        for key in keys {
-            visited += 1;
-            let existing_status = match row.owner {
-                Owner::Rel => rel.entity_resolution(key).map(|value| value.status.clone()),
-                Owner::Phy => phy.entity_resolution(key).map(|value| value.status.clone()),
-            };
-            if let Some(status) = existing_status.as_ref() {
-                match status {
-                    MemoryEntityResolutionStatus::Resolved { .. }
-                    | MemoryEntityResolutionStatus::Rejected { .. } => {
-                        skipped_terminal += 1;
-                        continue;
-                    }
-                    MemoryEntityResolutionStatus::Pending(_)
-                    | MemoryEntityResolutionStatus::Dormant(_)
-                        if mode == ResolutionRunMode::UnseenOnly =>
-                    {
-                        skipped_pending += 1;
-                        continue;
-                    }
-                    MemoryEntityResolutionStatus::Pending(_)
-                    | MemoryEntityResolutionStatus::Dormant(_) => {}
+    for (owner, key) in ordered {
+        visited += 1;
+        let existing_status = match owner {
+            Owner::Rel => rel.entity_resolution(key).map(|value| value.status.clone()),
+            Owner::Phy => phy.entity_resolution(key).map(|value| value.status.clone()),
+        };
+        if let Some(status) = existing_status.as_ref() {
+            match status {
+                MemoryEntityResolutionStatus::Resolved { .. }
+                | MemoryEntityResolutionStatus::Rejected { .. } => {
+                    skipped_terminal += 1;
+                    continue;
                 }
+                MemoryEntityResolutionStatus::Pending(_)
+                | MemoryEntityResolutionStatus::Dormant(_)
+                    if mode == ResolutionRunMode::UnseenOnly =>
+                {
+                    skipped_pending += 1;
+                    continue;
+                }
+                MemoryEntityResolutionStatus::Pending(_)
+                | MemoryEntityResolutionStatus::Dormant(_) => {}
             }
-            if limit.is_some_and(|limit| processed >= limit) {
-                rel.sync()?;
-                phy.sync()?;
-                let rel_states = rel.entity_resolutions().len();
-                let phy_states = phy.entity_resolutions().len();
-                let durable_states = rel_states + phy_states;
-                let unseen = total_mentions.saturating_sub(durable_states);
-                println!(
-                    "resolution batch complete: mode={} corpus={durable_states}/{total_mentions} unseen={unseen} visited={visited} work={processed} new={new_mentions} reconsidered={reconsidered} unchanged_pending={unchanged_pending} skipped_pending={skipped_pending} skipped_terminal={skipped_terminal} rel_entities={} phy_entities={} rel_states={rel_states} phy_states={phy_states}",
-                    mode.label(),
-                    rel.entity_stats().entities,
-                    phy.entity_stats().entities
-                );
-                return Ok(());
-            }
-            base = base.saturating_add(1);
-            let outcome = match row.owner {
-                Owner::Rel => retry_resolution(|| {
-                    rel.resolve_entity_mention_with_engine(
-                        &engine,
-                        key,
-                        EntityCandidateConfig::default(),
-                        base,
-                    )
-                })?,
-                Owner::Phy => retry_resolution(|| {
-                    phy.resolve_entity_mention_with_engine(
-                        &engine,
-                        key,
-                        EntityCandidateConfig::default(),
-                        base,
-                    )
-                })?,
-            };
-            if existing_status.is_some()
-                && !outcome.resolution_changed
-                && !outcome.association_changed
-                && !outcome.entity_created
-            {
-                unchanged_pending += 1;
-                continue;
-            }
-            processed += 1;
-            if existing_status.is_some() {
-                reconsidered += 1;
-            } else {
-                new_mentions += 1;
-            }
-            if processed % 50 == 0 {
-                rel.sync()?;
-                phy.sync()?;
-                let durable_states =
-                    rel.entity_resolutions().len() + phy.entity_resolutions().len();
-                let unseen = total_mentions.saturating_sub(durable_states);
-                println!(
-                    "progress: mode={} corpus={durable_states}/{total_mentions} unseen={unseen} visited={visited} work={processed} new={new_mentions} reconsidered={reconsidered} unchanged_pending={unchanged_pending} skipped_pending={skipped_pending} skipped_terminal={skipped_terminal} rel_entities={} phy_entities={}",
-                    mode.label(),
-                    rel.entity_stats().entities,
-                    phy.entity_stats().entities
-                );
-            }
+        }
+        if limit.is_some_and(|limit| processed >= limit) {
+            rel.sync()?;
+            phy.sync()?;
+            let rel_states = rel.entity_resolutions().len();
+            let phy_states = phy.entity_resolutions().len();
+            let durable_states = rel_states + phy_states;
+            let unseen = total_mentions.saturating_sub(durable_states);
+            println!(
+                "resolution batch complete: mode={} corpus={durable_states}/{total_mentions} unseen={unseen} visited={visited} work={processed} new={new_mentions} reconsidered={reconsidered} unchanged_pending={unchanged_pending} skipped_pending={skipped_pending} skipped_terminal={skipped_terminal} rel_entities={} phy_entities={} rel_states={rel_states} phy_states={phy_states}",
+                mode.label(),
+                rel.entity_stats().entities,
+                phy.entity_stats().entities
+            );
+            print_reconciliation(
+                "REL",
+                &rel.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+            );
+            print_reconciliation(
+                "PHY",
+                &phy.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+            );
+            return Ok(());
+        }
+        base = base.saturating_add(1);
+        let outcome = match owner {
+            Owner::Rel => retry_resolution(|| {
+                rel.resolve_entity_mention_with_engine(
+                    &engine,
+                    key,
+                    EntityCandidateConfig::default(),
+                    base,
+                )
+            })?,
+            Owner::Phy => retry_resolution(|| {
+                phy.resolve_entity_mention_with_engine(
+                    &engine,
+                    key,
+                    EntityCandidateConfig::default(),
+                    base,
+                )
+            })?,
+        };
+        if existing_status.is_some()
+            && !outcome.resolution_changed
+            && !outcome.association_changed
+            && !outcome.entity_created
+        {
+            unchanged_pending += 1;
+            continue;
+        }
+        processed += 1;
+        if existing_status.is_some() {
+            reconsidered += 1;
+        } else {
+            new_mentions += 1;
+        }
+        if processed % 50 == 0 {
+            rel.sync()?;
+            phy.sync()?;
+            let durable_states = rel.entity_resolutions().len() + phy.entity_resolutions().len();
+            let unseen = total_mentions.saturating_sub(durable_states);
+            println!(
+                "progress: mode={} corpus={durable_states}/{total_mentions} unseen={unseen} visited={visited} work={processed} new={new_mentions} reconsidered={reconsidered} unchanged_pending={unchanged_pending} skipped_pending={skipped_pending} skipped_terminal={skipped_terminal} rel_entities={} phy_entities={}",
+                mode.label(),
+                rel.entity_stats().entities,
+                phy.entity_stats().entities
+            );
         }
     }
     rel.sync()?;
@@ -361,7 +362,51 @@ fn resolve_with_limit(
         rel.entity_stats().entities,
         phy.entity_stats().entities
     );
+    print_reconciliation(
+        "REL",
+        &rel.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+    );
+    print_reconciliation(
+        "PHY",
+        &phy.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+    );
     Ok(())
+}
+
+fn print_reconciliation(label: &str, report: &reliquary_memory::EntityReconciliationReport) {
+    println!(
+        "entity reconciliation: owner={label} rounds={} candidates={} deterministic_merges={} model_merges={} rejected_reconsidered={} unresolved_pairs={} clean={} findings={}",
+        report.rounds,
+        report.candidate_pairs,
+        report.deterministic_merges,
+        report.model_merges,
+        report.rejected_mentions_reconsidered,
+        report.unresolved_pairs,
+        report.final_audit.is_clean(),
+        report.final_audit.finding_count(),
+    );
+}
+
+fn print_auto_audit(label: &str, report: &EntityAuditReport) {
+    println!(
+        "entity audit: owner={label} clean={} findings={} entities={} associations={} states={} resolved={} rejected={} pending={} dormant={} zero_degree={} exact_collisions={} normalized_collisions={} alias_collisions={} cross_kind_alias_shadows={} rejection_invariant_violations={} missing_targets={}",
+        report.is_clean(),
+        report.finding_count(),
+        report.entity_count,
+        report.association_count,
+        report.resolution_count,
+        report.resolved_count,
+        report.rejected_count,
+        report.pending_count,
+        report.dormant_count,
+        report.zero_degree_entities.len(),
+        report.exact_surface_collisions.len(),
+        report.normalized_surface_collisions.len(),
+        report.alias_collisions.len(),
+        report.cross_kind_alias_shadows.len(),
+        report.rejection_invariant_violations.len(),
+        report.missing_resolved_targets.len(),
+    );
 }
 
 fn retry_resolution<F>(mut resolve: F) -> Result<EntityResolutionOutcome, EntityResolverError>
@@ -596,6 +641,8 @@ pub fn status(rel: &str, phy: &str) -> Result<(), Box<dyn Error>> {
     let phy = Phylactery::open(phy)?;
     print_status("rel", &rel, rel.memory_ids(), rel.entity_resolutions())?;
     print_phy_status("phy", &phy, phy.memory_ids(), phy.entity_resolutions())?;
+    print_auto_audit("REL", &rel.audit_entities());
+    print_auto_audit("PHY", &phy.audit_entities());
     Ok(())
 }
 

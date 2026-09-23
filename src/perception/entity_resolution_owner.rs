@@ -154,6 +154,16 @@ macro_rules! impl_owner {
                 )
             }
 
+            pub fn reset_entity_resolution(
+                &mut self,
+                key: MemoryEntityMentionKey,
+                now_ns: i64,
+            ) -> Result<bool, MemoryError> {
+                self.memories.validate_entity_mention_key(key)?;
+                self.entity_resolutions
+                    .tombstone(&mut self.container, key, now_ns)
+            }
+
             pub fn compact_entity_resolutions(
                 &mut self,
                 now_ns: i64,

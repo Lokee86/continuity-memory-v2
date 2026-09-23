@@ -191,6 +191,7 @@ fn resolve_rel(
     endpoint: ConfiguredGeneralEndpoint,
     rounds: usize,
 ) -> Result<(), Box<dyn Error>> {
+    let reconciliation_endpoint = endpoint.clone();
     let resolver = EntityResolver::new(endpoint);
     let keys = rel_keys(owner)?;
     for round in 1..=rounds {
@@ -214,6 +215,10 @@ fn resolve_rel(
             "rel round={round} mentions={} changes={changes}",
             keys.len()
         );
+        print_reconciliation(
+            "REL",
+            &owner.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+        );
         if changes == 0 {
             break;
         }
@@ -226,6 +231,7 @@ fn resolve_phy(
     endpoint: ConfiguredGeneralEndpoint,
     rounds: usize,
 ) -> Result<(), Box<dyn Error>> {
+    let reconciliation_endpoint = endpoint.clone();
     let resolver = EntityResolver::new(endpoint);
     let keys = phy_keys(owner)?;
     for round in 1..=rounds {
@@ -249,6 +255,10 @@ fn resolve_phy(
             "phy round={round} mentions={} changes={changes}",
             keys.len()
         );
+        print_reconciliation(
+            "PHY",
+            &owner.reconcile_entities(&reconciliation_endpoint, now_ns())?,
+        );
         if changes == 0 {
             break;
         }
@@ -261,6 +271,20 @@ fn field_ord(field: MemoryTextField) -> u8 {
         MemoryTextField::Title => 0,
         MemoryTextField::Content => 1,
     }
+}
+
+fn print_reconciliation(label: &str, report: &reliquary_memory::EntityReconciliationReport) {
+    println!(
+        "entity reconciliation: owner={label} rounds={} candidates={} deterministic_merges={} model_merges={} rejected_reconsidered={} unresolved_pairs={} clean={} findings={}",
+        report.rounds,
+        report.candidate_pairs,
+        report.deterministic_merges,
+        report.model_merges,
+        report.rejected_mentions_reconsidered,
+        report.unresolved_pairs,
+        report.final_audit.is_clean(),
+        report.final_audit.finding_count(),
+    );
 }
 
 fn now_ns() -> i64 {

@@ -1,16 +1,17 @@
+use super::perception_flow::{defer, finish, now_ns, pop_next, requeue, sort_key};
 use super::perception_owner::{commit, owner_id, prepare, seed_runtime};
 use super::perception_queue::PerceptionOwner;
+use super::perception_reconciliation::{PerceptionReconciliationState, ReconcileIdle, retry_poll};
 use super::{
-    DREAM_RETRY_POLL, IDLE_POLL, ReliquaryRuntimeHostError, Shared, notify_work, operation,
-    stopped, wait_for_work_timeout,
+    IDLE_POLL, ReliquaryRuntimeHostError, Shared, notify_work, operation, stopped,
+    wait_for_work_timeout,
 };
 use crate::{
     EntityResolutionEngine, EntityResolutionPreparation, EntityResolverError, GeneralEndpoint,
-    GeneralEndpointError, MemoryEntityMentionKey,
+    GeneralEndpointError,
 };
 use serde_json::Value;
 use std::sync::Arc;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 #[derive(Clone)]
 struct SharedEndpoint(Arc<dyn GeneralEndpoint>);
@@ -37,6 +38,7 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
 
     let mut seen_epoch = 0_u64;
     let mut prefer_user = false;
+    let mut reconciliation = PerceptionReconciliationState::default();
     loop {
         if stopped(&shared.signal)? {
             return Ok(());
@@ -55,6 +57,18 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             seen_epoch = wait_for_work_timeout(&shared.signal, seen_epoch, IDLE_POLL)?;
             continue;
         };
+
+        let reconciliation_outcome =
+            reconciliation.reconcile_if_due(&shared, Arc::clone(&endpoint))?;
+        match reconciliation_outcome {
+            ReconcileIdle::Changed => continue,
+            ReconcileIdle::Deferred | ReconcileIdle::Retry => {
+                let delay = retry_poll(reconciliation_outcome).unwrap_or(IDLE_POLL);
+                seen_epoch = wait_for_work_timeout(&shared.signal, seen_epoch, delay)?;
+                continue;
+            }
+            ReconcileIdle::Stable | ReconcileIdle::Unchanged | ReconcileIdle::Busy => {}
+        }
 
         let Some((owner, key)) = pop_next(&shared, prefer_user)? else {
             seen_epoch = wait_for_work_timeout(&shared.signal, seen_epoch, IDLE_POLL)?;
@@ -129,76 +143,4 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             notify_work(&shared.signal)?;
         }
     }
-}
-
-fn pop_next(
-    shared: &Shared,
-    prefer_user: bool,
-) -> Result<Option<(PerceptionOwner, MemoryEntityMentionKey)>, ReliquaryRuntimeHostError> {
-    let mut queue = shared
-        .perception_queue
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    let owners = if prefer_user {
-        [PerceptionOwner::User, PerceptionOwner::Project]
-    } else {
-        [PerceptionOwner::Project, PerceptionOwner::User]
-    };
-    for owner in owners {
-        if let Some(key) = queue.pop_ready(owner, Instant::now()) {
-            return Ok(Some((owner, key)));
-        }
-    }
-    Ok(None)
-}
-
-fn finish(shared: &Shared, owner: PerceptionOwner) -> Result<(), ReliquaryRuntimeHostError> {
-    shared
-        .perception_queue
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-        .finish(owner);
-    Ok(())
-}
-
-fn defer(
-    shared: &Shared,
-    owner: PerceptionOwner,
-    key: MemoryEntityMentionKey,
-) -> Result<(), ReliquaryRuntimeHostError> {
-    shared
-        .perception_queue
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-        .defer(owner, key, Instant::now() + DREAM_RETRY_POLL);
-    Ok(())
-}
-
-fn requeue(
-    shared: &Shared,
-    owner: PerceptionOwner,
-    key: MemoryEntityMentionKey,
-) -> Result<(), ReliquaryRuntimeHostError> {
-    shared
-        .perception_queue
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-        .push(owner, key);
-    Ok(())
-}
-
-fn sort_key(key: &MemoryEntityMentionKey) -> ([u8; 32], u8, u32, u32) {
-    (
-        key.memory_id.0,
-        key.field.tag(),
-        key.start_byte,
-        key.end_byte,
-    )
-}
-
-fn now_ns() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos().min(i64::MAX as u128) as i64)
-        .unwrap_or(0)
 }

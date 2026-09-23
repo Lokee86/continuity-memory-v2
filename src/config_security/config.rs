@@ -2,8 +2,9 @@ use crate::config_codec::{RawConfigObject, decode_config, encode_config};
 use crate::config_credentials::{insert_credentials, load_credentials, master_key_path};
 use crate::config_io::{read_config_file, replace_config_file};
 use crate::config_object::{
-    FRAGMENT_KEY, OBJECT_FLAGS_NONE, OBJECT_SCHEMA_V1, RETRIEVAL_KEY, decode_fragments,
-    decode_retrieval, encode_fragments, encode_retrieval, validate_fragments, validate_retrieval,
+    FRAGMENT_KEY, OBJECT_FLAGS_NONE, OBJECT_SCHEMA_V1, RETRIEVAL_KEY, RUNTIME_KEY,
+    decode_fragments, decode_retrieval, decode_runtime, encode_fragments, encode_retrieval,
+    encode_runtime, validate_fragments, validate_retrieval, validate_runtime,
 };
 use crate::model_switchboard::validate_switchboard;
 use crate::model_switchboard_codec::{
@@ -15,7 +16,7 @@ use crate::model_switchboard_codec::{
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
-    MasterKeyStore, ModelSwitchboardConfig, RetrievalConfig,
+    MasterKeyStore, ModelSwitchboardConfig, RetrievalConfig, RuntimeConfig,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -25,6 +26,7 @@ pub struct ReliquaryConfig {
     path: PathBuf,
     pub fragments: FragmentConfig,
     pub retrieval: RetrievalConfig,
+    pub runtime: RuntimeConfig,
     pub models: ModelSwitchboardConfig,
     pub credentials: CredentialsConfig,
     extra_objects: BTreeMap<String, RawConfigObject>,
@@ -36,6 +38,7 @@ impl ReliquaryConfig {
             path: path.into(),
             fragments: FragmentConfig::default(),
             retrieval: RetrievalConfig::default(),
+            runtime: RuntimeConfig::default(),
             models: ModelSwitchboardConfig::default(),
             credentials: CredentialsConfig::default(),
             extra_objects: BTreeMap::new(),
@@ -53,6 +56,10 @@ impl ReliquaryConfig {
         let retrieval = match objects.remove(RETRIEVAL_KEY) {
             Some(object) => decode_known_retrieval(object)?,
             None => RetrievalConfig::default(),
+        };
+        let runtime = match objects.remove(RUNTIME_KEY) {
+            Some(object) => decode_known_runtime(object)?,
+            None => RuntimeConfig::default(),
         };
         let general = match objects.remove(GENERAL_MODEL_KEY) {
             Some(object) => Some(decode_known_general(object)?),
@@ -108,6 +115,7 @@ impl ReliquaryConfig {
             path,
             fragments,
             retrieval,
+            runtime,
             models,
             credentials,
             extra_objects: objects,
@@ -130,6 +138,7 @@ impl ReliquaryConfig {
     pub fn save(&self) -> Result<(), ConfigError> {
         validate_fragments(self.fragments)?;
         validate_retrieval(self.retrieval)?;
+        validate_runtime(self.runtime)?;
         validate_switchboard(&self.models)?;
         let mut objects = self.extra_objects.clone();
         objects.insert(
@@ -146,6 +155,14 @@ impl ReliquaryConfig {
                 schema: OBJECT_SCHEMA_V1,
                 flags: OBJECT_FLAGS_NONE,
                 payload: encode_retrieval(self.retrieval),
+            },
+        );
+        objects.insert(
+            RUNTIME_KEY.to_owned(),
+            RawConfigObject {
+                schema: OBJECT_SCHEMA_V1,
+                flags: OBJECT_FLAGS_NONE,
+                payload: encode_runtime(self.runtime),
             },
         );
         if let Some(endpoint) = &self.models.general {
@@ -216,6 +233,11 @@ fn decode_known_fragments(object: RawConfigObject) -> Result<FragmentConfig, Con
 fn decode_known_retrieval(object: RawConfigObject) -> Result<RetrievalConfig, ConfigError> {
     validate_known_object(&object)?;
     decode_retrieval(&object.payload)
+}
+
+fn decode_known_runtime(object: RawConfigObject) -> Result<RuntimeConfig, ConfigError> {
+    validate_known_object(&object)?;
+    decode_runtime(&object.payload)
 }
 
 fn decode_known_general(

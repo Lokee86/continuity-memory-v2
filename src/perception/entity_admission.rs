@@ -308,7 +308,7 @@ fn explicit_id_occurrence(value: &str, prefix: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'/'))
 }
 
-fn is_bare_generic_surface(value: &str) -> bool {
+pub(crate) fn is_bare_generic_surface(value: &str) -> bool {
     const GENERIC: &[&str] = &[
         "agent",
         "application",
