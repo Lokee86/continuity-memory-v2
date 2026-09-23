@@ -1,7 +1,7 @@
 use crate::{
-    Cva, CvaError, EntityDraft, EntityError, EntityId, EntityMergeOutcome, GraphRelationOrigin,
-    MAX_ENTITY_ALIASES, MemoryEntityMentionKey, MemoryEntityResolutionStatus, Phylactery,
-    PhylacteryError, SemanticGraphRelationChange,
+    Cva, CvaError, EntityDraft, EntityError, EntityId, EntityMergeOutcome, EntityRef,
+    GraphRelationOrigin, MAX_ENTITY_ALIASES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
+    Phylactery, PhylacteryError, RelationshipDraft, SemanticGraphRelationChange,
 };
 
 macro_rules! impl_entity_merge {
@@ -23,6 +23,7 @@ macro_rules! impl_entity_merge {
                         aliases_added: 0,
                         associations_retargeted: 0,
                         resolutions_retargeted: 0,
+                        relationships_retargeted: 0,
                         changed: false,
                     });
                 }
@@ -95,6 +96,44 @@ macro_rules! impl_entity_merge {
                     )?;
                 }
 
+                let owner_id = self
+                    .owner_id()
+                    .ok_or(crate::RelationshipError::MissingOwnerIdentity)?;
+                let retired_ref = EntityRef {
+                    owner_id,
+                    entity_id: retired_id,
+                };
+                let relationships = self.relationships_for_entity(&retired_ref);
+                let mut relationships_retargeted = 0;
+                for relationship in relationships {
+                    let mut participants = relationship.participants.clone();
+                    for participant in &mut participants {
+                        if participant.entity == retired_ref {
+                            participant.entity.entity_id = survivor_id;
+                        }
+                    }
+                    self.publish_relationship(
+                        Some(relationship.id),
+                        relationship.revision,
+                        RelationshipDraft {
+                            kind: relationship.kind,
+                            participants,
+                            evidence: relationship.evidence,
+                            summary: relationship.summary,
+                            mutation_id: format!(
+                                "entity-merge-relationship:{}:{}:{}:{}",
+                                short_id(survivor_id),
+                                short_id(retired_id),
+                                short_bytes(&relationship.id.0),
+                                relationship.revision + 1
+                            ),
+                            created_at_ns: relationship.created_at_ns,
+                            updated_at_ns: now_ns.max(relationship.updated_at_ns),
+                        },
+                    )?;
+                    relationships_retargeted += 1;
+                }
+
                 let retired = self.entity(retired_id)?;
                 self.entities.tombstone(
                     &mut self.container,
@@ -109,6 +148,7 @@ macro_rules! impl_entity_merge {
                     aliases_added,
                     associations_retargeted: memories.len(),
                     resolutions_retargeted,
+                    relationships_retargeted,
                     changed: true,
                 })
             }
@@ -220,7 +260,12 @@ fn surface_claimed_by_other_entity(
 }
 
 fn short_id(id: EntityId) -> String {
-    id.0.iter()
+    short_bytes(&id.0)
+}
+
+fn short_bytes(bytes: &[u8; 32]) -> String {
+    bytes
+        .iter()
         .take(8)
         .map(|byte| format!("{byte:02x}"))
         .collect()

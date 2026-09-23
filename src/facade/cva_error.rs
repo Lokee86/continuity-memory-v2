@@ -1,7 +1,7 @@
 use crate::{
     ArchiveError, ArchiveVectorError, CommunityError, CompatibilityProfileError, ContainerError,
     ConversationCompactionError, EchoError, EgoError, EntityError, GraphError, InsomniaError,
-    MemoryError, MemoryVectorError, PackedVectorError, VectorGenerationError,
+    MemoryError, MemoryVectorError, PackedVectorError, RelationshipError, VectorGenerationError,
 };
 use std::fmt;
 
@@ -11,6 +11,7 @@ pub enum CvaError {
     Archive(ArchiveError),
     Memories(MemoryError),
     Entities(EntityError),
+    Relationships(RelationshipError),
     Graph(GraphError),
     Communities(CommunityError),
     Insomnia(InsomniaError),
@@ -38,6 +39,7 @@ impl fmt::Display for CvaError {
             Self::Archive(error) => write!(f, "{error}"),
             Self::Memories(error) => write!(f, "{error}"),
             Self::Entities(error) => write!(f, "{error}"),
+            Self::Relationships(error) => write!(f, "{error}"),
             Self::Graph(error) => write!(f, "{error}"),
             Self::Communities(error) => write!(f, "{error}"),
             Self::Insomnia(error) => write!(f, "{error}"),
@@ -83,6 +85,7 @@ from_error!(ContainerError, Container);
 from_error!(ArchiveError, Archive);
 from_error!(MemoryError, Memories);
 from_error!(EntityError, Entities);
+from_error!(RelationshipError, Relationships);
 from_error!(GraphError, Graph);
 from_error!(CommunityError, Communities);
 from_error!(InsomniaError, Insomnia);

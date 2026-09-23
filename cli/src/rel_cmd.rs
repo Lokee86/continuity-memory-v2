@@ -24,13 +24,14 @@ pub fn run(command: RelCommand) -> Result<()> {
             let rel = Reliquary::open(&path)?;
             let metadata = rel.rel_metadata();
             println!(
-                "REL ok: {} id={} type={} dependencies={} legacy_cva={} archive_version={} vector_version={}",
+                "REL ok: {} id={} type={} dependencies={} legacy_cva={} archive_version={} relationship_version={} vector_version={}",
                 path.display(),
                 rel.owner_id().as_deref().unwrap_or("none"),
                 metadata.type_label.as_deref().unwrap_or("none"),
                 metadata.dependencies.len(),
                 rel.is_legacy_cva(),
                 rel.archive_version(),
+                rel.relationship_version(),
                 rel.vector_version()
             );
         }
@@ -66,6 +67,7 @@ fn info(path: &std::path::Path) -> Result<()> {
     let rel = Reliquary::open(path)?;
     let archive = rel.stats();
     let memories = rel.memory_stats();
+    let relationships = rel.relationship_stats();
     let graph = rel.graph_stats();
     let packed = rel.packed_vector_stats();
     let memory_vectors = rel.memory_vector_stats();
@@ -82,6 +84,7 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("legacy_cva: {}", rel.is_legacy_cva());
     println!("archive_version: {}", rel.archive_version());
     println!("memory_version: {}", rel.memory_version());
+    println!("relationship_version: {}", rel.relationship_version());
     println!("graph_version: {}", rel.graph_version());
     println!("vector_version: {}", rel.vector_version());
     println!(
@@ -97,6 +100,10 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!(
         "memories: current={} revisions={} bodies={}",
         memories.memories, memories.revisions, memories.bodies
+    );
+    println!(
+        "relationships: current={} revisions={}",
+        relationships.relationships, relationships.revisions
     );
     println!("graph: active_relations={}", graph.active_relations);
     println!(

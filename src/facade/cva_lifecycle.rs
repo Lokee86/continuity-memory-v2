@@ -32,6 +32,8 @@ use crate::packed_vector_store::PackedVectorStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
+use crate::relationship_rebuild::RelationshipOpenState;
+use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Container, Cva, CvaError};
@@ -157,6 +159,7 @@ impl Cva {
         let ego = EgoStore::reliquary();
         let entities = EntityStore::empty();
         let entity_resolutions = EntityResolutionStore::default();
+        let relationships = RelationshipStore::empty();
         let project_history = ProjectHistoryStore::default();
         let project_files = ProjectFileStore::default();
         let rel_metadata = RelMetadataStore::default();
@@ -164,6 +167,7 @@ impl Cva {
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
         entities.initialize(&mut container)?;
+        relationships.initialize(&mut container)?;
         insomnia.initialize(&mut container)?;
         packed_vectors.initialize(&mut container)?;
         memory_vectors.initialize(&mut container)?;
@@ -193,6 +197,7 @@ impl Cva {
             ego,
             entities,
             entity_resolutions,
+            relationships,
             project_history,
             project_files,
             rel_metadata,
@@ -216,6 +221,7 @@ impl Cva {
         let mut ego = EgoStore::reliquary();
         let mut entity_state = EntityOpenState::new();
         let mut entity_resolutions = EntityResolutionStore::default();
+        let mut relationship_state = RelationshipOpenState::new();
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
         let mut rel_metadata = RelMetadataStore::default();
@@ -238,6 +244,7 @@ impl Cva {
                     memory_state.ingest(chunk, payload, latest_global)?;
                     graph_state.ingest(chunk, payload, latest_global)?;
                     entity_state.ingest(chunk, payload, latest_global)?;
+                    relationship_state.ingest(chunk, payload, latest_global)?;
                     community_state.ingest(payload)?;
                     insomnia_state.ingest(chunk, payload)?;
                     packed_state.ingest(chunk, payload)?;
@@ -272,6 +279,12 @@ impl Cva {
         archive.validate_references(&project_files)?;
         let memories = memory_state.finish(&mut container)?;
         let entities = entity_state.finish()?;
+        let relationships = relationship_state.finish();
+        relationships.validate_local_references(
+            container.owner_id().as_deref(),
+            &memories,
+            &entities,
+        )?;
         ego.validate_memory_version(memories.memory_version())?;
         entity_resolutions.validate(&memories, &entities)?;
         memories.validate_provenance(&archive)?;
@@ -299,6 +312,7 @@ impl Cva {
             &archive,
             &memories,
             &entities,
+            &relationships,
             &graph,
             &vector_generations,
         )?;
@@ -325,6 +339,7 @@ impl Cva {
             ego,
             entities,
             entity_resolutions,
+            relationships,
             project_history,
             project_files,
             rel_metadata,

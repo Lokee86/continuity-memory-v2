@@ -19,6 +19,7 @@ use crate::packed_vector_store::PackedVectorStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
+use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{
     Archive, ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container,
@@ -49,6 +50,7 @@ pub struct Cva {
     pub(crate) ego: EgoStore,
     pub(crate) entities: EntityStore,
     pub(crate) entity_resolutions: EntityResolutionStore,
+    pub(crate) relationships: RelationshipStore,
     pub(crate) project_history: ProjectHistoryStore,
     pub(crate) project_files: ProjectFileStore,
     pub(crate) rel_metadata: RelMetadataStore,

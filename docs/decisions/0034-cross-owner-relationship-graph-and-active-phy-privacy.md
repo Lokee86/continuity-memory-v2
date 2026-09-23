@@ -6,7 +6,7 @@ Implementation planning: [Perception subsystem plan](../perception-subsystem-pla
 
 ## Status
 
-Accepted — 2026-09-08. Design decision; not yet implemented.
+Accepted — 2026-09-08. Persistence foundation implemented 2026-09-23; synthesis/runtime composition remains in progress.
 
 Amends ADR 0029 by reactivating relationship-specific semantic state without reintroducing Connection REL classes. Amends ADR 0033 by adding Relationship synthesis/maintenance as Perception-owned semantic structure after Entity resolution.
 
@@ -42,7 +42,7 @@ Relationship {
 }
 ```
 
-The exact persisted schema is deferred to implementation work.
+The persistence foundation now uses an owner-local revisioned Relationship record. `RelationshipId` is a stable 32-byte ID, containment supplies the Relationship owner, participants are canonicalized `EntityRef { owner_id, entity_id }` values with optional roles, evidence is canonicalized `MemoryRef { owner_id, memory_id }`, and each revision carries open-string kind/classification, bounded compact summary, mutation identity, timestamps, one dense `relationship_version`, and one file-global semantic version. The vocabulary/materialization policy remains open rather than being encoded as a closed enum.
 
 A Relationship may contain or index relational Observations, directional perspective state, standing commitments, synthesized relationship state, or similar derived knowledge whose subject is the relationship itself rather than one participant in isolation. It does not own source transcripts, raw Memories, an independent Dream graph, Leiden Communities, or another recursive Perception universe.
 
@@ -259,10 +259,8 @@ Rejected for practicality. Nested full semantic graphs multiply Dream/Perception
 
 ## Open implementation questions
 
-- exact Relationship ID, persistence, versioning, and reconciliation format;
-- exact owner-qualified `EntityRef` representation and dangling-reference behavior when another owner is not mounted;
 - initial Relationship type/classification and participant-role vocabulary;
-- cardinality constraints and n-ary Relationship representation;
+- cardinality constraints and higher-level n-ary Relationship policy beyond the implemented n-ary participant representation;
 - materialization thresholds for explicit versus repeated relational evidence;
 - representation of relationship-local Observations, perspective state, and synthesized summaries;
 - Relationship lifecycle, stale/retired state, and historical retention;
@@ -270,6 +268,12 @@ Rejected for practicality. Nested full semantic graphs multiply Dream/Perception
 - how Relationship evidence/support participates in Observation receptors and reconsideration;
 - Ego retrieval/context rules over the effective Relationship graph; and
 - authorization policy for shared REL relationship state beyond the owner-visibility baseline fixed here.
+
+## Implemented persistence foundation
+
+The REL/PHY substrate now provides Relationship create/revise/read/list/query-by-participant, owner-qualified participant/evidence persistence, current local-reference validation with foreign dangling-reference tolerance, historical replay for migration/reconciliation, reopen/global-version validation, divergent REL reconciliation, REL/PHY migration preservation, physical reclamation relocation, and local Entity-merge participant retargeting. Historical replay preserves revision truth without weakening current-state validation: an older revision may reference an Entity retired later, while the final current Relationship must resolve to current local objects. The same participant/Relationship identity may be stored independently by different owners without semantic collision.
+
+This does **not** yet implement candidate discovery, semantic materialization inference, lifecycle/staleness, relationship-local Observations/perspectives, authorization policy, or the effective active-PHY + permitted-REL runtime-composition view.
 
 ## Verification
 

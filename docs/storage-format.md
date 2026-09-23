@@ -367,7 +367,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 ### Phylactery owner composition
 
-A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles, and accepts optional Ego Identity/Personality/Anchor/web-synthesis records. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
+A current `.phy` initializes and requires the persistent formats for Memories, Entities, Relationships, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles, and accepts optional Ego Identity/Personality/Anchor/web-synthesis records. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
 The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, optional source-turn PHY `principal_id`, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
 
@@ -551,7 +551,7 @@ Legacy Memory-only atomic batches use `CVAGBAT1`; typed/mixed atomic batches use
 
 One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before publication. Endpoint validation is relation-specific: Memory relation families require two same-owner Memories; `entity-association` requires an existing same-owner Memory source and non-principal Entity target; `principal-association` requires an existing same-owner Memory source and an Entity whose reserved kind is `principal`.
 
-Relationship version metadata is unchanged:
+Graph version metadata is unchanged:
 ```text
 8 bytes   "CVAGVER1"
 u64       global version
@@ -565,6 +565,49 @@ u64       mutation payload length
 Graph also derives a non-persisted `memory_graph_version`: the latest full `graph_version` containing a Memory-to-Memory relation mutation, or `0` when no Memory relation has ever been published. Dream/Leiden/Memory-retrieval derived state keys to this Memory projection watermark, while Graph writes continue to compare against the full `graph_version`. Entity-only mutations therefore remain visible in the semantic Graph without invalidating unchanged Memory-only topology.
 
 The Arcana kernel materializes two derived in-memory views from the same accepted relation authority: the full typed semantic topology and a Memory-only topology used by existing Dream traversal and Communities. Pre-Graph CVAs with no Graph records reopen at version `0`.
+
+### Relationship owner
+
+Capital-R Relationship objects are persisted separately from Graph relation mutations. Current REL and PHY files initialize:
+
+```text
+8 bytes   "CVARELF1"   Relationship format marker
+```
+
+A Relationship backing record uses:
+
+```text
+8 bytes   "CVARELR1"
+32 bytes  RelationshipId
+u64       revision
+i64       created_at_ns
+i64       updated_at_ns
+string    kind
+u16       participant count
+repeat participant:
+  string  EntityRef.owner_id
+  32 bytes EntityRef.entity_id
+  u8      role present
+  [string role]
+u16       evidence count
+repeat evidence:
+  string  MemoryRef.owner_id
+  32 bytes MemoryRef.memory_id
+string    compact summary
+string    mutation_id
+```
+
+Its semantic publication record is:
+
+```text
+8 bytes   "CVARELV1"
+u64       global version
+u64       relationship version
+u64       backing-record chunk offset
+u64       backing-record payload length
+```
+
+`relationship_version` begins at `1` and is dense within the containing REL/PHY. A backing record without valid version metadata is inert. Participant/evidence lists are normalized into deterministic order before publication. Local-owner Entity/Memory references must resolve; owner-qualified references into another REL/PHY may remain unresolved. Relationship history is a separate semantic owner from Arcana Graph history.
 
 ### Dream maintenance records
 

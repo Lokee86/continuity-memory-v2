@@ -6,7 +6,7 @@ Implementation plan: [Perception subsystem plan](../perception-subsystem-plan.md
 
 ## Status
 
-Accepted — 2026-09-08. Design decision; not yet implemented.
+Accepted — 2026-09-08. Entity pass 1 is implemented; Relationship persistence is implemented under ADR 0034; Observation/ambiguity synthesis remains staged.
 
 Amends ADR 0012 by adding Insomnia metadata enrichment after Memory extraction, and ADR 0025 by requiring recursive Community subdivision for bounded Perception synthesis without turning processing windows into semantic Communities. ADR 0034 subsequently adds a sparse Relationship synthesis/maintenance lane after Entity resolution without changing Dream's owner-local Memory-Graph authority. ADR 0035 subsequently assigns Observation temporal interpretation to the shared Chronos subsystem rather than a Perception-local temporal stack.
 

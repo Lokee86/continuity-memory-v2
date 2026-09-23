@@ -247,6 +247,8 @@ mod cva_reconcile_interaction;
 mod cva_reconcile_memory;
 #[path = "facade/cva_reconcile_promote.rs"]
 mod cva_reconcile_promote;
+#[path = "facade/cva_reconcile_relationship.rs"]
+mod cva_reconcile_relationship;
 #[path = "facade/cva_reconcile_repack.rs"]
 mod cva_reconcile_repack;
 #[path = "facade/cva_repack.rs"]
@@ -706,6 +708,18 @@ mod rel_metadata_codec;
 mod rel_metadata_model;
 #[path = "facade/rel_metadata_store.rs"]
 mod rel_metadata_store;
+#[path = "perception/relationship_codec.rs"]
+mod relationship_codec;
+#[path = "perception/relationship_error.rs"]
+mod relationship_error;
+#[path = "perception/relationship_model.rs"]
+mod relationship_model;
+#[path = "perception/relationship_owner.rs"]
+mod relationship_owner;
+#[path = "perception/relationship_rebuild.rs"]
+mod relationship_rebuild;
+#[path = "perception/relationship_store.rs"]
+mod relationship_store;
 #[path = "config_security/runtime_config.rs"]
 mod runtime_config;
 #[path = "runtime_inference/runtime_host.rs"]
@@ -894,7 +908,7 @@ pub use entity_candidate_model::{
 };
 pub use entity_error::EntityError;
 pub use entity_model::{
-    Entity, EntityDraft, EntityId, EntityMergeOutcome, EntityStats, MAX_ENTITY_ALIASES,
+    Entity, EntityDraft, EntityId, EntityMergeOutcome, EntityRef, EntityStats, MAX_ENTITY_ALIASES,
     MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
 pub use entity_reconciliation_error::EntityReconciliationError;
@@ -1033,6 +1047,12 @@ pub use project_history_model::{
 };
 pub use rel_metadata_model::{
     MAX_REL_DEPENDENCIES, MAX_REL_DEPENDENCY_ID_BYTES, MAX_REL_TYPE_LABEL_BYTES, RelMetadata,
+};
+pub use relationship_error::RelationshipError;
+pub use relationship_model::{
+    MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
+    MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
+    Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant, RelationshipStats,
 };
 pub use runtime_host::memory_search::{
     MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,
@@ -1360,6 +1380,15 @@ mod project_history_reconcile_tests;
 #[cfg(test)]
 #[path = "archive/project_history_tests.rs"]
 mod project_history_tests;
+#[cfg(test)]
+#[path = "perception/relationship_maintenance_tests.rs"]
+mod relationship_maintenance_tests;
+#[cfg(test)]
+#[path = "perception/relationship_test_support.rs"]
+mod relationship_test_support;
+#[cfg(test)]
+#[path = "perception/relationship_tests.rs"]
+mod relationship_tests;
 #[cfg(test)]
 #[path = "facade/reliquary_tests.rs"]
 mod reliquary_tests;

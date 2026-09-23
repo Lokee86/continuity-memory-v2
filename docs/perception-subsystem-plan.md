@@ -275,11 +275,12 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 
 ### B2 — Relationship owner and synthesis lane
 
-- Define Relationship IDs, owner/versioning rules, participant `EntityRef`s, roles/cardinality, classification, and evidence/support references.
-- Implement sparse Relationship materialization from explicit or repeated relational evidence without an all-Entity-pairs path.
-- Permit cross-owner Entity references while keeping Relationship visibility bound to its owner.
-- Implement active-PHY privacy and authorized-REL runtime composition fixtures.
-- Define bounded relationship-local Observations/perspectives without creating nested Memory Webs.
+- **Implemented foundation:** durable Relationship IDs/revisions, dense owner-local `relationship_version`, open classification string, n-ary owner-qualified `EntityRef` participants with optional roles, owner-qualified `MemoryRef` evidence, bounded compact summary, REL/PHY reopen, global-version validation, migration, divergent reconciliation, physical reclamation, and deterministic query-by-participant.
+- **Implemented foundation:** local references validate against the containing owner while cross-owner references may remain dangling; Entity merge retargets only participant refs owned by the merging owner, leaving foreign-owner refs untouched.
+- **Implemented foundation:** the same Relationship identity may exist independently in REL and PHY because containment owns the semantic view; no cross-owner Arcana/Graph edge is introduced.
+- **Remaining synthesis:** sparse Relationship materialization from explicit or repeated relational evidence without an all-Entity-pairs path.
+- **Remaining runtime:** active-PHY privacy and authorized-REL composition fixtures/view.
+- **Remaining derived state:** lifecycle/cardinality policy and bounded relationship-local Observations/perspectives without creating nested Memory Webs.
 
 ### C — Multi-resolution Communities and local neighbourhoods
 
@@ -323,8 +324,8 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 
 ## Open implementation decisions
 
-- Persistent schemas for Entity, Relationship, Observation, ambiguity, and receptor state.
-- Owner-qualified `EntityRef` representation, dangling-reference behavior, Relationship roles/cardinality, and materialization thresholds.
+- Persistent schemas for Observation, ambiguity, and receptor state; Entity and Relationship base persistence are implemented.
+- Relationship role/cardinality policy and materialization thresholds; owner-qualified `EntityRef` representation and dangling-reference behavior are implemented.
 - Dedicated Perception model route vs General/Dream fallback.
 - Entity candidate thresholds and multi-centroid maintenance.
 - Multi-resolution Community criteria: recursive split stopping rules, Community meta-graph construction/weighting, super-Community resolution/stopping rules, and processing-neighbourhood budget.
@@ -336,7 +337,7 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 
 ## Notes
 
-This remains future architecture. The earlier derived-semantic-nodes exploration is retained as design history; ADRs 0033–0035 and this plan own the current accepted direction.
+Perception is partially implemented: Entity pass 1 and the Relationship persistence foundation are production code, while Relationship synthesis/runtime composition and Observation/ambiguity passes remain staged. The earlier derived-semantic-nodes exploration is retained as design history; ADRs 0033–0035 and this plan own the current accepted direction.
 
 ## Related docs
 

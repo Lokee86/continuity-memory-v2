@@ -2,7 +2,7 @@ use super::{MigrationError, op, require_same};
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
 use crate::{
     Container, EntityDraft, GraphRelationOrigin, Memory, MemoryDraft, Phylactery,
-    SemanticGraphRelationChange,
+    RelationshipDraft, SemanticGraphRelationChange,
 };
 use std::path::Path;
 
@@ -20,6 +20,7 @@ pub(super) fn migrate(
         .collect();
     let graph = graph_transactions(&mut source.container)?;
     let entities = source.entities.records().to_vec();
+    let relationships = source.relationships.records().to_vec();
     let profiles = source.compatibility_profiles.profiles();
     let packed_infos = source.packed_vectors.infos();
     let memory_vector_infos = source.memory_vectors.infos();
@@ -77,6 +78,28 @@ pub(super) fn migrate(
             .set_next_transaction_time_override(transaction_time_ns);
         let result =
             output.publish_entity(Some(entity.id), entity.revision.saturating_sub(1), draft);
+        output.container.clear_next_transaction_time_override();
+        op(result)?;
+    }
+    for relationship in relationships {
+        let transaction_time_ns = source.transaction_time_ns(relationship.global_version);
+        let draft = RelationshipDraft {
+            kind: relationship.kind,
+            participants: relationship.participants,
+            evidence: relationship.evidence,
+            summary: relationship.summary,
+            mutation_id: relationship.mutation_id,
+            created_at_ns: relationship.created_at_ns,
+            updated_at_ns: relationship.updated_at_ns,
+        };
+        output
+            .container
+            .set_next_transaction_time_override(transaction_time_ns);
+        let result = output.replay_relationship_revision(
+            Some(relationship.id),
+            relationship.revision.saturating_sub(1),
+            draft,
+        );
         output.container.clear_next_transaction_time_override();
         op(result)?;
     }

@@ -1,6 +1,6 @@
 use crate::{
     ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
-    EntityError, GraphError, InsomniaError, MemoryError,
+    EntityError, GraphError, InsomniaError, MemoryError, RelationshipError,
 };
 use std::fmt;
 use std::io;
@@ -12,6 +12,7 @@ pub enum CvaReconcileError {
     Archive(ArchiveError),
     Memories(MemoryError),
     Entities(EntityError),
+    Relationships(RelationshipError),
     Graph(GraphError),
     Insomnia(InsomniaError),
     CompatibilityProfile(CompatibilityProfileError),
@@ -39,6 +40,7 @@ impl fmt::Display for CvaReconcileError {
             Self::Archive(error) => write!(f, "{error}"),
             Self::Memories(error) => write!(f, "{error}"),
             Self::Entities(error) => write!(f, "{error}"),
+            Self::Relationships(error) => write!(f, "{error}"),
             Self::Graph(error) => write!(f, "{error}"),
             Self::Insomnia(error) => write!(f, "{error}"),
             Self::CompatibilityProfile(error) => write!(f, "{error}"),
@@ -135,6 +137,12 @@ impl From<MemoryError> for CvaReconcileError {
 impl From<EntityError> for CvaReconcileError {
     fn from(value: EntityError) -> Self {
         Self::Entities(value)
+    }
+}
+
+impl From<RelationshipError> for CvaReconcileError {
+    fn from(value: RelationshipError) -> Self {
+        Self::Relationships(value)
     }
 }
 

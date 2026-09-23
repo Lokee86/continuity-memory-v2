@@ -6,6 +6,7 @@ use crate::cva_reconcile_entity::{read_entity_tail, replay_entity_tail};
 use crate::cva_reconcile_graph::{read_graph_tail, reconcile_right_graph_tail, replay_graph_tail};
 use crate::cva_reconcile_interaction::{merge_interaction_streams, replay_interaction_streams};
 use crate::cva_reconcile_memory::{read_memory_tail, replay_memory_tail};
+use crate::cva_reconcile_relationship::{read_relationship_tail, replay_relationship_tail};
 use crate::dream_cooldown::{DreamCooldownState, merge_state};
 use crate::{CompatibilityProfile, Cva, CvaReconcileError};
 use std::collections::BTreeMap;
@@ -43,6 +44,8 @@ pub(crate) fn reconcile_diverged(
     let right_memory = read_memory_tail(&mut right, comparison.common_chunk_count)?;
     let left_entities = read_entity_tail(&mut left, 0)?;
     let right_entities = read_entity_tail(&mut right, comparison.common_chunk_count)?;
+    let left_relationships = read_relationship_tail(&mut left, 0)?;
+    let right_relationships = read_relationship_tail(&mut right, comparison.common_chunk_count)?;
     let left_graph = read_graph_tail(&mut left, 0)?;
     let left_graph_divergent = read_graph_tail(&mut left, comparison.common_chunk_count)?;
     let right_graph_divergent = read_graph_tail(&mut right, comparison.common_chunk_count)?;
@@ -92,6 +95,7 @@ pub(crate) fn reconcile_diverged(
         replay_archive_tail(&mut output, &left_archive)?;
         replay_memory_tail(&mut output, left_memory)?;
         replay_entity_tail(&mut output, left_entities)?;
+        replay_relationship_tail(&mut output, left_relationships)?;
         for resolution in left_entity_resolutions.clone() {
             output.import_entity_resolution(resolution)?;
         }
@@ -104,6 +108,7 @@ pub(crate) fn reconcile_diverged(
         let archive_records = replay_archive_tail(&mut output, &right_archive)?;
         let memory_result = replay_memory_tail(&mut output, right_memory)?;
         let entity_result = replay_entity_tail(&mut output, right_entities)?;
+        let relationship_result = replay_relationship_tail(&mut output, right_relationships)?;
         let graph_result =
             reconcile_right_graph_tail(&mut output, &left_graph_divergent, &right_graph_divergent)?;
         let file_memory_links =
@@ -127,6 +132,7 @@ pub(crate) fn reconcile_diverged(
             archive_records,
             memory_result,
             entity_result,
+            relationship_result,
             graph_result,
             file_memory_links,
             canonical_change_required,
@@ -139,6 +145,7 @@ pub(crate) fn reconcile_diverged(
         archive_records,
         memory_result,
         entity_result,
+        relationship_result,
         graph_result,
         file_memory_links,
         canonical_change_required,
@@ -164,6 +171,8 @@ pub(crate) fn reconcile_diverged(
         duplicate_memory_revisions: memory_result.duplicate_revisions,
         replayed_entity_revisions: entity_result.revisions,
         duplicate_entity_revisions: entity_result.duplicate_revisions,
+        replayed_relationship_revisions: relationship_result.revisions,
+        duplicate_relationship_revisions: relationship_result.duplicate_revisions,
         replayed_insomnia_completions: memory_result.completions,
         replayed_graph_transactions: graph_result.transactions,
         replayed_graph_mutations: graph_result.mutations,

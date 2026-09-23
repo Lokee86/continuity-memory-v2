@@ -17,10 +17,11 @@ pub fn run(command: PhyCommand) -> Result<()> {
         PhyCommand::Verify { path } => {
             let phy = Phylactery::open(&path)?;
             println!(
-                "PHY ok: {} id={} memory_version={} graph_version={}",
+                "PHY ok: {} id={} memory_version={} relationship_version={} graph_version={}",
                 path.display(),
                 phy.owner_id().as_deref().unwrap_or("none"),
                 phy.memory_version(),
+                phy.relationship_version(),
                 phy.graph_version()
             );
         }
@@ -53,6 +54,7 @@ pub fn run(command: PhyCommand) -> Result<()> {
 fn info(path: &std::path::Path) -> Result<()> {
     let phy = Phylactery::open(path)?;
     let memories = phy.memory_stats();
+    let relationships = phy.relationship_stats();
     let graph = phy.graph_stats();
     let packed = phy.packed_vector_stats();
     let vectors = phy.memory_vector_stats();
@@ -63,10 +65,15 @@ fn info(path: &std::path::Path) -> Result<()> {
     println!("kind: phylactery");
     println!("id: {}", phy.owner_id().as_deref().unwrap_or("none"));
     println!("memory_version: {}", phy.memory_version());
+    println!("relationship_version: {}", phy.relationship_version());
     println!("graph_version: {}", phy.graph_version());
     println!(
         "memories: current={} revisions={} bodies={}",
         memories.memories, memories.revisions, memories.bodies
+    );
+    println!(
+        "relationships: current={} revisions={}",
+        relationships.relationships, relationships.revisions
     );
     println!("graph: active_relations={}", graph.active_relations);
     println!(

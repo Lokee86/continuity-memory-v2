@@ -29,6 +29,7 @@ impl Cva {
             global_version: self.latest_global_version(),
             memory_version: self.memory_version(),
             entity_version: self.entity_version(),
+            relationship_version: self.relationship_version(),
             graph_version: self.graph_version(),
             archive_version: Some(self.archive_version()),
             vector_version: Some(self.vector_version()),
@@ -44,6 +45,7 @@ impl Cva {
             global_version: reopened.latest_global_version(),
             memory_version: reopened.memory_version(),
             entity_version: reopened.entity_version(),
+            relationship_version: reopened.relationship_version(),
             graph_version: reopened.graph_version(),
             archive_version: Some(reopened.archive_version()),
             vector_version: Some(reopened.vector_version()),
@@ -69,6 +71,7 @@ impl Phylactery {
             global_version: self.latest_global_version(),
             memory_version: self.memory_version(),
             entity_version: self.entity_version(),
+            relationship_version: self.relationship_version(),
             graph_version: self.graph_version(),
             archive_version: None,
             vector_version: None,
@@ -84,6 +87,7 @@ impl Phylactery {
             global_version: reopened.latest_global_version(),
             memory_version: reopened.memory_version(),
             entity_version: reopened.entity_version(),
+            relationship_version: reopened.relationship_version(),
             graph_version: reopened.graph_version(),
             archive_version: None,
             vector_version: None,
@@ -105,6 +109,7 @@ struct SemanticState {
     global_version: u64,
     memory_version: u64,
     entity_version: u64,
+    relationship_version: u64,
     graph_version: u64,
     archive_version: Option<u64>,
     vector_version: Option<u64>,
@@ -214,6 +219,12 @@ pub(crate) fn relocate_payload(
     {
         version.mutation = relocated_ref(version.mutation, relocated, "Graph mutation")?;
         return Ok(crate::graph_codec::encode_version(version).to_vec());
+    }
+    if let Some(mut version) =
+        crate::relationship_codec::decode_version(payload).map_err(|error| error.to_string())?
+    {
+        version.record = relocated_ref(version.record, relocated, "Relationship record")?;
+        return Ok(crate::relationship_codec::encode_version(version));
     }
     if let Some(mut version) = crate::vector_generation_codec::decode_version(payload)
         .map_err(|error| error.to_string())?

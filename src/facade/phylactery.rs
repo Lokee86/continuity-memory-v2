@@ -11,6 +11,7 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
+use crate::relationship_store::RelationshipStore;
 use crate::{
     Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats,
     PhylacteryError,
@@ -32,6 +33,7 @@ pub struct Phylactery {
     pub(crate) ego: EgoStore,
     pub(crate) entities: EntityStore,
     pub(crate) entity_resolutions: EntityResolutionStore,
+    pub(crate) relationships: RelationshipStore,
 }
 
 impl Phylactery {

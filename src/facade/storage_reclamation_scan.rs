@@ -55,6 +55,12 @@ impl ReclamationScan {
             self.published_backing.insert(version.mutation);
             return Ok(());
         }
+        if let Some(version) =
+            crate::relationship_codec::decode_version(payload).map_err(|error| error.to_string())?
+        {
+            self.published_backing.insert(version.record);
+            return Ok(());
+        }
         if let Some(version) = crate::vector_generation_codec::decode_version(payload)
             .map_err(|error| error.to_string())?
         {
@@ -134,6 +140,13 @@ impl ReclamationScan {
             || crate::graph_codec::decode_mutation(payload)
                 .map_err(|error| error.to_string())?
                 .is_some()
+        {
+            self.backing_candidates.insert(object);
+            return Ok(());
+        }
+        if crate::relationship_codec::decode_record(payload)
+            .map_err(|error| error.to_string())?
+            .is_some()
         {
             self.backing_candidates.insert(object);
             return Ok(());

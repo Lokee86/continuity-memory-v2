@@ -140,7 +140,7 @@ Near-term scope work should:
 - keep governed Organization state distinct from learned observations; and
 - define explicit cross-file Memory/source export and lineage semantics.
 
-Relationship-specific semantic state is now reactivated by [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), but **not** as a Connection REL class. Implement a sparse Relationship layer over owner-qualified Entity references: REL-owned relationship state is portable/shared with that REL, PHY-owned relationship state is private to the active PHY, and the effective Relationship graph is composed at runtime from the active PHY plus authorized active RELs. Existing legacy Connection-typed REL identity remains compatibility-only.
+Relationship-specific semantic state is reactivated by [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), but **not** as a Connection REL class. The deterministic sparse Relationship owner is now implemented in both REL and PHY: owner-qualified Entity participants, owner-qualified Memory evidence, revisions/local clocks, reopen, local-reference validation, Entity-merge retargeting, migration, divergent reconciliation, and physical reclamation are covered. The remaining B2 work is semantic synthesis/materialization, lifecycle/relationship-local derived state, and runtime composition/privacy enforcement for active PHY plus authorized active RELs. Existing legacy Connection-typed REL identity remains compatibility-only.
 
 ## Reliquary / Phylactery product transition
 
