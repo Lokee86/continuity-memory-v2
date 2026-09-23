@@ -75,13 +75,29 @@ pub enum RelCommand {
     Verify {
         path: PathBuf,
     },
+    #[command(visible_alias = "vacuum")]
+    Reclaim {
+        path: PathBuf,
+        output: PathBuf,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum PhyCommand {
-    Create { path: PathBuf },
-    Info { path: PathBuf },
-    Verify { path: PathBuf },
+    Create {
+        path: PathBuf,
+    },
+    Info {
+        path: PathBuf,
+    },
+    Verify {
+        path: PathBuf,
+    },
+    #[command(visible_alias = "vacuum")]
+    Reclaim {
+        path: PathBuf,
+        output: PathBuf,
+    },
 }
 
 #[derive(Subcommand, Debug)]

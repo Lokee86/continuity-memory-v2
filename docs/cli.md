@@ -25,11 +25,13 @@ reliquary
 ├── rel
 │   ├── create [--type LABEL]
 │   ├── info
-│   └── verify
+│   ├── verify
+│   └── reclaim <path> <output>  (alias: vacuum)
 ├── phy
 │   ├── create
 │   ├── info
-│   └── verify
+│   ├── verify
+│   └── reclaim <path> <output>  (alias: vacuum)
 ├── migrate <source> <output>
 ├── migrate-conversation-titles <canonical_conversations.csv[.gz]> <rel>
 ├── import
@@ -76,6 +78,8 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 `rel create` creates a homogeneous REL. Optional `--type LABEL` stores any free-form organizational type label; the label has no behavioral effect. `rel info` reports the stored type label, dependency owner IDs, and whether the file is a legacy CVA physical form. `rel verify` performs a normal `Reliquary::open`, so the same format/reopen/reference validation used by the library is exercised. The old `cva` command name remains a compatibility alias for `rel`.
 
 `phy create <path>` creates a user-global Phylactery, which remains a distinct file kind from Reliquary. `phy info` reports `kind: phylactery` plus Memory, Graph, packed-vector, Memory-vector, and compatibility-profile state. `phy verify` performs a normal `Phylactery::open`, including exact file-kind validation, rejection of REL-local Memory provenance, structural validation of optional external `MemorySourceRef`, Graph endpoint/global-version validation, and vector/profile reference validation. PHY has no `--scope` option.
+
+`rel reclaim <path> <output>` and `phy reclaim <path> <output>` (also exposed as `vacuum`) write a separate compacted file and never replace the source. The library computes conservative reachability over never-published/staged backing data and explicit compaction free extents, relocates physical version references, syncs the output, and reopens it through normal REL/PHY validation before reporting success. Published semantic history is not retention-pruned by this command.
 
 `migrate <source> <output>` auto-detects a legacy 16-byte Project CVA or earlier 24-byte typed REL/PHY and semantically repacks it into a new 40-byte identified file. The source is never replaced in place. When an old REL contains `WorkspaceMetadata.id`, migration derives the new UUID deterministically from that ID so independently diverged copies retain the same logical owner identity; otherwise a new UUID is generated. Legacy WorkspaceMetadata itself is not copied into the output.
 

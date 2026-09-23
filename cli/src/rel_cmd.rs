@@ -34,6 +34,30 @@ pub fn run(command: RelCommand) -> Result<()> {
                 rel.vector_version()
             );
         }
+        RelCommand::Reclaim { path, output } => {
+            let mut rel = Reliquary::open(&path)?;
+            let report = rel.reclaim_storage(&output)?;
+            println!(
+                "REL reclaimed: {} -> {} chunks={} bytes={} source_bytes={} output_bytes={}",
+                path.display(),
+                output.display(),
+                report.reclaimed_chunks,
+                report
+                    .source_file_bytes
+                    .saturating_sub(report.output_file_bytes),
+                report.source_file_bytes,
+                report.output_file_bytes
+            );
+            println!(
+                "reclaimed: unpublished_backing={} orphan_content={} orphan_memory_bodies={} unactivated_archive_vectors={} unreferenced_packed_vectors={} free_compaction={}",
+                report.unpublished_backing_chunks,
+                report.orphan_content_chunks,
+                report.orphan_memory_body_chunks,
+                report.unactivated_archive_vector_chunks,
+                report.unreferenced_packed_vector_chunks,
+                report.free_compaction_chunks
+            );
+        }
     }
     Ok(())
 }

@@ -24,6 +24,28 @@ pub fn run(command: PhyCommand) -> Result<()> {
                 phy.graph_version()
             );
         }
+        PhyCommand::Reclaim { path, output } => {
+            let mut phy = Phylactery::open(&path)?;
+            let report = phy.reclaim_storage(&output)?;
+            println!(
+                "PHY reclaimed: {} -> {} chunks={} bytes={} source_bytes={} output_bytes={}",
+                path.display(),
+                output.display(),
+                report.reclaimed_chunks,
+                report
+                    .source_file_bytes
+                    .saturating_sub(report.output_file_bytes),
+                report.source_file_bytes,
+                report.output_file_bytes
+            );
+            println!(
+                "reclaimed: unpublished_backing={} orphan_content={} orphan_memory_bodies={} unreferenced_packed_vectors={}",
+                report.unpublished_backing_chunks,
+                report.orphan_content_chunks,
+                report.orphan_memory_body_chunks,
+                report.unreferenced_packed_vector_chunks
+            );
+        }
     }
     Ok(())
 }

@@ -8,7 +8,7 @@ This document owns future work for whole-CVA historical views, restore-and-conti
 
 ## Overview
 
-Future historical recovery composes owner-local history at explicit cuts rather than inventing a CVA-wide semantic ancestry chain. Read-only historical views, retained-line identity, restore-and-continue, checkpoint acceleration, and physical reclamation are separate stages with explicit recovery semantics.
+Future historical recovery composes owner-local history at explicit cuts rather than inventing a CVA-wide semantic ancestry chain. Read-only historical views, retained-line identity, restore-and-continue, checkpoint acceleration, and retention-aware physical reclamation are separate stages with explicit recovery semantics. The already-implemented `reclaim_storage` maintenance pass is intentionally outside this plan: it removes only never-published/backing garbage and explicit free extents, not published semantic history.
 
 ## Governing constraints
 
@@ -66,9 +66,9 @@ Add owner-specific or composition-level derived checkpoints only after cold-open
 
 A checkpoint may accelerate reconstruction through a documented watermark but must be fully disposable and reproducible from authoritative records.
 
-### 6. Reachability, compaction, and vacuum
+### 6. Retention-aware reachability, compaction, and vacuum
 
-After timeline/pin semantics exist, define physical reclamation:
+After timeline/pin semantics exist, define reclamation of published historical state beyond the conservative backing-garbage pass that already exists:
 
 - compute authoritative reachability from retained semantic lines;
 - retain backing objects required by any surviving owner/reference;

@@ -730,6 +730,13 @@ mod semantic_search_error;
 mod semantic_search_model;
 #[path = "archive/source_attachment_index.rs"]
 mod source_attachment_index;
+#[path = "facade/storage_reclamation.rs"]
+mod storage_reclamation;
+#[path = "facade/storage_reclamation_scan.rs"]
+mod storage_reclamation_scan;
+#[cfg(test)]
+#[path = "facade/storage_reclamation_tests.rs"]
+mod storage_reclamation_tests;
 #[path = "archive/turn_ingest_codec.rs"]
 mod turn_ingest_codec;
 #[path = "archive/turn_ingest_model.rs"]
@@ -795,6 +802,7 @@ pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfi
 pub use cva::Cva;
 pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
 pub use runtime_config::RuntimeConfig;
+pub use storage_reclamation::StorageReclamationReport;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_inference::{

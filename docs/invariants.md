@@ -130,4 +130,4 @@ Changing version ownership, conversation ancestry, mutable-record revision seman
 
 ## Notes
 
-Cross-database restore activation, actual concurrent writers, checkpointing, and retention/vacuum remain future work.
+Cross-database restore activation, actual concurrent writers, checkpointing, and retention-aware semantic-history vacuum remain future work. Conservative copy-reclamation may remove only objects that never became semantic authority or are explicit physical free/backing garbage; it must not prune published owner history.

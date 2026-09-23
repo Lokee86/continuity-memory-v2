@@ -22,6 +22,10 @@ Repository-associated RELs expose the repository-neutral project-history correla
 
 `Cva::register_project_file(...)` registers a transcript/provenance attachment backed by an exact `ProjectFileRef`. REL stores attachment metadata plus the durable FileId-to-`ProjectFileRef` binding, but stores no duplicate payload body for that project-backed file. The resulting `FileId` incorporates repository kind, durable repository ID, selected project subtree, repository revision, repository-relative file path, content hash, byte length, filename, and MIME metadata. Identical bytes referenced at different repository revisions therefore keep the same content hash while receiving distinct historical `FileId` identities. `project_file_ref(file_id)` resolves the durable repository reference used by transcript and provenance views.
 
+### Conservative storage reclamation
+
+`Reliquary::reclaim_storage(output)` and `Phylactery::reclaim_storage(output)` write a separate verified copy and return `StorageReclamationReport`. The pass preserves the source owner UUID and semantic watermarks while reclaiming only never-published/staged backing objects, orphan Archive content and standalone Memory bodies, unactivated Archive-vector backing, packed matrices without surviving bindings, and explicit free conversation-compaction chunks. Published semantic revision/generation history is not retention-pruned. Version records containing physical `ObjectRef`s are relocated during the copy; the completed output is reopened through the normal owner lifecycle before success is returned. The source file is never modified or replaced.
+
 ### Explicit migration
 
 `migrate_file(source, output)` is the current format migration boundary. It accepts legacy 16-byte Project CVAs and earlier 24-byte typed REL/PHY files and writes a separate current 40-byte file. It rejects current files that already have an owner UUID and never replaces the source in place. For old RELs containing a valid legacy `WorkspaceMetadata.id`, the owner UUID is deterministically derived from that ID; otherwise migration generates a new UUID. The obsolete workspace metadata record itself is not republished.

@@ -31,6 +31,22 @@ u64 payload_length
 N bytes payload
 ```
 `ChunkRef` stores the length-prefix offset and payload length.
+
+### Conservative physical reclamation
+
+`Reliquary::reclaim_storage(output)` and `Phylactery::reclaim_storage(output)` perform a copy rewrite into a separate file while preserving the source header and durable owner UUID. The source is never replaced in place. Every retained payload is copied byte-for-byte except version metadata that embeds physical `ObjectRef` locations; Archive, Memory, Entity, Graph, and Vector-Generation references are relocated to the copied backing chunk.
+
+The reclamation root set is deliberately narrower than future historical retention/vacuum. Published semantic history is never pruned. The pass may remove only:
+
+- unversioned Archive/Memory/Entity/Graph/Vector-Generation backing payloads that never became published authority;
+- `CVACONT1` content objects not referenced by any published Archive record;
+- standalone `CVAMBDY1` bodies not referenced by a published Memory record, grouped Insomnia completion, or Memory-Vector binding;
+- Archive-Vector sets not referenced by any published Vector Generation;
+- Packed-Vector matrices not referenced by any surviving Memory-Vector or activated Archive-Vector set;
+- conversation-compaction chunks explicitly marked free.
+
+The rewritten output is reopened through the normal REL/PHY lifecycle and must preserve owner UUID plus all applicable semantic watermarks. This maintenance operation therefore reclaims never-published/staged backing garbage and allocator holes without requiring timeline/pin semantics. Retention-aware deletion of published historical lines remains future work.
+
 ### Global version ticket
 Current ticket:
 ```text
@@ -841,4 +857,4 @@ Default fragments use eight turns with two-turn overlap; the exported library co
 
 ## Notes
 
-These remain development formats and may evolve before a stable external-format commitment. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. Broader persistent lexical indexing, ANN acceleration, generalized retention/vacuum, and whole-file historical restore remain future work.
+These remain development formats and may evolve before a stable external-format commitment. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. Broader persistent lexical indexing, ANN acceleration, retention-aware semantic-history vacuum, and whole-file historical restore remain future work.

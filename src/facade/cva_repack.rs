@@ -57,7 +57,8 @@ impl Cva {
                     continue;
                 }
 
-                let payload = relocate_payload(&payload, &relocated)?;
+                let payload = crate::storage_reclamation::relocate_payload(&payload, &relocated)
+                    .map_err(CvaError::Repack)?;
                 let destination_ref = output.append(&payload)?;
                 relocated.insert(source_ref, destination_ref);
                 copied_chunks += 1;
@@ -140,41 +141,6 @@ impl Cva {
     }
 }
 
-fn relocate_payload(
-    payload: &[u8],
-    relocated: &BTreeMap<ObjectRef, ObjectRef>,
-) -> Result<Vec<u8>, CvaError> {
-    if let Some(mut version) = crate::archive_history_codec::decode_record_version(payload)? {
-        version.record = relocated_ref(version.record, relocated, "Archive record")?;
-        return Ok(crate::archive_history_codec::encode_record_version(version).to_vec());
-    }
-    if let Some(mut version) = crate::memory_codec::decode_version(payload)? {
-        version.record = relocated_ref(version.record, relocated, "Memory record")?;
-        return Ok(crate::memory_codec::encode_version(version));
-    }
-    if let Some(mut version) = crate::graph_codec::decode_version(payload)? {
-        version.mutation = relocated_ref(version.mutation, relocated, "Graph mutation")?;
-        return Ok(crate::graph_codec::encode_version(version).to_vec());
-    }
-    if let Some(mut version) = crate::vector_generation_codec::decode_version(payload)? {
-        version.record = relocated_ref(version.record, relocated, "Vector generation record")?;
-        return Ok(crate::vector_generation_codec::encode_version(version).to_vec());
-    }
-    Ok(payload.to_vec())
-}
-
-fn relocated_ref(
-    source: ObjectRef,
-    relocated: &BTreeMap<ObjectRef, ObjectRef>,
-    kind: &str,
-) -> Result<ObjectRef, CvaError> {
-    relocated.get(&source).copied().ok_or_else(|| {
-        CvaError::Repack(format!(
-            "{kind} points to a missing or not-yet-copied physical object"
-        ))
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -197,7 +163,7 @@ mod tests {
             archive_version: 2,
             record: old,
         };
-        let archive = relocate_payload(
+        let archive = crate::storage_reclamation::relocate_payload(
             &crate::archive_history_codec::encode_record_version(archive),
             &relocated,
         )
@@ -215,8 +181,11 @@ mod tests {
             memory_version: 2,
             record: old,
         };
-        let memory =
-            relocate_payload(&crate::memory_codec::encode_version(memory), &relocated).unwrap();
+        let memory = crate::storage_reclamation::relocate_payload(
+            &crate::memory_codec::encode_version(memory),
+            &relocated,
+        )
+        .unwrap();
         assert_eq!(
             crate::memory_codec::decode_version(&memory)
                 .unwrap()
@@ -230,8 +199,11 @@ mod tests {
             graph_version: 2,
             mutation: old,
         };
-        let graph =
-            relocate_payload(&crate::graph_codec::encode_version(graph), &relocated).unwrap();
+        let graph = crate::storage_reclamation::relocate_payload(
+            &crate::graph_codec::encode_version(graph),
+            &relocated,
+        )
+        .unwrap();
         assert_eq!(
             crate::graph_codec::decode_version(&graph)
                 .unwrap()
@@ -245,7 +217,7 @@ mod tests {
             vector_version: 2,
             record: old,
         };
-        let generation = relocate_payload(
+        let generation = crate::storage_reclamation::relocate_payload(
             &crate::vector_generation_codec::encode_version(generation),
             &relocated,
         )

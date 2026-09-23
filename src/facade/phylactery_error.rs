@@ -16,6 +16,7 @@ pub enum PhylacteryError {
     CompatibilityProfiles(CompatibilityProfileError),
     Ego(EgoError),
     Profile(String),
+    Repack(String),
     InvalidContainerIdentity(&'static str),
     SemanticGlobalVersionConflict(u64),
 }
@@ -33,6 +34,7 @@ impl fmt::Display for PhylacteryError {
             Self::CompatibilityProfiles(error) => write!(f, "{error}"),
             Self::Ego(error) => write!(f, "{error}"),
             Self::Profile(error) => write!(f, "Phylactery profile error: {error}"),
+            Self::Repack(error) => write!(f, "PHY repack error: {error}"),
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }

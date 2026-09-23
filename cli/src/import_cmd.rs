@@ -57,6 +57,7 @@ pub fn run(command: ImportCommand) -> Result<()> {
                             conversation_id,
                             parent_id,
                             role,
+                            principal_id: None,
                             timestamp_ns,
                             content,
                             attachments: incoming_attachments,
