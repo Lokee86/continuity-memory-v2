@@ -40,10 +40,16 @@ macro_rules! impl_owner {
                 let mut timestamp = now_ns;
 
                 for wave in keys.chunks(wave_size) {
-                    let prepared = wave
-                        .iter()
-                        .map(|key| self.prepare_entity_resolution(*key, config))
-                        .collect::<Result<Vec<_>, _>>()?;
+                    let mut prepared = Vec::with_capacity(wave.len());
+                    for key in wave {
+                        if let Some(outcome) =
+                            self.resolve_principal_entity_mention(*key, timestamp)?
+                        {
+                            prepared.push(EntityResolutionPreparation::Complete(outcome));
+                        } else {
+                            prepared.push(self.prepare_entity_resolution(*key, config)?);
+                        }
+                    }
                     let mut slots = evaluate_wave(engine, prepared, &mut speculative_evaluations)?;
 
                     if let Some(error) = take_first_error(&mut slots) {

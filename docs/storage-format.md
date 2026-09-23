@@ -517,9 +517,9 @@ u8        active: 0=retracted, 1=active
 u8        origin: 1=Dream, 2=User, 3=Perception
 ```
 
-Legacy Memory-only atomic batches use `CVAGBAT1`; typed/mixed atomic batches use `CVAGBAT2` and repeat the corresponding typed endpoint/kind/active/origin fields. Memory relationship kind codes remain `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`. Semantic kind `100=entity-association` is directional `Memory -> Entity` and is Perception-owned. Observation relation families are not yet accepted because no durable Observation owner exists.
+Legacy Memory-only atomic batches use `CVAGBAT1`; typed/mixed atomic batches use `CVAGBAT2` and repeat the corresponding typed endpoint/kind/active/origin fields. Memory relationship kind codes remain `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`. Semantic kind `100=entity-association` is the ordinary directional `Memory -> Entity` Perception relation. Semantic kind `101=principal-association` is the reserved directional `Memory -> principal Entity` relation used for PHY-backed user identity; it is durable but omitted from ordinary semantic traversal/projection and exposed only through explicit principal lookup. Observation relation families are not yet accepted because no durable Observation owner exists.
 
-One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before publication. Endpoint validation is relation-specific: Memory relation families require two same-owner Memories; `entity-association` requires an existing same-owner Memory source and Entity target.
+One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before publication. Endpoint validation is relation-specific: Memory relation families require two same-owner Memories; `entity-association` requires an existing same-owner Memory source and non-principal Entity target; `principal-association` requires an existing same-owner Memory source and an Entity whose reserved kind is `principal`.
 
 Relationship version metadata is unchanged:
 ```text

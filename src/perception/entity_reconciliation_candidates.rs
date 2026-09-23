@@ -60,6 +60,9 @@ fn add_exact_claim_pairs(
 ) {
     let mut claims = BTreeMap::<(String, String), BTreeSet<EntityId>>::new();
     for entity in entities {
+        if entity.kind == "principal" {
+            continue;
+        }
         for surface in std::iter::once(entity.canonical_name.as_str())
             .chain(entity.aliases.iter().map(String::as_str))
         {
@@ -94,6 +97,9 @@ fn add_lexical_pairs(
         .collect::<HashMap<_, _>>();
 
     for entity in entities {
+        if entity.kind == "principal" {
+            continue;
+        }
         let tokens = identity_tokens(&entity.canonical_name);
         for token in &tokens {
             by_token.entry(token.clone()).or_default().push(entity.id);

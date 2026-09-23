@@ -199,7 +199,8 @@ fn legacy_memory_parts(
         mutation.target.as_memory()?,
         match mutation.kind {
             SemanticGraphRelationKind::Memory(kind) => kind,
-            SemanticGraphRelationKind::EntityAssociation => return None,
+            SemanticGraphRelationKind::EntityAssociation
+            | SemanticGraphRelationKind::PrincipalAssociation => return None,
         },
     ))
 }

@@ -58,7 +58,12 @@ where
         }
     }
 
-    let audit_entities = entities
+    let ordinary_entities = entities
+        .iter()
+        .filter(|entity| entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+        .cloned()
+        .collect::<Vec<_>>();
+    let audit_entities = ordinary_entities
         .iter()
         .map(|entity| EntityAuditEntity {
             id: entity.id,
@@ -73,7 +78,7 @@ where
         .collect::<HashSet<_>>();
 
     let mut report = EntityAuditReport {
-        entity_count: entities.len(),
+        entity_count: ordinary_entities.len(),
         association_count,
         resolution_count: resolutions.len(),
         singleton_count: audit_entities
@@ -89,10 +94,13 @@ where
             .filter(|entity| entity.degree == 0)
             .cloned()
             .collect(),
-        exact_surface_collisions: exact_surface_collisions(&entities, &audit_entities),
-        normalized_surface_collisions: normalized_surface_collisions(&entities, &audit_entities),
-        alias_collisions: alias_collisions(&entities, &audit_entities),
-        cross_kind_alias_shadows: cross_kind_alias_shadows(&entities, &audit_entities),
+        exact_surface_collisions: exact_surface_collisions(&ordinary_entities, &audit_entities),
+        normalized_surface_collisions: normalized_surface_collisions(
+            &ordinary_entities,
+            &audit_entities,
+        ),
+        alias_collisions: alias_collisions(&ordinary_entities, &audit_entities),
+        cross_kind_alias_shadows: cross_kind_alias_shadows(&ordinary_entities, &audit_entities),
         ..EntityAuditReport::default()
     };
 

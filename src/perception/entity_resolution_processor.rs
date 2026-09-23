@@ -14,6 +14,9 @@ macro_rules! impl_owner {
                 config: EntityCandidateConfig,
                 now_ns: i64,
             ) -> Result<EntityResolutionOutcome, EntityResolverError> {
+                if let Some(outcome) = self.resolve_principal_entity_mention(key, now_ns)? {
+                    return Ok(outcome);
+                }
                 match self.prepare_entity_resolution(key, config)? {
                     EntityResolutionPreparation::Complete(outcome) => Ok(outcome),
                     EntityResolutionPreparation::Ready(prepared) => {
@@ -31,6 +34,9 @@ macro_rules! impl_owner {
                 config: EntityCandidateConfig,
                 now_ns: i64,
             ) -> Result<EntityResolutionOutcome, EntityResolverError> {
+                if let Some(outcome) = self.resolve_principal_entity_mention(key, now_ns)? {
+                    return Ok(outcome);
+                }
                 match self.prepare_entity_resolution(key, config)? {
                     EntityResolutionPreparation::Complete(outcome) => Ok(outcome),
                     EntityResolutionPreparation::Ready(prepared) => {

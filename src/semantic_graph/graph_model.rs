@@ -46,15 +46,18 @@ impl GraphRelationKind {
 pub enum SemanticGraphRelationKind {
     Memory(GraphRelationKind),
     EntityAssociation,
+    PrincipalAssociation,
 }
 
 impl SemanticGraphRelationKind {
     pub const ENTITY_ASSOCIATION_CODE: u16 = 100;
+    pub const PRINCIPAL_ASSOCIATION_CODE: u16 = 101;
 
     pub const fn code(self) -> u16 {
         match self {
             Self::Memory(kind) => kind.code(),
             Self::EntityAssociation => Self::ENTITY_ASSOCIATION_CODE,
+            Self::PrincipalAssociation => Self::PRINCIPAL_ASSOCIATION_CODE,
         }
     }
 
@@ -64,6 +67,7 @@ impl SemanticGraphRelationKind {
         }
         match code {
             Self::ENTITY_ASSOCIATION_CODE => Some(Self::EntityAssociation),
+            Self::PRINCIPAL_ASSOCIATION_CODE => Some(Self::PrincipalAssociation),
             _ => None,
         }
     }
@@ -131,6 +135,19 @@ impl SemanticGraphRelationChange {
             source: SemanticNodeRef::memory(memory_id),
             target: SemanticNodeRef::entity(entity_id),
             kind: SemanticGraphRelationKind::EntityAssociation,
+            active,
+        }
+    }
+
+    pub const fn principal_association(
+        memory_id: MemoryId,
+        entity_id: EntityId,
+        active: bool,
+    ) -> Self {
+        Self {
+            source: SemanticNodeRef::memory(memory_id),
+            target: SemanticNodeRef::entity(entity_id),
+            kind: SemanticGraphRelationKind::PrincipalAssociation,
             active,
         }
     }

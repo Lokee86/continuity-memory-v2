@@ -1,7 +1,8 @@
 use crate::{
-    Cva, EntityId, GraphDirection, GraphError, GraphNeighbor, GraphRelation, GraphRelationChange,
-    GraphRelationKind, GraphRelationOrigin, GraphStats, MemoryGraphPath, MemoryId,
-    SemanticGraphNeighbor, SemanticGraphRelation, SemanticGraphRelationChange, SemanticNodeRef,
+    Cva, Entity, EntityId, GraphDirection, GraphError, GraphNeighbor, GraphRelation,
+    GraphRelationChange, GraphRelationKind, GraphRelationOrigin, GraphStats, MemoryGraphPath,
+    MemoryId, SemanticGraphNeighbor, SemanticGraphRelation, SemanticGraphRelationChange,
+    SemanticNodeRef,
 };
 
 impl Cva {
@@ -91,6 +92,24 @@ impl Cva {
         )
     }
 
+    pub(crate) fn set_principal_association(
+        &mut self,
+        memory_id: MemoryId,
+        entity_id: EntityId,
+        active: bool,
+        expected_graph_version: u64,
+    ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        self.graph.set_principal_association(
+            &mut self.container,
+            &self.memories,
+            &self.entities,
+            memory_id,
+            entity_id,
+            active,
+            expected_graph_version,
+        )
+    }
+
     pub(crate) fn set_semantic_relations_with_origin(
         &mut self,
         changes: &[SemanticGraphRelationChange],
@@ -124,7 +143,13 @@ impl Cva {
     }
 
     pub fn semantic_graph_relations(&self) -> Vec<SemanticGraphRelation> {
-        self.graph.active_semantic_relations()
+        self.graph
+            .active_semantic_relations()
+            .into_iter()
+            .filter(|relation| {
+                relation.kind != crate::SemanticGraphRelationKind::PrincipalAssociation
+            })
+            .collect()
     }
 
     pub fn entity_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
@@ -133,6 +158,30 @@ impl Cva {
 
     pub fn memories_for_entity(&self, entity_id: EntityId) -> Vec<MemoryId> {
         self.graph.memories_for_entity(entity_id)
+    }
+
+    pub fn principal_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
+        self.graph.principal_associations_for_memory(memory_id)
+    }
+
+    pub fn memories_for_principal(&self, entity_id: EntityId) -> Vec<MemoryId> {
+        self.graph.memories_for_principal(entity_id)
+    }
+
+    pub fn principal_entity(&self, principal_id: &str) -> Option<Entity> {
+        if !crate::entity_principal::is_phy_principal_id(principal_id) {
+            return None;
+        }
+        self.entity(crate::entity_principal::principal_entity_id(principal_id))
+            .ok()
+            .filter(|entity| entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+    }
+
+    pub fn memories_for_phy_principal(&self, principal_id: &str) -> Vec<MemoryId> {
+        let Some(entity) = self.principal_entity(principal_id) else {
+            return Vec::new();
+        };
+        self.graph.memories_for_principal(entity.id)
     }
 
     pub fn semantic_graph_neighbors(

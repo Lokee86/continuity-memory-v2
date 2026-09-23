@@ -124,7 +124,13 @@ impl Phylactery {
     }
 
     pub fn semantic_graph_relations(&self) -> Vec<SemanticGraphRelation> {
-        self.graph.active_semantic_relations()
+        self.graph
+            .active_semantic_relations()
+            .into_iter()
+            .filter(|relation| {
+                relation.kind != crate::SemanticGraphRelationKind::PrincipalAssociation
+            })
+            .collect()
     }
 
     pub fn entity_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {

@@ -29,6 +29,11 @@ pub(super) fn normalize_draft(draft: &mut EntityDraft) -> Result<(), EntityError
 }
 
 pub(super) fn validate_record(record: &EntityRecord) -> Result<(), EntityError> {
+    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+        && record.id != crate::entity_principal::principal_entity_id(&record.canonical_name)
+    {
+        return Err(EntityError::InvalidField("principal Entity ID"));
+    }
     validate_fields(
         &record.canonical_name,
         &record.aliases,
@@ -54,6 +59,11 @@ fn validate_fields(
     }
     if invalid_text(kind, MAX_ENTITY_KIND_BYTES, true) {
         return Err(EntityError::InvalidField("Entity kind"));
+    }
+    if kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+        && !crate::entity_principal::is_phy_principal_id(canonical_name)
+    {
+        return Err(EntityError::InvalidField("principal Entity identity"));
     }
     if invalid_text(summary, MAX_ENTITY_SUMMARY_BYTES, false) {
         return Err(EntityError::InvalidField("Entity summary"));

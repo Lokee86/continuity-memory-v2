@@ -140,6 +140,13 @@ impl Phylactery {
         let mut container = container;
         let memories = memory_state.finish(&mut container)?;
         let entities = entity_state.finish()?;
+        if entities
+            .records()
+            .iter()
+            .any(|entity| entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+        {
+            return Err(crate::EntityError::InvalidField("Phylactery principal Entity").into());
+        }
         let lexical_index = LexicalIndex::default();
         ego.validate_memory_version(memories.memory_version())?;
         entity_resolutions.validate(&memories, &entities)?;

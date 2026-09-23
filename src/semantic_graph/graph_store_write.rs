@@ -130,6 +130,31 @@ impl GraphStore {
             .next())
     }
 
+    pub(crate) fn set_principal_association(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+        memory_id: MemoryId,
+        entity_id: EntityId,
+        active: bool,
+        expected_graph_version: u64,
+    ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        Ok(self
+            .set_semantic_relations_with_origin(
+                container,
+                memories,
+                entities,
+                &[SemanticGraphRelationChange::principal_association(
+                    memory_id, entity_id, active,
+                )],
+                GraphRelationOrigin::Perception,
+                expected_graph_version,
+            )?
+            .into_iter()
+            .next())
+    }
+
     pub(crate) fn set_semantic_relations_with_origin(
         &mut self,
         container: &mut Container,

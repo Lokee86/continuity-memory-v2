@@ -1,7 +1,7 @@
 use crate::{Cva, Entity, EntityDraft, EntityError, EntityId, EntityStats, Phylactery};
 
 macro_rules! impl_owner {
-    ($owner:ty) => {
+    ($owner:ty, $reject_principal:expr) => {
         impl $owner {
             pub fn publish_entity(
                 &mut self,
@@ -9,6 +9,11 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: EntityDraft,
             ) -> Result<(Entity, bool), EntityError> {
+                if $reject_principal
+                    && draft.kind.trim() == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+                {
+                    return Err(EntityError::InvalidField("Phylactery principal Entity"));
+                }
                 self.entities
                     .publish(&mut self.container, id, expected_revision, draft)
             }
@@ -70,5 +75,5 @@ macro_rules! impl_owner {
     };
 }
 
-impl_owner!(Cva);
-impl_owner!(Phylactery);
+impl_owner!(Cva, false);
+impl_owner!(Phylactery, true);

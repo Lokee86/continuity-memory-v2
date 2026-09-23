@@ -29,6 +29,9 @@ macro_rules! impl_entity_merge {
 
                 let survivor = self.entity(survivor_id)?;
                 let retired = self.entity(retired_id)?;
+                if survivor.kind == "principal" || retired.kind == "principal" {
+                    return Err(EntityError::InvalidField("principal Entity merge").into());
+                }
                 if survivor.kind != retired.kind {
                     return Err(EntityError::InvalidField("Entity merge kind").into());
                 }
@@ -120,8 +123,13 @@ macro_rules! impl_entity_merge {
                 if from == to {
                     return Ok(false);
                 }
-                self.entity(from)?;
-                self.entity(to)?;
+                let from_entity = self.entity(from)?;
+                let to_entity = self.entity(to)?;
+                if from_entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+                    || to_entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+                {
+                    return Err(EntityError::InvalidField("principal Entity retarget").into());
+                }
                 let resolution_changed = self.entity_resolutions.retarget_resolved(
                     &mut self.container,
                     &self.memories,

@@ -52,16 +52,26 @@ impl EntityStore {
         mut draft: EntityDraft,
     ) -> Result<(Entity, bool), EntityError> {
         normalize_draft(&mut draft)?;
+        let id = if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+            let principal_id = crate::entity_principal::principal_entity_id(&draft.canonical_name);
+            if id.is_some_and(|id| id != principal_id) {
+                return Err(EntityError::InvalidField("principal Entity ID"));
+            }
+            principal_id
+        } else {
+            id.unwrap_or_else(|| entity_id(&draft.mutation_id))
+        };
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = resolve(&self.records[index]);
-            return if self.current.contains_key(&existing.id) && same_draft(&existing, &draft) {
+            return if existing.id == id
+                && self.current.contains_key(&existing.id)
+                && same_draft(&existing, &draft)
+            {
                 Ok((existing, false))
             } else {
                 Err(EntityError::MutationConflict)
             };
         }
-
-        let id = id.unwrap_or_else(|| entity_id(&draft.mutation_id));
         let current = self.current.get(&id).map(|index| &self.records[*index]);
         let current_revision = self.revisions.get(&id).copied().unwrap_or(0);
         if current_revision != expected_revision {
@@ -155,23 +165,25 @@ impl EntityStore {
         self.current.insert(record.id, index);
         self.revisions.insert(record.id, record.revision);
         self.retired.remove(&record.id);
-        for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
-            self.by_surface
-                .entry(surface)
-                .or_default()
-                .insert(record.id);
-        }
-        for surface in normalized_entity_surfaces(&record.canonical_name, &record.aliases) {
-            self.by_normalized_surface
-                .entry(surface)
-                .or_default()
-                .insert(record.id);
-        }
-        for surface in alias_entity_surfaces(&record.canonical_name, &record.aliases) {
-            self.by_alias_surface
-                .entry(surface)
-                .or_default()
-                .insert(record.id);
+        if record.kind != "principal" {
+            for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
+                self.by_surface
+                    .entry(surface)
+                    .or_default()
+                    .insert(record.id);
+            }
+            for surface in normalized_entity_surfaces(&record.canonical_name, &record.aliases) {
+                self.by_normalized_surface
+                    .entry(surface)
+                    .or_default()
+                    .insert(record.id);
+            }
+            for surface in alias_entity_surfaces(&record.canonical_name, &record.aliases) {
+                self.by_alias_surface
+                    .entry(surface)
+                    .or_default()
+                    .insert(record.id);
+            }
         }
         self.records.push(record);
         self.next_entity_version = self

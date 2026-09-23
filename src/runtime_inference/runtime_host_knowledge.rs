@@ -31,7 +31,12 @@ impl ReliquaryRuntimeHost {
             .collect::<Result<Vec<_>, _>>()?;
         Ok((
             memories,
-            runtime.cva.entities(),
+            runtime
+                .cva
+                .entities()
+                .into_iter()
+                .filter(|entity| entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+                .collect(),
             runtime.cva.semantic_graph_relations(),
             runtime.cva.community_snapshot(),
             runtime.cva.community_semantic_names(),
@@ -55,7 +60,11 @@ impl ReliquaryRuntimeHost {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Some((
             memories,
-            phylactery.entities(),
+            phylactery
+                .entities()
+                .into_iter()
+                .filter(|entity| entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+                .collect(),
             phylactery.semantic_graph_relations(),
             phylactery.community_snapshot(),
             phylactery.community_semantic_names(),

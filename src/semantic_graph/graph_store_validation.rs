@@ -33,6 +33,24 @@ pub(super) fn validate_change(
     validate_relation_contract(change.source, change.target, change.kind, origin)?;
     validate_node(memories, entities, change.source)?;
     validate_node(memories, entities, change.target)?;
+    if let Some(entity_id) = change.target.as_entity() {
+        let entity = entities
+            .entity(entity_id)
+            .map_err(|_| GraphError::MissingEntity(entity_id))?;
+        match change.kind {
+            SemanticGraphRelationKind::EntityAssociation
+                if entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND =>
+            {
+                return Err(GraphError::InvalidRelationShape);
+            }
+            SemanticGraphRelationKind::PrincipalAssociation
+                if entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND =>
+            {
+                return Err(GraphError::InvalidRelationShape);
+            }
+            _ => {}
+        }
+    }
     Ok(())
 }
 
@@ -54,7 +72,8 @@ pub(super) fn validate_relation_contract(
                 return Err(GraphError::InvalidRelationOrigin);
             }
         }
-        SemanticGraphRelationKind::EntityAssociation => {
+        SemanticGraphRelationKind::EntityAssociation
+        | SemanticGraphRelationKind::PrincipalAssociation => {
             if source.kind != SemanticNodeKind::Memory || target.kind != SemanticNodeKind::Entity {
                 return Err(GraphError::InvalidRelationShape);
             }

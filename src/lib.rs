@@ -387,6 +387,11 @@ mod entity_merge;
 mod entity_model;
 #[path = "perception/entity_owner.rs"]
 mod entity_owner;
+#[path = "perception/entity_principal.rs"]
+mod entity_principal;
+#[cfg(test)]
+#[path = "perception/entity_principal_tests.rs"]
+mod entity_principal_tests;
 #[path = "perception/entity_rebuild.rs"]
 mod entity_rebuild;
 #[path = "perception/entity_reconciliation.rs"]

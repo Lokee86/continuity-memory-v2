@@ -46,6 +46,7 @@ pub(super) fn prepare(
     shared: &Shared,
     owner: PerceptionOwner,
     key: MemoryEntityMentionKey,
+    now_ns: i64,
 ) -> Result<Option<EntityResolutionPreparation>, ReliquaryRuntimeHostError> {
     match owner {
         PerceptionOwner::Project => {
@@ -53,6 +54,14 @@ pub(super) fn prepare(
                 .runtime
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            if let Some(outcome) = runtime
+                .cva
+                .resolve_principal_entity_mention(key, now_ns)
+                .map_err(operation)?
+            {
+                runtime.cva.sync().map_err(operation)?;
+                return Ok(Some(EntityResolutionPreparation::Complete(outcome)));
+            }
             runtime
                 .cva
                 .prepare_entity_resolution(key, EntityCandidateConfig::default())
@@ -67,6 +76,13 @@ pub(super) fn prepare(
             let Some(phy) = slot.as_mut() else {
                 return Ok(None);
             };
+            if let Some(outcome) = phy
+                .resolve_principal_entity_mention(key, now_ns)
+                .map_err(operation)?
+            {
+                phy.sync().map_err(operation)?;
+                return Ok(Some(EntityResolutionPreparation::Complete(outcome)));
+            }
             phy.prepare_entity_resolution(key, EntityCandidateConfig::default())
                 .map(Some)
                 .map_err(operation)

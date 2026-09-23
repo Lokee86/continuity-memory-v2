@@ -39,3 +39,17 @@ fn finds_short_name_and_shared_anchor_pairs() {
             .any(|pair| { pair.left == EntityId([3; 32]) && pair.right == EntityId([4; 32]) })
     );
 }
+
+#[test]
+fn principal_entities_never_enter_reconciliation_candidates() {
+    let entities = vec![
+        entity("Shared Identity", "principal", 10),
+        entity("Shared Identity", "principal", 11),
+        entity("Shared Identity", "domain_entity", 12),
+    ];
+    let pairs = reconciliation_candidates(&entities, 16);
+    assert!(pairs.iter().all(|pair| pair.left != EntityId([10; 32])
+        && pair.right != EntityId([10; 32])
+        && pair.left != EntityId([11; 32])
+        && pair.right != EntityId([11; 32])));
+}

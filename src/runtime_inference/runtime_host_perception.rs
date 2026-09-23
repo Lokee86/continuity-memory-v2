@@ -76,7 +76,7 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
         };
         prefer_user = owner == PerceptionOwner::Project;
 
-        let preparation = match prepare(&shared, owner, key) {
+        let preparation = match prepare(&shared, owner, key, now_ns()) {
             Ok(Some(value)) => value,
             Ok(None) => {
                 finish(&shared, owner)?;

@@ -1,8 +1,9 @@
+use crate::entity_principal::{PRINCIPAL_ENTITY_KIND, principal_entity_id};
 use crate::runtime_host_test_support::{one_worker, test_path};
 use crate::{
-    Cva, EpisodeId, EpisodePolicy, GraphRelationKind, GraphRelationOrigin, InteractionRuntime,
-    Memory, MemoryDraft, MemorySourceRef, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
-    SemanticGraphRelationKind, SemanticNodeRef,
+    Cva, EntityDraft, EpisodeId, EpisodePolicy, GraphRelationKind, GraphRelationOrigin,
+    InteractionRuntime, Memory, MemoryDraft, MemorySourceRef, Phylactery, ReliquaryRuntimeHost,
+    ReliquaryRuntimeRoutes, SemanticGraphRelationKind, SemanticNodeRef,
 };
 
 #[test]
@@ -107,6 +108,42 @@ fn knowledge_manual_creation_and_relation_mutation_are_user_owned() {
     )
     .unwrap();
     assert!(host.read_reliquary_knowledge().unwrap().2.is_empty());
+}
+
+#[test]
+fn generic_knowledge_read_hides_principal_entities_and_associations() {
+    let mut cva = Cva::create(test_path("knowledge-principal.rel")).unwrap();
+    let (memory, _) = cva
+        .publish_memory(
+            None,
+            0,
+            draft("principal-memory", "Principal memory", "knowledge", 1),
+        )
+        .unwrap();
+    let principal = "phy-00000000-0000-0000-0000-000000000123";
+    let entity_id = principal_entity_id(principal);
+    cva.publish_entity(
+        Some(entity_id),
+        0,
+        EntityDraft {
+            canonical_name: principal.into(),
+            aliases: vec!["Brian".into()],
+            kind: PRINCIPAL_ENTITY_KIND.into(),
+            summary: "User principal".into(),
+            mutation_id: "knowledge-principal".into(),
+            created_at_ns: 1,
+            updated_at_ns: 1,
+        },
+    )
+    .unwrap();
+    cva.set_principal_association(memory.id, entity_id, true, cva.graph_version())
+        .unwrap();
+
+    let host = host(cva);
+    let (memories, entities, relations, _, _) = host.read_reliquary_knowledge().unwrap();
+    assert_eq!(memories.len(), 1);
+    assert!(entities.is_empty());
+    assert!(relations.is_empty());
 }
 
 #[test]

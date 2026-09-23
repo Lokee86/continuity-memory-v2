@@ -73,6 +73,24 @@ impl GraphStore {
         ids
     }
 
+    pub(crate) fn principal_associations_for_memory(&self, memory_id: MemoryId) -> Vec<EntityId> {
+        self.principals_by_memory
+            .get(&memory_id)
+            .map(|ids| ids.iter().copied().collect())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn memories_for_principal(&self, entity_id: EntityId) -> Vec<MemoryId> {
+        let mut ids: Vec<_> = self
+            .memories_by_principal
+            .get(&entity_id)
+            .into_iter()
+            .flat_map(|ids| ids.iter().copied())
+            .collect();
+        ids.sort_by_key(|id| id.0);
+        ids
+    }
+
     pub(crate) fn relation_state(
         &self,
         source: MemoryId,
@@ -163,7 +181,9 @@ impl GraphStore {
         self.rebuild_memory_projection()?;
 
         let mut edges = Vec::new();
-        for relation in self.states.values().filter(|relation| relation.active) {
+        for relation in self.states.values().filter(|relation| {
+            relation.active && relation.kind != SemanticGraphRelationKind::PrincipalAssociation
+        }) {
             edges.push(Edge {
                 source: self.semantic_node_id(relation.source)?,
                 target: self.semantic_node_id(relation.target)?,
@@ -182,8 +202,15 @@ impl GraphStore {
     fn rebuild_entity_association_indexes(&mut self) -> Result<(), GraphError> {
         self.entities_by_memory.clear();
         self.memories_by_entity.clear();
+        self.principals_by_memory.clear();
+        self.memories_by_principal.clear();
         for relation in self.states.values().filter(|relation| {
-            relation.active && relation.kind == SemanticGraphRelationKind::EntityAssociation
+            relation.active
+                && matches!(
+                    relation.kind,
+                    SemanticGraphRelationKind::EntityAssociation
+                        | SemanticGraphRelationKind::PrincipalAssociation
+                )
         }) {
             let memory_id = relation
                 .source
@@ -193,14 +220,29 @@ impl GraphStore {
                 .target
                 .as_entity()
                 .ok_or(GraphError::InvalidRelationShape)?;
-            self.entities_by_memory
-                .entry(memory_id)
-                .or_default()
-                .insert(entity_id);
-            self.memories_by_entity
-                .entry(entity_id)
-                .or_default()
-                .insert(memory_id);
+            match relation.kind {
+                SemanticGraphRelationKind::EntityAssociation => {
+                    self.entities_by_memory
+                        .entry(memory_id)
+                        .or_default()
+                        .insert(entity_id);
+                    self.memories_by_entity
+                        .entry(entity_id)
+                        .or_default()
+                        .insert(memory_id);
+                }
+                SemanticGraphRelationKind::PrincipalAssociation => {
+                    self.principals_by_memory
+                        .entry(memory_id)
+                        .or_default()
+                        .insert(entity_id);
+                    self.memories_by_principal
+                        .entry(entity_id)
+                        .or_default()
+                        .insert(memory_id);
+                }
+                SemanticGraphRelationKind::Memory(_) => unreachable!(),
+            }
         }
         Ok(())
     }

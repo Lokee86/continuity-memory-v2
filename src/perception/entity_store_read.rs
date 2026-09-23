@@ -84,6 +84,9 @@ impl EntityStore {
         kind: &str,
         limit: usize,
     ) -> Vec<Entity> {
+        if kind == "principal" {
+            return Vec::new();
+        }
         let mut qualifiers = BTreeSet::new();
         for index in self.current.values() {
             let entity = resolve(&self.records[*index]);

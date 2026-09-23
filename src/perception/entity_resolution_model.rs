@@ -39,6 +39,7 @@ pub enum EntityResolutionReason {
     WrapperCategory,
     Ambiguous,
     RecurrenceRequired,
+    PrincipalIdentity,
 }
 
 impl EntityResolutionReason {
@@ -58,6 +59,7 @@ impl EntityResolutionReason {
             Self::WrapperCategory => 12,
             Self::Ambiguous => 13,
             Self::RecurrenceRequired => 14,
+            Self::PrincipalIdentity => 15,
         }
     }
 
@@ -77,6 +79,7 @@ impl EntityResolutionReason {
             12 => Self::WrapperCategory,
             13 => Self::Ambiguous,
             14 => Self::RecurrenceRequired,
+            15 => Self::PrincipalIdentity,
             _ => return None,
         })
     }
