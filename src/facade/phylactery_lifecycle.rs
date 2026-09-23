@@ -169,7 +169,6 @@ impl Phylactery {
         }
         let lexical_index = LexicalIndex::default();
         ego.validate_memory_version(memories.memory_version())?;
-        entity_resolutions.validate(&memories, &entities)?;
         validate_phylactery_provenance(&memories)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
@@ -180,6 +179,15 @@ impl Phylactery {
         let compatibility_profiles = profile_state.finish()?;
         let memory_vectors =
             memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
+        let repaired_entity_resolutions = entity_resolutions.repair_retired_entity_references(
+            &mut container,
+            &memories,
+            &entities,
+        )?;
+        entity_resolutions.validate(&memories, &entities)?;
+        if repaired_entity_resolutions > 0 {
+            container.sync()?;
+        }
 
         Ok(Self {
             container,

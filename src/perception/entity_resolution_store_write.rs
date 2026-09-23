@@ -1,4 +1,4 @@
-use super::EntityResolutionStore;
+use super::{EntityResolutionStore, validate_status};
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
@@ -232,6 +232,72 @@ impl EntityResolutionStore {
         Ok(changed)
     }
 
+    pub(crate) fn repair_retired_entity_references(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+    ) -> Result<usize, MemoryError> {
+        let values = self.current.values().cloned().collect::<Vec<_>>();
+        let mut repairs = Vec::new();
+
+        for current in values {
+            memories.validate_entity_mention_key(current.key)?;
+            validate_status(&current.status)?;
+            let mut changed = false;
+            let status = match current.status {
+                MemoryEntityResolutionStatus::Resolved {
+                    mut entity_id,
+                    reason,
+                } => {
+                    let canonical = entities.canonical_active_id(entity_id).ok_or(
+                        MemoryError::InvalidField("Entity resolution Entity reference"),
+                    )?;
+                    if canonical != entity_id {
+                        entity_id = canonical;
+                        changed = true;
+                    }
+                    MemoryEntityResolutionStatus::Resolved { entity_id, reason }
+                }
+                MemoryEntityResolutionStatus::Pending(mut value) => {
+                    canonicalize_candidates(
+                        &mut value.candidate_entity_ids,
+                        entities,
+                        &mut changed,
+                    )?;
+                    if changed {
+                        value.candidate_set_fingerprint = [0; 32];
+                    }
+                    MemoryEntityResolutionStatus::Pending(value)
+                }
+                MemoryEntityResolutionStatus::Dormant(mut value) => {
+                    canonicalize_candidates(
+                        &mut value.candidate_entity_ids,
+                        entities,
+                        &mut changed,
+                    )?;
+                    if changed {
+                        value.candidate_set_fingerprint = [0; 32];
+                    }
+                    MemoryEntityResolutionStatus::Dormant(value)
+                }
+                MemoryEntityResolutionStatus::Rejected { reason } => {
+                    MemoryEntityResolutionStatus::Rejected { reason }
+                }
+            };
+
+            if changed {
+                repairs.push((current.key, current.updated_at_ns, status));
+            }
+        }
+
+        let repaired = repairs.len();
+        for (key, updated_at_ns, status) in repairs {
+            self.append(container, key, updated_at_ns, status)?;
+        }
+        Ok(repaired)
+    }
+
     fn validate_write(
         &self,
         memories: &MemoryStore,
@@ -271,6 +337,29 @@ fn replace_candidate(values: &mut Vec<EntityId>, from: EntityId, to: EntityId) {
     }
     values.sort();
     values.dedup();
+}
+
+fn canonicalize_candidates(
+    values: &mut Vec<EntityId>,
+    entities: &EntityStore,
+    changed: &mut bool,
+) -> Result<(), MemoryError> {
+    for value in values.iter_mut() {
+        let canonical = entities
+            .canonical_active_id(*value)
+            .ok_or(MemoryError::InvalidField(
+                "Entity resolution Entity reference",
+            ))?;
+        if canonical != *value {
+            *value = canonical;
+            *changed = true;
+        }
+    }
+    values.sort();
+    let original_len = values.len();
+    values.dedup();
+    *changed |= values.len() != original_len;
+    Ok(())
 }
 
 fn normalize_candidates(values: &mut Vec<EntityId>) -> Result<(), MemoryError> {

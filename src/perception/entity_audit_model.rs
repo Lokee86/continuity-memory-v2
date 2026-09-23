@@ -41,6 +41,7 @@ pub struct EntityAuditReport {
     pub cross_kind_alias_shadows: Vec<EntityAuditCollision>,
     pub rejection_invariant_violations: Vec<EntityAuditResolutionViolation>,
     pub missing_resolved_targets: Vec<EntityAuditResolutionViolation>,
+    pub missing_candidate_targets: Vec<EntityAuditResolutionViolation>,
 }
 
 impl EntityAuditReport {
@@ -52,6 +53,7 @@ impl EntityAuditReport {
             + self.cross_kind_alias_shadows.len()
             + self.rejection_invariant_violations.len()
             + self.missing_resolved_targets.len()
+            + self.missing_candidate_targets.len()
     }
 
     pub fn is_clean(&self) -> bool {

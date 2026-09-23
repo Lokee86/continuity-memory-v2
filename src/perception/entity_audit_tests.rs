@@ -28,3 +28,73 @@ fn reports_zero_degree_and_surface_collisions() {
     assert_eq!(report.normalized_surface_collisions.len(), 1);
     assert!(!report.is_clean());
 }
+
+#[test]
+fn stale_pending_candidate_is_audit_finding_and_self_heals_on_reopen() {
+    let path = temp_path("entity-audit-stale-pending.rel");
+    let mut rel = Cva::create_project(&path).unwrap();
+    let memory = publish_rel_memory(
+        &mut rel,
+        "stale-pending",
+        "Server",
+        "The game server owns live gameplay.",
+    );
+    let key = install_rel_mention(&mut rel, memory, "game server");
+    let survivor = rel
+        .publish_entity(None, 0, entity_draft("game server", &[], "survivor", 1))
+        .unwrap()
+        .0;
+    let retired = rel
+        .publish_entity(
+            None,
+            0,
+            entity_draft("services/game-server", &[], "retired", 2),
+        )
+        .unwrap()
+        .0;
+
+    rel.put_entity_unresolved(
+        key,
+        0,
+        vec![retired.id],
+        EntityResolutionReason::Ambiguous,
+        [1; 32],
+        [2; 32],
+        3,
+    )
+    .unwrap();
+
+    // Simulate a legacy/incomplete merge that retired the Entity without
+    // retargeting the pending resolution candidate.
+    rel.entities
+        .tombstone(
+            &mut rel.container,
+            retired.id,
+            retired.revision,
+            survivor.id,
+        )
+        .unwrap();
+
+    let report = rel.audit_entities();
+    assert_eq!(report.missing_candidate_targets.len(), 1);
+    assert!(!report.is_clean());
+
+    rel.sync().unwrap();
+    drop(rel);
+
+    let reopened = Cva::open(&path).unwrap();
+    let resolution = reopened.entity_resolution(key).unwrap();
+    assert_eq!(resolution.revision, 2);
+    assert!(matches!(
+        &resolution.status,
+        crate::MemoryEntityResolutionStatus::Pending(value)
+            if value.candidate_entity_ids == vec![survivor.id]
+                && value.candidate_set_fingerprint == [0; 32]
+    ));
+    assert!(
+        reopened
+            .audit_entities()
+            .missing_candidate_targets
+            .is_empty()
+    );
+}

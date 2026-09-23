@@ -24,6 +24,10 @@ Candidate generation has two surface lanes. The exact lane uses case-insensitive
 
 Unresolved mentions are **not Entities** and do not receive an `EntityId`.
 
+Current resolution state must reference current Entity identities. During reopen, after the rest of owner rebuild/validation succeeds, a resolution reference to a known retired Entity is deterministically canonicalized to its active replacement and the repaired revision is persisted before strict resolution-reference validation. Pending/Dormant candidate-set fingerprints are cleared when this happens so later retry preparation cannot treat stale candidate evidence as unchanged. A reference that is neither active nor traceable through the retired-Entity replacement chain still fails closed.
+
+Entity audits include resolved targets and Pending/Dormant candidate targets; either class pointing at a non-current Entity is a finding.
+
 ## States
 
 - `Resolved(EntityId)` — terminal durable association.

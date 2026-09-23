@@ -121,6 +121,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 106. **Relationship persistence is not Graph topology.** Capital-R Relationships do not create cross-owner Arcana edges, do not change Community authority, and do not permit Dream to mutate another owner's Memory Graph.
 107. **Entity merge may rewrite only locally owned Relationship participants.** When an owner retires one local Entity into another, that owner's Relationship records may revise local participant references to the survivor. Foreign-owner Entity references are not rewritten by the merging owner.
 108. **Relationship backing without version publication is inert.** One published Relationship revision claims exactly one file-global version and one dense owner-local `relationship_version`; unversioned backing records cannot enter current semantic state.
+109. **Current Entity-resolution references are canonical active identities.** After the rest of owner rebuild/validation succeeds, reopen may deterministically repair a resolution reference only when the referenced Entity is known retired and has a complete replacement chain to a current Entity; repair preflights the complete resolution set before appending and the repaired resolution revision is persisted before strict resolution-reference validation. Pending/Dormant candidate fingerprints are invalidated by that rewrite. Unknown or unresolvable Entity references still fail closed, and Entity audit must treat stale Pending/Dormant candidate targets as findings.
 
 ## Safety boundaries
 

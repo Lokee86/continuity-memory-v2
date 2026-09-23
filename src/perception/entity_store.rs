@@ -291,6 +291,21 @@ impl EntityStore {
     pub(crate) fn retired_replacement(&self, id: EntityId) -> Option<EntityId> {
         self.retired.get(&id).copied()
     }
+
+    pub(crate) fn canonical_active_id(&self, id: EntityId) -> Option<EntityId> {
+        if self.current.contains_key(&id) {
+            return Some(id);
+        }
+
+        let mut current = id;
+        for _ in 0..=self.retired.len() {
+            current = self.retired.get(&current).copied()?;
+            if self.current.contains_key(&current) {
+                return Some(current);
+            }
+        }
+        None
+    }
 }
 
 fn entity_id(mutation_id: &str) -> EntityId {

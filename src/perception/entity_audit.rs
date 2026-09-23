@@ -140,10 +140,21 @@ where
                     report
                         .rejection_invariant_violations
                         .push(EntityAuditResolutionViolation {
-                            mention,
+                            mention: mention.clone(),
                             status: "pending".into(),
                             reason: value.reason,
                         });
+                }
+                for entity_id in &value.candidate_entity_ids {
+                    if !active_ids.contains(entity_id) {
+                        report
+                            .missing_candidate_targets
+                            .push(EntityAuditResolutionViolation {
+                                mention: mention.clone(),
+                                status: "pending".into(),
+                                reason: value.reason,
+                            });
+                    }
                 }
             }
             MemoryEntityResolutionStatus::Dormant(value) => {
@@ -153,10 +164,21 @@ where
                     report
                         .rejection_invariant_violations
                         .push(EntityAuditResolutionViolation {
-                            mention,
+                            mention: mention.clone(),
                             status: "dormant".into(),
                             reason: value.reason,
                         });
+                }
+                for entity_id in &value.candidate_entity_ids {
+                    if !active_ids.contains(entity_id) {
+                        report
+                            .missing_candidate_targets
+                            .push(EntityAuditResolutionViolation {
+                                mention: mention.clone(),
+                                status: "dormant".into(),
+                                reason: value.reason,
+                            });
+                    }
                 }
             }
         }

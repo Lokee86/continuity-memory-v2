@@ -286,7 +286,6 @@ impl Cva {
             &entities,
         )?;
         ego.validate_memory_version(memories.memory_version())?;
-        entity_resolutions.validate(&memories, &entities)?;
         memories.validate_provenance(&archive)?;
         dream_cooldowns.validate(&memories)?;
         dream_pairs.validate(&memories)?;
@@ -317,6 +316,15 @@ impl Cva {
             &vector_generations,
         )?;
         let conversation_compactions = compaction_state.finish(&mut container)?;
+        let repaired_entity_resolutions = entity_resolutions.repair_retired_entity_references(
+            &mut container,
+            &memories,
+            &entities,
+        )?;
+        entity_resolutions.validate(&memories, &entities)?;
+        if repaired_entity_resolutions > 0 {
+            container.sync()?;
+        }
         Ok(Self {
             container,
             archive,
