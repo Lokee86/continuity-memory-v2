@@ -80,6 +80,62 @@ fn rel_owner_relative_mention_materializes_isolated_principal_entity() {
 }
 
 #[test]
+fn principal_profile_updates_aliases_without_changing_identity() {
+    let mut rel = Cva::create_project(temp_path("principal-profile")).unwrap();
+    let memory = rel_memory(&mut rel, "c1", "u1", PRINCIPAL_A, "The user chose SQLite.");
+    let key = install_rel_mention(&mut rel, memory.id, "The user");
+    let entity_id = rel
+        .resolve_principal_entity_mention(key, 100)
+        .unwrap()
+        .unwrap()
+        .entity_id
+        .unwrap();
+
+    assert!(
+        rel.sync_principal_profile(
+            PRINCIPAL_A,
+            &crate::PhylacteryProfile {
+                display_name: Some("Example User".into()),
+                username: Some("example_handle".into()),
+            },
+            200,
+        )
+        .unwrap()
+    );
+    let first = rel.entity(entity_id).unwrap();
+    assert_eq!(first.id, entity_id);
+    assert_eq!(first.canonical_name, PRINCIPAL_A);
+    assert_eq!(first.aliases, vec!["Example User", "example_handle"]);
+    assert_eq!(
+        first.summary,
+        "Phylactery-backed user principal: Example User (example_handle)."
+    );
+    assert!(
+        rel.entity_candidates_for_surface("Example User", 10)
+            .is_empty()
+    );
+    assert!(rel.entity_candidates_for_surface("example_handle", 10).is_empty());
+
+    assert!(
+        rel.sync_principal_profile(
+            PRINCIPAL_A,
+            &crate::PhylacteryProfile {
+                display_name: Some("Example Renamed".into()),
+                username: Some("renamed_handle".into()),
+            },
+            300,
+        )
+        .unwrap()
+    );
+    let renamed = rel.entity(entity_id).unwrap();
+    assert_eq!(renamed.id, entity_id);
+    assert_eq!(renamed.canonical_name, PRINCIPAL_A);
+    assert_eq!(renamed.aliases, vec!["Example Renamed", "renamed_handle"]);
+    assert!(!renamed.aliases.contains(&"example_handle".to_string()));
+    assert_eq!(rel.memories_for_phy_principal(PRINCIPAL_A), vec![memory.id]);
+}
+
+#[test]
 fn same_rel_keeps_phy_principals_distinct() {
     let mut rel = Cva::create_project(temp_path("multi-principal")).unwrap();
     let a = rel_memory(&mut rel, "ca", "ua", PRINCIPAL_A, "The user chose A.");

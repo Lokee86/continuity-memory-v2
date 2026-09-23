@@ -1,3 +1,4 @@
+use crate::entity_principal::{PRINCIPAL_ENTITY_KIND, principal_entity_id};
 use crate::runtime_host_perception_test_support::{
     wait_phylactery_entities, wait_phylactery_revisions,
 };
@@ -6,8 +7,8 @@ use crate::runtime_host_test_support::{
     test_path, wait_complete, wait_phylactery_memory, wait_phylactery_vectors,
 };
 use crate::{
-    Cva, EchoEvent, EchoEventKind, EpisodeBoundary, EpisodeConfig, EpisodePolicy, InteractionRole,
-    InteractionRuntime, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    Cva, EchoEvent, EchoEventKind, EntityDraft, EpisodeBoundary, EpisodeConfig, EpisodePolicy,
+    InteractionRole, InteractionRuntime, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
     SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::sync::{Arc, Barrier};
@@ -150,6 +151,59 @@ fn runtime_host_persists_echo_inside_rel() {
         reopened.echo_events("conversation", "assistant")[0].content,
         "raw trace"
     );
+}
+
+#[test]
+fn runtime_host_profile_updates_matching_rel_principal_on_attach_and_rename() {
+    let mut cva = Cva::create_project(test_path("principal-profile.prj.rel")).unwrap();
+    let mut phylactery = Phylactery::create(test_path("principal-profile.phy")).unwrap();
+    let principal_id = phylactery.owner_id().unwrap();
+    phylactery
+        .set_profile(Some("Example User".into()), Some("example_handle".into()))
+        .unwrap();
+    phylactery.sync().unwrap();
+
+    let entity_id = principal_entity_id(&principal_id);
+    cva.publish_entity(
+        Some(entity_id),
+        0,
+        EntityDraft {
+            canonical_name: principal_id.clone(),
+            aliases: Vec::new(),
+            kind: PRINCIPAL_ENTITY_KIND.into(),
+            summary: "Durable Phylactery-backed user principal.".into(),
+            mutation_id: "runtime-principal-profile".into(),
+            created_at_ns: 0,
+            updated_at_ns: 0,
+        },
+    )
+    .unwrap();
+
+    let host = ReliquaryRuntimeHost::start_inactive(
+        InteractionRuntime::new(cva),
+        ReliquaryRuntimeRoutes::default(),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+    host.attach_phylactery(phylactery).unwrap();
+
+    let attached = host.phylactery_profile().unwrap().unwrap();
+    assert_eq!(attached.display_name.as_deref(), Some("Example User"));
+    assert_eq!(attached.username.as_deref(), Some("example_handle"));
+
+    assert!(
+        host.set_phylactery_profile(Some("Example Renamed".into()), Some("renamed_handle".into()),)
+            .unwrap()
+    );
+
+    let (cva, phylactery) = host.into_cva_and_phylactery().unwrap();
+    let entity = cva.entity(entity_id).unwrap();
+    assert_eq!(entity.id, entity_id);
+    assert_eq!(entity.canonical_name, principal_id);
+    assert_eq!(entity.aliases, vec!["Example Renamed", "renamed_handle"]);
+    let profile = phylactery.unwrap().profile();
+    assert_eq!(profile.display_name.as_deref(), Some("Example Renamed"));
+    assert_eq!(profile.username.as_deref(), Some("renamed_handle"));
 }
 
 #[test]

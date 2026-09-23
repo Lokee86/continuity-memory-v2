@@ -16,6 +16,7 @@ use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::{Container, ContainerIdentity, FileKind, Phylactery, PhylacteryError};
 use std::path::Path;
 
@@ -68,6 +69,7 @@ impl Phylactery {
         let packed_vectors = PackedVectorStore::default();
         let memory_vectors = MemoryVectorStore::default();
         let compatibility_profiles = CompatibilityProfileStore::default();
+        let profile = PhylacteryProfileStore::default();
         let ego = EgoStore::phylactery();
         let entities = EntityStore::empty();
         let entity_resolutions = EntityResolutionStore::default();
@@ -92,6 +94,7 @@ impl Phylactery {
             packed_vectors,
             memory_vectors,
             compatibility_profiles,
+            profile,
             ego,
             entities,
             entity_resolutions,
@@ -105,6 +108,7 @@ impl Phylactery {
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
         let mut profile_state = CompatibilityProfileOpenState::new();
+        let mut phylactery_profile = PhylacteryProfileStore::default();
         let mut dream_cooldowns = DreamCooldownStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut ego = EgoStore::phylactery();
@@ -120,6 +124,9 @@ impl Phylactery {
             packed_state.ingest(chunk, payload)?;
             memory_vector_state.ingest(chunk, payload)?;
             profile_state.ingest(chunk, payload)?;
+            phylactery_profile
+                .ingest(payload)
+                .map_err(PhylacteryError::Profile)?;
             dream_cooldowns.ingest(payload)?;
             dream_pairs.ingest(payload)?;
             ego.ingest(payload)?;
@@ -173,6 +180,7 @@ impl Phylactery {
             packed_vectors,
             memory_vectors,
             compatibility_profiles,
+            profile: phylactery_profile,
             ego,
             entities,
             entity_resolutions,

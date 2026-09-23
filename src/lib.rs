@@ -684,6 +684,12 @@ mod phylactery_memory_source;
 mod phylactery_memory_vectors;
 #[path = "facade/phylactery_packed_vectors.rs"]
 mod phylactery_packed_vectors;
+#[path = "facade/phylactery_profile_codec.rs"]
+mod phylactery_profile_codec;
+#[path = "facade/phylactery_profile_model.rs"]
+mod phylactery_profile_model;
+#[path = "facade/phylactery_profile_store.rs"]
+mod phylactery_profile_store;
 #[path = "archive/project_file_binding_codec.rs"]
 mod project_file_binding_codec;
 #[path = "archive/project_file_binding_store.rs"]
@@ -787,6 +793,7 @@ pub use conversation_metadata_model::ConversationMetadata;
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
+pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
 pub use runtime_config::RuntimeConfig;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};

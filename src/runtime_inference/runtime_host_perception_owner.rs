@@ -1,3 +1,4 @@
+use super::perception_flow::now_ns;
 use super::perception_queue::PerceptionOwner;
 use super::{ReliquaryRuntimeHostError, Shared, operation};
 use crate::{
@@ -11,11 +12,27 @@ pub(super) struct PerceptionCommitEffects {
 }
 
 pub(super) fn seed_runtime(shared: &Shared) -> Result<(), ReliquaryRuntimeHostError> {
+    let attached_principal = {
+        let slot = shared
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        slot.as_ref()
+            .and_then(|phy| phy.owner_id().map(|owner_id| (owner_id, phy.profile())))
+    };
     let project_keys = {
         let mut runtime = shared
             .runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if let Some((principal_id, profile)) = attached_principal
+            && runtime
+                .cva
+                .sync_principal_profile(&principal_id, &profile, now_ns())
+                .map_err(operation)?
+        {
+            runtime.cva.sync().map_err(operation)?;
+        }
         startup_keys_project(&mut runtime.cva)?
     };
     shared
@@ -50,6 +67,14 @@ pub(super) fn prepare(
 ) -> Result<Option<EntityResolutionPreparation>, ReliquaryRuntimeHostError> {
     match owner {
         PerceptionOwner::Project => {
+            let attached_principal = {
+                let slot = shared
+                    .phylactery
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                slot.as_ref()
+                    .and_then(|phy| phy.owner_id().map(|owner_id| (owner_id, phy.profile())))
+            };
             let mut runtime = shared
                 .runtime
                 .lock()
@@ -59,6 +84,15 @@ pub(super) fn prepare(
                 .resolve_principal_entity_mention(key, now_ns)
                 .map_err(operation)?
             {
+                if let Some((principal_id, profile)) = attached_principal
+                    && outcome.entity_id
+                        == Some(crate::entity_principal::principal_entity_id(&principal_id))
+                {
+                    runtime
+                        .cva
+                        .sync_principal_profile(&principal_id, &profile, now_ns)
+                        .map_err(operation)?;
+                }
                 runtime.cva.sync().map_err(operation)?;
                 return Ok(Some(EntityResolutionPreparation::Complete(outcome)));
             }

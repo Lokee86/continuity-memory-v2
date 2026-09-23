@@ -63,6 +63,55 @@ fn phylactery_identity_and_unsourced_memory_reopen() {
 }
 
 #[test]
+fn phylactery_profile_persists_and_normalizes() {
+    let path = test_path("profile.phy");
+    let mut phy = Phylactery::create(&path).unwrap();
+    assert_eq!(phy.profile(), crate::PhylacteryProfile::default());
+
+    assert!(
+        phy.set_profile(
+            Some("  Example User  ".into()),
+            Some("  example_handle  ".into())
+        )
+        .unwrap()
+    );
+    assert_eq!(
+        phy.profile(),
+        crate::PhylacteryProfile {
+            display_name: Some("Example User".into()),
+            username: Some("example_handle".into()),
+        }
+    );
+    assert!(
+        !phy.set_profile(Some("Example User".into()), Some("example_handle".into()))
+            .unwrap()
+    );
+    assert!(
+        phy.set_profile(Some("Example User".into()), Some("   ".into()))
+            .unwrap()
+    );
+    assert_eq!(phy.profile().username, None);
+    assert!(matches!(
+        phy.set_profile(
+            Some("x".repeat(crate::MAX_PHYLACTERY_PROFILE_NAME_BYTES + 1)),
+            None
+        ),
+        Err(PhylacteryError::Profile(_))
+    ));
+
+    phy.sync().unwrap();
+    drop(phy);
+    let reopened = Phylactery::open(&path).unwrap();
+    assert_eq!(
+        reopened.profile(),
+        crate::PhylacteryProfile {
+            display_name: Some("Example User".into()),
+            username: None,
+        }
+    );
+}
+
+#[test]
 fn source_reference_survives_metadata_revision_and_reopen() {
     let path = test_path("source-ref-revision.phy");
     let mut phy = Phylactery::create(&path).unwrap();

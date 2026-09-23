@@ -3,7 +3,7 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## Overview
-The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
+The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: latest-wins principal profile metadata, Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented
 
@@ -52,6 +52,24 @@ Legacy `CVAVERS1` tickets remain readable but have no transaction timestamp; reo
 Current REL/PHY files store a 16-byte UUID directly in the container header. Current homogeneous RELs use canonical external owner ID `rel-<uuid>`; Phylactery uses `phy-<uuid>`. Legacy typed REL headers with an owner UUID retain their historical `proj-`, `org-`, or `con-` prefix so identity remains stable while those files are opened or reconciled. Owner identity consumes no semantic/global version ticket. Copies, moves, renames, reconciliation repacks, and format migration preserve or deliberately derive the UUID. Earlier 16-byte legacy CVA and 24-byte typed files have no header UUID and require explicit migration before owner-ID-based reconciliation.
 
 Legacy `CVAWKFM1` / `CVAWKSP1` workspace-metadata chunks may remain physically present in old RELs, but current runtime semantics ignore them and do not write them.
+
+### Phylactery principal profile
+
+PHY principal presentation metadata is append-only and latest-wins. It consumes no semantic/global version ticket and never changes the header-derived `phy-<uuid>` owner identity.
+
+```text
+8 bytes   "CVAPHYP1"
+u8        display_name_present (0/1)
+if 1:
+  u32     display_name UTF-8 byte length
+  N bytes display_name UTF-8
+u8        username_present (0/1)
+if 1:
+  u32     username UTF-8 byte length
+  N bytes username UTF-8
+```
+
+Each present value is non-empty after API normalization and is limited to 256 UTF-8 bytes. Reopen scans all valid profile records and retains the latest one; a PHY with no profile record resolves to `PhylacteryProfile::default()` with both fields absent. Display name and username are mutable presentation metadata only. They may be projected into the matching REL principal Entity's aliases/summary, but the principal Entity canonical name and identity remain derived from `phy-UUID`.
 
 ### REL metadata
 

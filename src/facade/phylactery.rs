@@ -10,6 +10,7 @@ use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::{
     Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats,
     PhylacteryError,
@@ -27,6 +28,7 @@ pub struct Phylactery {
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,
     pub(crate) compatibility_profiles: CompatibilityProfileStore,
+    pub(crate) profile: PhylacteryProfileStore,
     pub(crate) ego: EgoStore,
     pub(crate) entities: EntityStore,
     pub(crate) entity_resolutions: EntityResolutionStore,
@@ -39,6 +41,32 @@ impl Phylactery {
 
     pub fn owner_uuid(&self) -> Option<[u8; 16]> {
         self.container.owner_uuid()
+    }
+
+    pub fn profile(&self) -> crate::PhylacteryProfile {
+        self.profile.current()
+    }
+
+    pub fn set_profile(
+        &mut self,
+        display_name: Option<String>,
+        username: Option<String>,
+    ) -> Result<bool, PhylacteryError> {
+        let normalize = |value: Option<String>| {
+            value.and_then(|value| {
+                let trimmed = value.trim().to_owned();
+                (!trimmed.is_empty()).then_some(trimmed)
+            })
+        };
+        self.profile
+            .put(
+                &mut self.container,
+                crate::PhylacteryProfile {
+                    display_name: normalize(display_name),
+                    username: normalize(username),
+                },
+            )
+            .map_err(PhylacteryError::Profile)
     }
 
     pub fn latest_global_version(&self) -> u64 {

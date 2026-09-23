@@ -98,6 +98,48 @@ impl Cva {
         }))
     }
 
+    pub(crate) fn sync_principal_profile(
+        &mut self,
+        principal_id: &str,
+        profile: &crate::PhylacteryProfile,
+        now_ns: i64,
+    ) -> Result<bool, crate::EntityError> {
+        if !is_phy_principal_id(principal_id) {
+            return Err(crate::EntityError::InvalidField(
+                "principal Entity identity",
+            ));
+        }
+        let entity_id = principal_entity_id(principal_id);
+        let Ok(entity) = self.entity(entity_id) else {
+            return Ok(false);
+        };
+        if entity.kind != PRINCIPAL_ENTITY_KIND || entity.canonical_name != principal_id {
+            return Err(crate::EntityError::InvalidField(
+                "principal Entity identity",
+            ));
+        }
+
+        let aliases = principal_profile_aliases(profile);
+        let summary = principal_profile_summary(profile);
+        if entity.aliases == aliases && entity.summary == summary {
+            return Ok(false);
+        }
+        self.publish_entity(
+            Some(entity_id),
+            entity.revision,
+            EntityDraft {
+                canonical_name: entity.canonical_name,
+                aliases,
+                kind: entity.kind,
+                summary,
+                mutation_id: format!("principal-profile:{principal_id}:{}", entity.revision + 1),
+                created_at_ns: entity.created_at_ns,
+                updated_at_ns: now_ns.max(entity.updated_at_ns),
+            },
+        )
+        .map(|(_, changed)| changed)
+    }
+
     fn principal_mention_matches(&self, key: MemoryEntityMentionKey) -> bool {
         mention_text(self.memory_routing_metadata(key.memory_id), key)
             .is_some_and(is_owner_relative_principal_surface)
@@ -150,6 +192,37 @@ fn rel_source_principal(cva: &Cva, memory: &Memory) -> Option<String> {
         .nodes
         .get(&episode.conversation_id, node_id)
         .and_then(|node| node.principal_id.clone())
+}
+
+fn principal_profile_aliases(profile: &crate::PhylacteryProfile) -> Vec<String> {
+    let mut aliases = Vec::new();
+    for value in [profile.display_name.as_deref(), profile.username.as_deref()]
+        .into_iter()
+        .flatten()
+    {
+        if !aliases
+            .iter()
+            .any(|existing: &String| existing.eq_ignore_ascii_case(value))
+        {
+            aliases.push(value.to_owned());
+        }
+    }
+    aliases
+}
+
+fn principal_profile_summary(profile: &crate::PhylacteryProfile) -> String {
+    match (profile.display_name.as_deref(), profile.username.as_deref()) {
+        (Some(display_name), Some(username)) => {
+            format!("Phylactery-backed user principal: {display_name} ({username}).")
+        }
+        (Some(display_name), None) => {
+            format!("Phylactery-backed user principal: {display_name}.")
+        }
+        (None, Some(username)) => {
+            format!("Phylactery-backed user principal: {username}.")
+        }
+        (None, None) => "Durable Phylactery-backed user principal.".into(),
+    }
 }
 
 fn mention_text(

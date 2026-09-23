@@ -359,6 +359,55 @@ impl ReliquaryRuntimeHost {
         Ok(changed)
     }
 
+    pub fn phylactery_profile(
+        &self,
+    ) -> Result<Option<crate::PhylacteryProfile>, ReliquaryRuntimeHostError> {
+        self.phylactery
+            .lock()
+            .map(|slot| slot.as_ref().map(crate::Phylactery::profile))
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)
+    }
+
+    pub fn set_phylactery_profile(
+        &self,
+        display_name: Option<String>,
+        username: Option<String>,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let (changed, principal_id, profile) = {
+            let mut slot = self
+                .phylactery
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let phy = slot.as_mut().ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("No Phylactery is attached".into())
+            })?;
+            let changed = phy.set_profile(display_name, username).map_err(operation)?;
+            if changed {
+                phy.sync().map_err(operation)?;
+            }
+            (changed, phy.owner_id(), phy.profile())
+        };
+
+        if let Some(principal_id) = principal_id {
+            let mut runtime = self
+                .runtime
+                .as_ref()
+                .ok_or_else(|| {
+                    ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+                })?
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let rel_changed = runtime
+                .cva
+                .sync_principal_profile(&principal_id, &profile, perception_flow::now_ns())
+                .map_err(operation)?;
+            if rel_changed {
+                runtime.cva.sync().map_err(operation)?;
+            }
+        }
+        Ok(changed)
+    }
+
     pub fn has_phylactery(&self) -> Result<bool, ReliquaryRuntimeHostError> {
         self.phylactery
             .lock()
@@ -370,6 +419,9 @@ impl ReliquaryRuntimeHost {
         &self,
         mut phylactery: Phylactery,
     ) -> Result<(), ReliquaryRuntimeHostError> {
+        let principal_profile = phylactery
+            .owner_id()
+            .map(|owner_id| (owner_id, phylactery.profile()));
         let mut slot = self
             .phylactery
             .lock()
@@ -382,6 +434,23 @@ impl ReliquaryRuntimeHost {
         let perception_keys = perception_owner::startup_keys_user(&mut phylactery)?;
         *slot = Some(phylactery);
         drop(slot);
+        if let Some((principal_id, profile)) = principal_profile {
+            let mut runtime = self
+                .runtime
+                .as_ref()
+                .ok_or_else(|| {
+                    ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+                })?
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            if runtime
+                .cva
+                .sync_principal_profile(&principal_id, &profile, perception_flow::now_ns())
+                .map_err(operation)?
+            {
+                runtime.cva.sync().map_err(operation)?;
+            }
+        }
         {
             let mut queue = self
                 .perception_queue

@@ -15,6 +15,7 @@ pub enum PhylacteryError {
     MemoryVectors(MemoryVectorError),
     CompatibilityProfiles(CompatibilityProfileError),
     Ego(EgoError),
+    Profile(String),
     InvalidContainerIdentity(&'static str),
     SemanticGlobalVersionConflict(u64),
 }
@@ -31,6 +32,7 @@ impl fmt::Display for PhylacteryError {
             Self::MemoryVectors(error) => write!(f, "{error}"),
             Self::CompatibilityProfiles(error) => write!(f, "{error}"),
             Self::Ego(error) => write!(f, "{error}"),
+            Self::Profile(error) => write!(f, "Phylactery profile error: {error}"),
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }
