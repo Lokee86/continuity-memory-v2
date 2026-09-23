@@ -195,33 +195,13 @@ fn rel_source_principal(cva: &Cva, memory: &Memory) -> Option<String> {
 }
 
 fn principal_profile_aliases(profile: &crate::PhylacteryProfile) -> Vec<String> {
-    let mut aliases = Vec::new();
-    for value in [profile.display_name.as_deref(), profile.username.as_deref()]
-        .into_iter()
-        .flatten()
-    {
-        if !aliases
-            .iter()
-            .any(|existing: &String| existing.eq_ignore_ascii_case(value))
-        {
-            aliases.push(value.to_owned());
-        }
-    }
-    aliases
+    profile.display_name.iter().cloned().collect()
 }
 
 fn principal_profile_summary(profile: &crate::PhylacteryProfile) -> String {
-    match (profile.display_name.as_deref(), profile.username.as_deref()) {
-        (Some(display_name), Some(username)) => {
-            format!("Phylactery-backed user principal: {display_name} ({username}).")
-        }
-        (Some(display_name), None) => {
-            format!("Phylactery-backed user principal: {display_name}.")
-        }
-        (None, Some(username)) => {
-            format!("Phylactery-backed user principal: {username}.")
-        }
-        (None, None) => "Durable Phylactery-backed user principal.".into(),
+    match profile.display_name.as_deref() {
+        Some(display_name) => format!("Phylactery-backed user principal: {display_name}."),
+        None => "Durable Phylactery-backed user principal.".into(),
     }
 }
 

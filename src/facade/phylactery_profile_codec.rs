@@ -7,7 +7,6 @@ pub(crate) fn encode_phylactery_profile(profile: &PhylacteryProfile) -> Result<V
     let mut out = Vec::new();
     out.extend_from_slice(&PHYLACTERY_PROFILE_MAGIC);
     write_optional_string(&mut out, profile.display_name.as_deref())?;
-    write_optional_string(&mut out, profile.username.as_deref())?;
     Ok(out)
 }
 
@@ -18,8 +17,13 @@ pub(crate) fn decode_phylactery_profile(bytes: &[u8]) -> Result<Option<Phylacter
     let mut cursor = 8;
     let profile = PhylacteryProfile {
         display_name: read_optional_string(bytes, &mut cursor)?,
-        username: read_optional_string(bytes, &mut cursor)?,
     };
+
+    // Early feature builds wrote a second optional username field under the
+    // same magic. Accept and discard it so those PHY files remain readable.
+    if cursor < bytes.len() {
+        let _legacy_username = read_optional_string(bytes, &mut cursor)?;
+    }
     if cursor != bytes.len() {
         return Err("Phylactery profile has trailing bytes".into());
     }
@@ -28,8 +32,7 @@ pub(crate) fn decode_phylactery_profile(bytes: &[u8]) -> Result<Option<Phylacter
 }
 
 pub(crate) fn validate_phylactery_profile(profile: &PhylacteryProfile) -> Result<(), String> {
-    validate_name("display name", profile.display_name.as_deref())?;
-    validate_name("username", profile.username.as_deref())
+    validate_name("display name", profile.display_name.as_deref())
 }
 
 fn validate_name(label: &str, value: Option<&str>) -> Result<(), String> {

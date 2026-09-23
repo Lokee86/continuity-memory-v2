@@ -63,13 +63,9 @@ u8        display_name_present (0/1)
 if 1:
   u32     display_name UTF-8 byte length
   N bytes display_name UTF-8
-u8        username_present (0/1)
-if 1:
-  u32     username UTF-8 byte length
-  N bytes username UTF-8
 ```
 
-Each present value is non-empty after API normalization and is limited to 256 UTF-8 bytes. Reopen scans all valid profile records and retains the latest one; a PHY with no profile record resolves to `PhylacteryProfile::default()` with both fields absent. Display name and username are mutable presentation metadata only. They may be projected into the matching REL principal Entity's aliases/summary, but the principal Entity canonical name and identity remain derived from `phy-UUID`.
+The display name is non-empty after API normalization and is limited to 256 UTF-8 bytes. Reopen scans all valid profile records and retains the latest one; a PHY with no profile record resolves to `PhylacteryProfile::default()` with no display name. Display name is mutable presentation metadata only. It may be projected into the matching REL principal Entity's aliases/summary, but the principal Entity canonical name and identity remain derived from `phy-UUID`. Early feature builds briefly appended a second optional username field under the same `CVAPHYP1` magic; current readers accept and discard that trailing field, while current writers emit only the display-name field.
 
 ### REL metadata
 

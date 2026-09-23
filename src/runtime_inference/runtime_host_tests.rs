@@ -158,9 +158,7 @@ fn runtime_host_profile_updates_matching_rel_principal_on_attach_and_rename() {
     let mut cva = Cva::create_project(test_path("principal-profile.prj.rel")).unwrap();
     let mut phylactery = Phylactery::create(test_path("principal-profile.phy")).unwrap();
     let principal_id = phylactery.owner_id().unwrap();
-    phylactery
-        .set_profile(Some("Example User".into()), Some("example_handle".into()))
-        .unwrap();
+    phylactery.set_profile(Some("Example User".into())).unwrap();
     phylactery.sync().unwrap();
 
     let entity_id = principal_entity_id(&principal_id);
@@ -189,10 +187,9 @@ fn runtime_host_profile_updates_matching_rel_principal_on_attach_and_rename() {
 
     let attached = host.phylactery_profile().unwrap().unwrap();
     assert_eq!(attached.display_name.as_deref(), Some("Example User"));
-    assert_eq!(attached.username.as_deref(), Some("example_handle"));
 
     assert!(
-        host.set_phylactery_profile(Some("Example Renamed".into()), Some("renamed_handle".into()),)
+        host.set_phylactery_profile(Some("Example Renamed".into()))
             .unwrap()
     );
 
@@ -200,10 +197,9 @@ fn runtime_host_profile_updates_matching_rel_principal_on_attach_and_rename() {
     let entity = cva.entity(entity_id).unwrap();
     assert_eq!(entity.id, entity_id);
     assert_eq!(entity.canonical_name, principal_id);
-    assert_eq!(entity.aliases, vec!["Example Renamed", "renamed_handle"]);
+    assert_eq!(entity.aliases, vec!["Example Renamed"]);
     let profile = phylactery.unwrap().profile();
     assert_eq!(profile.display_name.as_deref(), Some("Example Renamed"));
-    assert_eq!(profile.username.as_deref(), Some("renamed_handle"));
 }
 
 #[test]

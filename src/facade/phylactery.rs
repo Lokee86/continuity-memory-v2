@@ -47,11 +47,7 @@ impl Phylactery {
         self.profile.current()
     }
 
-    pub fn set_profile(
-        &mut self,
-        display_name: Option<String>,
-        username: Option<String>,
-    ) -> Result<bool, PhylacteryError> {
+    pub fn set_profile(&mut self, display_name: Option<String>) -> Result<bool, PhylacteryError> {
         let normalize = |value: Option<String>| {
             value.and_then(|value| {
                 let trimmed = value.trim().to_owned();
@@ -63,7 +59,6 @@ impl Phylactery {
                 &mut self.container,
                 crate::PhylacteryProfile {
                     display_name: normalize(display_name),
-                    username: normalize(username),
                 },
             )
             .map_err(PhylacteryError::Profile)

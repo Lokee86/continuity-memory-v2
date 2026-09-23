@@ -68,36 +68,23 @@ fn phylactery_profile_persists_and_normalizes() {
     let mut phy = Phylactery::create(&path).unwrap();
     assert_eq!(phy.profile(), crate::PhylacteryProfile::default());
 
-    assert!(
-        phy.set_profile(
-            Some("  Example User  ".into()),
-            Some("  example_handle  ".into())
-        )
-        .unwrap()
-    );
+    assert!(phy.set_profile(Some("  Example User  ".into())).unwrap());
     assert_eq!(
         phy.profile(),
         crate::PhylacteryProfile {
             display_name: Some("Example User".into()),
-            username: Some("example_handle".into()),
         }
     );
-    assert!(
-        !phy.set_profile(Some("Example User".into()), Some("example_handle".into()))
-            .unwrap()
-    );
-    assert!(
-        phy.set_profile(Some("Example User".into()), Some("   ".into()))
-            .unwrap()
-    );
-    assert_eq!(phy.profile().username, None);
+    assert!(!phy.set_profile(Some("Example User".into())).unwrap());
+    assert!(phy.set_profile(Some("   ".into())).unwrap());
+    assert_eq!(phy.profile().display_name, None);
     assert!(matches!(
-        phy.set_profile(
-            Some("x".repeat(crate::MAX_PHYLACTERY_PROFILE_NAME_BYTES + 1)),
-            None
-        ),
+        phy.set_profile(Some(
+            "x".repeat(crate::MAX_PHYLACTERY_PROFILE_NAME_BYTES + 1)
+        )),
         Err(PhylacteryError::Profile(_))
     ));
+    assert!(phy.set_profile(Some("Example User".into())).unwrap());
 
     phy.sync().unwrap();
     drop(phy);
@@ -106,7 +93,31 @@ fn phylactery_profile_persists_and_normalizes() {
         reopened.profile(),
         crate::PhylacteryProfile {
             display_name: Some("Example User".into()),
-            username: None,
+        }
+    );
+}
+
+#[test]
+fn phylactery_profile_reads_legacy_two_field_record() {
+    let path = test_path("legacy-profile.phy");
+    let mut phy = Phylactery::create(&path).unwrap();
+
+    let mut payload = b"CVAPHYP1".to_vec();
+    payload.push(1);
+    payload.extend_from_slice(&(12_u32).to_le_bytes());
+    payload.extend_from_slice(b"Example User");
+    payload.push(1);
+    payload.extend_from_slice(&(13_u32).to_le_bytes());
+    payload.extend_from_slice(b"legacy_handle");
+    phy.container.append(&payload).unwrap();
+    phy.sync().unwrap();
+    drop(phy);
+
+    let reopened = Phylactery::open(&path).unwrap();
+    assert_eq!(
+        reopened.profile(),
+        crate::PhylacteryProfile {
+            display_name: Some("Example User".into()),
         }
     );
 }

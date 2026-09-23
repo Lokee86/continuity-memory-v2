@@ -371,7 +371,6 @@ impl ReliquaryRuntimeHost {
     pub fn set_phylactery_profile(
         &self,
         display_name: Option<String>,
-        username: Option<String>,
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let (changed, principal_id, profile) = {
             let mut slot = self
@@ -381,7 +380,7 @@ impl ReliquaryRuntimeHost {
             let phy = slot.as_mut().ok_or_else(|| {
                 ReliquaryRuntimeHostError::Operation("No Phylactery is attached".into())
             })?;
-            let changed = phy.set_profile(display_name, username).map_err(operation)?;
+            let changed = phy.set_profile(display_name).map_err(operation)?;
             if changed {
                 phy.sync().map_err(operation)?;
             }
