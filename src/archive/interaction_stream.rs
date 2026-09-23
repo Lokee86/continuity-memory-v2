@@ -12,10 +12,41 @@ impl InteractionRuntime {
         role: InteractionRole,
         timestamp_ns: i64,
     ) -> Result<(), InteractionError> {
+        self.begin_message_with_principal(session_id, message_id, role, None, timestamp_ns)
+    }
+
+    pub(crate) fn begin_message_with_principal(
+        &mut self,
+        session_id: &str,
+        message_id: String,
+        role: InteractionRole,
+        principal_id: Option<String>,
+        timestamp_ns: i64,
+    ) -> Result<(), InteractionError> {
         validate_id(&message_id, "message id")?;
         if self.cva.archive().has_node(session_id, &message_id) {
             return Err(InteractionError::MessageAlreadyDurable);
         }
+        let parent_message_id = self
+            .sessions
+            .get(session_id)
+            .ok_or(InteractionError::UnknownSession)?
+            .leaf_message_id
+            .clone();
+        let principal_id = if role == InteractionRole::Agent {
+            match parent_message_id.as_deref() {
+                Some(parent_id) => self
+                    .cva
+                    .archive()
+                    .nodes
+                    .get(session_id, parent_id)
+                    .map(|node| node.principal_id.clone())
+                    .unwrap_or(principal_id),
+                None => principal_id,
+            }
+        } else {
+            principal_id
+        };
         let state = self
             .sessions
             .get_mut(session_id)
@@ -25,8 +56,9 @@ impl InteractionRuntime {
         }
         state.in_flight = Some(InFlightMessage {
             message_id,
-            parent_message_id: state.leaf_message_id.clone(),
+            parent_message_id,
             role,
+            principal_id,
             timestamp_ns,
             content: String::new(),
             attachments: Vec::new(),
@@ -123,6 +155,7 @@ impl InteractionRuntime {
             session_id: session_id.to_owned(),
             parent_message_id: message.parent_message_id.clone(),
             role: message.role,
+            principal_id: message.principal_id.clone(),
             timestamp_ns: message.timestamp_ns,
             content: message.content.clone(),
             attachments: message.attachments.clone(),

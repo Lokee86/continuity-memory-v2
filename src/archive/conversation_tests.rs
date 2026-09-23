@@ -18,6 +18,7 @@ fn turn(id: &str, parent: Option<&str>, timestamp_ns: i64, content: &str) -> Inc
         conversation_id: "c1".into(),
         parent_id: parent.map(str::to_owned),
         role: "user".into(),
+        principal_id: None,
         timestamp_ns,
         content: content.into(),
         attachments: Vec::new(),

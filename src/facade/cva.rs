@@ -145,12 +145,34 @@ impl Cva {
         timestamp_ns: i64,
         content: &str,
     ) -> Result<Node, ArchiveError> {
+        self.append_node_with_principal(
+            id,
+            conversation_id,
+            parent_id,
+            role,
+            None,
+            timestamp_ns,
+            content,
+        )
+    }
+
+    pub fn append_node_with_principal(
+        &mut self,
+        id: String,
+        conversation_id: String,
+        parent_id: Option<String>,
+        role: String,
+        principal_id: Option<String>,
+        timestamp_ns: i64,
+        content: &str,
+    ) -> Result<Node, ArchiveError> {
         self.archive.append_node(
             &mut self.container,
             id,
             conversation_id,
             parent_id,
             role,
+            principal_id,
             timestamp_ns,
             content,
         )

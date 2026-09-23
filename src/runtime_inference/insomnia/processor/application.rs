@@ -88,6 +88,15 @@ pub(crate) fn prepare_application(
                 })?;
                 let source_ref = MemorySourceRef {
                     owner_id,
+                    principal_id: turns
+                        .iter()
+                        .find(|turn| {
+                            draft
+                                .source_node_id
+                                .as_deref()
+                                .is_some_and(|source| source == turn.node_id)
+                        })
+                        .and_then(|turn| turn.principal_id.clone()),
                     source_episode_id: episode.id,
                     source_node_id: draft.source_node_id.clone().ok_or_else(|| {
                         InsomniaProcessError::InvalidCandidate(

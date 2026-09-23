@@ -67,6 +67,7 @@ fn reconcile_replays_ingested_turn_attachments() {
             conversation_id: "right-c".into(),
             parent_id: None,
             role: "user".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "photo".into(),
             attachments: vec![IncomingAttachment {

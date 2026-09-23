@@ -55,6 +55,7 @@ pub(crate) fn read_archive_tail(
                     conversation_id: node.conversation_id,
                     parent_id: node.parent_id,
                     role: node.role,
+                    principal_id: node.principal_id,
                     timestamp_ns: node.timestamp_ns,
                     content,
                     attachments: Vec::new(),
@@ -84,6 +85,7 @@ pub(crate) fn read_archive_tail(
                     conversation_id: turn.node.conversation_id,
                     parent_id: turn.node.parent_id,
                     role: turn.node.role,
+                    principal_id: turn.node.principal_id,
                     timestamp_ns: turn.node.timestamp_ns,
                     content,
                     attachments,
@@ -148,11 +150,12 @@ fn replay_archive_record(
 ) -> Result<(), CvaReconcileError> {
     let archive_result = match record {
         ArchiveReplayRecord::Node(turn) => destination
-            .append_node(
+            .append_node_with_principal(
                 turn.id.clone(),
                 turn.conversation_id.clone(),
                 turn.parent_id.clone(),
                 turn.role.clone(),
+                turn.principal_id.clone(),
                 turn.timestamp_ns,
                 &turn.content,
             )

@@ -194,6 +194,7 @@ fn project_backed_repack_removes_legacy_attachment_payload_without_replaying_sta
             conversation_id: "session-1".into(),
             parent_id: None,
             role: "user".into(),
+            principal_id: None,
             timestamp_ns: 1,
             content: "Review this plan".into(),
             attachments: vec![IncomingAttachment {
@@ -300,6 +301,7 @@ fn divergent_reconcile_replays_project_file_binding_and_source_attachment() {
             conversation_id: "right-c".into(),
             parent_id: None,
             role: "user".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "attachment".into(),
             attachments: Vec::new(),

@@ -4,6 +4,7 @@ pub(crate) struct InFlightMessage {
     pub(crate) message_id: String,
     pub(crate) parent_message_id: Option<String>,
     pub(crate) role: crate::InteractionRole,
+    pub(crate) principal_id: Option<String>,
     pub(crate) timestamp_ns: i64,
     pub(crate) content: String,
     pub(crate) attachments: Vec<crate::InteractionAttachment>,

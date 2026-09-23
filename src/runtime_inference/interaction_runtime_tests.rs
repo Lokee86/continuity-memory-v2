@@ -18,6 +18,7 @@ fn user_turn() -> InteractionTurn {
         session_id: "session-1".into(),
         parent_message_id: None,
         role: InteractionRole::User,
+        principal_id: None,
         timestamp_ns: 1,
         content: "Review the attached plan.".into(),
         attachments: vec![InteractionAttachment {
@@ -88,6 +89,7 @@ fn normalized_agent_role_maps_to_archive_assistant_role() {
             session_id: "session-1".into(),
             parent_message_id: Some("message-1".into()),
             role: InteractionRole::Agent,
+            principal_id: None,
             timestamp_ns: 2,
             content: "The plan is internally consistent.".into(),
             attachments: Vec::new(),
@@ -155,6 +157,7 @@ fn transcript_pages_read_newest_window_then_older_cursor() {
                 session_id: "session-1".into(),
                 parent_message_id: parent.clone(),
                 role: InteractionRole::User,
+                principal_id: None,
                 timestamp_ns: index,
                 content: format!("turn {index}"),
                 attachments: Vec::new(),

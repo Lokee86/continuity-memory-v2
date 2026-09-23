@@ -153,6 +153,65 @@ fn runtime_host_persists_echo_inside_rel() {
 }
 
 #[test]
+fn runtime_host_captures_phy_principal_and_agent_inherits_parent() {
+    let rel_path = test_path("principal-capture.prj.rel");
+    let cva = Cva::create_project(&rel_path).unwrap();
+    let phylactery_a = Phylactery::create(test_path("principal-a.phy")).unwrap();
+    let principal_a = phylactery_a.owner_id().unwrap();
+    let host = ReliquaryRuntimeHost::start_with_phylactery(
+        InteractionRuntime::new(cva),
+        phylactery_a,
+        ReliquaryRuntimeRoutes::default(),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+
+    host.open_session("live".into(), None).unwrap();
+    host.begin_message("live", "u1".into(), InteractionRole::User, 1)
+        .unwrap();
+    host.append_text("live", "u1", "Question").unwrap();
+    host.complete_message("live", "u1").unwrap();
+
+    let _phylactery_a = host.detach_phylactery().unwrap().unwrap();
+    let phylactery_b = Phylactery::create(test_path("principal-b.phy")).unwrap();
+    let principal_b = phylactery_b.owner_id().unwrap();
+    assert_ne!(principal_a, principal_b);
+    host.attach_phylactery(phylactery_b).unwrap();
+
+    host.begin_message("live", "a1".into(), InteractionRole::Agent, 2)
+        .unwrap();
+    host.append_text("live", "a1", "Answer").unwrap();
+    host.complete_message("live", "a1").unwrap();
+    host.begin_message("live", "u2".into(), InteractionRole::User, 3)
+        .unwrap();
+    host.append_text("live", "u2", "Second user turn").unwrap();
+    host.complete_message("live", "u2").unwrap();
+
+    let transcript = host.conversation_transcript("live", "u2").unwrap();
+    assert_eq!(transcript.len(), 3);
+    assert_eq!(
+        transcript[0].principal_id.as_deref(),
+        Some(principal_a.as_str())
+    );
+    assert_eq!(
+        transcript[1].principal_id.as_deref(),
+        Some(principal_a.as_str())
+    );
+    assert_eq!(
+        transcript[2].principal_id.as_deref(),
+        Some(principal_b.as_str())
+    );
+
+    let (cva, _) = host.into_cva_and_phylactery().unwrap();
+    drop(cva);
+    let mut reopened = Cva::open_project(rel_path).unwrap();
+    let turns = reopened.conversation_turns("live", "u2").unwrap();
+    assert_eq!(turns[0].principal_id.as_deref(), Some(principal_a.as_str()));
+    assert_eq!(turns[1].principal_id.as_deref(), Some(principal_a.as_str()));
+    assert_eq!(turns[2].principal_id.as_deref(), Some(principal_b.as_str()));
+}
+
+#[test]
 fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
     let mut cva = Cva::create_project(test_path("routed.prj.rel")).unwrap();
     queue_memory_episode(&mut cva);

@@ -80,6 +80,7 @@ impl Archive {
         Ok(ResolvedTurn {
             node_id: node.id,
             role: node.role,
+            principal_id: node.principal_id,
             timestamp_ns: node.timestamp_ns,
             content: self.content(container, node.content_id)?,
         })

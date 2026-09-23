@@ -15,6 +15,9 @@ impl Archive {
         validate_text(&incoming.id, "node id")?;
         validate_text(&incoming.conversation_id, "conversation id")?;
         validate_text(&incoming.role, "role")?;
+        if let Some(principal_id) = incoming.principal_id.as_deref() {
+            validate_text(principal_id, "principal id")?;
+        }
         self.validate_parent(&incoming.conversation_id, incoming.parent_id.as_deref())?;
 
         let node = Node {
@@ -22,6 +25,7 @@ impl Archive {
             conversation_id: incoming.conversation_id,
             parent_id: incoming.parent_id,
             role: incoming.role,
+            principal_id: incoming.principal_id,
             timestamp_ns: incoming.timestamp_ns,
             content_id: hash_content(incoming.content.as_bytes()),
         };

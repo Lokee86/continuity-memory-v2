@@ -237,14 +237,16 @@ N bytes   arbitrary content bytes
 ```
 Node:
 ```text
-8 bytes   "CVANODE1"
+8 bytes   "CVANODE2"
 i64       timestamp_ns
 32 bytes  ContentId
 string    node ID
 string    conversation ID
 string    parent node ID; empty = none
 string    role
+string    principal_id; empty = none
 ```
+Legacy `CVANODE1` omits `principal_id` and reopens with no principal; Reliquary never invents one during decode or reconciliation.
 Branch/session head:
 ```text
 8 bytes   "CVABRCH1"
@@ -297,13 +299,14 @@ File bytes reuse the content-addressed `CVACONT1` store. `FileId` is SHA-256 ove
 
 Native source turn with attachments:
 ```text
-8 bytes   "CVATURN1"
+8 bytes   "CVATURN2"
 i64       timestamp_ns
 32 bytes  node ContentId
 string    node ID
 string    conversation ID
 string    parent node ID; empty = none
 string    role
+string    principal_id; empty = none
 u32       attachment count
 repeated attachments:
     32 bytes  FileId
@@ -312,7 +315,7 @@ repeated attachments:
     string    filename
     string    MIME type; empty = none
 ```
-The turn body and attachment bytes are stored first as content-addressed `CVACONT1` backing objects. One versioned `CVATURN1` then publishes the source node, its attachment file manifests, and the source-to-file relationship together. An unversioned `CVATURN1` is inert. Attached files therefore require no later source-association record or importer-side repair step.
+The turn body and attachment bytes are stored first as content-addressed `CVACONT1` backing objects. One versioned `CVATURN2` then publishes the source node, its optional principal identity, attachment file manifests, and the source-to-file relationship together. Legacy `CVATURN1` omits `principal_id` and decodes it as absent. An unversioned native-turn record is inert. Attached files therefore require no later source-association record or importer-side repair step.
 
 File-to-Memory link:
 ```text
@@ -336,7 +339,7 @@ Archive versions begin at `1` and are contiguous. A semantic Archive payload wit
 
 A current `.phy` initializes and requires the persistent formats for Memories, Graph, Packed Vectors, Memory Vectors, and Compatibility Profiles, and accepts optional Ego Identity/Personality/Anchor/web-synthesis records. Community snapshots and Community-name records are optional clock-neutral chunks and appear only after their explicit maintenance/edit operations. It does not initialize or accept Archive/Episode semantics, Files/attachments, Insomnia operational/completion state, Archive Vectors, Vector Generations, or interaction-stream checkpoints as Phylactery owners.
 
-The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
+The same Memory record codec is reused, but current Phylactery validity is stricter about ownership: `source_episode_id`, `source_node_id`, `content_source_conversation_id`, `content_source_node_id`, `grounding_source_conversation_id`, and `grounding_source_node_id` must all be absent because those are same-owner REL provenance fields. A PHY Memory may instead carry optional `MemorySourceRef`, an identifier-only cross-owner provenance field containing the originating REL owner ID, optional source-turn PHY `principal_id`, Episode ID, primary source node ID, and optional authority/grounding conversation-node identities. No source body is copied into PHY, and an unavailable referenced REL does not invalidate the PHY. `source_time_ns` remains separate semantic chronology.
 
 The existing disposable lexical index indexes REL Archive Fragments and filenames, so it is not part of `.phy`. A user-Memory lexical index, if required, is a separate future derived owner/design.
 
@@ -361,7 +364,7 @@ N bytes   content UTF-8
 ```
 Memory record:
 ```text
-8 bytes   "CVAMEMR7"
+8 bytes   "CVAMEMR8"
 32 bytes  MemoryId
 u64       revision
 32 bytes  MemoryBodyId
@@ -372,6 +375,7 @@ optional  EpisodeId source_episode_id
 optional  i64 source_time_ns
 optional  MemorySourceRef source_ref
           string owner_id
+          optional string principal_id
           32 bytes EpisodeId source_episode_id
           string source_node_id
           optional string content_source_conversation_id
@@ -417,7 +421,7 @@ u64       Memory version
 u64       record chunk offset
 u64       record payload length
 ```
-Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR7`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. Successful current Insomnia processing uses the `CVAINSC5` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR7` records, their body-bound routing metadata, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
+Memory versions begin at `1` and are dense. Normal direct Memory publication may store/deduplicate a standalone body, append `CVAMEMR8`, allocate one global version, and append `CVAMEMV1`; a standalone Memory record without valid version metadata is inert. `CVAMEMR7` remains readable and its `MemorySourceRef` decodes with no `principal_id`. Successful current Insomnia processing uses the `CVAINSC5` transaction described below instead: newly required local REL Memory bodies, `CVAMEMR8` records, their body-bound routing metadata, and their contiguous global-version range become visible through the one outer completion chunk and do not emit separate body/record/version/global-ticket chunks before it. User-owned PHY Memories are separate owner publications and are referenced from the REL completion by owner-qualified `MemoryRef`, not embedded as REL Memory records.
 
 Clock-neutral Memory Entity-routing metadata may also be stored as a standalone attachment (used by PHY publication, migration, and semantic reconciliation). New writes use:
 ```text
@@ -767,7 +771,7 @@ repeated newly published records:
     u64   global version
     u64   memory version
     u32   encoded Memory-record length
-    N     complete "CVAMEMR7" record payload
+    N     complete "CVAMEMR8" record payload
 u32       embedded routing-metadata count
 repeated embedded routing metadata:
     u32   encoded routing-metadata length

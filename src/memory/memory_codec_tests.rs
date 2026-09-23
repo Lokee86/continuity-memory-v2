@@ -7,11 +7,12 @@ use crate::{
 };
 
 #[test]
-fn memory_record_v7_round_trips_source_reference_and_temporal_status() {
+fn memory_record_v8_round_trips_source_reference_principal_and_temporal_status() {
     let mut record = record("adoption");
     record.source_time_ns = Some(42);
     record.source_ref = Some(MemorySourceRef {
         owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
+        principal_id: Some("phy-00000000-0000-0000-0000-000000000002".into()),
         source_episode_id: EpisodeId([7; 32]),
         source_node_id: "u1".into(),
         content_source_conversation_id: Some("c1".into()),
@@ -44,6 +45,39 @@ fn memory_record_v7_round_trips_source_reference_and_temporal_status() {
     assert_eq!(decoded.temporal_inference, record.temporal_inference);
     assert_eq!(decoded.category, record.category);
     assert_eq!(decoded.memory_type, record.memory_type);
+}
+
+#[test]
+fn legacy_memory_record_v7_source_reference_reopens_without_principal() {
+    let mut record = record("direct");
+    record.source_ref = Some(MemorySourceRef {
+        owner_id: "rel-legacy".into(),
+        principal_id: None,
+        source_episode_id: EpisodeId([6; 32]),
+        source_node_id: "u1".into(),
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+    });
+    let mut bytes = encode_record(&record).unwrap();
+    let mut cursor = 81;
+    cursor += 1; // superseded_by = None
+    cursor += 1; // parent_id = None
+    cursor += 1; // source_episode_id = None
+    cursor += 1; // source_time_ns = None
+    assert_eq!(bytes[cursor], 1); // source_ref = Some
+    cursor += 1;
+    skip_string(&bytes, &mut cursor); // source_ref.owner_id
+    assert_eq!(bytes[cursor], 0); // V8 principal_id = None
+    bytes.remove(cursor);
+    bytes[..8].copy_from_slice(b"CVAMEMR7");
+
+    let decoded = decode_record(&bytes).unwrap().unwrap();
+    let source_ref = decoded.source_ref.unwrap();
+    assert_eq!(source_ref.owner_id, "rel-legacy");
+    assert_eq!(source_ref.principal_id, None);
+    assert_eq!(source_ref.source_node_id, "u1");
 }
 
 #[test]
@@ -111,7 +145,7 @@ fn legacy_v3_bytes(record: &MemoryRecord) -> Vec<u8> {
 fn legacy_v5_bytes(record: &MemoryRecord) -> Vec<u8> {
     assert_eq!(record.source_ref, None);
     let mut bytes = encode_record(record).unwrap();
-    assert_eq!(bytes.pop(), Some(0)); // V7 optional temporal inference flag.
+    assert_eq!(bytes.pop(), Some(0)); // V8 optional temporal inference flag.
     let mut cursor = 102 + usize::from(record.source_time_ns.is_some()) * 8;
     skip_string(&bytes, &mut cursor); // category
     skip_string(&bytes, &mut cursor); // memory type

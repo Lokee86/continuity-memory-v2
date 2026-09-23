@@ -13,6 +13,7 @@ pub struct IncomingTurn {
     pub conversation_id: String,
     pub parent_id: Option<String>,
     pub role: String,
+    pub principal_id: Option<String>,
     pub timestamp_ns: i64,
     pub content: String,
     pub attachments: Vec<IncomingAttachment>,

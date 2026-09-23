@@ -68,6 +68,7 @@ fn source_reference_survives_metadata_revision_and_reopen() {
     let mut phy = Phylactery::create(&path).unwrap();
     let source_ref = MemorySourceRef {
         owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
+        principal_id: None,
         source_episode_id: EpisodeId([9; 32]),
         source_node_id: "u1".into(),
         content_source_conversation_id: None,
@@ -109,6 +110,7 @@ fn temporal_status_backfill_preserves_phy_source_reference() {
     let mut phy = Phylactery::create(&path).unwrap();
     let source_ref = MemorySourceRef {
         owner_id: "rel-00000000-0000-0000-0000-000000000001".into(),
+        principal_id: None,
         source_episode_id: EpisodeId([8; 32]),
         source_node_id: "u1".into(),
         content_source_conversation_id: None,

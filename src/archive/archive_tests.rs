@@ -1,4 +1,4 @@
-use crate::archive_codec::encode_node;
+use crate::archive_codec::{ArchiveRecord, decode_record, encode_node};
 use crate::archive_store::hash_content;
 use crate::{ArchiveError, Branch, Cva, Node};
 use std::fs;
@@ -142,6 +142,48 @@ fn identical_node_append_is_idempotent() {
 }
 
 #[test]
+fn principal_id_round_trips_and_legacy_node_decodes_without_one() {
+    let path = test_path();
+    let principal = "phy-00000000-0000-0000-0000-000000000001".to_owned();
+    let mut archive = Cva::create(&path).unwrap();
+    let node = archive
+        .append_node_with_principal(
+            "n1".into(),
+            "c1".into(),
+            None,
+            "user".into(),
+            Some(principal.clone()),
+            1,
+            "hello",
+        )
+        .unwrap();
+    assert_eq!(node.principal_id.as_deref(), Some(principal.as_str()));
+    archive.sync().unwrap();
+    drop(archive);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    let turns = reopened.conversation_turns("c1", "n1").unwrap();
+    assert_eq!(turns[0].principal_id.as_deref(), Some(principal.as_str()));
+
+    let legacy = Node {
+        id: "legacy".into(),
+        conversation_id: "legacy-c".into(),
+        parent_id: None,
+        role: "user".into(),
+        principal_id: None,
+        timestamp_ns: 2,
+        content_id: node.content_id,
+    };
+    let mut bytes = encode_node(&legacy).unwrap();
+    bytes[..8].copy_from_slice(b"CVANODE1");
+    bytes.truncate(bytes.len() - 4);
+    let ArchiveRecord::Node(decoded) = decode_record(&bytes).unwrap() else {
+        panic!("legacy node did not decode as a node");
+    };
+    assert_eq!(decoded.principal_id, None);
+}
+
+#[test]
 fn unversioned_semantic_record_is_inert_on_reopen() {
     let path = test_path();
     let mut archive = Cva::create(&path).unwrap();
@@ -153,6 +195,7 @@ fn unversioned_semantic_record_is_inert_on_reopen() {
         conversation_id: "c1".into(),
         parent_id: Some("n1".into()),
         role: "assistant".into(),
+        principal_id: None,
         timestamp_ns: 2,
         content_id: first.content_id,
     };

@@ -32,12 +32,16 @@ impl Archive {
         conversation_id: String,
         parent_id: Option<String>,
         role: String,
+        principal_id: Option<String>,
         timestamp_ns: i64,
         content: &str,
     ) -> Result<Node, ArchiveError> {
         validate_text(&id, "node id")?;
         validate_text(&conversation_id, "conversation id")?;
         validate_text(&role, "role")?;
+        if let Some(principal_id) = principal_id.as_deref() {
+            validate_text(principal_id, "principal id")?;
+        }
         self.validate_parent(&conversation_id, parent_id.as_deref())?;
 
         let content_id = hash_content(content.as_bytes());
@@ -46,6 +50,7 @@ impl Archive {
             conversation_id,
             parent_id,
             role,
+            principal_id,
             timestamp_ns,
             content_id,
         };
@@ -110,6 +115,7 @@ impl Archive {
                 Ok(ResolvedTurn {
                     node_id: node.id,
                     role: node.role,
+                    principal_id: node.principal_id,
                     timestamp_ns: node.timestamp_ns,
                     content,
                 })

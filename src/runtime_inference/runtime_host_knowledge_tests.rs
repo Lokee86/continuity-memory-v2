@@ -115,6 +115,7 @@ fn phylactery_replacement_preserves_external_source_reference() {
     let mut phy = Phylactery::create(test_path("knowledge-source.phy")).unwrap();
     let source_ref = MemorySourceRef {
         owner_id: "rel-source".into(),
+        principal_id: None,
         source_episode_id: EpisodeId([7; 32]),
         source_node_id: "u1".into(),
         content_source_conversation_id: None,

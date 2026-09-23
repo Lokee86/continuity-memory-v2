@@ -168,6 +168,7 @@ impl InteractionRuntime {
                 ResolvedInteractionTurn {
                     message_id: turn.node_id,
                     role: turn.role,
+                    principal_id: turn.principal_id,
                     timestamp_ns: turn.timestamp_ns,
                     content: turn.content,
                     attachments,
@@ -209,8 +210,14 @@ impl InteractionRuntime {
                 _ => InteractionTurnStatus::Interrupted,
             };
             transcript.push(ResolvedInteractionTurn {
-                message_id: record.message_id,
+                message_id: record.message_id.clone(),
                 role: record.role.archive_role().into(),
+                principal_id: self
+                    .sessions
+                    .get(conversation_id)
+                    .and_then(|state| state.in_flight.as_ref())
+                    .filter(|message| message.message_id == record.message_id)
+                    .and_then(|message| message.principal_id.clone()),
                 timestamp_ns: record.timestamp_ns,
                 content: record.content,
                 attachments: Vec::new(),

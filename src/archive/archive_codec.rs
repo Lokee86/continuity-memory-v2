@@ -3,14 +3,17 @@ use crate::conversation_metadata_codec::{
 };
 use crate::episode_codec::{EPISODE_MAGIC, decode_episode};
 use crate::file_memory_link_codec::{FILE_MEMORY_LINK_MAGIC, decode_file_memory_link};
-use crate::turn_ingest_codec::{INGESTED_TURN_MAGIC, decode_ingested_turn};
+use crate::turn_ingest_codec::{
+    INGESTED_TURN_MAGIC, LEGACY_INGESTED_TURN_MAGIC, decode_ingested_turn,
+};
 use crate::{
     ArchiveError, Branch, ContentId, ConversationMetadata, Episode, FileId, FileMemoryLink,
     Fragment, FragmentId, IngestedTurn, Node, StoredFile,
 };
 
 const CONTENT_MAGIC: [u8; 8] = *b"CVACONT1";
-const NODE_MAGIC: [u8; 8] = *b"CVANODE1";
+const LEGACY_NODE_MAGIC: [u8; 8] = *b"CVANODE1";
+const NODE_MAGIC: [u8; 8] = *b"CVANODE2";
 const BRANCH_MAGIC: [u8; 8] = *b"CVABRCH1";
 const FRAGMENT_MAGIC: [u8; 8] = *b"CVAFRAG1";
 const FILE_MAGIC: [u8; 8] = *b"CVAFILE1";
@@ -47,6 +50,7 @@ pub fn encode_node(node: &Node) -> Result<Vec<u8>, ArchiveError> {
     write_string(&mut out, &node.conversation_id)?;
     write_string(&mut out, node.parent_id.as_deref().unwrap_or(""))?;
     write_string(&mut out, &node.role)?;
+    write_string(&mut out, node.principal_id.as_deref().unwrap_or(""))?;
     Ok(out)
 }
 
@@ -102,7 +106,7 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes[..8] == CONTENT_MAGIC {
         return decode_content(bytes);
     }
-    if bytes[..8] == NODE_MAGIC {
+    if bytes[..8] == NODE_MAGIC || bytes[..8] == LEGACY_NODE_MAGIC {
         return decode_node(bytes);
     }
     if bytes[..8] == BRANCH_MAGIC {
@@ -118,7 +122,7 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes[..8] == FILE_MAGIC {
         return decode_file(bytes);
     }
-    if bytes[..8] == INGESTED_TURN_MAGIC {
+    if bytes[..8] == INGESTED_TURN_MAGIC || bytes[..8] == LEGACY_INGESTED_TURN_MAGIC {
         return decode_ingested_turn(bytes).map(ArchiveRecord::IngestedTurn);
     }
     if bytes[..8] == FILE_MEMORY_LINK_MAGIC {
@@ -158,12 +162,19 @@ fn decode_node(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     let conversation_id = read_string(bytes, &mut cursor)?;
     let parent = read_string(bytes, &mut cursor)?;
     let role = read_string(bytes, &mut cursor)?;
+    let principal_id = if bytes[..8] == NODE_MAGIC {
+        let principal = read_string(bytes, &mut cursor)?;
+        (!principal.is_empty()).then_some(principal)
+    } else {
+        None
+    };
     require_end(bytes, cursor)?;
     Ok(ArchiveRecord::Node(Node {
         id,
         conversation_id,
         parent_id: (!parent.is_empty()).then_some(parent),
         role,
+        principal_id,
         timestamp_ns,
         content_id,
     }))

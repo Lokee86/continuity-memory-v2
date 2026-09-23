@@ -43,6 +43,7 @@ fn ingest_file(cva: &mut Cva) -> FileId {
         conversation_id: "conversation-1".into(),
         parent_id: None,
         role: "user".into(),
+        principal_id: None,
         timestamp_ns: 1,
         content: "attached".into(),
         attachments: vec![IncomingAttachment {

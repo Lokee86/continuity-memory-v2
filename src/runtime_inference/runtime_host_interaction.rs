@@ -321,9 +321,16 @@ impl ReliquaryRuntimeHost {
         role: InteractionRole,
         timestamp_ns: i64,
     ) -> Result<(), ReliquaryRuntimeHostError> {
+        let principal_id = self.phylactery_owner_id()?;
         self.with_runtime(|runtime| {
             runtime
-                .begin_message(session_id, message_id, role, timestamp_ns)
+                .begin_message_with_principal(
+                    session_id,
+                    message_id,
+                    role,
+                    principal_id,
+                    timestamp_ns,
+                )
                 .map_err(operation)
         })
     }

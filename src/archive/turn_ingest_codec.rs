@@ -1,6 +1,7 @@
 use crate::{ArchiveError, ContentId, FileId, IngestedTurn, Node, StoredFile};
 
-pub(crate) const INGESTED_TURN_MAGIC: [u8; 8] = *b"CVATURN1";
+pub(crate) const LEGACY_INGESTED_TURN_MAGIC: [u8; 8] = *b"CVATURN1";
+pub(crate) const INGESTED_TURN_MAGIC: [u8; 8] = *b"CVATURN2";
 
 pub(crate) fn encode_ingested_turn(turn: &IngestedTurn) -> Result<Vec<u8>, ArchiveError> {
     let count = u32::try_from(turn.attachments.len()).map_err(|_| ArchiveError::FieldTooLarge)?;
@@ -12,6 +13,7 @@ pub(crate) fn encode_ingested_turn(turn: &IngestedTurn) -> Result<Vec<u8>, Archi
     write_string(&mut out, &turn.node.conversation_id)?;
     write_string(&mut out, turn.node.parent_id.as_deref().unwrap_or(""))?;
     write_string(&mut out, &turn.node.role)?;
+    write_string(&mut out, turn.node.principal_id.as_deref().unwrap_or(""))?;
     out.extend_from_slice(&count.to_le_bytes());
     for file in &turn.attachments {
         out.extend_from_slice(&file.id.0);
@@ -34,6 +36,12 @@ pub(crate) fn decode_ingested_turn(bytes: &[u8]) -> Result<IngestedTurn, Archive
     let conversation_id = read_string(bytes, &mut cursor)?;
     let parent = read_string(bytes, &mut cursor)?;
     let role = read_string(bytes, &mut cursor)?;
+    let principal_id = if bytes[..8] == INGESTED_TURN_MAGIC {
+        let principal = read_string(bytes, &mut cursor)?;
+        (!principal.is_empty()).then_some(principal)
+    } else {
+        None
+    };
     let count = read_u32(bytes, &mut cursor)? as usize;
     let mut attachments = Vec::with_capacity(count);
     for _ in 0..count {
@@ -64,6 +72,7 @@ pub(crate) fn decode_ingested_turn(bytes: &[u8]) -> Result<IngestedTurn, Archive
             conversation_id,
             parent_id: (!parent.is_empty()).then_some(parent),
             role,
+            principal_id,
             timestamp_ns,
             content_id,
         },

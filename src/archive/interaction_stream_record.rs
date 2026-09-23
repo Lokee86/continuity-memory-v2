@@ -28,6 +28,7 @@ pub enum InteractionTurnStatus {
 pub struct ResolvedInteractionTurn {
     pub message_id: String,
     pub role: String,
+    pub principal_id: Option<String>,
     pub timestamp_ns: i64,
     pub content: String,
     pub attachments: Vec<StoredFile>,

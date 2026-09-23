@@ -62,6 +62,7 @@ impl Archive {
             turns.push(crate::ResolvedTurn {
                 node_id: node.id.clone(),
                 role: node.role.clone(),
+                principal_id: node.principal_id.clone(),
                 timestamp_ns: node.timestamp_ns,
                 content: self.content(container, node.content_id)?,
             });

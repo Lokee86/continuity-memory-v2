@@ -7,6 +7,7 @@ pub struct Node {
     pub conversation_id: String,
     pub parent_id: Option<String>,
     pub role: String,
+    pub principal_id: Option<String>,
     pub timestamp_ns: i64,
     pub content_id: ContentId,
 }
@@ -23,6 +24,7 @@ pub struct Branch {
 pub struct ResolvedTurn {
     pub node_id: String,
     pub role: String,
+    pub principal_id: Option<String>,
     pub timestamp_ns: i64,
     pub content: String,
 }

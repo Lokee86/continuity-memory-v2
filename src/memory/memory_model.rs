@@ -14,6 +14,7 @@ pub struct MemoryRef {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct MemorySourceRef {
     pub owner_id: String,
+    pub principal_id: Option<String>,
     pub source_episode_id: EpisodeId,
     pub source_node_id: String,
     pub content_source_conversation_id: Option<String>,

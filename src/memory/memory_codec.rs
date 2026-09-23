@@ -12,6 +12,7 @@ const RECORD_MAGIC_V4: [u8; 8] = *b"CVAMEMR4";
 const RECORD_MAGIC_V5: [u8; 8] = *b"CVAMEMR5";
 const RECORD_MAGIC_V6: [u8; 8] = *b"CVAMEMR6";
 const RECORD_MAGIC_V7: [u8; 8] = *b"CVAMEMR7";
+const RECORD_MAGIC_V8: [u8; 8] = *b"CVAMEMR8";
 const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 
 pub(crate) struct MemoryVersion {
@@ -64,7 +65,7 @@ pub(crate) fn decode_body(bytes: &[u8]) -> Result<Option<(MemoryBodyId, Vec<u8>)
 
 pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryError> {
     let mut out = Vec::with_capacity(256);
-    out.extend_from_slice(&RECORD_MAGIC_V7);
+    out.extend_from_slice(&RECORD_MAGIC_V8);
     out.extend_from_slice(&record.id.0);
     out.extend_from_slice(&record.revision.to_le_bytes());
     out.extend_from_slice(&record.body_id.0);
@@ -96,7 +97,9 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     if bytes.len() < 8 {
         return Ok(None);
     }
-    let version = if bytes[..8] == RECORD_MAGIC_V7 {
+    let version = if bytes[..8] == RECORD_MAGIC_V8 {
+        8
+    } else if bytes[..8] == RECORD_MAGIC_V7 {
         7
     } else if bytes[..8] == RECORD_MAGIC_V6 {
         6
@@ -132,7 +135,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
         None
     };
     let source_ref = if version >= 5 {
-        read_optional_source_ref(bytes, &mut cursor)?
+        read_optional_source_ref(bytes, &mut cursor, version >= 8)?
     } else {
         None
     };
@@ -274,7 +277,13 @@ fn write_optional_source_ref(
         out.push(0);
         return Ok(());
     };
-    if value.owner_id.trim().is_empty() || value.source_node_id.trim().is_empty() {
+    if value.owner_id.trim().is_empty()
+        || value.source_node_id.trim().is_empty()
+        || value
+            .principal_id
+            .as_deref()
+            .is_some_and(|principal_id| principal_id.trim().is_empty())
+    {
         return Err(MemoryError::InvalidProvenance);
     }
     validate_optional_pair(
@@ -287,6 +296,7 @@ fn write_optional_source_ref(
     )?;
     out.push(1);
     write_string(out, &value.owner_id)?;
+    write_optional_string(out, value.principal_id.as_deref())?;
     out.extend_from_slice(&value.source_episode_id.0);
     write_string(out, &value.source_node_id)?;
     write_optional_string(out, value.content_source_conversation_id.as_deref())?;
@@ -299,6 +309,7 @@ fn write_optional_source_ref(
 fn read_optional_source_ref(
     bytes: &[u8],
     cursor: &mut usize,
+    has_principal_id: bool,
 ) -> Result<Option<MemorySourceRef>, MemoryError> {
     let flag = *bytes.get(*cursor).ok_or(MemoryError::CorruptRecord(
         "missing optional source ref flag",
@@ -308,6 +319,11 @@ fn read_optional_source_ref(
         0 => Ok(None),
         1 => {
             let owner_id = read_string(bytes, cursor)?;
+            let principal_id = if has_principal_id {
+                read_optional_string(bytes, cursor)?
+            } else {
+                None
+            };
             let episode_end = cursor.checked_add(32).ok_or(MemoryError::FieldTooLarge)?;
             let episode_raw = bytes
                 .get(*cursor..episode_end)
@@ -320,7 +336,12 @@ fn read_optional_source_ref(
             let content_source_node_id = read_optional_string(bytes, cursor)?;
             let grounding_source_conversation_id = read_optional_string(bytes, cursor)?;
             let grounding_source_node_id = read_optional_string(bytes, cursor)?;
-            if owner_id.trim().is_empty() || source_node_id.trim().is_empty() {
+            if owner_id.trim().is_empty()
+                || source_node_id.trim().is_empty()
+                || principal_id
+                    .as_deref()
+                    .is_some_and(|principal_id| principal_id.trim().is_empty())
+            {
                 return Err(MemoryError::CorruptRecord("invalid source ref"));
             }
             validate_optional_pair(
@@ -333,6 +354,7 @@ fn read_optional_source_ref(
             )?;
             Ok(Some(MemorySourceRef {
                 owner_id,
+                principal_id,
                 source_episode_id: crate::EpisodeId(episode_raw.try_into().unwrap()),
                 source_node_id,
                 content_source_conversation_id,

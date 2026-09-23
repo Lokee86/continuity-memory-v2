@@ -6,23 +6,27 @@ use crate::{
 };
 use serde_json::{Value, json};
 
+const SOURCE_PRINCIPAL: &str = "phy-00000000-0000-0000-0000-000000000123";
+
 fn setup(name: &str) -> (Cva, crate::Episode) {
     let path = test_path(name);
     let mut cva = Cva::create(path).unwrap();
-    cva.append_node(
+    cva.append_node_with_principal(
         "u0".into(),
         "c1".into(),
         None,
         "user".into(),
+        Some(SOURCE_PRINCIPAL.into()),
         10,
         "I prefer concise answers.",
     )
     .unwrap();
-    cva.append_node(
+    cva.append_node_with_principal(
         "a0".into(),
         "c1".into(),
         Some("u0".into()),
         "assistant".into(),
+        Some(SOURCE_PRINCIPAL.into()),
         20,
         "Noted.",
     )
@@ -105,6 +109,7 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     assert_eq!(memory.source_time_ns, Some(10));
     let source_ref = memory.source_ref.as_ref().unwrap();
     assert_eq!(source_ref.owner_id, source_owner);
+    assert_eq!(source_ref.principal_id.as_deref(), Some(SOURCE_PRINCIPAL));
     assert_eq!(source_ref.source_episode_id, episode.id);
     assert_eq!(source_ref.source_node_id, "u0");
     assert!(source_ref.content_source_conversation_id.is_none());
@@ -124,6 +129,7 @@ fn routed_user_memory_uses_owner_qualified_receipt_and_no_rel_provenance() {
     assert_eq!(reopened_memory.source_time_ns, Some(10));
     let reopened_ref = reopened_memory.source_ref.unwrap();
     assert_eq!(reopened_ref.owner_id, source_owner);
+    assert_eq!(reopened_ref.principal_id.as_deref(), Some(SOURCE_PRINCIPAL));
     assert_eq!(reopened_ref.source_episode_id, episode.id);
     assert_eq!(reopened_ref.source_node_id, "u0");
 }
@@ -173,6 +179,7 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
             },
             MemorySourceRef {
                 owner_id: source_owner,
+                principal_id: Some(SOURCE_PRINCIPAL.into()),
                 source_episode_id: episode.id,
                 source_node_id: candidate.source_node_id.clone(),
                 content_source_conversation_id: candidate.authority_source_conversation_id.clone(),
