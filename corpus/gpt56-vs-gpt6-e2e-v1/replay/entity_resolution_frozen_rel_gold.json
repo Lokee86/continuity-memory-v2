@@ -1,0 +1,44 @@
+{
+  "frozen-001": {
+    "expected_decision": "resolve_existing",
+    "expected_entity_id": "go-language",
+    "category": "technology",
+    "source_memory_id": "be03db12d6e17d559bc4dfb8b647570c06032ea651615abba2625c36001ef93d"
+  },
+  "frozen-002": {
+    "expected_decision": "resolve_existing",
+    "expected_entity_id": "go-language",
+    "category": "technology",
+    "source_memory_id": "f05fa488483cefa39fa76a4f0359bb2e271dbb94dc5999961507958bb0c3c592"
+  },
+  "frozen-003": {
+    "expected_decision": "resolve_existing",
+    "expected_entity_id": "go-language",
+    "category": "technology",
+    "source_memory_id": "35a41e477a1c0779559569c18518f8b48e7ed4a1ef0e5f260194dd25f96ccd71"
+  },
+  "frozen-038": {
+    "expected_decision": "unresolved",
+    "expected_entity_id": null,
+    "category": "real_ambiguous",
+    "source_memory_id": "73443b972e71fa584d778cbe92a8894146bd2fc5a76d3e86e82cc29d09c9d5fa"
+  },
+  "frozen-039": {
+    "expected_decision": "create_new",
+    "expected_entity_id": null,
+    "category": "real_create_new",
+    "source_memory_id": "4dab4804610a019a7ab98f25ed7cecea6c1851fa268f8d1a10b46b7310612ff1"
+  },
+  "frozen-040": {
+    "expected_decision": "reject",
+    "expected_entity_id": null,
+    "category": "upstream_extraction_split",
+    "source_memory_id": "f66ea98358029d71504444cf48e39fbf7ee111f869c68222c3f5eb9082209da7"
+  },
+  "frozen-041": {
+    "expected_decision": "reject",
+    "expected_entity_id": null,
+    "category": "real_reject",
+    "source_memory_id": "11282fa93a6216f838435353c089287250dac8e87b488e1f89f7cb6a9e5c1bfe"
+  }
+}

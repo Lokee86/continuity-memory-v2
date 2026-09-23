@@ -1,0 +1,34 @@
+{
+  "groups": {
+    "g000": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g001": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g003": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g004": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g005": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    }
+  }
+}

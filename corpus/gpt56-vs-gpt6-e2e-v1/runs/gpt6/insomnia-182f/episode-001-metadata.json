@@ -1,0 +1,19 @@
+{
+  "groups": {
+    "g000": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g001": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    }
+  }
+}

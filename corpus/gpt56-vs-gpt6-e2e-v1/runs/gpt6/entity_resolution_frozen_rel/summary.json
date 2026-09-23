@@ -1,0 +1,24 @@
+{
+  "calls": 12,
+  "candidate_count_average": 1.0,
+  "candidate_count_total": 7,
+  "consensus_decision_distribution": {
+    "create_new": 2,
+    "reject": 1,
+    "resolve_existing": 3,
+    "unresolved": 1
+  },
+  "errors": 0,
+  "model": "gpt-6-sol",
+  "non_invariant_count": 0,
+  "order_invariant_count": 7,
+  "order_invariant_rate": 1.0,
+  "permutation_decision_distribution": {
+    "create_new": 2,
+    "reject": 1,
+    "resolve_existing": 3,
+    "unresolved": 6
+  },
+  "queries": 7,
+  "reasoning_effort": "low"
+}

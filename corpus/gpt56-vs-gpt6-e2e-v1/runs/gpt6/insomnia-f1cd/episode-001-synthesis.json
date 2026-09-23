@@ -1,0 +1,32 @@
+{
+  "groups": {
+    "g000": {
+      "content": "Working repositories belong at C:\\!bin\\workspace, not in the D: workspace.",
+      "title": "Working repository location correction"
+    },
+    "g001": {
+      "content": "Repositories should be at C:\\!bin\\workspace for speed, not deeper on D:.",
+      "title": "Repository location"
+    },
+    "g002": {
+      "content": "They will no longer work on D:.",
+      "title": "No further work on D:"
+    },
+    "g003": {
+      "content": "Cleanup must preserve backups and must not indiscriminately remove everything.",
+      "title": "Cleanup limits"
+    },
+    "g004": {
+      "content": "C:\\ workspace should contain only the originally cloned projects and things added for corpus work.",
+      "title": "C:\\ workspace contents"
+    },
+    "g005": {
+      "content": "The user's source assets were deleted during cleanup.",
+      "title": "Deleted source assets"
+    },
+    "g006": {
+      "content": "The user prefers slower, smaller troubleshooting instructions.",
+      "title": "Troubleshooting pace"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "episodes": 1,
+  "memories": 6,
+  "metadata_model": "gpt-6-luna",
+  "model": "gpt-6-sol",
+  "reasoning_effort": "low",
+  "semantic_model": "gpt-6-sol",
+  "synthesis_model": "gpt-6-sol",
+  "workers": 1
+}

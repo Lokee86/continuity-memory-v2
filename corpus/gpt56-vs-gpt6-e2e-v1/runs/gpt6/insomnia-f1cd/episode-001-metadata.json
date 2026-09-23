@@ -1,0 +1,39 @@
+{
+  "groups": {
+    "g000": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g001": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g002": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "employment"
+    },
+    "g003": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "process"
+    },
+    "g004": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g005": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "possession"
+    },
+    "g006": {
+      "category": "preference",
+      "lifecycle": "current",
+      "type": "communication"
+    }
+  }
+}

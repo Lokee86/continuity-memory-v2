@@ -1,0 +1,137 @@
+{
+  "accuracy": 0.5,
+  "cases": 10,
+  "context_note": "Replayed from collated Memory title/content; unavailable historical auxiliary context omitted.",
+  "correct": 5,
+  "model": "gpt-6-luna",
+  "results": [
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-010",
+      "matched": true,
+      "raw": {
+        "direction": "a_to_b",
+        "evidence": [
+          {
+            "quote": "GDScript input packet",
+            "side": "a"
+          },
+          {
+            "quote": "Packet migration requires a separate, stricter compatibility-preserving track rather than the prototype simple packet generator.",
+            "side": "b"
+          }
+        ],
+        "relation": "factual"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-021",
+      "matched": true,
+      "raw": {
+        "direction": "undirected",
+        "evidence": [
+          {
+            "quote": "WebSocket connection established",
+            "side": "a"
+          },
+          {
+            "quote": "Current implementation status",
+            "side": "b"
+          }
+        ],
+        "relation": "topical"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "related",
+      "id": "web-023",
+      "matched": false,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "related",
+      "id": "web-032",
+      "matched": false,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "related",
+      "id": "web-034",
+      "matched": false,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "related",
+      "id": "web-029",
+      "matched": false,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "unrelated",
+      "id": "web-019",
+      "matched": true,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "unrelated",
+      "id": "web-038",
+      "matched": true,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "unrelated",
+      "id": "web-039",
+      "matched": true,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "related",
+      "id": "web-031",
+      "matched": false,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    }
+  ]
+}

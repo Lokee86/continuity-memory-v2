@@ -1,0 +1,77 @@
+{
+  "format": "gpt56-vs-gpt6-e2e-v1-comparison",
+  "status": "completed_with_dream_context_limitation",
+  "headline": "GPT-6 is not a clean drop-in replacement for the calibrated GPT-5.6 Sol/Luna mix.",
+  "stages": {
+    "insomnia": {
+      "gpt5_6": {
+        "semantic_audit_acceptable": 19,
+        "semantic_audit_total": 30,
+        "note": "10 selected cases across three historical runs: 13 correct, 6 correct_omit, 8 missing, 2 incomplete, 1 over_expanded."
+      },
+      "gpt6": {
+        "anchor_fidelity": "100%",
+        "state_coverage": "100%",
+        "omit_cleanliness": "100%",
+        "authority": "100%",
+        "grounding": "87.5%",
+        "metadata": "75%",
+        "guards": "100%"
+      },
+      "assessment": "promising_but_not_directly_equivalent",
+      "note": "GPT-6 one-run mechanical scoring is strong; semantic_target equivalence remains manual/model-judged. Two metadata misses and one grounding miss."
+    },
+    "entity_extraction": {
+      "gpt5_6": {"exact":"6/10","precision":0.8378378378,"recall":0.8857142857,"f1":0.8611111111},
+      "gpt6": {"exact":"6/10","precision":0.8484848485,"recall":0.8,"f1":0.8235294118},
+      "assessment": "gpt6_lower_recall_and_f1"
+    },
+    "entity_admission": {
+      "gpt5_6": {"correct":"8/8"},
+      "gpt6": {"correct":"7/8","miss":"presenter: create_new -> unresolved (recurrence_required)"},
+      "assessment": "gpt6_regression"
+    },
+    "entity_disambiguation": {
+      "gpt5_6": {"correct":"6/6"},
+      "gpt6": {"correct":"6/6"},
+      "assessment": "tie"
+    },
+    "entity_resolution": {
+      "gpt5_6": {"correct":"9/10","misses":["zero_candidate:frozen-038"]},
+      "gpt6": {"correct":"8/10","misses":["frozen_rel:frozen-040","zero_candidate:frozen-038"],"order_invariant":"10/10"},
+      "assessment": "gpt6_regression"
+    },
+    "chronos": {
+      "gpt5_6": {
+        "selected_state": "6/8 required inference and remained unresolved in the preserved final pre-GPT-6 snapshot",
+        "raw_call_outputs_preserved": false
+      },
+      "gpt6": {"inference_cases":6,"valid_verified_resolutions":1,"invalid_output_errors":5},
+      "assessment": "gpt6_contract_blocker",
+      "note": "Five GPT-6 outputs failed Chronos deterministic canonical-expression verification. This is a drop-in compatibility failure even though one Saturday resolution verified."
+    },
+    "dream": {
+      "gpt5_6": {"exact_pair_gate_runs":["37/40","39/40","38/40"],"population_gate":"96/98","model":"gpt-5.6-luna/low"},
+      "gpt6": {"selected_text_pair_proxy":"5/10","related":"2/7","unrelated":"3/3","model":"gpt-6-luna/low"},
+      "assessment": "concerning_but_not_apples_to_apples",
+      "note": "Historical per-case Luna outputs/full baseline CVA are absent, and selected old Memory IDs are not present in saved v9 REL/PHY. GPT-6 proxy used the collated title/content pairs only."
+    }
+  },
+  "overall": {
+    "decision_signal": "do_not_wholesale_switch_yet",
+    "strongest_gpt6_area": "entity disambiguation; Insomnia mechanical behavior also strong",
+    "blocking_or_regressed": [
+      "Chronos verifier compatibility",
+      "Entity admission",
+      "Entity final resolution",
+      "Entity extraction recall/F1"
+    ],
+    "dream": "needs a reproducible full-context fixture before using it as a decisive model-family comparison"
+  },
+  "supplemental_existing_calibration": {
+    "entity_extraction_v2": "5.6 F1 0.8750 vs 6 F1 0.8526",
+    "entity_admission_v3": "5.6 24/24 vs 6 20/24",
+    "entity_disambiguation_51": "5.6 immediate 45/51 vs 6 immediate 48/51; both preserved 51/51",
+    "frozen_rel_41": "5.6 41/41 vs 6 40/41"
+  }
+}

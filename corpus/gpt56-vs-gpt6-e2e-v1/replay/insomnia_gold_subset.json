@@ -1,0 +1,285 @@
+{
+  "version": "gpt56-vs-gpt6-e2e-v1-insomnia",
+  "cases": [
+    {
+      "id": "concise-responses",
+      "episode_id": "f15e06bbdcebf08f3686fe8d22838bad1599becf7b1c5ae7bd53b04602f051a4",
+      "source_node_id": "eb1bee5b-1660-4270-bebd-0178c457f1da",
+      "source_excerpt": "need you to be a little more concise unless specifically asked for more detail",
+      "retain": true,
+      "authority_kind": "direct",
+      "acceptable_categories": [
+        "preference",
+        "instruction"
+      ],
+      "acceptable_types": [
+        "communication"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "Keep responses concise by default unless more detail is requested or genuinely warranted.",
+      "forbidden_content": [],
+      "notes": "",
+      "authority_source": "forbidden",
+      "grounding_source": "forbidden",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "eb1bee5b-1660-4270-bebd-0178c457f1da",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "trades-experience",
+      "episode_id": "f15e06bbdcebf08f3686fe8d22838bad1599becf7b1c5ae7bd53b04602f051a4",
+      "source_node_id": "8fba82a8-9644-42f8-a735-f6122b8d259b",
+      "source_excerpt": "20 years in the trades will do that",
+      "retain": true,
+      "authority_kind": "direct",
+      "acceptable_categories": [
+        "fact"
+      ],
+      "acceptable_types": [
+        "employment",
+        "identity"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "The user has about 20 years of experience in the trades.",
+      "forbidden_content": [],
+      "notes": "",
+      "authority_source": "forbidden",
+      "grounding_source": "forbidden",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "8fba82a8-9644-42f8-a735-f6122b8d259b",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "creatureserver-mothballed",
+      "episode_id": "f15e06bbdcebf08f3686fe8d22838bad1599becf7b1c5ae7bd53b04602f051a4",
+      "source_node_id": "26371051-e1bb-4b0b-8fdc-656899937736",
+      "source_excerpt": "That project has been mothballed anyway.",
+      "retain": true,
+      "authority_kind": "direct",
+      "acceptable_categories": [
+        "fact"
+      ],
+      "acceptable_types": [
+        "project"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "The creatureServer project is mothballed.",
+      "forbidden_content": [
+        "first substantial",
+        "first serious"
+      ],
+      "notes": "The user states the mothballed status; grounding only resolves \u201cthat project\u201d as creatureServer.",
+      "authority_source": "forbidden",
+      "grounding_source": "required",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "26371051-e1bb-4b0b-8fdc-656899937736",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "workspace-repository-location",
+      "episode_id": "4fa546450a5049ab1e49465e15e2150b0547df0bd0e19a6e203838cc83dc6300",
+      "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+      "source_excerpt": "repos at C:\\!bin\\workspace for the speed improvement, not deeper into D:",
+      "retain": true,
+      "authority_kind": "direct",
+      "acceptable_categories": [
+        "instruction",
+        "constraint"
+      ],
+      "acceptable_types": [
+        "location",
+        "process"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "Working repositories should live under C:\\!bin\\workspace rather than D: for the speed improvement.",
+      "forbidden_content": [],
+      "notes": "",
+      "authority_source": "forbidden",
+      "grounding_source": "forbidden",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "adopt-c-family-adapter",
+      "episode_id": "a21662c16cf9540a659980283f0fc494a315a753a9000d9dbbad994b197a49da",
+      "source_node_id": "8bb025fb-ed6d-49c2-9449-e6c1317782d2",
+      "source_excerpt": "Fuckit, add that",
+      "retain": true,
+      "authority_kind": "adoption",
+      "acceptable_categories": [
+        "decision"
+      ],
+      "acceptable_types": [
+        "project"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "Use one shared C-family Lexicon adapter with separate C/C++ parsing/normalization where needed and shared preprocessing and relationship extraction.",
+      "forbidden_content": [],
+      "notes": "",
+      "authority_source": "required",
+      "grounding_source": "forbidden",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "8bb025fb-ed6d-49c2-9449-e6c1317782d2",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "adopt-c-calibration-corpus",
+      "episode_id": "a21662c16cf9540a659980283f0fc494a315a753a9000d9dbbad994b197a49da",
+      "source_node_id": "0ef14b07-dcc9-48f0-91a6-8f547021d006",
+      "source_excerpt": "sounds good, calibrate away, you know what to do",
+      "retain": true,
+      "authority_kind": "adoption",
+      "acceptable_categories": [
+        "decision",
+        "instruction"
+      ],
+      "acceptable_types": [
+        "project",
+        "process"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "Use Git and CBM as the initial C calibration corpus, judge expected relationships rather than mere completion, and add a separate C++ corpus later.",
+      "forbidden_content": [],
+      "notes": "",
+      "authority_source": "required",
+      "grounding_source": "forbidden",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "0ef14b07-dcc9-48f0-91a6-8f547021d006",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "local-spawner-question",
+      "episode_id": "b7b6cd8b35f7575dcf09664fb5382c2dcefd3e9aac096a965d9a00736ee01eb3",
+      "source_node_id": "3f14825f-4960-4507-9a0c-e743b99cc940",
+      "source_excerpt": "say what? add local spawners and then transfer logic to the server?",
+      "retain": false,
+      "authority_kind": null,
+      "acceptable_categories": [],
+      "acceptable_types": [],
+      "receipt_policy": "none",
+      "semantic_target": null,
+      "forbidden_content": [],
+      "notes": "Interrogative proposal is not a decision.",
+      "authority_source": "not_applicable",
+      "grounding_source": "not_applicable",
+      "anchor_disposition": "omit",
+      "state_retain": false,
+      "coverage_sources": []
+    },
+    {
+      "id": "collision-authority-narrow",
+      "episode_id": "b7b6cd8b35f7575dcf09664fb5382c2dcefd3e9aac096a965d9a00736ee01eb3",
+      "source_node_id": "dea65ebd-e1fc-44bf-a38c-998dd36326bf",
+      "source_excerpt": "collision would have to be handled on the server to keep it authoritative right?",
+      "retain": true,
+      "authority_kind": "direct",
+      "acceptable_categories": [
+        "constraint",
+        "fact"
+      ],
+      "acceptable_types": [
+        "project"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "Collision handling must remain server-authoritative.",
+      "forbidden_content": [
+        "server must choose the asteroid variant",
+        "clients display the matching sprite"
+      ],
+      "notes": "Do not expand the narrow collision proposition into a full replicated-variant architecture.",
+      "authority_source": "forbidden",
+      "grounding_source": "forbidden",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "dea65ebd-e1fc-44bf-a38c-998dd36326bf",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "deleted-assets-contextual-correction",
+      "episode_id": "4fa546450a5049ab1e49465e15e2150b0547df0bd0e19a6e203838cc83dc6300",
+      "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+      "source_excerpt": "you fucking deleted them",
+      "retain": true,
+      "authority_kind": "correction",
+      "acceptable_categories": [
+        "correction"
+      ],
+      "acceptable_types": [
+        "project"
+      ],
+      "receipt_policy": "none",
+      "semantic_target": "The referenced source assets were deleted during the mistaken cleanup. More specific path/Git claims require cited supporting context.",
+      "forbidden_content": [
+        "git ignored",
+        "ignored by git",
+        "c: clone",
+        "d:\\"
+      ],
+      "notes": "The user supplies the deletion correction; grounding identifies the referenced source assets. More specific path/Git claims remain unsupported.",
+      "authority_source": "forbidden",
+      "grounding_source": "required",
+      "anchor_disposition": "retain",
+      "state_retain": true,
+      "coverage_sources": [
+        {
+          "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+          "relation": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "godot-first-question",
+      "episode_id": "b7b6cd8b35f7575dcf09664fb5382c2dcefd3e9aac096a965d9a00736ee01eb3",
+      "source_node_id": "b44fe6bb-a074-48fa-ab12-0c9189f1d5b0",
+      "source_excerpt": "I thought we were gonna do this in Godot first... now you're saying server first?",
+      "retain": false,
+      "authority_kind": null,
+      "acceptable_categories": [],
+      "acceptable_types": [],
+      "receipt_policy": "none",
+      "semantic_target": null,
+      "forbidden_content": [],
+      "notes": "This turn questions/recalls a prior plan but does not itself settle the decision.",
+      "authority_source": "not_applicable",
+      "grounding_source": "not_applicable",
+      "anchor_disposition": "omit",
+      "state_retain": false,
+      "coverage_sources": []
+    }
+  ]
+}

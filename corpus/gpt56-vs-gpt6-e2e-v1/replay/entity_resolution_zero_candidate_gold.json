@@ -1,0 +1,17 @@
+{
+  "frozen-031": {
+    "expected_decision": "create_new",
+    "expected_entity_id": null,
+    "category": "first_seen_identity"
+  },
+  "frozen-041": {
+    "expected_decision": "reject",
+    "expected_entity_id": null,
+    "category": "real_reject"
+  },
+  "frozen-038": {
+    "expected_decision": "unresolved",
+    "expected_entity_id": null,
+    "category": "real_ambiguous"
+  }
+}

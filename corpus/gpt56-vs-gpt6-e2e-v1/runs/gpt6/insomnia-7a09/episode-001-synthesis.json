@@ -1,0 +1,36 @@
+{
+  "groups": {
+    "g000": {
+      "content": "The creatureServer project has been mothballed.",
+      "title": "creatureServer status"
+    },
+    "g001": {
+      "content": "creatureServer was the first thing the user built outside a guided course project or tutorial.",
+      "title": "First independent project"
+    },
+    "g002": {
+      "content": "The user has 20 years of experience in the trades.",
+      "title": "Trades experience"
+    },
+    "g003": {
+      "content": "The user describes themself as a high-transfer contextual learner.",
+      "title": "Learning style"
+    },
+    "g004": {
+      "content": "The user felt creatureServer’s scaling complexity, particularly in 2025.",
+      "title": "creatureServer scaling complexity"
+    },
+    "g005": {
+      "content": "The user prefers concise responses unless they request more detail or the response warrants it.",
+      "title": "Response length preference"
+    },
+    "g006": {
+      "content": "The user finds hostility toward generative-AI use amusing and compares its critics to older tradesmen who disparaged apprentices using power tools while ignoring their benefits.",
+      "title": "View of generative-AI criticism"
+    },
+    "g007": {
+      "content": "The user argues that many foundational carpentry skills have declined, including efficient handsaw use, hand-nailing, string-line use, and familiarity with plumb bobs.",
+      "title": "View of declining carpentry skills"
+    }
+  }
+}

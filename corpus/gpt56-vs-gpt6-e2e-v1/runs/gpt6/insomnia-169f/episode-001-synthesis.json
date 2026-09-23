@@ -1,0 +1,28 @@
+{
+  "groups": {
+    "g000": {
+      "content": "The user needs to draw multiple asteroid collision polygons in the Godot viewport.",
+      "title": "Asteroid polygon drawing"
+    },
+    "g001": {
+      "content": "The asteroid script extends CharacterBody2D, references Sprite2D, CollisionPolygon2D and CollisionVariants, preloads four asteroid textures, and sets the matching texture and collision polygon by variant index.",
+      "title": "Asteroid variant script"
+    },
+    "g002": {
+      "content": "The server should authoritatively handle asteroid collision because variants have different collision shapes.",
+      "title": "Server-authoritative asteroid collision"
+    },
+    "g003": {
+      "content": "The bullet and asteroid scenes are built.",
+      "title": "Bullet and asteroid scenes"
+    },
+    "g004": {
+      "content": "Work is scoped to asteroid spawning and despawning for now.",
+      "title": "Current asteroid scope"
+    },
+    "g005": {
+      "content": "Asteroids should spawn off-screen, travel in a randomish direction toward the player, have a random size from 1 to 4, and use a random texture with matching collision handled by the asteroid script.",
+      "title": "Asteroid spawning requirements"
+    }
+  }
+}

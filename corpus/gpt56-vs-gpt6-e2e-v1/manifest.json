@@ -1,0 +1,109 @@
+{
+  "format": "gpt56-vs-gpt6-e2e-v1",
+  "purpose": "Small omnibus model-generation comparison corpus assembled from existing calibrated evidence; stages are independent.",
+  "baseline_policy": "No new GPT-5.6 inference. Preserve historical 5.6 outputs/judgments and replay only the selected cases with GPT-6.",
+  "stages": {
+    "insomnia": {
+      "cases": 10,
+      "contexts": 4
+    },
+    "dream": {
+      "cases": 10
+    },
+    "chronos": {
+      "cases": 8,
+      "baseline": "final pre-GPT-6 calibration snapshot"
+    },
+    "entity_extraction": {
+      "cases": 10
+    },
+    "entity_admission": {
+      "cases": 8
+    },
+    "entity_disambiguation": {
+      "cases": 6
+    },
+    "entity_resolution": {
+      "cases": 10
+    }
+  },
+  "source_policy": "Every case is copied from an existing calibration/gold/run artifact; no new 5.6 labels are synthesized.",
+  "route_map": {
+    "insomnia_semantic_ledger": {
+      "gpt5_6": "gpt-5.6-sol/low",
+      "gpt6": "gpt-6-sol/low"
+    },
+    "insomnia_metadata": {
+      "gpt5_6": "gpt-5.6-luna/low",
+      "gpt6": "gpt-6-luna/low"
+    },
+    "insomnia_ownership": {
+      "gpt5_6": "gpt-5.6-luna/low",
+      "gpt6": "gpt-6-luna/low",
+      "via": "insomnia_metadata"
+    },
+    "insomnia_wording": {
+      "gpt5_6": "gpt-5.6-sol/low",
+      "gpt6": "gpt-6-sol/low"
+    },
+    "chronos": {
+      "gpt5_6": "gpt-5.6-sol/low",
+      "gpt6": "gpt-6-sol/low",
+      "baseline_via": "historical insomnia fallback",
+      "comparison_via": "dedicated chronos route"
+    },
+    "entity_extraction": {
+      "gpt5_6": "gpt-5.6-sol/low",
+      "gpt6": "gpt-6-sol/low"
+    },
+    "entity_resolution": {
+      "gpt5_6": "gpt-5.6-sol/low",
+      "gpt6": "gpt-6-sol/low"
+    },
+    "dream": {
+      "gpt5_6": "gpt-5.6-luna/low",
+      "gpt6": "gpt-6-luna/low"
+    }
+  },
+  "sources": {
+    "insomnia": [
+      "corpus/insomnia-gold-v3-tuning-v1.json",
+      "corpus/insomnia-tuning-v1.jsonl",
+      "corpus/insomnia-sol-low-semantic-audit-v1.csv",
+      "docs/insomnia-semantic-validation-2026-08-24.md"
+    ],
+    "dream": [
+      "corpus/dream-classifier-regressions-v1.json",
+      "corpus/dream-web-audit-v1.json",
+      "docs/dream-classifier-v2-design.md"
+    ],
+    "chronos": [
+      "target/chronos-28d-rel-final.jsonl"
+    ],
+    "entity_extraction": [
+      "fixtures/local/calibration/insomnia-entity-v2/gold.jsonl",
+      "fixtures/local/calibration/insomnia-entity-v2/candidates.jsonl",
+      "fixtures/local/calibration/insomnia-entity-v2/runs/sol-low-2026-09-17/results.jsonl"
+    ],
+    "entity_admission": [
+      "fixtures/local/calibration/entity-admission-v3/gold.jsonl",
+      "fixtures/local/calibration/entity-admission-v3/runs/sol-low-v3-2026-09-19/results.jsonl"
+    ],
+    "entity_disambiguation": [
+      "fixtures/local/calibration/entity-disambiguation-adversarial-v1/gold.json",
+      "fixtures/local/calibration/entity-disambiguation-adversarial-v1/candidates.jsonl",
+      "fixtures/local/calibration/entity-disambiguation-adversarial-v1/run-sol-low-v3/results.jsonl"
+    ],
+    "entity_resolution": [
+      "fixtures/local/calibration/entity-store-resolution-frozen-rel-v1",
+      "fixtures/local/calibration/entity-store-resolution-zero-candidate-v1"
+    ]
+  },
+  "notes": [
+    "Stage cases are intentionally not a causal chain.",
+    "Embedding/vector generation is excluded because it is not a GPT-5.6/GPT-6 generation boundary.",
+    "Automatic Entity reconciliation is deterministic and should be evaluated as a shared post-resolution invariant, not as a model-generation score.",
+    "Chronos cases preserve the final pre-GPT-6 stage snapshot; score them as stage-regression coverage unless the exact historic route is reconstructed."
+  ],
+  "total_cases": 62
+}

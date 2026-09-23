@@ -1,0 +1,16 @@
+{
+  "groups": {
+    "g000": {
+      "content": "Configure the MCP browser adapter to use BrowserClaw port 9110 instead of 9000.",
+      "title": "BrowserClaw MCP adapter port"
+    },
+    "g001": {
+      "content": "Add one shared C/C++ Lexicon C-family adapter with language-specific parsing and per-file C or C++ attribution.",
+      "title": "Shared Lexicon C-family adapter"
+    },
+    "g002": {
+      "content": "Calibrate the C side of the Lexicon C-family adapter using Git and CBM as the initial corpus.",
+      "title": "C-family C calibration corpus"
+    }
+  }
+}

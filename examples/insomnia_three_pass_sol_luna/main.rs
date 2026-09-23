@@ -81,12 +81,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     if semantic_route.provider != ModelProvider::OpenAiCodex {
         return Err(std::io::Error::other(
-            "Luna reasoning test requires the current Insomnia credential route to use openai-codex",
+            "Sol/Luna comparison requires the current Insomnia credential route to use openai-codex",
         )
         .into());
     }
-    semantic_route.model = "gpt-5.6-luna".to_owned();
-    semantic_route.credential_id = CredentialId::new("codex-alt")?;
+    semantic_route.model = "gpt-6-sol".to_owned();
     semantic_route.reasoning_effort = Some(reasoning_effort);
     let switchboard = ModelSwitchboard::new(models.clone(), credentials.clone())?;
     let endpoint = ConfiguredGeneralEndpoint::from_insomnia_switchboard(&switchboard)?;
@@ -109,8 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .into());
     }
-    metadata_route.model = "gpt-5.6-luna".to_owned();
-    metadata_route.credential_id = CredentialId::new("codex-alt")?;
+    metadata_route.model = "gpt-6-luna".to_owned();
     metadata_route.reasoning_effort = Some(reasoning_effort);
     let metadata_switchboard = ModelSwitchboard::new(metadata_models, credentials)?;
     let metadata_endpoint =

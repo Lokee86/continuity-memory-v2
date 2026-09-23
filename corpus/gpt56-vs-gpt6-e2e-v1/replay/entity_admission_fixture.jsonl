@@ -1,0 +1,8 @@
+{"label":"worldsync","title":"WorldSync ownership","content":"WorldSync owns client-side world-state application and remains the synchronization component across refactors.","mention":"WorldSync","expected_decision":"create_new"}
+{"label":"presenter","title":"Player hue presenter","content":"PlayerHuePresenter is the dedicated component responsible for player hue presentation.","mention":"PlayerHuePresenter","expected_decision":"create_new"}
+{"label":"game-server-dir","title":"Game server package","content":"services/game-server is the repository directory containing the Go game-server service.","mention":"services/game-server","expected_decision":"create_new"}
+{"label":"commit-prefixed","title":"Rollback","content":"Rollback to commit 6ed8e7a is final; that commit is an immutable historical revision.","mention":"commit 6ed8e7a","expected_decision":"reject"}
+{"label":"commit-hash","title":"Rollback hash","content":"The repository was rolled back to 6ed8e7a, an individual Git commit.","mention":"6ed8e7a","expected_decision":"reject"}
+{"label":"build","title":"Build failure","content":"build #1842 failed during packaging and will never change after completion.","mention":"build #1842","expected_decision":"reject"}
+{"label":"bare-main-go","title":"Ambiguous file","content":"main.go changed today, but this Memory does not establish which repository or package contains it.","mention":"main.go","expected_decision":"unresolved"}
+{"label":"repo-positive-against-commit","title":"Repository versus revision","content":"The Space Rocks repository remains the continuing project repository; it is currently checked out at commit 6ed8e7a.","mention":"Space Rocks repository","expected_decision":"create_new"}
