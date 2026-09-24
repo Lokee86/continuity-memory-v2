@@ -55,7 +55,6 @@ impl ReliquaryRuntimeHost {
         &self,
     ) -> Result<Option<RuntimeKnowledgeState>, ReliquaryRuntimeHostError> {
         let mut slot = self
-            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -134,7 +133,6 @@ impl ReliquaryRuntimeHost {
         now_ns: i64,
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
         let mut slot = self
-            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -147,7 +145,9 @@ impl ReliquaryRuntimeHost {
             .map_err(operation)?;
         phylactery.sync().map_err(operation)?;
         drop(slot);
-        self.wake()?;
+        if self.active_rel_id().is_some() {
+            self.wake()?;
+        }
         Ok(memory)
     }
 
@@ -186,7 +186,6 @@ impl ReliquaryRuntimeHost {
         name: String,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let mut slot = self
-            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

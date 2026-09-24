@@ -47,7 +47,6 @@ impl ReliquaryRuntimeHost {
         new_kind: Option<GraphRelationKind>,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let mut slot = self
-            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -61,7 +60,9 @@ impl ReliquaryRuntimeHost {
             .map_err(operation)?;
         phylactery.sync().map_err(operation)?;
         drop(slot);
-        self.wake()?;
+        if self.active_rel_id().is_some() {
+            self.wake()?;
+        }
         Ok(())
     }
 }

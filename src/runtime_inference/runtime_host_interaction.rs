@@ -10,7 +10,6 @@ impl ReliquaryRuntimeHost {
         action: impl FnOnce(&mut crate::Phylactery) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<Option<T>, ReliquaryRuntimeHostError> {
         let mut phylactery = self
-            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
