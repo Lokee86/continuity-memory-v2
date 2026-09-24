@@ -9,6 +9,30 @@ impl ReliquaryRuntimeHost {
         self.with_runtime_for(owner_id, |runtime| Ok(runtime.conversation_summaries()))
     }
 
+    pub fn conversation_transcript_for(
+        &self,
+        owner_id: &str,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<crate::ResolvedInteractionTurn>, ReliquaryRuntimeHostError> {
+        self.with_runtime_for(owner_id, |runtime| {
+            runtime
+                .conversation_transcript(conversation_id, leaf_node_id)
+                .map_err(operation)
+        })
+    }
+
+    pub fn echo_events_for(
+        &self,
+        owner_id: &str,
+        conversation_id: &str,
+        message_id: &str,
+    ) -> Result<Vec<crate::EchoEvent>, ReliquaryRuntimeHostError> {
+        self.with_runtime_for(owner_id, |runtime| {
+            Ok(runtime.cva().echo_events(conversation_id, message_id))
+        })
+    }
+
     pub fn search_conversation_branch_for(
         &self,
         owner_id: &str,
