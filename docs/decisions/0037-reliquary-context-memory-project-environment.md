@@ -6,7 +6,7 @@ Supersedes the Warlock-owned repository/runtime portions of [ADR 0017](0017-cva-
 
 ## Status
 
-Accepted — 2026-09-24. Implementation is staged; existing storage formats and public single-REL runtime behavior remain compatibility constraints during migration.
+Accepted — 2026-09-24. Runtime-host topology, REL reconciliation/recovery, and the Project Environment are now implemented in Reliquary; remaining migration phases preserve existing storage formats and public runtime compatibility.
 
 ## Context
 
@@ -83,7 +83,8 @@ Mounted siblings are not automatically ambient. Explicit owner-qualified operati
 - Mounted RELs retain independent worker execution and may keep lazy derived/index state.
 - Activation changes semantic primacy; it does not require destroying neighboring owner execution.
 - PHY state is mounted once at the graph host rather than physically transferred between isolated per-REL hosts.
-- Project environment validation and historical repository access execute within Reliquary after the host supplies the local project mount path.
+- Project environment bootstrap/adoption, repository discovery and identity validation, management policy, Lore checkpoints, Git snapshots, repository-backed attachment ingestion, exact historical reads, and repository-root resolution execute within Reliquary after the host supplies the local project mount path.
+- Legacy on-disk identifiers such as `warlock.repositoryId`, `.warlock/`, and `warlock/uploads` remain compatibility names; they do not imply Warlock implementation ownership.
 - `ReliquaryRuntimeHost::reconcile_rel_file` owns same-owner sibling discovery, compare/reconcile/promote orchestration, conflict reporting, retired-vector detection, derived-vector rebuild, and post-rebuild reopen validation. Warlock may trigger the operation around mount transitions and retain a presentation projection of its transient report.
 - Warlock may quiesce interactive provider work around mount transitions, but Reliquary owns internal semantic worker behavior and shutdown correctness.
 
@@ -134,7 +135,7 @@ The staged migration must protect at minimum:
 
 - Moving several currently mixed Warlock modules requires splitting semantic operations from serde/UI projection rather than copying files wholesale.
 - Multi-owner execution introduces lock-order and shutdown hazards; owner-local locks must remain bounded and cross-owner inference must not hold multiple long-lived Cva locks.
-- Lore dependency patching currently lives in Warlock and must move with the Lore implementation.
+- Lore and its compatibility-constrained dependency graph are owned by Reliquary. Cargo `[patch]` directives are root-only, so downstream application roots may need to repeat Reliquary's patched `quinn-proto` override as build plumbing even though they own no Lore semantics.
 - Hot/cold/lazy-loading and eviction policy for inactive mounted REL derived state remains a later operational decision.
 - Host-local project-directory persistence remains a Warlock configuration concern until a more general mount-provider contract is justified.
 

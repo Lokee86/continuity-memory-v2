@@ -692,6 +692,17 @@ mod phylactery_profile_codec;
 mod phylactery_profile_model;
 #[path = "facade/phylactery_profile_store.rs"]
 mod phylactery_profile_store;
+#[path = "project_environment.rs"]
+mod project_environment;
+#[cfg(test)]
+#[path = "project_environment_git_tests.rs"]
+mod project_environment_git_tests;
+#[cfg(test)]
+#[path = "project_environment_lore_tests.rs"]
+mod project_environment_lore_tests;
+#[cfg(test)]
+#[path = "project_environment_tests.rs"]
+mod project_environment_tests;
 #[path = "archive/project_file_binding_codec.rs"]
 mod project_file_binding_codec;
 #[path = "archive/project_file_binding_store.rs"]
@@ -1041,6 +1052,7 @@ pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
 pub use phylactery_error::PhylacteryError;
+pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
 pub use project_history_model::{
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,

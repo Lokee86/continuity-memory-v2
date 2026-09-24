@@ -52,6 +52,8 @@ mod perception_queue;
 mod perception_reconciliation;
 #[path = "runtime_host_phylactery.rs"]
 mod phylactery_host;
+#[path = "runtime_host_project_environment.rs"]
+mod project_environment;
 #[path = "runtime_host_reconciliation.rs"]
 mod reconciliation;
 #[path = "runtime_host_routes.rs"]

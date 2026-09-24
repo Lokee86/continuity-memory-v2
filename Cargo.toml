@@ -51,16 +51,23 @@ required-features = ["entity-calibration"]
 [dependencies]
 arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "9ebccd6e7d089b98a8992c5451ba57f903f295fb" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
+lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
 sha2 = "0.10"
 serde_json = "1"
 aes-gcm = "0.10"
 zeroize = "1"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
+reqwest = { version = "=0.12.23", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 base64 = "0.22"
 regex = "1"
 leiden-rs = { version = "0.8.1", default-features = false }
 time = { version = "0.3", features = ["parsing"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
+
+# Lore pins a patched quinn-proto in its workspace. Dependency workspace patches
+# do not propagate, so Reliquary vendors the exact copy from Lore c49390b.
+[patch.crates-io]
+quinn-proto = { path = "vendor/quinn-proto" }
