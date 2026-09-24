@@ -3,6 +3,7 @@ use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError};
 impl ReliquaryRuntimeHost {
     pub fn entity_stats(&self) -> Result<crate::EntityStats, ReliquaryRuntimeHostError> {
         let runtime = self
+            .execution
             .runtime
             .as_ref()
             .ok_or_else(|| {
@@ -17,6 +18,7 @@ impl ReliquaryRuntimeHost {
         &self,
     ) -> Result<Option<crate::EntityStats>, ReliquaryRuntimeHostError> {
         let slot = self
+            .execution
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

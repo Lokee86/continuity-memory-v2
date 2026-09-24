@@ -10,6 +10,7 @@ impl ReliquaryRuntimeHost {
         action: impl FnOnce(&mut crate::Phylactery) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<Option<T>, ReliquaryRuntimeHostError> {
         let mut phylactery = self
+            .execution
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -20,7 +21,7 @@ impl ReliquaryRuntimeHost {
         &self,
         action: impl FnOnce(&mut crate::InteractionRuntime) -> Result<T, ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
-        let runtime = self.runtime.as_ref().ok_or_else(|| {
+        let runtime = self.execution.runtime.as_ref().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
         })?;
         let mut runtime = runtime
@@ -240,6 +241,7 @@ impl ReliquaryRuntimeHost {
             return Ok(None);
         }
         let endpoint = self
+            .execution
             .routes
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -281,7 +283,7 @@ impl ReliquaryRuntimeHost {
         session_id: &str,
         now_ns: i64,
     ) -> Result<crate::EpisodeSchedulingResult, ReliquaryRuntimeHostError> {
-        let policy = self.episode_policy;
+        let policy = self.execution.episode_policy;
         let result = self.with_runtime(|runtime| {
             runtime
                 .finalize_explicit_session(session_id, policy, now_ns)
@@ -295,7 +297,7 @@ impl ReliquaryRuntimeHost {
         &self,
         session_id: &str,
     ) -> Result<InteractionSession, ReliquaryRuntimeHostError> {
-        let policy = self.episode_policy;
+        let policy = self.execution.episode_policy;
         let now_ns = crate::insomnia::runtime_step::now_ns();
         let session = self.with_runtime(|runtime| {
             let has_durable_turn = runtime

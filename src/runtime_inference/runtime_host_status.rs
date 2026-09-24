@@ -35,6 +35,7 @@ impl RuntimeBackgroundStatus {
 impl ReliquaryRuntimeHost {
     pub fn background_status(&self) -> Result<RuntimeBackgroundStatus, ReliquaryRuntimeHostError> {
         let profiles = *self
+            .execution
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -45,7 +46,7 @@ impl ReliquaryRuntimeHost {
             reliquary_vector_pending,
             reliquary_dream_pending,
         ) = {
-            let runtime = self.runtime.as_ref().cloned().ok_or_else(|| {
+            let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
                 ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
             })?;
             let mut runtime = runtime
@@ -70,6 +71,7 @@ impl ReliquaryRuntimeHost {
             phylactery_dream_pending,
         ) = {
             let mut slot = self
+                .execution
                 .phylactery
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -89,6 +91,7 @@ impl ReliquaryRuntimeHost {
         };
 
         let (reliquary_perception_pending, phylactery_perception_pending) = self
+            .execution
             .perception_queue
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?

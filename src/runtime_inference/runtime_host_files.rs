@@ -3,7 +3,7 @@ use crate::FileId;
 
 impl ReliquaryRuntimeHost {
     pub fn file_bytes(&self, id: FileId) -> Result<Vec<u8>, ReliquaryRuntimeHostError> {
-        let runtime = self.runtime.as_ref().ok_or_else(|| {
+        let runtime = self.execution.runtime.as_ref().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
         })?;
         let mut runtime = runtime

@@ -187,56 +187,25 @@ pub(super) struct Shared {
     pub(super) episode_policy: EpisodePolicy,
 }
 
-pub struct ReliquaryRuntimeHost {
-    pub(crate) runtime: Option<Arc<Mutex<InteractionRuntime>>>,
-    signal: Arc<(Mutex<Control>, Condvar)>,
-    routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
-    phylactery: Arc<Mutex<Option<Phylactery>>>,
-    memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
-    perception_queue: Arc<Mutex<perception_queue::PerceptionQueue>>,
-    insomnia_enabled: Arc<AtomicBool>,
-    insomnia_backpressure_until_ns: Arc<AtomicI64>,
-    episode_policy: EpisodePolicy,
+pub(super) struct OwnerExecution {
+    pub(super) runtime: Option<Arc<Mutex<InteractionRuntime>>>,
+    pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
+    pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
+    pub(super) phylactery: Arc<Mutex<Option<Phylactery>>>,
+    pub(super) memory_profiles: Arc<Mutex<RuntimeMemoryProfiles>>,
+    pub(super) perception_queue: Arc<Mutex<perception_queue::PerceptionQueue>>,
+    pub(super) insomnia_enabled: Arc<AtomicBool>,
+    pub(super) insomnia_backpressure_until_ns: Arc<AtomicI64>,
+    pub(super) episode_policy: EpisodePolicy,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
 
-impl ReliquaryRuntimeHost {
-    pub fn start(
-        runtime: InteractionRuntime,
-        routes: ReliquaryRuntimeRoutes,
-        config: InsomniaWorkerConfig,
-        episode_policy: EpisodePolicy,
-    ) -> Self {
-        Self::start_inner(runtime, None, routes, config, episode_policy, true)
-    }
+pub struct ReliquaryRuntimeHost {
+    pub(super) execution: OwnerExecution,
+}
 
-    pub fn start_inactive(
-        runtime: InteractionRuntime,
-        routes: ReliquaryRuntimeRoutes,
-        config: InsomniaWorkerConfig,
-        episode_policy: EpisodePolicy,
-    ) -> Self {
-        Self::start_inner(runtime, None, routes, config, episode_policy, false)
-    }
-
-    pub fn start_with_phylactery(
-        runtime: InteractionRuntime,
-        phylactery: Phylactery,
-        routes: ReliquaryRuntimeRoutes,
-        config: InsomniaWorkerConfig,
-        episode_policy: EpisodePolicy,
-    ) -> Self {
-        Self::start_inner(
-            runtime,
-            Some(phylactery),
-            routes,
-            config,
-            episode_policy,
-            true,
-        )
-    }
-
-    fn start_inner(
+impl OwnerExecution {
+    fn start(
         runtime: InteractionRuntime,
         phylactery: Option<Phylactery>,
         routes: ReliquaryRuntimeRoutes,
@@ -301,31 +270,109 @@ impl ReliquaryRuntimeHost {
         }
     }
 
+    fn stop_workers(&mut self) -> Result<(), ReliquaryRuntimeHostError> {
+        let (lock, signal) = &*self.signal;
+        {
+            let mut control = lock
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            control.stop = true;
+            signal.notify_all();
+        }
+        for worker in self.workers.drain(..) {
+            worker
+                .join()
+                .map_err(|_| ReliquaryRuntimeHostError::ThreadPanicked)??;
+        }
+        Ok(())
+    }
+}
+
+impl ReliquaryRuntimeHost {
+    pub fn start(
+        runtime: InteractionRuntime,
+        routes: ReliquaryRuntimeRoutes,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+    ) -> Self {
+        Self::start_inner(runtime, None, routes, config, episode_policy, true)
+    }
+
+    pub fn start_inactive(
+        runtime: InteractionRuntime,
+        routes: ReliquaryRuntimeRoutes,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+    ) -> Self {
+        Self::start_inner(runtime, None, routes, config, episode_policy, false)
+    }
+
+    pub fn start_with_phylactery(
+        runtime: InteractionRuntime,
+        phylactery: Phylactery,
+        routes: ReliquaryRuntimeRoutes,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+    ) -> Self {
+        Self::start_inner(
+            runtime,
+            Some(phylactery),
+            routes,
+            config,
+            episode_policy,
+            true,
+        )
+    }
+
+    fn start_inner(
+        runtime: InteractionRuntime,
+        phylactery: Option<Phylactery>,
+        routes: ReliquaryRuntimeRoutes,
+        config: InsomniaWorkerConfig,
+        episode_policy: EpisodePolicy,
+        insomnia_enabled: bool,
+    ) -> Self {
+        Self {
+            execution: OwnerExecution::start(
+                runtime,
+                phylactery,
+                routes,
+                config,
+                episode_policy,
+                insomnia_enabled,
+            ),
+        }
+    }
+
     pub fn set_routes(
         &self,
         routes: ReliquaryRuntimeRoutes,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         *self
+            .execution
             .routes
             .write()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = routes;
-        self.insomnia_backpressure_until_ns
+        self.execution
+            .insomnia_backpressure_until_ns
             .store(0, std::sync::atomic::Ordering::SeqCst);
         self.wake()
     }
 
     pub fn wake(&self) -> Result<(), ReliquaryRuntimeHostError> {
-        notify_work(&self.signal)
+        notify_work(&self.execution.signal)
     }
 
     pub fn set_insomnia_enabled(&self, enabled: bool) -> Result<(), ReliquaryRuntimeHostError> {
-        self.insomnia_enabled
+        self.execution
+            .insomnia_enabled
             .store(enabled, std::sync::atomic::Ordering::SeqCst);
         self.wake()
     }
 
     pub fn rel_metadata(&self) -> Result<crate::RelMetadata, ReliquaryRuntimeHostError> {
         let runtime = self
+            .execution
             .runtime
             .as_ref()
             .ok_or_else(|| {
@@ -342,6 +389,7 @@ impl ReliquaryRuntimeHost {
         dependencies: Vec<String>,
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let mut runtime = self
+            .execution
             .runtime
             .as_ref()
             .ok_or_else(|| {
@@ -362,7 +410,8 @@ impl ReliquaryRuntimeHost {
     pub fn phylactery_profile(
         &self,
     ) -> Result<Option<crate::PhylacteryProfile>, ReliquaryRuntimeHostError> {
-        self.phylactery
+        self.execution
+            .phylactery
             .lock()
             .map(|slot| slot.as_ref().map(crate::Phylactery::profile))
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)
@@ -374,6 +423,7 @@ impl ReliquaryRuntimeHost {
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let (changed, principal_id, profile) = {
             let mut slot = self
+                .execution
                 .phylactery
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -389,6 +439,7 @@ impl ReliquaryRuntimeHost {
 
         if let Some(principal_id) = principal_id {
             let mut runtime = self
+                .execution
                 .runtime
                 .as_ref()
                 .ok_or_else(|| {
@@ -408,7 +459,8 @@ impl ReliquaryRuntimeHost {
     }
 
     pub fn has_phylactery(&self) -> Result<bool, ReliquaryRuntimeHostError> {
-        self.phylactery
+        self.execution
+            .phylactery
             .lock()
             .map(|slot| slot.is_some())
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)
@@ -422,6 +474,7 @@ impl ReliquaryRuntimeHost {
             .owner_id()
             .map(|owner_id| (owner_id, phylactery.profile()));
         let mut slot = self
+            .execution
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -435,6 +488,7 @@ impl ReliquaryRuntimeHost {
         drop(slot);
         if let Some((principal_id, profile)) = principal_profile {
             let mut runtime = self
+                .execution
                 .runtime
                 .as_ref()
                 .ok_or_else(|| {
@@ -452,6 +506,7 @@ impl ReliquaryRuntimeHost {
         }
         {
             let mut queue = self
+                .execution
                 .perception_queue
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -463,15 +518,18 @@ impl ReliquaryRuntimeHost {
 
     pub fn detach_phylactery(&self) -> Result<Option<Phylactery>, ReliquaryRuntimeHostError> {
         let phylactery = self
+            .execution
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .take();
-        self.memory_profiles
+        self.execution
+            .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .user = None;
-        self.perception_queue
+        self.execution
+            .perception_queue
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .clear(perception_queue::PerceptionOwner::User);
@@ -488,11 +546,12 @@ impl ReliquaryRuntimeHost {
     ) -> Result<(crate::Cva, Option<Phylactery>), ReliquaryRuntimeHostError> {
         self.stop_workers()?;
         let phylactery = self
+            .execution
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .take();
-        let runtime = self.runtime.take().ok_or_else(|| {
+        let runtime = self.execution.runtime.take().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
         })?;
         let runtime = Arc::try_unwrap(runtime)
@@ -503,26 +562,13 @@ impl ReliquaryRuntimeHost {
     }
 
     fn stop_workers(&mut self) -> Result<(), ReliquaryRuntimeHostError> {
-        let (lock, signal) = &*self.signal;
-        {
-            let mut control = lock
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            control.stop = true;
-            signal.notify_all();
-        }
-        for worker in self.workers.drain(..) {
-            worker
-                .join()
-                .map_err(|_| ReliquaryRuntimeHostError::ThreadPanicked)??;
-        }
-        Ok(())
+        self.execution.stop_workers()
     }
 }
 
 impl Drop for ReliquaryRuntimeHost {
     fn drop(&mut self) {
-        let _ = self.stop_workers();
+        let _ = self.execution.stop_workers();
     }
 }
 

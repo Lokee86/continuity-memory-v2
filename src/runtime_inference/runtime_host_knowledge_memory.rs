@@ -10,7 +10,7 @@ impl ReliquaryRuntimeHost {
         content: String,
         now_ns: i64,
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
-        let runtime = self.runtime.as_ref().cloned().ok_or_else(|| {
+        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
         })?;
         let mut runtime = runtime
@@ -39,6 +39,7 @@ impl ReliquaryRuntimeHost {
         now_ns: i64,
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
         let mut slot = self
+            .execution
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
