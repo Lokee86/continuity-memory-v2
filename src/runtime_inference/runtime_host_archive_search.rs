@@ -7,9 +7,14 @@ impl ReliquaryRuntimeHost {
         query: &str,
         limit: usize,
     ) -> Result<Vec<ArchiveSearchHit>, ReliquaryRuntimeHostError> {
-        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-        })?;
+        let runtime = self
+            .active_execution()?
+            .runtime
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?;
         runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?

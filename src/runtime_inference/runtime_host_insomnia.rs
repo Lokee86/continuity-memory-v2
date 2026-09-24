@@ -67,11 +67,12 @@ pub(super) fn worker_loop(
             extractor =
                 extractor.with_enrichment_endpoint(SharedGeneralEndpoint(entity_extraction));
         }
-        if shared
-            .phylactery
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .is_some()
+        if shared.phylactery_active()
+            && shared
+                .phylactery
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .is_some()
             && let Some(ownership) = routes.insomnia_ownership()
         {
             extractor = extractor.with_ownership_endpoint(SharedGeneralEndpoint(ownership));
@@ -128,19 +129,42 @@ fn process_claim(
     {
         return fail_claim(shared, &claim, &error);
     }
+    let phylactery_active = shared.phylactery_active();
+    let phylactery_available = if phylactery_active {
+        shared
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .is_some()
+    } else {
+        false
+    };
+    if !phylactery_available && !prepared.user_drafts.is_empty() {
+        let error = crate::InsomniaExtractionError::InvalidOutput(
+            "active REL changed while user-owned Memory publication was in flight".into(),
+        );
+        return fail_claim(shared, &claim, &error);
+    }
+
     let mut runtime = shared
         .runtime
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    let mut phylactery = shared
-        .phylactery
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    runtime
-        .cva
-        .commit_runtime_insomnia_prepared(phylactery.as_mut(), &claim, prepared, &shared.config)
-        .map_err(operation)?;
-    drop(phylactery);
+    if phylactery_available {
+        let mut phylactery = shared
+            .phylactery
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        runtime
+            .cva
+            .commit_runtime_insomnia_prepared(phylactery.as_mut(), &claim, prepared, &shared.config)
+            .map_err(operation)?;
+    } else {
+        runtime
+            .cva
+            .commit_runtime_insomnia_prepared(None, &claim, prepared, &shared.config)
+            .map_err(operation)?;
+    }
     drop(runtime);
     notify_work(&shared.signal)
 }

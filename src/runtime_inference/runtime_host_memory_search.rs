@@ -35,9 +35,14 @@ impl ReliquaryRuntimeHost {
         config: MemoryRetrievalConfig,
     ) -> Result<MemorySearchLane, ReliquaryRuntimeHostError> {
         let profile = self.ensure_reliquary_embedding_profile()?;
-        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-        })?;
+        let runtime = self
+            .active_execution()?
+            .runtime
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -62,7 +67,7 @@ impl ReliquaryRuntimeHost {
             return Ok(None);
         }
         let profile = self.ensure_phylactery_memory_profile()?;
-        let phylactery = Arc::clone(&self.execution.phylactery);
+        let phylactery = Arc::clone(&self.active_execution()?.phylactery);
         let mut phylactery = phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -84,7 +89,7 @@ impl ReliquaryRuntimeHost {
         &self,
     ) -> Result<crate::CompatibilityProfileId, ReliquaryRuntimeHostError> {
         if let Some(profile) = self
-            .execution
+            .active_execution()?
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -93,16 +98,21 @@ impl ReliquaryRuntimeHost {
             return Ok(profile);
         }
         let candidate = self.runtime_profile_candidate()?;
-        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-        })?;
+        let runtime = self
+            .active_execution()?
+            .runtime
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?;
         let profile = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .cva
             .accept_runtime_compatibility_profile(candidate)
             .map_err(operation)?;
-        self.execution
+        self.active_execution()?
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -114,7 +124,7 @@ impl ReliquaryRuntimeHost {
         &self,
     ) -> Result<crate::CompatibilityProfileId, ReliquaryRuntimeHostError> {
         if let Some(profile) = self
-            .execution
+            .active_execution()?
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -124,7 +134,7 @@ impl ReliquaryRuntimeHost {
         }
         let candidate = self.runtime_profile_candidate()?;
         let mut phylactery = self
-            .execution
+            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -135,7 +145,7 @@ impl ReliquaryRuntimeHost {
             })?
             .accept_runtime_compatibility_profile(candidate)
             .map_err(operation)?;
-        self.execution
+        self.active_execution()?
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -147,7 +157,7 @@ impl ReliquaryRuntimeHost {
         &self,
     ) -> Result<crate::CompatibilityProfile, ReliquaryRuntimeHostError> {
         let endpoint = self
-            .execution
+            .active_execution()?
             .routes
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?

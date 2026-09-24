@@ -17,6 +17,9 @@ pub(super) fn pop_next(
         [PerceptionOwner::Project, PerceptionOwner::User]
     };
     for owner in owners {
+        if owner == PerceptionOwner::User && !shared.phylactery_active() {
+            continue;
+        }
         if let Some(key) = queue.pop_ready(owner, Instant::now()) {
             return Ok(Some((owner, key)));
         }
@@ -41,6 +44,9 @@ pub(super) fn defer(
     owner: PerceptionOwner,
     key: MemoryEntityMentionKey,
 ) -> Result<(), ReliquaryRuntimeHostError> {
+    if owner == PerceptionOwner::User && !shared.phylactery_active() {
+        return Ok(());
+    }
     shared
         .perception_queue
         .lock()
@@ -54,6 +60,9 @@ pub(super) fn requeue(
     owner: PerceptionOwner,
     key: MemoryEntityMentionKey,
 ) -> Result<(), ReliquaryRuntimeHostError> {
+    if owner == PerceptionOwner::User && !shared.phylactery_active() {
+        return Ok(());
+    }
     shared
         .perception_queue
         .lock()

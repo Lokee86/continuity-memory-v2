@@ -93,7 +93,7 @@ fn owner_versions(shared: &Shared) -> Result<OwnerVersions, ReliquaryRuntimeHost
             runtime.cva.memory_version(),
         )
     };
-    let user = {
+    let user = if shared.phylactery_active() {
         let slot = shared
             .phylactery
             .lock()
@@ -105,6 +105,8 @@ fn owner_versions(shared: &Shared) -> Result<OwnerVersions, ReliquaryRuntimeHost
                 phy.memory_version(),
             )
         })
+    } else {
+        None
     };
     Ok((project, user))
 }
@@ -123,7 +125,7 @@ fn reconcile_idle(
             .prepare_entity_reconciliation()
             .map_err(operation)?
     };
-    let user_prepared = {
+    let user_prepared = if shared.phylactery_active() {
         let mut slot = shared
             .phylactery
             .lock()
@@ -132,6 +134,8 @@ fn reconcile_idle(
             .map(|phy| phy.prepare_entity_reconciliation())
             .transpose()
             .map_err(operation)?
+    } else {
+        None
     };
 
     let endpoint = SharedEndpoint(endpoint);
@@ -166,6 +170,9 @@ fn reconcile_idle(
     let had_user = user_prepared.is_some();
     let user_commit = match (user_prepared, user_evaluation) {
         (Some(prepared), Some(evaluation)) => {
+            if !shared.phylactery_active() {
+                return Ok(ReconcileIdle::Retry);
+            }
             let mut slot = shared
                 .phylactery
                 .lock()

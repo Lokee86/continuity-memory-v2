@@ -9,9 +9,14 @@ impl ReliquaryRuntimeHost {
         old_kind: Option<GraphRelationKind>,
         new_kind: Option<GraphRelationKind>,
     ) -> Result<(), ReliquaryRuntimeHostError> {
-        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-        })?;
+        let runtime = self
+            .active_execution()?
+            .runtime
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -35,7 +40,7 @@ impl ReliquaryRuntimeHost {
         new_kind: Option<GraphRelationKind>,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let mut slot = self
-            .execution
+            .active_execution()?
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

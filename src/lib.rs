@@ -1414,6 +1414,9 @@ mod runtime_host_test_support;
 #[path = "runtime_inference/runtime_host_tests.rs"]
 mod runtime_host_tests;
 #[cfg(test)]
+#[path = "runtime_inference/runtime_host_topology_tests.rs"]
+mod runtime_host_topology_tests;
+#[cfg(test)]
 #[path = "runtime_inference/runtime_host_vector_tests.rs"]
 mod runtime_host_vector_tests;
 #[cfg(test)]

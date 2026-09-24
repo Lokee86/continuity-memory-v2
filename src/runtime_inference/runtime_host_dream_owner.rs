@@ -62,6 +62,9 @@ pub(super) fn prepare_user(
     profile_id: CompatibilityProfileId,
     cooldowns: &HashMap<MemoryId, Instant>,
 ) -> Result<Option<DreamSnapshot>, ReliquaryRuntimeHostError> {
+    if !shared.phylactery_active() {
+        return Ok(None);
+    }
     let mut phylactery = shared
         .phylactery
         .lock()
@@ -145,6 +148,9 @@ pub(super) fn commit_user(
     snapshot: &DreamSnapshot,
     evaluated: Vec<(DreamPairClassification, Option<DreamPairVerification>)>,
 ) -> Result<bool, ReliquaryRuntimeHostError> {
+    if !shared.phylactery_active() {
+        return Ok(false);
+    }
     let mut phylactery = shared
         .phylactery
         .lock()

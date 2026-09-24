@@ -85,11 +85,12 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             });
             active_endpoint = Some(Arc::clone(&endpoint));
         }
-        let has_phylactery = shared
-            .phylactery
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .is_some();
+        let has_phylactery = shared.phylactery_active()
+            && shared
+                .phylactery
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .is_some();
         if has_phylactery && user_profile.is_none() {
             let candidate = candidate.as_ref().ok_or_else(|| {
                 ReliquaryRuntimeHostError::Operation("embedding profile is unavailable".into())
@@ -157,7 +158,9 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             }
         }
 
-        if let Some(profile) = &user_profile {
+        if shared.phylactery_active()
+            && let Some(profile) = &user_profile
+        {
             let batch = {
                 let mut phylactery = shared
                     .phylactery
@@ -179,15 +182,17 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
                         continue;
                     }
                 };
-                let mut phylactery = shared
-                    .phylactery
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                if let Some(phy) = phylactery.as_mut() {
-                    phy.commit_runtime_memory_vector_batch(batch, vectors)
-                        .map_err(operation)?;
+                if shared.phylactery_active() {
+                    let mut phylactery = shared
+                        .phylactery
+                        .lock()
+                        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                    if let Some(phy) = phylactery.as_mut() {
+                        phy.commit_runtime_memory_vector_batch(batch, vectors)
+                            .map_err(operation)?;
+                        did_work = true;
+                    }
                 }
-                did_work = true;
             }
         }
 

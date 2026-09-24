@@ -6,9 +6,14 @@ impl ReliquaryRuntimeHost {
         &self,
         memory_id: MemoryId,
     ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
-        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-        })?;
+        let runtime = self
+            .active_execution()?
+            .runtime
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -25,9 +30,14 @@ impl ReliquaryRuntimeHost {
                 "Memory does not have an external source reference".into(),
             )
         })?;
-        let runtime = self.execution.runtime.as_ref().cloned().ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-        })?;
+        let runtime = self
+            .active_execution()?
+            .runtime
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| {
+                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+            })?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

@@ -12,13 +12,15 @@ pub(super) struct PerceptionCommitEffects {
 }
 
 pub(super) fn seed_runtime(shared: &Shared) -> Result<(), ReliquaryRuntimeHostError> {
-    let attached_principal = {
+    let attached_principal = if shared.phylactery_active() {
         let slot = shared
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         slot.as_ref()
             .and_then(|phy| phy.owner_id().map(|owner_id| (owner_id, phy.profile())))
+    } else {
+        None
     };
     let project_keys = {
         let mut runtime = shared
@@ -41,7 +43,7 @@ pub(super) fn seed_runtime(shared: &Shared) -> Result<(), ReliquaryRuntimeHostEr
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
         .push_all(PerceptionOwner::Project, project_keys);
 
-    let user_keys = {
+    let user_keys = if shared.phylactery_active() {
         let mut slot = shared
             .phylactery
             .lock()
@@ -50,6 +52,8 @@ pub(super) fn seed_runtime(shared: &Shared) -> Result<(), ReliquaryRuntimeHostEr
             Some(phy) => startup_keys_user(phy)?,
             None => Vec::new(),
         }
+    } else {
+        Vec::new()
     };
     shared
         .perception_queue
@@ -67,13 +71,15 @@ pub(super) fn prepare(
 ) -> Result<Option<EntityResolutionPreparation>, ReliquaryRuntimeHostError> {
     match owner {
         PerceptionOwner::Project => {
-            let attached_principal = {
+            let attached_principal = if shared.phylactery_active() {
                 let slot = shared
                     .phylactery
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
                 slot.as_ref()
                     .and_then(|phy| phy.owner_id().map(|owner_id| (owner_id, phy.profile())))
+            } else {
+                None
             };
             let mut runtime = shared
                 .runtime
@@ -103,6 +109,9 @@ pub(super) fn prepare(
                 .map_err(operation)
         }
         PerceptionOwner::User => {
+            if !shared.phylactery_active() {
+                return Ok(None);
+            }
             let mut slot = shared
                 .phylactery
                 .lock()
@@ -137,6 +146,9 @@ pub(super) fn owner_id(
             Ok(runtime.cva.owner_id())
         }
         PerceptionOwner::User => {
+            if !shared.phylactery_active() {
+                return Ok(None);
+            }
             let slot = shared
                 .phylactery
                 .lock()
@@ -180,6 +192,9 @@ pub(super) fn commit(
             }))
         }
         PerceptionOwner::User => {
+            if !shared.phylactery_active() {
+                return Ok(None);
+            }
             let mut slot = shared
                 .phylactery
                 .lock()

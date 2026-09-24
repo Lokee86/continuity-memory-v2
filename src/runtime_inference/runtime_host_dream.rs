@@ -85,7 +85,8 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             }
         }
 
-        if let Some(profile_id) = profiles.user
+        if shared.phylactery_active()
+            && let Some(profile_id) = profiles.user
             && let Some(snapshot) = prepare_user(&shared, profile_id, &user_cooldowns)?
         {
             attempted = true;
