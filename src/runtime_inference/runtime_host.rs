@@ -52,6 +52,8 @@ mod perception_queue;
 mod perception_reconciliation;
 #[path = "runtime_host_phylactery.rs"]
 mod phylactery_host;
+#[path = "runtime_host_reconciliation.rs"]
+mod reconciliation;
 #[path = "runtime_host_routes.rs"]
 mod routes;
 #[path = "runtime_host_status.rs"]
@@ -96,6 +98,7 @@ pub(super) struct RuntimeMemoryProfiles {
 }
 
 use owner_execution::{OwnerExecution, Shared};
+pub use reconciliation::{RelReconciliationCandidateReport, RelReconciliationReport};
 pub use routes::ReliquaryRuntimeRoutes;
 
 pub struct ReliquaryRuntimeHost {

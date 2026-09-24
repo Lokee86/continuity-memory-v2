@@ -1058,7 +1058,10 @@ pub use runtime_host::memory_search::{
     MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,
 };
 pub use runtime_host::status::RuntimeBackgroundStatus;
-pub use runtime_host::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
+pub use runtime_host::{
+    RelReconciliationCandidateReport, RelReconciliationReport, ReliquaryRuntimeHost,
+    ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes,
+};
 pub use search_error::SearchError;
 pub use search_model::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
@@ -1404,6 +1407,9 @@ mod runtime_host_perception_test_support;
 #[cfg(test)]
 #[path = "runtime_inference/runtime_host_perception_tests.rs"]
 mod runtime_host_perception_tests;
+#[cfg(test)]
+#[path = "runtime_inference/runtime_host_reconciliation_tests.rs"]
+mod runtime_host_reconciliation_tests;
 #[cfg(test)]
 #[path = "runtime_inference/runtime_host_route_tests.rs"]
 mod runtime_host_route_tests;

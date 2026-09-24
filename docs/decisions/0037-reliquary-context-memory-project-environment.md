@@ -84,6 +84,7 @@ Mounted siblings are not automatically ambient. Explicit owner-qualified operati
 - Activation changes semantic primacy; it does not require destroying neighboring owner execution.
 - PHY state is mounted once at the graph host rather than physically transferred between isolated per-REL hosts.
 - Project environment validation and historical repository access execute within Reliquary after the host supplies the local project mount path.
+- `ReliquaryRuntimeHost::reconcile_rel_file` owns same-owner sibling discovery, compare/reconcile/promote orchestration, conflict reporting, retired-vector detection, derived-vector rebuild, and post-rebuild reopen validation. Warlock may trigger the operation around mount transitions and retain a presentation projection of its transient report.
 - Warlock may quiesce interactive provider work around mount transitions, but Reliquary owns internal semantic worker behavior and shutdown correctness.
 
 ### Compatibility and migration
