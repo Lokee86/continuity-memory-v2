@@ -58,6 +58,14 @@ mod project_environment;
 mod reconciliation;
 #[path = "runtime_host_routes.rs"]
 mod routes;
+#[path = "runtime_host_semantic_access.rs"]
+mod semantic_access;
+#[path = "runtime_host_semantic_echo.rs"]
+mod semantic_echo;
+#[path = "runtime_host_semantic_knowledge.rs"]
+mod semantic_knowledge;
+#[path = "runtime_host_semantic_provenance.rs"]
+mod semantic_provenance;
 #[path = "runtime_host_session.rs"]
 mod session;
 #[path = "runtime_host_status.rs"]
@@ -101,9 +109,16 @@ pub(super) struct RuntimeMemoryProfiles {
     pub(super) user: Option<CompatibilityProfileId>,
 }
 
+pub use archive_search::{
+    DEFAULT_ARCHIVE_SEARCH_RESULTS, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
+};
+pub use knowledge::RuntimeKnowledgeState;
 use owner_execution::{OwnerExecution, Shared};
 pub use reconciliation::{RelReconciliationCandidateReport, RelReconciliationReport};
 pub use routes::ReliquaryRuntimeRoutes;
+pub use semantic_access::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind};
+pub use semantic_echo::{RuntimeEchoSource, RuntimeEchoTurn};
+pub use semantic_provenance::RuntimeKnowledgeProvenanceResolution;
 
 pub struct ReliquaryRuntimeHost {
     executions: BTreeMap<String, OwnerExecution>,

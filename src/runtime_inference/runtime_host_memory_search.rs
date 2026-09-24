@@ -1,4 +1,7 @@
-use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
+use super::{
+    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation,
+    semantic_access::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind},
+};
 use crate::compatibility_profile_probe::profile_from_endpoint;
 use crate::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, Memory, MemoryId,
@@ -8,6 +11,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub const MAX_MEMORY_SEARCH_QUERY_BYTES: usize = 512;
+pub const DEFAULT_MEMORY_SEARCH_RESULTS: usize = 5;
+pub const MAX_MEMORY_SEARCH_RESULTS: usize = 10;
+pub const DEFAULT_MEMORY_SEARCH_DEPTH: usize = 3;
+pub const MAX_MEMORY_SEARCH_DEPTH: usize = 8;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MemorySearchItem {
@@ -28,7 +35,115 @@ pub struct MemorySearchResult {
     pub phylactery: Option<MemorySearchLane>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct VisibleMemorySearchOwner {
+    pub owner: RuntimeSemanticOwner,
+    pub lane: Option<MemorySearchLane>,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct VisibleMemorySearchResult {
+    pub owners: Vec<VisibleMemorySearchOwner>,
+    pub traversal_depth: usize,
+}
+
 impl ReliquaryRuntimeHost {
+    pub fn search_visible_memories(
+        &self,
+        query: &str,
+        limit: usize,
+        depth: usize,
+    ) -> Result<VisibleMemorySearchResult, ReliquaryRuntimeHostError> {
+        let query = query.trim();
+        if query.is_empty() || query.len() > MAX_MEMORY_SEARCH_QUERY_BYTES {
+            return Err(operation(format!(
+                "memory search requires a query of at most {MAX_MEMORY_SEARCH_QUERY_BYTES} bytes"
+            )));
+        }
+        let limit = if limit == 0 {
+            DEFAULT_MEMORY_SEARCH_RESULTS
+        } else {
+            limit
+        };
+        if !(1..=MAX_MEMORY_SEARCH_RESULTS).contains(&limit) {
+            return Err(operation(format!(
+                "memory search limit must be between 1 and {MAX_MEMORY_SEARCH_RESULTS}"
+            )));
+        }
+        if !(1..=MAX_MEMORY_SEARCH_DEPTH).contains(&depth) {
+            return Err(operation(format!(
+                "memory search depth must be between 1 and {MAX_MEMORY_SEARCH_DEPTH}"
+            )));
+        }
+        let endpoint = self
+            .embedding_route()?
+            .ok_or_else(|| operation("memory search requires an embedding route"))?;
+        let vectors = endpoint
+            .embed(EmbeddingMode::Query, &[query.to_owned()])
+            .map_err(operation)?;
+        let query_vector = vectors
+            .into_iter()
+            .next()
+            .ok_or_else(|| operation("embedding route returned no query vector"))?;
+        let config = MemoryRetrievalConfig {
+            max_depth: depth,
+            ..MemoryRetrievalConfig::default()
+        };
+        let owners = self.visible_semantic_owners()?;
+
+        std::thread::scope(|scope| {
+            let workers = owners
+                .into_iter()
+                .map(|owner| {
+                    let query_vector = &query_vector;
+                    (
+                        owner.clone(),
+                        scope.spawn(move || match owner.kind {
+                            RuntimeSemanticOwnerKind::Reliquary => self
+                                .retrieve_reliquary_memories_for(
+                                    &owner.owner_id,
+                                    query_vector,
+                                    config,
+                                )
+                                .map(Some),
+                            RuntimeSemanticOwnerKind::Phylactery => {
+                                self.retrieve_phylactery_memories(query_vector, config)
+                            }
+                        }),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let mut results = Vec::with_capacity(workers.len());
+            for (owner, worker) in workers {
+                match worker.join() {
+                    Ok(Ok(lane)) => results.push(VisibleMemorySearchOwner {
+                        owner,
+                        lane: lane.map(|mut lane| {
+                            lane.items.truncate(limit);
+                            lane
+                        }),
+                        error: None,
+                    }),
+                    Ok(Err(error)) => results.push(VisibleMemorySearchOwner {
+                        owner,
+                        lane: None,
+                        error: Some(error.to_string()),
+                    }),
+                    Err(_) => results.push(VisibleMemorySearchOwner {
+                        owner,
+                        lane: None,
+                        error: Some("memory search worker panicked".into()),
+                    }),
+                }
+            }
+            Ok(VisibleMemorySearchResult {
+                owners: results,
+                traversal_depth: depth,
+            })
+        })
+    }
+
     pub fn retrieve_reliquary_memories(
         &self,
         query_vector: &[f32],

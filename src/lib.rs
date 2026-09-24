@@ -1067,12 +1067,17 @@ pub use relationship_model::{
     Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant, RelationshipStats,
 };
 pub use runtime_host::memory_search::{
-    MAX_MEMORY_SEARCH_QUERY_BYTES, MemorySearchItem, MemorySearchLane, MemorySearchResult,
+    DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
+    MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,
+    MemorySearchResult, VisibleMemorySearchOwner, VisibleMemorySearchResult,
 };
 pub use runtime_host::status::RuntimeBackgroundStatus;
 pub use runtime_host::{
-    RelReconciliationCandidateReport, RelReconciliationReport, ReliquaryRuntimeHost,
-    ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes,
+    DEFAULT_ARCHIVE_SEARCH_RESULTS, RelReconciliationCandidateReport, RelReconciliationReport,
+    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, RuntimeEchoSource,
+    RuntimeEchoTurn, RuntimeKnowledgeProvenanceResolution, RuntimeKnowledgeState,
+    RuntimeSemanticOwner, RuntimeSemanticOwnerKind, VisibleArchiveSearchOwner,
+    VisibleArchiveSearchResult,
 };
 pub use search_error::SearchError;
 pub use search_model::{
@@ -1425,6 +1430,9 @@ mod runtime_host_reconciliation_tests;
 #[cfg(test)]
 #[path = "runtime_inference/runtime_host_route_tests.rs"]
 mod runtime_host_route_tests;
+#[cfg(test)]
+#[path = "runtime_inference/runtime_host_semantic_access_tests.rs"]
+mod runtime_host_semantic_access_tests;
 #[cfg(test)]
 #[path = "runtime_inference/runtime_host_session_tests.rs"]
 mod runtime_host_session_tests;
