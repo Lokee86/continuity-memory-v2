@@ -9,14 +9,21 @@ impl ReliquaryRuntimeHost {
         old_kind: Option<GraphRelationKind>,
         new_kind: Option<GraphRelationKind>,
     ) -> Result<(), ReliquaryRuntimeHostError> {
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.mutate_reliquary_knowledge_relation_for(&owner_id, source, target, old_kind, new_kind)
+    }
+
+    pub fn mutate_reliquary_knowledge_relation_for(
+        &self,
+        owner_id: &str,
+        source: MemoryId,
+        target: MemoryId,
+        old_kind: Option<GraphRelationKind>,
+        new_kind: Option<GraphRelationKind>,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -28,7 +35,7 @@ impl ReliquaryRuntimeHost {
             .map_err(operation)?;
         runtime.cva.sync().map_err(operation)?;
         drop(runtime);
-        self.wake()?;
+        self.wake_owner(owner_id)?;
         Ok(())
     }
 

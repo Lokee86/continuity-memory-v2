@@ -17,14 +17,17 @@ impl ReliquaryRuntimeHost {
     pub fn read_reliquary_knowledge(
         &self,
     ) -> Result<RuntimeKnowledgeState, ReliquaryRuntimeHostError> {
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.read_reliquary_knowledge_for(&owner_id)
+    }
+
+    pub fn read_reliquary_knowledge_for(
+        &self,
+        owner_id: &str,
+    ) -> Result<RuntimeKnowledgeState, ReliquaryRuntimeHostError> {
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -85,14 +88,29 @@ impl ReliquaryRuntimeHost {
         memory_type: String,
         now_ns: i64,
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.create_reliquary_knowledge_memory_for(
+            &owner_id,
+            title,
+            content,
+            category,
+            memory_type,
+            now_ns,
+        )
+    }
+
+    pub fn create_reliquary_knowledge_memory_for(
+        &self,
+        owner_id: &str,
+        title: String,
+        content: String,
+        category: String,
+        memory_type: String,
+        now_ns: i64,
+    ) -> Result<Memory, ReliquaryRuntimeHostError> {
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -103,7 +121,7 @@ impl ReliquaryRuntimeHost {
             .map_err(operation)?;
         runtime.cva.sync().map_err(operation)?;
         drop(runtime);
-        self.wake()?;
+        self.wake_owner(owner_id)?;
         Ok(memory)
     }
 
@@ -138,14 +156,19 @@ impl ReliquaryRuntimeHost {
         community_id: CommunityId,
         name: String,
     ) -> Result<(), ReliquaryRuntimeHostError> {
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.rename_reliquary_community_for(&owner_id, community_id, name)
+    }
+
+    pub fn rename_reliquary_community_for(
+        &self,
+        owner_id: &str,
+        community_id: CommunityId,
+        name: String,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

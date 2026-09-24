@@ -6,14 +6,18 @@ impl ReliquaryRuntimeHost {
         &self,
         memory_id: MemoryId,
     ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.read_reliquary_memory_provenance_for(&owner_id, memory_id)
+    }
+
+    pub fn read_reliquary_memory_provenance_for(
+        &self,
+        owner_id: &str,
+        memory_id: MemoryId,
+    ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -23,6 +27,19 @@ impl ReliquaryRuntimeHost {
 
     pub fn resolve_external_memory_provenance(
         &self,
+        memory: Memory,
+    ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
+        let source_ref = memory.source_ref.clone().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation(
+                "Memory does not have an external source reference".into(),
+            )
+        })?;
+        self.resolve_external_memory_provenance_for(&source_ref.owner_id, memory)
+    }
+
+    pub fn resolve_external_memory_provenance_for(
+        &self,
+        owner_id: &str,
         mut memory: Memory,
     ) -> Result<MemoryProvenance, ReliquaryRuntimeHostError> {
         let source_ref = memory.source_ref.clone().ok_or_else(|| {
@@ -30,14 +47,7 @@ impl ReliquaryRuntimeHost {
                 "Memory does not have an external source reference".into(),
             )
         })?;
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

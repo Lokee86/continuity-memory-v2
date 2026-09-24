@@ -34,15 +34,20 @@ impl ReliquaryRuntimeHost {
         query_vector: &[f32],
         config: MemoryRetrievalConfig,
     ) -> Result<MemorySearchLane, ReliquaryRuntimeHostError> {
-        let profile = self.ensure_reliquary_embedding_profile()?;
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.retrieve_reliquary_memories_for(&owner_id, query_vector, config)
+    }
+
+    pub fn retrieve_reliquary_memories_for(
+        &self,
+        owner_id: &str,
+        query_vector: &[f32],
+        config: MemoryRetrievalConfig,
+    ) -> Result<MemorySearchLane, ReliquaryRuntimeHostError> {
+        let profile = self.ensure_reliquary_embedding_profile_for(owner_id)?;
+        let runtime = self.runtime_for_owner(owner_id)?;
         let mut runtime = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -88,8 +93,18 @@ impl ReliquaryRuntimeHost {
     pub(crate) fn ensure_reliquary_embedding_profile(
         &self,
     ) -> Result<crate::CompatibilityProfileId, ReliquaryRuntimeHostError> {
+        let owner_id = self.active_rel_id().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime has no active REL".into())
+        })?;
+        self.ensure_reliquary_embedding_profile_for(&owner_id)
+    }
+
+    pub(super) fn ensure_reliquary_embedding_profile_for(
+        &self,
+        owner_id: &str,
+    ) -> Result<crate::CompatibilityProfileId, ReliquaryRuntimeHostError> {
         if let Some(profile) = self
-            .active_execution()?
+            .execution_for(owner_id)?
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -98,21 +113,14 @@ impl ReliquaryRuntimeHost {
             return Ok(profile);
         }
         let candidate = self.runtime_profile_candidate()?;
-        let runtime = self
-            .active_execution()?
-            .runtime
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
-            })?;
+        let runtime = self.runtime_for_owner(owner_id)?;
         let profile = runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .cva
             .accept_runtime_compatibility_profile(candidate)
             .map_err(operation)?;
-        self.active_execution()?
+        self.execution_for(owner_id)?
             .memory_profiles
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -156,17 +164,11 @@ impl ReliquaryRuntimeHost {
     fn runtime_profile_candidate(
         &self,
     ) -> Result<crate::CompatibilityProfile, ReliquaryRuntimeHostError> {
-        let endpoint = self
-            .active_execution()?
-            .routes
-            .read()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .embedding()
-            .ok_or_else(|| {
-                ReliquaryRuntimeHostError::Operation(
-                    "memory retrieval requires an embedding route".into(),
-                )
-            })?;
+        let endpoint = self.embedding_route()?.ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation(
+                "memory retrieval requires an embedding route".into(),
+            )
+        })?;
         profile_from_endpoint(&SharedEmbeddingEndpoint(endpoint)).map_err(operation)
     }
 

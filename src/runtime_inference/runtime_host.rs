@@ -32,6 +32,10 @@ mod memory_provenance;
 pub mod memory_search;
 #[path = "runtime_host_mount.rs"]
 mod mount;
+#[path = "runtime_host_owner_access.rs"]
+mod owner_access;
+#[path = "runtime_host_owner_archive.rs"]
+mod owner_archive;
 #[path = "runtime_host_owner_execution.rs"]
 mod owner_execution;
 #[path = "runtime_host_perception.rs"]
