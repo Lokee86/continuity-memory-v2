@@ -6,7 +6,7 @@ Supersedes the Warlock-owned repository/runtime portions of [ADR 0017](0017-cva-
 
 ## Status
 
-Accepted — 2026-09-24. Runtime-host topology, REL reconciliation/recovery, and the Project Environment are now implemented in Reliquary; remaining migration phases preserve existing storage formats and public runtime compatibility.
+Accepted — 2026-09-24. Runtime-host topology, REL reconciliation/recovery, the Project Environment, and managed conversation/session lifecycle are now implemented in Reliquary; remaining migration phases preserve existing storage formats and public runtime compatibility.
 
 ## Context
 

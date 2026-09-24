@@ -1426,6 +1426,9 @@ mod runtime_host_reconciliation_tests;
 #[path = "runtime_inference/runtime_host_route_tests.rs"]
 mod runtime_host_route_tests;
 #[cfg(test)]
+#[path = "runtime_inference/runtime_host_session_tests.rs"]
+mod runtime_host_session_tests;
+#[cfg(test)]
 #[path = "runtime_inference/runtime_host_test_support.rs"]
 mod runtime_host_test_support;
 #[cfg(test)]

@@ -7,6 +7,12 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(super) struct ManagedSessionState {
+    pub(super) active_session_id: Option<String>,
+    pub(super) reopened_session_pending: bool,
+}
+
 pub(super) struct Shared {
     pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
@@ -39,6 +45,7 @@ pub(super) struct OwnerExecution {
     pub(super) insomnia_enabled: Arc<AtomicBool>,
     pub(super) insomnia_backpressure_until_ns: Arc<AtomicI64>,
     pub(super) episode_policy: EpisodePolicy,
+    pub(super) managed_session: Mutex<ManagedSessionState>,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
 
@@ -108,6 +115,7 @@ impl OwnerExecution {
             insomnia_enabled,
             insomnia_backpressure_until_ns,
             episode_policy,
+            managed_session: Mutex::new(ManagedSessionState::default()),
             workers,
         }
     }

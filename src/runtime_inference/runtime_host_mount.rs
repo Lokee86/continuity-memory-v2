@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering;
 impl ReliquaryRuntimeHost {
     pub fn mount_rel(
         &mut self,
-        runtime: InteractionRuntime,
+        mut runtime: InteractionRuntime,
     ) -> Result<String, ReliquaryRuntimeHostError> {
         let owner_id = runtime.cva().owner_id().ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation("mounted REL requires a durable owner ID".into())
@@ -22,6 +22,22 @@ impl ReliquaryRuntimeHost {
         }
         let metadata = runtime.cva().rel_metadata();
         self.validate_candidate_topology(&owner_id, &metadata.dependencies)?;
+        let active_ids = runtime
+            .conversation_summaries()
+            .into_iter()
+            .filter(|summary| summary.active)
+            .map(|summary| summary.conversation_id)
+            .collect::<Vec<_>>();
+        let mut cleared = false;
+        for conversation_id in active_ids {
+            cleared |= runtime
+                .cva
+                .set_conversation_active(&conversation_id, false)
+                .map_err(operation)?;
+        }
+        if cleared {
+            runtime.cva.sync().map_err(operation)?;
+        }
 
         let execution = OwnerExecution::start(
             runtime,
@@ -37,6 +53,7 @@ impl ReliquaryRuntimeHost {
     }
 
     pub fn unmount_rel(&mut self, owner_id: &str) -> Result<crate::Cva, ReliquaryRuntimeHostError> {
+        self.close_managed_session_for(owner_id)?;
         let key = owner_key(Some(owner_id));
         if self.active_key.as_deref() == Some(key.as_str()) {
             self.active_key = None;

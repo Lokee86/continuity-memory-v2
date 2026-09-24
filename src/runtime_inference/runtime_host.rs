@@ -58,6 +58,8 @@ mod project_environment;
 mod reconciliation;
 #[path = "runtime_host_routes.rs"]
 mod routes;
+#[path = "runtime_host_session.rs"]
+mod session;
 #[path = "runtime_host_status.rs"]
 pub mod status;
 #[path = "runtime_host_topology.rs"]
