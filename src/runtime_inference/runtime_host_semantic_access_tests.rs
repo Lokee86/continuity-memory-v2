@@ -1,14 +1,90 @@
 use crate::runtime_host_test_support::{one_worker, test_path};
 use crate::{
-    Cva, EchoEvent, EchoEventKind, EpisodePolicy, InteractionRuntime, Phylactery,
-    ReliquaryRuntimeHost, ReliquaryRuntimeRoutes, RuntimeKnowledgeProvenanceResolution,
-    RuntimeSemanticOwnerKind,
+    Cva, EchoEvent, EchoEventKind, EmbeddingEndpoint, EpisodePolicy, InteractionRuntime,
+    MemoryDraft, Phylactery, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    RuntimeKnowledgeProvenanceResolution, RuntimeSemanticOwnerKind, SimulatedEmbeddingEndpoint,
+    VectorNormalization,
 };
+use std::sync::Arc;
 
 fn project(name: &str) -> (Cva, String) {
     let cva = Cva::create_project(test_path(name)).unwrap();
     let owner_id = cva.owner_id().unwrap();
     (cva, owner_id)
+}
+
+fn memory_draft(title: &str, memory_type: &str) -> MemoryDraft {
+    MemoryDraft {
+        category: "fact".into(),
+        memory_type: memory_type.into(),
+        authority_kind: "direct".into(),
+        title: title.into(),
+        content: format!("{title} memory"),
+        scope: "private".into(),
+        lifecycle_state: "knowledge".into(),
+        archived: false,
+        superseded_by: None,
+        parent_id: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_time_ns: Some(1),
+        temporal_status: "unknown".into(),
+        mutation_id: format!("semantic-{title}"),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+    }
+}
+
+fn seed_rel_memory(mut cva: Cva, title: &str, endpoint: &SimulatedEmbeddingEndpoint) -> Cva {
+    cva.publish_memory(None, 0, memory_draft(title, "project"))
+        .unwrap();
+    let profile = cva.establish_compatibility_profile(endpoint).unwrap();
+    cva.build_missing_memory_vectors(profile.id, endpoint)
+        .unwrap();
+    cva
+}
+
+fn seed_phy_memory(
+    mut phylactery: Phylactery,
+    title: &str,
+    endpoint: &SimulatedEmbeddingEndpoint,
+) -> Phylactery {
+    phylactery
+        .publish_memory(None, 0, memory_draft(title, "user"))
+        .unwrap();
+    let profile = phylactery
+        .establish_compatibility_profile(endpoint)
+        .unwrap();
+    phylactery
+        .build_missing_memory_vectors(profile.id, endpoint)
+        .unwrap();
+    phylactery
+}
+
+fn seed_archive(mut cva: Cva, token: &str) -> Cva {
+    cva.append_node(
+        "u1".into(),
+        "history".into(),
+        None,
+        "user".into(),
+        1,
+        &format!("historical archive {token}"),
+    )
+    .unwrap();
+    cva.append_node(
+        "a1".into(),
+        "history".into(),
+        Some("u1".into()),
+        "assistant".into(),
+        2,
+        "acknowledged",
+    )
+    .unwrap();
+    cva
 }
 
 #[test]
@@ -62,6 +138,133 @@ fn visible_semantic_owners_follow_dependency_closure_plus_phylactery() {
         .unwrap_err()
         .to_string();
     assert!(error.contains("not visible from the active REL"));
+}
+
+#[test]
+fn visible_memory_search_uses_dependency_closure_plus_phylactery() {
+    let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 77);
+    let (root, root_id) = project("memory-root.prj.rel");
+    let root = seed_rel_memory(root, "root-memory", &endpoint);
+
+    let (mut leaf, leaf_id) = project("memory-leaf.prj.rel");
+    leaf.set_rel_metadata(None, vec![root_id.clone()]).unwrap();
+    let leaf = seed_rel_memory(leaf, "leaf-memory", &endpoint);
+
+    let (sibling, sibling_id) = project("memory-sibling.prj.rel");
+    let sibling = seed_rel_memory(sibling, "sibling-memory", &endpoint);
+
+    let phylactery = Phylactery::create(test_path("memory-user.phy")).unwrap();
+    let phy_id = phylactery.owner_id().unwrap();
+    let phylactery = seed_phy_memory(phylactery, "user-memory", &endpoint);
+
+    let embedding: Arc<dyn EmbeddingEndpoint + Send + Sync> = Arc::new(endpoint);
+    let mut host = ReliquaryRuntimeHost::new(
+        ReliquaryRuntimeRoutes::new(None, None, None, None, Some(embedding)),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+    host.mount_rel(InteractionRuntime::new(sibling)).unwrap();
+    host.mount_rel(InteractionRuntime::new(root)).unwrap();
+    host.mount_rel(InteractionRuntime::new(leaf)).unwrap();
+    host.attach_phylactery(phylactery).unwrap();
+    host.set_active_rel(&leaf_id).unwrap();
+
+    let result = host.search_visible_memories("memory", 5, 3).unwrap();
+    assert_eq!(
+        result
+            .owners
+            .iter()
+            .map(|owner| owner.owner.owner_id.as_str())
+            .collect::<Vec<_>>(),
+        vec![root_id.as_str(), leaf_id.as_str(), phy_id.as_str()]
+    );
+    assert!(
+        result
+            .owners
+            .iter()
+            .all(|owner| owner.error.is_none() && owner.lane.is_some())
+    );
+    assert!(
+        !result
+            .owners
+            .iter()
+            .any(|owner| owner.owner.owner_id == sibling_id)
+    );
+}
+
+#[test]
+fn visible_archive_search_uses_dependency_closure_and_excludes_phylactery() {
+    let (root, root_id) = project("archive-root.prj.rel");
+    let root = seed_archive(root, "root");
+
+    let (mut leaf, leaf_id) = project("archive-leaf.prj.rel");
+    leaf.set_rel_metadata(None, vec![root_id.clone()]).unwrap();
+    let leaf = seed_archive(leaf, "leaf");
+
+    let (sibling, sibling_id) = project("archive-sibling.prj.rel");
+    let sibling = seed_archive(sibling, "sibling");
+
+    let phylactery = Phylactery::create(test_path("archive-user.phy")).unwrap();
+    let phy_id = phylactery.owner_id().unwrap();
+
+    let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 91);
+    let embedding: Arc<dyn EmbeddingEndpoint + Send + Sync> = Arc::new(endpoint);
+    let mut host = ReliquaryRuntimeHost::new(
+        ReliquaryRuntimeRoutes::new(None, None, None, None, Some(embedding)),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+    host.mount_rel(InteractionRuntime::new(sibling)).unwrap();
+    host.mount_rel(InteractionRuntime::new(root)).unwrap();
+    host.mount_rel(InteractionRuntime::new(leaf)).unwrap();
+    host.attach_phylactery(phylactery).unwrap();
+    host.set_active_rel(&leaf_id).unwrap();
+
+    let result = host.search_visible_archive("archive", 5).unwrap();
+    assert_eq!(
+        result
+            .owners
+            .iter()
+            .map(|owner| owner.owner.owner_id.as_str())
+            .collect::<Vec<_>>(),
+        vec![root_id.as_str(), leaf_id.as_str()]
+    );
+    assert!(
+        !result
+            .owners
+            .iter()
+            .any(|owner| owner.owner.owner_id == sibling_id || owner.owner.owner_id == phy_id)
+    );
+    assert!(
+        result.owners.iter().all(|owner| owner.error.is_none()),
+        "archive owner errors: {:?}",
+        result
+            .owners
+            .iter()
+            .map(|owner| (&owner.owner.owner_id, &owner.error))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn visible_semantic_searches_validate_their_owned_bounds() {
+    let host = ReliquaryRuntimeHost::new(
+        ReliquaryRuntimeRoutes::default(),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+
+    assert!(host.search_visible_memories("", 5, 3).is_err());
+    assert!(
+        host.search_visible_memories(&"x".repeat(513), 5, 3)
+            .is_err()
+    );
+    assert!(host.search_visible_memories("valid", 11, 3).is_err());
+    assert!(host.search_visible_memories("valid", 5, 0).is_err());
+
+    assert!(host.search_visible_archive("", 5).is_err());
+    assert!(host.search_visible_archive(&"x".repeat(513), 5).is_err());
+    assert!(host.search_visible_archive("valid", 11).is_err());
 }
 
 #[test]
