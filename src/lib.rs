@@ -171,6 +171,8 @@ pub mod container;
 mod container_error;
 #[path = "container/container_version.rs"]
 mod container_version;
+#[path = "context_engine.rs"]
+mod context_engine;
 #[path = "archive/conversation_compaction_allocator.rs"]
 mod conversation_compaction_allocator;
 #[path = "archive/conversation_compaction_codec.rs"]
@@ -851,6 +853,16 @@ pub use chronos_model::{
 };
 pub use chronos_resolution_model::{
     TemporalAssessment, TemporalResolution, TemporalResolutionStatus,
+};
+pub use context_engine::{
+    COMPACTED_CONTEXT_INSTRUCTIONS, COMPACTION_INPUT_PERCENT, COMPACTION_TARGET_OF_TRIGGER_PERCENT,
+    CompactionBudget, CompactionCheckpoint, CompactionError, CompactionPlan, ContextEvidence,
+    ContextMessage, ContextRequest, ContextRole, ContextTokenCounter, ContextTurn, ContextView,
+    DEFAULT_COMPACTION_TRIGGER_PERCENT, EvidenceKind, MAX_SUMMARY_TOKENS, MIN_RAW_TAIL_TURNS,
+    RAW_TAIL_OF_TARGET_PERCENT, SUMMARY_OF_TARGET_PERCENT, budget_satisfied, checkpoint_applies,
+    compaction_budget, compaction_needed, normalize_summary, plan_compaction,
+    plan_session_compaction, render_assistant_content, render_assistant_content_from_echo,
+    request_context, request_messages,
 };
 pub use cva_error::CvaError;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
